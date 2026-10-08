@@ -4,7 +4,7 @@ const {chromium,devices}=require('playwright'),path=require('path'),OUT=process.
  const save=cl=>({v:12,worldV:12,cls:cl,seed:4242,clock:20,day:9,lvl:15,base:4,bow:5,wood:2400,stone:800,iron:40,shards:60,keys:2,potions:2,up:{axe:8,pick:4,bag:4,boots:3,hp:6},meta:{ng:2,tutDone:1,relics:{hammer:2,frost:1,totem:1,mirror:1,storm:1,twin:2,boots:1,phoenix:1,wolf:2,sack:1,gather:2,steel:1,heart:1,seek:1,keyr:1},wins:2,relicPend:0,comp31:1,relicFix32:1}});
  for(const [name,opt] of [['1920',{viewport:{width:1920,height:1080}}],['phone',{...devices['iPhone 13']}],['1280',{viewport:{width:1280,height:800}}]]){
   const c=await b.newContext(opt);const p=await c.newPage();p.on('pageerror',e=>{errs++;console.log('ERR',name,e.message)});
-  await p.addInitScript(s=>localStorage.setItem('lumber-camp-save',JSON.stringify(s)),save(name==='phone'?'archer':'warrior'));
+  await p.addInitScript(s=>localStorage.setItem('lumber-camp2-save',JSON.stringify(s)),save(name==='phone'?'archer':'warrior'));
   await p.goto('file://'+path.resolve(__dirname,'../../../index.html')+'#dev');await p.waitForTimeout(1300);
   await p.screenshot({path:path.join(OUT,`v49_${name}.png`)});
   if(name==='1280'){

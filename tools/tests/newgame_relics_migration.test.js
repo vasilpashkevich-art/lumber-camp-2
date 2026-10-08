@@ -17,5 +17,5 @@ const z1=g.zombies().find(z=>!z.boss&&z.tier===1);console.log('tier1 hp with ng'
 g.S.meta.relics.fort=1;g.S.meta.relics.hoard=2;g.S.meta.relics.flask=1;g.newGame(true);
 console.log('relic start: base',g.S.base,'fence',g.S.fence.lvl,'wood',g.S.wood,'potions',g.S.potions);
 // save/migrate v8 -> v9
-const old={v:8,wood:100,day:5,p:{x:2200,y:2240,hp:10},seed:4242};store['lumber-camp-save']=JSON.stringify(old);boot();frames(2);
+const old={v:8,wood:100,day:5,p:{x:2200,y:2240,hp:10},seed:4242};store['lumber-camp2-save']=JSON.stringify(old);boot();frames(2);
 console.log('migrated v',G_.S.v,'inv',G_.S.inv.length,'meta',JSON.stringify(G_.S.meta),'seed',G_.S.seed);

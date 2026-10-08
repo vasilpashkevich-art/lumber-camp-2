@@ -1,6 +1,6 @@
 const {chromium}=require('playwright');
 (async()=>{const b=await chromium.launch();const c=await b.newContext({viewport:{width:1200,height:800}});const p=await c.newPage();p.on('pageerror',e=>console.log('ERR',e.message));
- await p.addInitScript(()=>{if(!localStorage.getItem('xs')){localStorage.setItem('xs',1);localStorage.setItem('lumber-camp-save',JSON.stringify({v:11,seed:4242,day:3,merchant:3,clock:2*195+20,lastSeen:Date.now()-5000,wood:500,stone:100,p:{x:2200+92,y:2200+10,hp:20},meta:{ng:0,relics:{},wins:0,relicPend:0,comp31:1,relicFix32:1}}))}localStorage.setItem('lumber-camp-q','1')});
+ await p.addInitScript(()=>{if(!localStorage.getItem('xs')){localStorage.setItem('xs',1);localStorage.setItem('lumber-camp2-save',JSON.stringify({v:11,seed:4242,day:3,merchant:3,clock:2*195+20,lastSeen:Date.now()-5000,wood:500,stone:100,p:{x:2200+92,y:2200+10,hp:20},meta:{ng:0,relics:{},wins:0,relicPend:0,comp31:1,relicFix32:1}}))}localStorage.setItem('lumber-camp2-q','1')});
  await p.goto('file://'+require('path').resolve(__dirname,'../../../index.html'));await p.waitForTimeout(900);
  console.log('button:',await p.evaluate(()=>document.getElementById('act').textContent),'| prompt:',await p.evaluate(()=>document.getElementById('prompt').hidden?'-':document.getElementById('prompt').textContent));
  await p.screenshot({path:require('path').resolve(process.env.SHOTS||'/tmp','m_near.png'),clip:{x:400,y:200,width:500,height:400}});

@@ -2,7 +2,7 @@
 const {chromium}=require('playwright'),path=require('path'),OUT=process.env.SHOTS||'/tmp';
 (async()=>{const b=await chromium.launch();
  const c=await b.newContext({viewport:{width:1280,height:800}});const p=await c.newPage();p.on('pageerror',e=>console.log('ERR',e.message));
- await p.addInitScript(()=>{if(!localStorage.getItem('xs')){localStorage.setItem('xs',1);localStorage.setItem('lumber-camp-save',JSON.stringify({v:12,worldV:12,cls:'mage',seed:4242,clock:20,lastSeen:Date.now()-5000,up:{axe:9,pick:1,bag:1,boots:2,hp:30},meta:{ng:0,relics:{},wins:0,relicPend:0,comp31:1,relicFix32:1}}))}localStorage.setItem('lumber-camp-q','1')});
+ await p.addInitScript(()=>{if(!localStorage.getItem('xs')){localStorage.setItem('xs',1);localStorage.setItem('lumber-camp2-save',JSON.stringify({v:12,worldV:12,cls:'mage',seed:4242,clock:20,lastSeen:Date.now()-5000,up:{axe:9,pick:1,bag:1,boots:2,hp:30},meta:{ng:0,relics:{},wins:0,relicPend:0,comp31:1,relicFix32:1}}))}localStorage.setItem('lumber-camp2-q','1')});
  await p.goto('file://'+path.resolve(__dirname,'../../../index.html')+'#dev');await p.waitForTimeout(1200);
  const setup=async(fn,arg)=>{await p.evaluate(fn,arg);await p.waitForTimeout(700)};
  // рядовые: 4 вида × 7 ярусов

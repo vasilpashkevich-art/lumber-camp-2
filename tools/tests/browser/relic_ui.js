@@ -1,6 +1,6 @@
 const {chromium}=require('playwright');
 (async()=>{const b=await chromium.launch();const c=await b.newContext({viewport:{width:1200,height:800}});const p=await c.newPage();p.on('pageerror',e=>console.log('ERR',e.message));
- await p.addInitScript(()=>{if(!localStorage.getItem('xs')){localStorage.setItem('xs',1);localStorage.setItem('lumber-camp-save',JSON.stringify({v:11,seed:4242,clock:20,lastSeen:Date.now()-5000,up:{axe:8,pick:1,bag:1,boots:1,hp:3},bow:4,cls:'archer',meta:{ng:1,relics:{gather:1,steel:2,hammer:1,frost:1,totem:1,mirror:1,wolf:1,storm:1},wins:1,relicPend:0,comp31:1,relicFix32:0}}))}localStorage.setItem('lumber-camp-q','1')});
+ await p.addInitScript(()=>{if(!localStorage.getItem('xs')){localStorage.setItem('xs',1);localStorage.setItem('lumber-camp2-save',JSON.stringify({v:11,seed:4242,clock:20,lastSeen:Date.now()-5000,up:{axe:8,pick:1,bag:1,boots:1,hp:3},bow:4,cls:'archer',meta:{ng:1,relics:{gather:1,steel:2,hammer:1,frost:1,totem:1,mirror:1,wolf:1,storm:1},wins:1,relicPend:0,comp31:1,relicFix32:0}}))}localStorage.setItem('lumber-camp2-q','1')});
  await p.goto('file://'+require('path').resolve(__dirname,'../../../index.html'));await p.waitForTimeout(1200);
  await p.screenshot({path:require('path').resolve(process.env.SHOTS||'/tmp','r_pick.png')});
  await p.click('#perkList button');await p.waitForTimeout(400);

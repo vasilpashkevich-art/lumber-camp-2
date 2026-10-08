@@ -3,7 +3,7 @@ const {chromium}=require('playwright'),path=require('path'),OUT=process.env.SHOT
 (async()=>{const b=await chromium.launch();
  for(const [ng,seed] of [[0,4242],[2,31337]]){
   const c=await b.newContext({viewport:{width:1280,height:800}});const p=await c.newPage();p.on('pageerror',e=>console.log('ERR',e.message));
-  await p.addInitScript(([ng,seed])=>{localStorage.setItem('lumber-camp-save',JSON.stringify({v:12,worldV:12,cls:'mage',seed,clock:20,lastSeen:Date.now(),day:9,up:{axe:20,pick:1,bag:1,boots:2,hp:30},meta:{ng,relics:{},wins:ng,relicPend:0,comp31:1,relicFix32:1}}));localStorage.setItem('lumber-camp-q','1')},[ng,seed]);
+  await p.addInitScript(([ng,seed])=>{localStorage.setItem('lumber-camp2-save',JSON.stringify({v:12,worldV:12,cls:'mage',seed,clock:20,lastSeen:Date.now(),day:9,up:{axe:20,pick:1,bag:1,boots:2,hp:30},meta:{ng,relics:{},wins:ng,relicPend:0,comp31:1,relicFix32:1}}));localStorage.setItem('lumber-camp2-q','1')},[ng,seed]);
   await p.goto('file://'+path.resolve(__dirname,'../../../index.html')+'#dev');await p.waitForTimeout(1200);
   const L=await p.evaluate(()=>__G.lairs().map(l=>l.zone));
   for(const zid of L){await p.evaluate(zid=>{const G=__G;G.S.p.hp=1e9;const l=G.lairs().find(l=>l.zone===zid);G.P.x=l.x;G.P.y=l.y+200;const z=G.zombies().find(z=>z.boss===zid);window.BZ=z},zid);await p.waitForTimeout(500);

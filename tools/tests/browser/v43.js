@@ -5,7 +5,7 @@ const base=(lvl,extra)=>Object.assign({v:12,worldV:12,cls:'warrior',seed:4242,cl
   up:{axe:9,pick:1,bag:1,boots:2,hp:30},meta:{ng:0,relics:{},wins:0,relicPend:0,comp31:1,relicFix32:1}},extra||{});
 (async()=>{const b=await chromium.launch();
  const shot=async(name,save,fn,clip)=>{const c=await b.newContext({viewport:{width:1280,height:800}});const p=await c.newPage();p.on('pageerror',e=>console.log('ERR',name,e.message));
-   await p.addInitScript(s=>{localStorage.setItem('lumber-camp-save',JSON.stringify(s));localStorage.setItem('lumber-camp-q','1')},save);
+   await p.addInitScript(s=>{localStorage.setItem('lumber-camp2-save',JSON.stringify(s));localStorage.setItem('lumber-camp2-q','1')},save);
    await p.goto('file://'+path.resolve(__dirname,'../../../index.html')+'#dev');await p.waitForTimeout(900);
    await p.evaluate(()=>{for(const id of ['perks','dawn'])document.getElementById(id)&&(document.getElementById(id).hidden=true)});
    if(fn)await p.evaluate(fn);await p.waitForTimeout(600);await p.screenshot({path:path.join(OUT,name+'.png'),clip});await c.close()};

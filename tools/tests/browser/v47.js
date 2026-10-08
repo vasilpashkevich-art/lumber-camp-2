@@ -2,7 +2,7 @@
 const {chromium}=require('playwright'),path=require('path'),OUT=process.env.SHOTS||'/tmp';
 (async()=>{const b=await chromium.launch();
  const run=async(name,save,fn)=>{const c=await b.newContext({viewport:{width:1280,height:800}});const p=await c.newPage();p.on('pageerror',e=>console.log('ERR',name,e.message));
-  await p.addInitScript(s=>{localStorage.setItem('lumber-camp-save',JSON.stringify(Object.assign({v:12,worldV:12,seed:4242,lastSeen:Date.now()},s)))},save);
+  await p.addInitScript(s=>{localStorage.setItem('lumber-camp2-save',JSON.stringify(Object.assign({v:12,worldV:12,seed:4242,lastSeen:Date.now()},s)))},save);
   await p.goto('file://'+path.resolve(__dirname,'../../../index.html')+'#dev');await p.waitForTimeout(1200);await fn(p);await c.close()};
  // 1. новая игра: старец с «!», строка обучения
  await run('new',{cls:'warrior',clock:20},async p=>{

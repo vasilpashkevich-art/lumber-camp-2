@@ -7,7 +7,7 @@ let bad=0,errs=0;
 (async()=>{const b=await chromium.launch();
  for(const cl of ['warrior','mage','archer']){
   const c=await b.newContext({viewport:{width:1280,height:800}});const p=await c.newPage();p.on('pageerror',e=>{errs++;console.log('ERR',cl,e.message)});
-  await p.addInitScript(cl=>{localStorage.setItem('lumber-camp-save',JSON.stringify({v:12,worldV:12,cls:cl,seed:4242,clock:20,lastSeen:Date.now(),day:6,lvl:12,base:5,bow:6,forge:true,wood:90000,stone:90000,iron:500,shards:500,keys:3,potions:2,potAtk:2,
+  await p.addInitScript(cl=>{localStorage.setItem('lumber-camp2-save',JSON.stringify({v:12,worldV:12,cls:cl,seed:4242,clock:20,lastSeen:Date.now(),day:6,lvl:12,base:5,bow:6,forge:true,wood:90000,stone:90000,iron:500,shards:500,keys:3,potions:2,potAtk:2,
     up:{axe:9,pick:5,bag:4,boots:3,hp:8},fence:{lvl:3,hp:60},towers:[2,1,1,0,0,0],meta:{ng:0,tutDone:1,relics:{hammer:2,frost:1,totem:1,mirror:1,storm:1,twin:2,boots:1,phoenix:1,wolf:2,sack:1,gather:2,steel:1},wins:1,relicPend:0,comp31:1,relicFix32:1},stats:{chopped:300,mined:80,kills:200,nights:5}}))},cl);
   await p.goto('file://'+path.resolve(__dirname,'../../../index.html')+'#dev');await p.waitForTimeout(1300);
   const texts=[];const grab=async(src)=>{texts.push([src,await p.evaluate(()=>document.body.innerText)])};

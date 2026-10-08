@@ -16,5 +16,5 @@ const st=g.specialTarget();console.log('at chest target',st&&st.lbl);key('KeyE',
 console.log('opened',D.chest.open,'exit',!!D.exit);
 walkTo(D.exit.x,D.exit.y);const st2=g.specialTarget();console.log('exit target',st2&&st2.lbl);key('KeyE',true);frames(2);key('KeyE',false);
 console.log('left dungeon',!g.DG);
-store['lumber-camp-save']=JSON.stringify({v:9,seed:4242,keys:0,crypts:{c2:4},p:{x:2200,y:2240,hp:10}});boot();frames(2);
+store['lumber-camp2-save']=JSON.stringify({v:9,seed:4242,keys:0,crypts:{c2:4},p:{x:2200,y:2240,hp:10}});boot();frames(2);
 console.log('refund keys',G_.S.keys,'crypts',JSON.stringify(G_.S.crypts),'v',G_.S.v);

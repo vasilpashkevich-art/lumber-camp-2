@@ -2,7 +2,7 @@
 const {chromium}=require('playwright'),path=require('path'),OUT=process.env.SHOTS||'/tmp';
 (async()=>{const b=await chromium.launch();
  const c=await b.newContext({viewport:{width:1280,height:800}});const p=await c.newPage();p.on('pageerror',e=>console.log('ERR',e.message));
- await p.addInitScript(()=>{if(!localStorage.getItem('xs')){localStorage.setItem('xs',1);localStorage.setItem('lumber-camp-save',JSON.stringify({v:12,worldV:12,seed:4242,clock:20,lastSeen:Date.now()-5000,bow:7,weapon:'axe',base:6,fence:{lvl:10,hp:2000},towers:[3,3,2,2,1,1],houses:6,jobs:{wood:4,stone:2,guard:6},def:{moat:3,traps:3,tu:Array(20).fill(12),ball:[4,2],bowl:[3,2,1,1],guard:4,shop:2},up:{axe:9,pick:1,bag:1,boots:2,hp:5},meta:{ng:1,relics:{wolf:1},wins:1,relicPend:0,comp31:1,relicFix32:1}}))}localStorage.setItem('lumber-camp-q','1')});
+ await p.addInitScript(()=>{if(!localStorage.getItem('xs')){localStorage.setItem('xs',1);localStorage.setItem('lumber-camp2-save',JSON.stringify({v:12,worldV:12,seed:4242,clock:20,lastSeen:Date.now()-5000,bow:7,weapon:'axe',base:6,fence:{lvl:10,hp:2000},towers:[3,3,2,2,1,1],houses:6,jobs:{wood:4,stone:2,guard:6},def:{moat:3,traps:3,tu:Array(20).fill(12),ball:[4,2],bowl:[3,2,1,1],guard:4,shop:2},up:{axe:9,pick:1,bag:1,boots:2,hp:5},meta:{ng:1,relics:{wolf:1},wins:1,relicPend:0,comp31:1,relicFix32:1}}))}localStorage.setItem('lumber-camp2-q','1')});
  await p.goto('file://'+path.resolve(__dirname,'../../../index.html')+'#dev');await p.waitForTimeout(1200);
  await p.screenshot({path:path.join(OUT,'v41_pick.png')});
  // лагерь ночью

@@ -1,4 +1,4 @@
-<title>Лагерь лесоруба</title>
+<title>Лагерь лесоруба II</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Russo+One&family=Rubik:wght@400;500;700&display=swap">
 <style>
@@ -558,7 +558,7 @@ function defAct(k,arg){const D=S.def,b=S.base;
   return false}
 
 const moundHp   = z => Math.round(25*z**1.4);
-const SAVE_KEY = 'lumber-camp-save';
+const SAVE_KEY = 'lumber-camp2-save';
 // Ресурсы: новые материалы добавляются сюда со своей иконкой
 const ICONS = {heart:'<svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 14.2S2.2 10.7 2.2 6.6C2.2 4.4 3.8 2.9 5.6 2.9c1 0 1.9.5 2.4 1.4.5-.9 1.4-1.4 2.4-1.4 1.8 0 3.4 1.5 3.4 3.7 0 4.1-5.8 7.6-5.8 7.6z" fill="#cf4b3f"/><path d="M4.6 5.2c.4-.8 1.1-1 1.6-1" stroke="#f3a097" stroke-width="1.1" fill="none" stroke-linecap="round"/></svg>', bag:'<svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><path d="M5.6 5.4V4.2a2.4 2.4 0 0 1 4.8 0v1.2" stroke="#c9a46a" stroke-width="1.4" fill="none"/><rect x="2.4" y="5.2" width="11.2" height="9" rx="2.6" fill="#6b4a2c"/><rect x="5.2" y="8.2" width="5.6" height="2.2" rx="1" fill="#e98b3d"/></svg>', potion:'<svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><rect x="6.4" y="1.5" width="3.2" height="3" rx=".6" fill="#d8d2c0"/><path d="M6.6 4.4h2.8v1.8a4.6 4.6 0 1 1-2.8 0z" fill="#cf4b3f"/><circle cx="6.6" cy="9.4" r="1" fill="#f3a097"/></svg>'};
 const RES = {iron:{name:'Железо', icon:'<svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><path d="M2 10.5l2.2-4.6h7.6L14 10.5z" fill="#7d8592"/><path d="M4.2 5.9h7.6l-1.1-2.2H5.3z" fill="#a9b2bf"/><path d="M2 10.5h12v2.3H2z" fill="#5a616c"/></svg>'}, shard:{name:'Осколки', icon:'<svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.5l4.5 5L8 14.5 3.5 6.5z" fill="#b47ae6"/><path d="M8 1.5l4.5 5H3.5z" fill="#d4a8f5"/></svg>'}, key:{name:'Ключи от склепов', icon:'<svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><circle cx="5" cy="8" r="3.2" fill="none" stroke="#f4c766" stroke-width="1.8"/><path d="M8 8h6.5M12 8v2.5M14 8v2" stroke="#f4c766" stroke-width="1.8" fill="none"/></svg>'}, wood:{name:'Древесина', icon:'<svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><rect x="1" y="8.6" width="11.5" height="5.4" rx="2.7" fill="#8d6540"/><ellipse cx="12.4" cy="11.3" rx="2.3" ry="2.7" fill="#e2b46a"/><ellipse cx="12.4" cy="11.3" rx="1" ry="1.2" fill="#a8763f"/><rect x="2.8" y="2.6" width="10.6" height="5.4" rx="2.7" fill="#7b5634"/><ellipse cx="13.3" cy="5.3" rx="2.3" ry="2.7" fill="#e2b46a"/><ellipse cx="13.3" cy="5.3" rx="1" ry="1.2" fill="#a8763f"/></svg>'}, stone:{name:'Камень', icon:'<svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><path d="M2 11.5l1.6-5L7 3.5l4.6.8 2.6 3.6-.6 4.6-3.8 1.9H5z" fill="#8b8a84"/><path d="M7 3.5l1 4.2-4.4-1.2zM8 7.7l6.2.2-2.6-3.6z" fill="#b3b2aa"/><path d="M8 7.7L5 13.4 2 11.5l1.6-5z" fill="#6f6e69"/></svg>'}};
@@ -1119,11 +1119,11 @@ return {init,music,camp,fx,ev,I,THEMES,get ready(){return ready},setFx:v=>{if(fx
 // звук умения: только если звук включён и готов
 const afx=n=>{if(AUD.ready&&sndReady())AUD.fx[n]()};
 // громкость: музыка, шум лагеря, звуки — запоминается в этом браузере
-const VOL={m:0.5,a:0.6,f:0.9};try{Object.assign(VOL,JSON.parse(localStorage.getItem('lumber-camp-vol')||'{}'))}catch(e){}
+const VOL={m:0.5,a:0.6,f:0.9};try{Object.assign(VOL,JSON.parse(localStorage.getItem('lumber-camp2-vol')||'{}'))}catch(e){}
 function applyVol(){if(!AUD.ready)return;AUD.music.setVol(VOL.m);AUD.setAmb(VOL.a);AUD.setFx(VOL.f)}
-function setVol(k,v){VOL[k]=v;try{localStorage.setItem('lumber-camp-vol',JSON.stringify(VOL))}catch(e){}applyVol()}
+function setVol(k,v){VOL[k]=v;try{localStorage.setItem('lumber-camp2-vol',JSON.stringify(VOL))}catch(e){}applyVol()}
 const Snd={ctx:null,master:null,noise:null,fireGain:null,on:true};
-try{Snd.on=localStorage.getItem('lumber-camp-sound')!=='off'}catch(e){}
+try{Snd.on=localStorage.getItem('lumber-camp2-sound')!=='off'}catch(e){}
 function sndInit(){
   if(Snd.ctx){if(Snd.ctx.state==='suspended')Snd.ctx.resume();return}
   const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return;
@@ -1176,7 +1176,7 @@ const sfx={
   dawn(){tone({freq:392,dur:0.5,type:'sine',vol:0.12,attack:0.05});tone({freq:523,dur:0.7,type:'sine',vol:0.12,attack:0.05,delay:0.25})},
 };
 const sndBtn=document.getElementById('sndBtn');
-function setSound(on){Snd.on=on;try{localStorage.setItem('lumber-camp-sound',on?'on':'off')}catch(e){}
+function setSound(on){Snd.on=on;try{localStorage.setItem('lumber-camp2-sound',on?'on':'off')}catch(e){}
   sndBtn.textContent=on?'Звук: вкл':'Звук: выкл';sndBtn.setAttribute('aria-pressed',String(on));
   if(on)sndInit();if(Snd.master)Snd.master.gain.setTargetAtTime(on?0.8:0,Snd.ctx.currentTime,0.05)}
 sndBtn.addEventListener('click',()=>setSound(!Snd.on));
@@ -2244,7 +2244,7 @@ function checkMastery(br,before){
 /* ================= СОЧНОСТЬ: частицы, тряска, замедление ================= */
 let parts=[],shakeA=0,shakeT=0,slowT=0;
 const FX={shake:true};
-try{FX.shake=localStorage.getItem('lumber-camp-shake')!=='0'}catch(e){}
+try{FX.shake=localStorage.getItem('lumber-camp2-shake')!=='0'}catch(e){}
 function burst(x,y,n,col,spd=120,life=0.5,sz=2.5){
   for(let i=0;i<n;i++){const a=Math.random()*6.283,s=spd*(0.35+Math.random()*0.8);
     parts.push({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,t:life*(0.6+Math.random()*0.6),m:life,c:Array.isArray(col)?col[i%col.length]:col,s:sz*(0.6+Math.random()*0.8)})}
@@ -2422,8 +2422,8 @@ function renderQuests(){
   const h=tutOn()?tutQuestHtml():S.quests.map(q=>{const p=questProg(q);return `<li><span>${QUESTS[q.type].txt(q.n)}</span><b>${p}/${q.n}</b><i style="width:${100*p/q.n}%"></i><small>${q.rw} ${RES.wood.icon}${q.rs?' '+q.rs+' '+RES.stone.icon:''} · ${q.xp} оп.</small></li>`}).join('');
   if(h===questSig)return;questSig=h;document.getElementById('questList').innerHTML=h;
 }
-document.getElementById('questHead').addEventListener('click',()=>{const el=document.getElementById('quests');el.classList.toggle('min');try{localStorage.setItem('lumber-camp-q',el.classList.contains('min')?'1':'0')}catch(e){}});
-{let m=null;try{m=localStorage.getItem('lumber-camp-q')}catch(e){}if(m==='1'||(m===null&&(innerWidth<520||document.documentElement.classList.contains('touch'))))document.getElementById('quests').classList.add('min')}
+document.getElementById('questHead').addEventListener('click',()=>{const el=document.getElementById('quests');el.classList.toggle('min');try{localStorage.setItem('lumber-camp2-q',el.classList.contains('min')?'1':'0')}catch(e){}});
+{let m=null;try{m=localStorage.getItem('lumber-camp2-q')}catch(e){}if(m==='1'||(m===null&&(innerWidth<520||document.documentElement.classList.contains('touch'))))document.getElementById('quests').classList.add('min')}
 
 /* ================= ПРОГРЕСС БЕЗ ИГРЫ ================= */
 function farmRateEst(q,f){ // добычи в секунду на хутор
@@ -5194,7 +5194,7 @@ function encodeSave(){try{save();return btoa(unescape(encodeURIComponent(JSON.st
 function spend(c0){const c=disc(c0);if(!inCamp()||S.wood<c.w||S.stone<(c.s||0)||S.iron<c.i||S.shards<c.sh)return false;S.wood-=c.w;S.stone-=(c.s||0);S.iron-=c.i;S.shards-=c.sh;if(c.w>=10)S.stats.upgrades++;return true}
 function doAct(a){
   if(a==='sound'){setSound(!Snd.on);return}
-  if(a==='fxshake'){FX.shake=!FX.shake;try{localStorage.setItem('lumber-camp-shake',FX.shake?'1':'0')}catch(e){}return}
+  if(a==='fxshake'){FX.shake=!FX.shake;try{localStorage.setItem('lumber-camp2-shake',FX.shake?'1':'0')}catch(e){}return}
   const [k,arg,arg2]=a.split(':');
   if(k==='up'){const u=UP[arg],l=S.up[arg];if(l<u.max&&spend(u.cost(l))){S.up[arg]++;if(arg==='hp')S.p.hp=maxHp(S.up.hp);toast(`${u.name}: уровень ${S.up[arg]}`,'good');if(arg==='axe'&&AXE_SKINS.some(q=>q.from===S.up.axe))toast(`Новый облик топора: «${axeSkin(S.up.axe).name}»`,'good')}}
   if(k==='bow'&&S.bow<BOW_MAX&&spend(bowCost(S.bow))){S.bow++;if(S.bow===1){S.weapon='bow';toast(`${secName()} изготовлен и в руках. Переключение: кнопка внизу или R.`,'good')}else toast(`${secName()}: уровень ${S.bow}`,'good');if(S.bow>1&&secSkins().some(q=>q.from===S.bow))toast(`Новый облик: «${secSkins()[skinTier(secSkins(),S.bow)].name}»`,'good')}
