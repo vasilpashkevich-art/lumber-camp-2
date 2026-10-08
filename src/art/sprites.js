@@ -2,7 +2,8 @@
 import { LOOK } from './look.js';
 import { BLD } from './bld.js';
 import { doll } from './hero.js';
-import { BEASTS } from './beasts.js';
+import { BEASTS, beast } from './beasts.js';
+import { person } from './rig.js';
 
 const CACHE = new Map();
 
@@ -39,6 +40,30 @@ export function heroSpr(L, dir) {
   const k = 'h|' + [L.cls, L.head, L.chest, L.legs, L.wt, L.rar, L.mask || '', L.band || '', L.patch ? 1 : 0, dir].join(',');
   return sprite(k, 64, 86, 32, 62, 3, g => doll(g, 0, 0, 1, dir, L, 0.3));
 }
+
+// ---------------------------------------------------------------- анимация (v56): кадры по виду, действию и номеру
+// view: front (идёт вниз) / side (вбок, рисуется вправо, влево — зеркально) / back (вверх)
+// mode: idle — стоит, walk — 8 кадров шага, atk — 6 кадров удара, dead — 4 кадра падения
+export const FRAMES = { idle: 1, walk: 8, atk: 6, dead: 4 };
+const poseOf = (mode, f) => mode === 'walk' ? { walk: f / 8 } : mode === 'atk' ? { atk: (f + 0.5) / 6 } : mode === 'dead' ? { dead: (f + 1) / 4 } : { walk: -1 };
+const lookKey = L => [L.cls, L.head, L.chest, L.legs, L.wt, L.rar, L.mask || '', L.band || '', L.patch ? 1 : 0, L.glow ? 1 : 0].join(',');
+/** Кадр человека (герой, разбойники). Начало — как у heroSpr: ступни на +12,6. */
+export function personSpr(L, view, mode, f) {
+  return sprite('p|' + lookKey(L) + '|' + view + '|' + mode + '|' + f, 100, 104, 50, 72, 1.7, g => person(g, L, view, poseOf(mode, f)));
+}
+/** Кадр зверя. Начало — земля под ним. */
+export function beastSpr(kind, view, mode, f) {
+  return sprite('bz|' + kind + '|' + view + '|' + mode + '|' + f, 96, 76, 48, 56, 2, g => beast(g, kind, view, poseOf(mode, f)));
+}
+/** Нарисовать кадр; dir = −1 — зеркально (вид сбоку влево). */
+export function drawFrame(c, s, x, y, dir = 1, sc = 1, a = 1) {
+  if (!s) return; if (a < 1) c.globalAlpha = a;
+  if (dir < 0) { c.save(); c.translate(x, y); c.scale(-1, 1); c.drawImage(s.cv, -s.ox * sc, -s.oy * sc, s.w * sc, s.h * sc); c.restore(); }
+  else c.drawImage(s.cv, x - s.ox * sc, y - s.oy * sc, s.w * sc, s.h * sc);
+  if (a < 1) c.globalAlpha = 1;
+}
+/** Куда смотрит по направлению движения: вниз — лицом, вверх — спиной, иначе боком. */
+export function viewOf(dx, dy) { return Math.abs(dy) > Math.abs(dx) * 0.9 ? (dy > 0 ? 'front' : 'back') : 'side'; }
 
 export const MOB_LOOK = {
   bandit: { cls: 'warrior', chest: 1, legs: 1, head: 0, wt: 0, mask: '#7a2a2a', band: '#7a2a2a' },

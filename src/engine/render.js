@@ -3,11 +3,11 @@ import { LOOK } from '../art/look.js';
 import { lairSpr } from '../art/lairs.js';
 import { LINE } from '../art/hero.js';
 import { BLD } from '../art/bld.js';
-import { sprite, drawSpr, flashOf, heroSpr, mobSpr, MOB_SCALE, treeSpr, wallSpr, hallSpr, bldSpr, mountainSpr } from '../art/sprites.js';
+import { sprite, drawSpr, flashOf, heroSpr, mobSpr, MOB_SCALE, MOB_LOOK, personSpr, beastSpr, drawFrame, viewOf, FRAMES, treeSpr, wallSpr, hallSpr, bldSpr, mountainSpr } from '../art/sprites.js';
 import { treesIn, GATE_W } from '../world/world.js';
 import { lookOf } from '../systems/items.js';
 import { interactTarget } from '../systems/game.js';
-import { lvlColor, RAR_COL, RAR_IDX } from '../../data/balance.js';
+import { lvlColor, RAR_COL, RAR_IDX, LOOT } from '../../data/balance.js';
 import { rng, dist, inPoly, money } from './util.js';
 
 const CHUNK = 512;
@@ -215,7 +215,7 @@ export function render(R, G, now) {
   for (const tr of treesIn(W, x0 - 100, y0 - 60, x0 + zw + 100, y0 + zh + 160)) L.push({ y: tr.y, tree: tr });
   for (const k of G.corpses) if (vis(k.x, k.y)) L.push({ y: k.y - 1, corpse: k });
   for (const m of G.mobs) if (m.state !== 'dead' && vis(m.x, m.y)) L.push({ y: m.y, mob: m });
-  if (!P.dead) L.push({ y: P.y, hero: true });
+  L.push({ y: P.y, hero: true });
   L.sort((a, b) => a.y - b.y);
   const look = lookOf(G.hero);
   for (const o of L) {
@@ -274,15 +274,22 @@ function plate(c, G, m) {
   if (m === G.P.target || m.D.rare) { c.font = '12px Georgia, serif'; c.strokeText(m.D.name, m.x, y - 6); c.fillStyle = m.D.rare ? '#ffb347' : '#f4ecd8'; c.fillText(m.D.name, m.x, y - 6); }
 }
 
+function mobFrame(kind, view, mode, f) { return MOB_LOOK[kind] ? personSpr(MOB_LOOK[kind], view, mode, f) : beastSpr(kind, view, mode, f); }
+const frameOf = (mode, k) => Math.min(FRAMES[mode] - 1, Math.max(0, Math.floor(k * FRAMES[mode])));
+
 function drawMob(c, G, m, t) {
-  const moving = m.state === 'chase' || m.state === 'return' || (m.state === 'idle' && Math.hypot(m.wander.x - m.x, m.wander.y - m.y) > 4);
-  const frame = moving ? Math.floor(m.anim * (m.state === 'idle' ? 4 : 8)) % 4 : 0;
-  const sp = mobSpr(m.kind, m.face, frame, m.bite > 0), sc = MOB_SCALE[m.kind] || 1;
-  const bob = m.D.humanoid && moving ? Math.abs(Math.sin(m.anim * 9)) * 2 : 0;
-  if (m.D.humanoid) { c.fillStyle = 'rgba(0,0,0,.25)'; c.beginPath(); c.ellipse(m.x, m.y + 2, 14 * sc, 5 * sc, 0, 0, 7); c.fill(); }
+  const hum = !!MOB_LOOK[m.kind], sc = MOB_SCALE[m.kind] || 1;
+  let dx = m.mdx, dy = m.mdy;
+  if (!m.moving && (m.state === 'chase' || m.atkT > 0)) { dx = G.P.x - m.x; dy = G.P.y - m.y; }
+  const view = viewOf(dx, dy), dir = view === 'side' ? (dx < 0 ? -1 : 1) : 1;
+  const mode = m.atkT > 0 ? 'atk' : m.moving ? 'walk' : 'idle';
+  const f = mode === 'atk' ? frameOf('atk', 1 - m.atkT / (m.atkDur || 0.35)) : mode === 'walk' ? frameOf('walk', m.walkPh) : 0;
+  const sp = mobFrame(m.kind, view, mode, f);
+  if (hum) { c.fillStyle = 'rgba(0,0,0,.25)'; c.beginPath(); c.ellipse(m.x, m.y + 2, 14 * sc, 5 * sc, 0, 0, 7); c.fill(); }
   c.save(); if (m.state === 'return') c.globalAlpha = 0.6;
   if (m.burn) { c.fillStyle = 'rgba(255,120,40,.3)'; c.beginPath(); c.arc(m.x, m.y - 12, 18, 0, 7); c.fill(); }
-  drawSpr(c, m.hurt > 0 ? flashOf(sp) : sp, m.x, m.y - bob, 1, sc);
+  const breathe = mode === 'idle' ? Math.sin(t * 2 + m.walkPh * 6) * 0.4 : 0;
+  drawFrame(c, m.hurt > 0 ? flashOf(sp) : sp, m.x - (m.hurt > 0 ? dir * 2 : 0), m.y + breathe, dir, sc, m.state === 'return' ? 0.6 : 1);
   c.restore();
   const tt = performance.now() / 1000, top = m.y - (m.D.humanoid ? 58 * sc : 34);
   if (m.chill > 0) { c.fillStyle = 'rgba(140,200,255,.28)'; c.beginPath(); c.ellipse(m.x, m.y - 12, m.r + 8, m.r + 2, 0, 0, 7); c.fill(); c.fillStyle = '#e8f8ff'; for (let i = 0; i < 3; i++) { const q = (tt * 0.8 + i / 3) % 1; c.fillRect(m.x - 10 + i * 10, m.y - 6 - q * 30, 2, 2); } }
@@ -291,21 +298,23 @@ function drawMob(c, G, m, t) {
 }
 
 function drawHero(c, G, look, t) {
-  const P = G.P, sp = heroSpr(look, P.dir), bob = P.moving ? Math.abs(Math.sin(P.step * 1.6)) * 2.5 : Math.sin(t * 2) * 0.4;
+  const P = G.P;
+  // куда смотрит: при ударе и рывке — на цель, иначе — куда шёл
+  const aim = P.atkT > 0 || P.dash, dx = aim ? Math.cos(P.face) : P.mvx, dy = aim ? Math.sin(P.face) : P.mvy;
+  const view = viewOf(dx, dy), dir = view === 'side' ? (Math.abs(dx) > 0.05 ? (dx < 0 ? -1 : 1) : P.dir) : 1;
+  const mode = P.dead ? 'dead' : P.atkT > 0 ? 'atk' : (P.moving || P.dash) ? 'walk' : 'idle';
+  const f = mode === 'dead' ? frameOf('dead', P.deadT / 0.7) : mode === 'atk' ? frameOf('atk', 1 - P.atkT / P.atkDur) : mode === 'walk' ? frameOf('walk', (P.step / 3) % 1) : 0;
   c.fillStyle = 'rgba(0,0,0,.28)'; c.beginPath(); c.ellipse(P.x, P.y + 2, 15, 5, 0, 0, 7); c.fill();
   if (P.weak > 0) { c.strokeStyle = 'rgba(160,160,255,.5)'; c.lineWidth = 2; c.beginPath(); c.ellipse(P.x, P.y + 2, 20, 8, 0, 0, 7); c.stroke(); }
   if (P.sit) { // сидит: ноги поджаты, тело ниже
-    const lc = look.legs < 0 ? '#f2c9a0' : LINE[look.cls].legs[look.legs];
-    c.save(); c.beginPath(); c.rect(P.x - 60, P.y - 120, 120, 120 + 5); c.clip(); drawSpr(c, sp, P.x, P.y + 7, 1, 1.15); c.restore();
-    c.fillStyle = lc; c.strokeStyle = '#24180f'; c.lineWidth = 1.2; for (const dx of [-7, 7]) { c.beginPath(); c.ellipse(P.x + dx * P.dir, P.y + 7, 8, 4, 0, 0, 7); c.fill(); c.stroke(); }
+    const sp = personSpr(look, 'side', 'idle', 0), lc = look.legs < 0 ? '#f2c9a0' : LINE[look.cls].legs[look.legs];
+    c.save(); c.beginPath(); c.rect(P.x - 60, P.y - 120, 120, 120 + 5); c.clip(); drawFrame(c, sp, P.x, P.y + 7, P.dir, 1.15); c.restore();
+    c.fillStyle = lc; c.strokeStyle = '#24180f'; c.lineWidth = 1.2; for (const ox of [-7, 7]) { c.beginPath(); c.ellipse(P.x + ox * P.dir, P.y + 7, 8, 4, 0, 0, 7); c.fill(); c.stroke(); }
     c.fillStyle = 'rgba(160,220,255,.7)'; const q = (t * 0.7) % 1; c.globalAlpha = 1 - q; c.font = 'bold 11px Georgia'; c.fillText('z', P.x + 14, P.y - 40 - q * 16); c.globalAlpha = 1;
     return;
   }
-  c.save(); c.translate(P.x, P.y - bob);
-  if (P.swing > 0) c.rotate(P.dir * (0.22 - P.swing) * 0.9);
-  drawSpr(c, P.hurt > 0 ? flashOf(sp) : sp, 0, 0, 1, 1.15);
-  c.restore();
-  if (P.swing > 0) { const q = 1 - P.swing / 0.22, a = P.face; c.strokeStyle = `rgba(255,250,230,${0.7 * (1 - q)})`; c.lineWidth = 6; c.beginPath(); c.arc(P.x, P.y - 16, 42, a - 1 + q * 0.8, a + 0.2 + q * 0.8); c.stroke(); }
+  const sp = personSpr(look, view, mode, f), breathe = mode === 'idle' ? Math.sin(t * 2) * 0.4 : 0;
+  drawFrame(c, P.hurt > 0 ? flashOf(sp) : sp, P.x - (P.hurt > 0 && view === 'side' ? dir * 2 : 0), P.y + breathe, dir, 1.15, P.dead ? Math.max(0.35, 1 - P.deadT / 3) : 1);
   if (P.poison) { c.fillStyle = 'rgba(120,220,80,.6)'; for (let i = 0; i < 3; i++) c.fillRect(P.x - 10 + i * 9, P.y - 60 - ((t * 40 + i * 13) % 20), 3, 3); }
 }
 
@@ -314,9 +323,9 @@ function drawCorpse(c, k, t) {
   const a = Math.min(1, k.t / 1.5);
   if (!k.kind) drawBag(c, k.x, k.y, t);
   else {
-    const sp = mobSpr(k.kind, k.dir, 0, false), sc = MOB_SCALE[k.kind] || 1;
-    c.save(); c.globalAlpha = a * 0.92; c.translate(k.x, k.y - 4); c.rotate(k.dir * 1.45); c.scale(0.92, 0.92);
-    drawSpr(c, sp, 0, 0, 1, sc); c.restore();
+    const sc = MOB_SCALE[k.kind] || 1, view = viewOf(k.vx || 0, k.vy || 1), dir = view === 'side' ? (k.vx < 0 ? -1 : 1) : 1;
+    const sp = mobFrame(k.kind, view, 'dead', frameOf('dead', (LOOT.corpseT - k.t) / 0.7));
+    drawFrame(c, sp, k.x, k.y, dir, sc, a * 0.95);
     c.save(); c.globalAlpha = a * 0.5; c.fillStyle = 'rgba(30,20,12,.5)'; c.beginPath(); c.ellipse(k.x, k.y + 2, 20 * sc, 6 * sc, 0, 0, 7); c.fill(); c.restore();
   }
   if (k.money > 0 || k.items.length) {

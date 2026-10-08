@@ -15,7 +15,7 @@ export function createGame(hero, W, opts = {}) {
     W, hero, t: hero.worldT || 0, st, rand: opts.rand || Math.random,
     P: {
       x: start.x, y: start.y, hp: hero.hp == null ? st.maxHp : Math.min(hero.hp, st.maxHp), face: 0, dir: 1,
-      cd: 0, acd: {}, potCd: 0, target: null, sit: false, dash: null, lastCombat: -99, weak: 0, poison: null, slow: 0,
+      cd: 0, acd: {}, potCd: 0, target: null, sit: false, dash: null, atkT: 0, atkDur: 0.35, mvx: 0, mvy: 1, deadT: 0, lastCombat: -99, weak: 0, poison: null, slow: 0,
       whirl: 0, whirlT: 0, volley: 0, swing: 0, shot: 0, dead: false, moving: false, hurt: 0, step: 0,
     },
     mobs: [], shots: [], ev: [], fx: [], corpses: [], corpseSeq: 0,
@@ -39,13 +39,15 @@ function spawnMob(G, s, camp) {
     hp: max, max, dmg: MOBL.dmg(s.lvl) * D.dmg, armor: MOBL.armor(s.lvl),
     state: 'idle', cd: 0, face: G.rand() < 0.5 ? -1 : 1, hurt: 0,
     wander: { t: G.rand() * 4, x: s.x, y: s.y }, burn: null, fled: false, flee: 0,
-    stun: 0, root: 0, chill: 0,
+    stun: 0, root: 0, chill: 0, atkT: 0, atkDur: 0.35, walkPh: G.rand(), mdx: 0, mdy: 1, moving: false,
     charge: { cd: 2, t: 0 }, smash: { t: D.smash ? D.smash.every : 0, wind: 0, x: 0, y: 0 }, anim: G.rand() * 10,
   };
 }
 
 const emit = (G, e) => G.ev.push(e);
 const sfx = (G, n) => G.ev.push({ k: 'sfx', n });
+/** Начать анимацию удара героя (для рисования: доля = 1 − atkT/atkDur). */
+const startAtk = (P, dur) => { P.atkT = dur; P.atkDur = dur; };
 export const refreshStats = G => { G.st = heroStats(G.hero); G.P.hp = Math.min(G.P.hp, G.st.maxHp); };
 
 // ---------------------------------------------------------------- шаг игры
@@ -55,6 +57,7 @@ export function update(G, dt, I) {
   P.cd = Math.max(0, P.cd - dt); P.potCd = Math.max(0, P.potCd - dt);
   for (const k in P.acd) P.acd[k] = Math.max(0, P.acd[k] - dt);
   P.weak = Math.max(0, P.weak - dt); P.slow = Math.max(0, P.slow - dt); P.hurt = Math.max(0, P.hurt - dt);
+  P.atkT = Math.max(0, P.atkT - dt); if (P.dead) P.deadT += dt;
   P.swing = Math.max(0, P.swing - dt); P.shot = Math.max(0, P.shot - dt); P.volley = Math.max(0, P.volley - dt);
 
   if (!P.dead) {
@@ -69,7 +72,7 @@ export function update(G, dt, I) {
       const sp = HERO.speed * (P.slow > 0 ? 0.6 : 1) * (P.whirl > 0 ? 0.8 : 1);
       [P.x, P.y] = moveTo(G.W, P.x, P.y, P.x + mx * sp * dt, P.y + my * sp * dt);
       if (Math.abs(mx) > 0.1) P.dir = mx < 0 ? -1 : 1;
-      P.step += dt * sp / 40;
+      P.step += dt * sp / 40; P.mvx = mx; P.mvy = my;
     }
     // яд
     if (P.poison) { P.poison.t -= dt; hurtHero(G, P.poison.dps * dt, null, true); if (P.poison && P.poison.t <= 0) P.poison = null; }
@@ -131,6 +134,7 @@ function heroAttack(G, tap) {
   }
   P.target = t; P.face = Math.atan2(t.y - P.y, t.x - P.x); P.dir = Math.cos(P.face) < 0 ? -1 : 1;
   P.cd = A.cd; P.lastCombat = G.t; sfx(G, A.sfx);
+  startAtk(P, A.kind === 'melee' ? 0.32 : 0.42);
   if (A.kind === 'melee') { P.swing = 0.22; strike(G, t, G.st.hit, 'melee'); }
   else {
     P.shot = 0.2;
@@ -192,7 +196,7 @@ function killMob(G, m) {
   const items = [];
   const ZL = G.W.Z.loot || {};
   if (m.D.rare || G.rand() < (ZL.chance ?? LOOT.itemChance)) items.push(rollDrop(H.cls, m.lvl, m.D.rare, G.rand, ZL));
-  G.corpses.push({ id: ++G.corpseSeq, x: m.x, y: m.y, kind: m.kind, name: m.D.name, lvl: m.lvl, dir: m.face, t: LOOT.corpseT, money, items });
+  G.corpses.push({ id: ++G.corpseSeq, x: m.x, y: m.y, kind: m.kind, name: m.D.name, lvl: m.lvl, dir: m.face, vx: m.mdx, vy: m.mdy, t: LOOT.corpseT, money, items });
 }
 
 /** Тело, у которого ещё есть что взять. */
@@ -236,13 +240,13 @@ function useAbility(G, i) {
   if ((P.acd[A.id] || 0) > 0) { emit(G, { k: 'toast', s: `${A.name}: ещё ${Math.ceil(P.acd[A.id])} с`, id: 'abcd' }); return; }
   if (P.dash) return;
   const reach = attackOf(H).reach + 40;
-  if (A.id === 'whirl') { P.whirl = 1.2; P.whirlT = 0; }
+  if (A.id === 'whirl') { P.whirl = 1.2; P.whirlT = 0; startAtk(P, 0.4); }
   else if (A.id === 'charge') {
     const t = abilTarget(G, A.range); if (!t) { emit(G, { k: 'toast', s: 'Рядом нет врага для рывка', id: 'abnt' }); return; }
     P.dash = { m: t, t: 0.6, A }; P.target = t; P.dir = t.x < P.x ? -1 : 1;
   } else {
     const t = abilTarget(G, Math.max(reach, 420)); if (!t) { emit(G, { k: 'toast', s: 'Нет цели рядом', id: 'abnt' }); return; }
-    P.target = t; P.face = Math.atan2(t.y - P.y, t.x - P.x); P.dir = Math.cos(P.face) < 0 ? -1 : 1; P.shot = 0.2;
+    P.target = t; P.face = Math.atan2(t.y - P.y, t.x - P.x); P.dir = Math.cos(P.face) < 0 ? -1 : 1; P.shot = 0.2; startAtk(P, 0.42);
     const shot = (kind, dmg, spread, x) => { const a = Math.atan2(t.y - t.r * 0.6 - P.y + 18, t.x - P.x) + spread, sp = kind === 'arrow' ? 900 : kind === 'net' ? 600 : 520;
       G.shots.push(Object.assign({ from: 'hero', kind, x: P.x, y: P.y - 18, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, t: 560 / sp + 0.3, dmg, target: t }, x)); };
     if (A.id === 'fireball') shot('fire', G.st.hit * A.mul, 0, { burn: true, big: true, chillBonus: 1.5 });
@@ -261,7 +265,7 @@ function dashTick(G, dt) {
   const d = dist(P.x, P.y, m.x, m.y), stop = m.r + 26;
   if (d > stop) { const k = Math.min(1, 900 * dt / d); const [nx, ny] = moveTo(G.W, P.x, P.y, P.x + (m.x - P.x) * k, P.y + (m.y - P.y) * k); P.moving = true; P.step += dt * 20;
     if (Math.hypot(nx - P.x, ny - P.y) < 0.5) { P.dash = null; return; } P.x = nx; P.y = ny; G.fx.push({ k: 'trail', x: P.x, y: P.y, t: 0.25, max: 0.25 }); return; }
-  P.dash = null; P.swing = 0.22; P.cd = Math.max(P.cd, 0.4); P.face = Math.atan2(m.y - P.y, m.x - P.x);
+  P.dash = null; P.swing = 0.22; startAtk(P, 0.32); P.cd = Math.max(P.cd, 0.4); P.face = Math.atan2(m.y - P.y, m.x - P.x);
   strike(G, m, G.st.hit * D.A.mul, 'melee', { sure: true });
   if (m.state !== 'dead') { setStatus(G, m, 'stun', D.A.stun); }
   G.fx.push({ k: 'ring', x: m.x, y: m.y, r: 6, max: 46, t: 0.35, col: '#ffe9a8' });
@@ -321,7 +325,7 @@ function hurtHero(G, v, m, dot) {
 }
 
 function heroDie(G) {
-  const P = G.P; P.hp = 0; P.dead = true; P.target = null; P.poison = null; P.whirl = 0; P.volley = 0; P.dash = null; P.sit = false;
+  const P = G.P; P.hp = 0; P.dead = true; P.deadT = 0; P.target = null; P.poison = null; P.whirl = 0; P.volley = 0; P.dash = null; P.sit = false;
   G.hero.stats.deaths++;
   for (const m of G.mobs) if (m.state === 'chase') m.state = 'return';
   emit(G, { k: 'die' });
@@ -337,7 +341,7 @@ export function respawnHero(G) {
 // ---------------------------------------------------------------- мобы
 function mobTick(G, m, dt) {
   const P = G.P, H = G.hero;
-  m.anim += dt; m.hurt = Math.max(0, m.hurt - dt);
+  m.anim += dt; m.hurt = Math.max(0, m.hurt - dt); m.atkT = Math.max(0, m.atkT - dt); m.moving = false;
   if (m.state === 'dead') {
     if (G.t >= m.respawnAt) { Object.assign(m, spawnMob(G, { key: m.key, kind: m.kind, lvl: m.lvl, x: m.hx, y: m.hy }, m.camp)); delete H.dead[m.key]; G.fx.push({ k: 'spawn', x: m.x, y: m.y, t: 0.6, max: 0.6 }); }
     return;
@@ -346,7 +350,7 @@ function mobTick(G, m, dt) {
   m.stun = Math.max(0, m.stun - dt); m.root = Math.max(0, m.root - dt); m.chill = Math.max(0, m.chill - dt);
   if (m.stun > 0) return;   // оглушён — стоит
   const dH = dist(m.x, m.y, P.x, P.y), dHome = dist(m.x, m.y, m.hx, m.hy), slowK = m.chill > 0 ? 0.5 : 1;
-  const go = (tx, ty, sp) => { const d = dist(m.x, m.y, tx, ty); if (d < 1 || m.root > 0) { if (Math.abs(tx - m.x) > 2) m.face = tx < m.x ? -1 : 1; return; } sp *= slowK; const k = Math.min(1, sp * dt / d); const nx = m.x + (tx - m.x) * k, ny = m.y + (ty - m.y) * k; if (G.W.inside(nx, ny) && !inCity(G.W, nx, ny)) { m.x = nx; m.y = ny; } if (Math.abs(tx - m.x) > 2) m.face = tx < m.x ? -1 : 1; };
+  const go = (tx, ty, sp) => { const d = dist(m.x, m.y, tx, ty); if (d < 1 || m.root > 0) { if (Math.abs(tx - m.x) > 2) m.face = tx < m.x ? -1 : 1; return; } sp *= slowK; const k = Math.min(1, sp * dt / d); const nx = m.x + (tx - m.x) * k, ny = m.y + (ty - m.y) * k; if (G.W.inside(nx, ny) && !inCity(G.W, nx, ny)) { const mv = Math.hypot(nx - m.x, ny - m.y); if (mv > 0.05) { m.mdx = nx - m.x; m.mdy = ny - m.y; m.moving = true; m.walkPh = (m.walkPh + mv / (m.D.humanoid ? 56 : 44)) % 1; } m.x = nx; m.y = ny; } if (Math.abs(tx - m.x) > 2) m.face = tx < m.x ? -1 : 1; };
 
   if (m.state === 'idle') {
     m.wander.t -= dt;
@@ -383,7 +387,7 @@ function mobTick(G, m, dt) {
       return; // замахивается — стоит
     }
     S.t -= dt;
-    if (S.t <= 0 && dH < 200) { S.wind = D.smash.wind; S.x = P.x; S.y = P.y; G.fx.push({ k: 'tele', x: S.x, y: S.y, r: D.smash.r, t: D.smash.wind, max: D.smash.wind }); emit(G, { k: 'txt', x: m.x, y: m.y - 60, s: 'замахивается!', col: '#ff8a2a' }); return; }
+    if (S.t <= 0 && dH < 200) { S.wind = D.smash.wind; m.atkT = m.atkDur = D.smash.wind + 0.3; S.x = P.x; S.y = P.y; G.fx.push({ k: 'tele', x: S.x, y: S.y, r: D.smash.r, t: D.smash.wind, max: D.smash.wind }); emit(G, { k: 'txt', x: m.x, y: m.y - 60, s: 'замахивается!', col: '#ff8a2a' }); return; }
   }
   // кабан: разбег
   if (D.trait === 'charge') {
@@ -400,14 +404,14 @@ function mobTick(G, m, dt) {
     if (dH > D.reach * 0.9) go(P.x, P.y, D.speed);
     else if (dH < 150) { const a = Math.atan2(m.y - P.y, m.x - P.x); go(m.x + Math.cos(a) * 60, m.y + Math.sin(a) * 60, D.speed * 0.45); }  // отходит медленно — догнать можно
     if (dH <= D.reach && m.cd <= 0) {
-      m.cd = D.cd; m.face = P.x < m.x ? -1 : 1; const a = Math.atan2(P.y - 18 - (m.y - 18), P.x - m.x);
+      m.cd = D.cd; m.face = P.x < m.x ? -1 : 1; m.atkT = m.atkDur = 0.42; const a = Math.atan2(P.y - 18 - (m.y - 18), P.x - m.x);
       G.shots.push({ from: 'mob', kind: 'arrow', x: m.x, y: m.y - 18, vx: Math.cos(a) * 520, vy: Math.sin(a) * 520, t: 0.9, dmg: m.dmg, m });
     }
     return;
   }
   if (dH > reach) go(P.x, P.y, D.speed);
   else if (m.cd <= 0) {
-    m.cd = D.cd; m.face = P.x < m.x ? -1 : 1; m.bite = 0.2;
+    m.cd = D.cd; m.face = P.x < m.x ? -1 : 1; m.bite = 0.2; m.atkT = m.atkDur = 0.35;
     hurtHero(G, m.dmg * (0.9 + G.rand() * 0.2), m);
     if (D.trait === 'poison' && !P.dead) { P.poison = { t: 6, dps: m.dmg * 0.18 }; P.slow = 3; emit(G, { k: 'txt', x: P.x, y: P.y - 60, s: 'яд', col: '#8ad84a' }); }
   }

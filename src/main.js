@@ -17,7 +17,7 @@ import { dist } from './engine/util.js';
 import { $, toast } from './ui/dom.js';
 import { RAR_COL } from '../data/balance.js';
 
-const VERSION = 55;
+const VERSION = 56;
 let W = null, G = null, R = null, In = null, hud = null, raf = 0, last = 0, saveT = 0, musicT = 0, paused = false;
 
 function boot() {
@@ -98,7 +98,13 @@ function frame(now) {
   raf = requestAnimationFrame(frame);
 }
 
-addEventListener('visibilitychange', () => { if (document.hidden) persist(); });
+// вкладка скрыта — браузер останавливает игру; при возврате засчитываем это время миру (как при выходе, не больше часа)
+let hiddenAt = 0;
+addEventListener('visibilitychange', () => {
+  if (document.hidden) { persist(); hiddenAt = Date.now(); return; }
+  if (G && hiddenAt) { const gap = Math.min(3600, (Date.now() - hiddenAt) / 1000); if (gap > 1) { G.t += gap; for (const c of G.corpses) c.t -= gap; G.corpses = G.corpses.filter(c => c.t > 0); last = performance.now(); } }
+  hiddenAt = 0;
+});
 addEventListener('pagehide', persist);
 addEventListener('beforeunload', persist);
 
