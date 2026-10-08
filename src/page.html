@@ -1,0 +1,145 @@
+<title>Лагерь лесоруба II</title>
+<style>
+:root{--bg:#0e0b08;--panel:rgba(18,12,8,.88);--line:#8a6a3a;--gold:#e7c35a;--txt:#e9dfc8;--dim:#a89878;--hi:#ffe9a8;--red:#c8323a;--grn:#5fd35f;color-scheme:dark}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;overflow:hidden;background:var(--bg);color:var(--txt);font:15px Georgia,'Times New Roman',serif;-webkit-user-select:none;user-select:none;touch-action:none}
+canvas{display:block}
+#game,#selCanvas{position:fixed;inset:0}
+[hidden]{display:none!important}
+button{font:inherit;color:inherit;cursor:pointer}
+.btn{background:linear-gradient(#4a3420,#24180f);border:2px solid var(--gold);border-radius:8px;color:var(--hi);font-weight:bold;padding:10px 18px;min-height:44px}
+.btn:hover{filter:brightness(1.2)} .btn:disabled{opacity:.4;cursor:default;filter:none}
+.btn.main{background:linear-gradient(#a8281e,#5e120c);font-size:20px}
+.btn.danger{background:linear-gradient(#7a1a14,#3e0a08)}
+.row{display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;margin-top:14px}
+h2{margin:0 0 10px;color:var(--hi);font-size:26px} h3{margin:6px 0 8px;color:var(--hi);font-size:17px}
+/* ---------- экран выбора героя ---------- */
+#select h1{position:fixed;top:3vh;left:0;right:0;text-align:center;margin:0;font-size:clamp(30px,4.4vw,52px);background:linear-gradient(#f5d77a,#a87a2a);-webkit-background-clip:text;background-clip:text;color:transparent;text-shadow:0 4px 18px rgba(0,0,0,.6)}
+.pan{background:var(--panel);border:2px solid var(--line);border-radius:10px;box-shadow:inset 0 0 0 4px rgba(244,199,102,.12)}
+#selInfo{position:fixed;left:3.5vw;top:15vh;width:min(400px,40vw);padding:22px 26px}
+#selInfo .cls{margin:-4px 0 14px;font-size:18px}
+dl{display:grid;grid-template-columns:1fr auto;gap:8px 16px;margin:0} dt{color:var(--dim)} dd{margin:0;text-align:right}
+#selRight{position:fixed;right:3.5vw;top:12vh;width:min(340px,38vw);display:flex;flex-direction:column;gap:8px}
+#selRight .t{text-align:center;color:var(--txt);font-size:20px;margin-bottom:2px}
+.slot{display:grid;grid-template-columns:64px 1fr;grid-template-rows:auto auto auto;column-gap:12px;align-items:center;text-align:left;background:var(--panel);border:2px solid #5a4630;border-radius:10px;padding:8px 12px;min-height:80px}
+.slot canvas{grid-row:1/4;width:58px;height:58px;border-radius:50%}
+.slot b{font-size:19px;color:var(--hi)} .slot i{font-style:normal;font-size:14px} .slot small{color:var(--dim);font-size:13px}
+.slot.on{border-color:#f5d77a;box-shadow:0 0 0 1px #f5d77a, 0 0 18px rgba(245,215,122,.25)}
+.slot.empty{display:flex;justify-content:center;color:#7a6a4e;border-style:dashed}
+#selRight .row{justify-content:stretch;margin-top:6px} #selRight .row .btn{flex:1}
+#selBottom{position:fixed;left:0;right:0;bottom:4vh;display:flex;justify-content:center;pointer-events:none}
+#selBottom .btn{pointer-events:auto;min-width:260px}
+#selFiles{position:fixed;left:3.5vw;bottom:4vh;display:flex;gap:10px}
+#ver{position:fixed;right:10px;bottom:6px;color:#6a5a40;font-size:12px}
+/* ---------- окна ---------- */
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;z-index:50;padding:12px}
+.box{background:linear-gradient(#2a2016,#16100b);border:2px solid var(--line);border-radius:12px;box-shadow:0 20px 60px rgba(0,0,0,.6),inset 0 0 0 4px rgba(244,199,102,.1);padding:22px 26px;max-width:min(520px,96vw);max-height:94vh;overflow:auto}
+.box.wide{max-width:min(860px,96vw)}
+.box p{line-height:1.45} .box .hint{color:var(--dim);font-size:13px} .box .err{color:#ff8a7a}
+.box textarea{width:100%;background:#120c08;color:var(--txt);border:1px solid #5a4630;border-radius:6px;padding:8px;font:12px monospace;user-select:text}
+.box input[type=file]{margin:6px 0 10px;color:var(--dim)}
+.classes{display:flex;gap:12px;flex-wrap:wrap;justify-content:center}
+.clsCard{width:180px;background:#1a120c;border:2px solid #5a4630;border-radius:10px;padding:8px;display:flex;flex-direction:column;align-items:center;gap:4px}
+.clsCard canvas{width:150px;height:166px} .clsCard b{font-size:20px} .clsCard small{color:var(--dim);font-size:13px;text-align:center}
+.clsCard.on{border-color:#f5d77a;box-shadow:0 0 16px rgba(245,215,122,.3)}
+.nm{display:flex;align-items:center;gap:10px;margin-top:16px;font-size:18px;color:var(--hi)}
+.nm input{flex:1;font:18px Georgia,serif;background:#120c08;color:var(--hi);border:2px solid #5a4630;border-radius:8px;padding:8px 10px;user-select:text}
+.dice{background:none;border:none;font-size:24px}
+/* ---------- интерфейс игры ---------- */
+#hud{position:fixed;inset:0;pointer-events:none}
+#hud>*{pointer-events:auto}
+#portrait{position:fixed;left:12px;top:12px;display:flex;gap:10px;align-items:center}
+#pfRing{position:relative;width:76px;height:76px;border-radius:50%;border:3px solid #c43a2c;background:radial-gradient(#3a2d1c,#120c08);overflow:hidden;box-shadow:0 0 0 2px #24180f}
+#pfCanvas{width:76px;height:76px}
+#pfLvl{position:absolute;left:50%;bottom:-2px;transform:translateX(-50%);background:#1a1410;border:2px solid var(--gold);border-radius:10px;padding:0 7px;font-weight:bold;color:var(--hi);font-size:14px}
+.bars{display:flex;flex-direction:column;gap:4px;width:220px}
+.bars b{color:var(--hi);font-size:16px;text-shadow:0 1px 2px #000}
+.bar{position:relative;height:16px;background:#1a1410;border:1.5px solid #000;border-radius:4px;overflow:hidden}
+.bar>i{position:absolute;left:0;top:0;bottom:0;background:linear-gradient(#5fd35f,#2a8a2a);transition:width .15s}
+.bar>span{position:relative;display:block;text-align:center;font-size:11px;line-height:14px;color:#fff;text-shadow:0 1px 2px #000}
+#pfXp{height:9px} #pfXp>i{background:linear-gradient(#c8a0ff,#7a4ad8)} #pfXp>span{font-size:9px;line-height:8px}
+.status{font-size:12px;color:#c8c8ff} #pfPoison{color:#8ad84a}
+#target{position:fixed;left:330px;top:18px;width:220px;display:flex;flex-direction:column;gap:4px}
+#target .top{display:flex;gap:8px;align-items:baseline} #tgLvl{font-weight:bold} #tgName{color:var(--hi);text-shadow:0 1px 2px #000}
+#tgHp>i{background:linear-gradient(#e2453a,#8a1a14)} #tgNote{font-size:12px;color:var(--dim)}
+#topRight{position:fixed;right:12px;top:12px;display:flex;flex-direction:column;align-items:flex-end;gap:6px}
+#mini{width:200px;height:125px;border:2px solid var(--line);border-radius:8px;background:#1c2a1a}
+#zoneName{color:var(--hi);font-size:15px;text-shadow:0 1px 3px #000}
+#goldBox{color:#ffd34d;font-weight:bold;text-shadow:0 1px 3px #000}
+#actbar{position:fixed;left:50%;bottom:12px;transform:translateX(-50%);display:flex;gap:8px;padding:8px;background:var(--panel);border:2px solid var(--line);border-radius:12px}
+.act{position:relative;width:58px;height:58px;border:2px solid #5a4630;border-radius:8px;background:#1a120c;padding:0;overflow:hidden}
+.act .ico{position:absolute;inset:6px} .act .ico svg{width:100%;height:100%}
+.act .k{position:absolute;right:3px;top:1px;font-size:11px;color:var(--hi);text-shadow:0 1px 2px #000}
+.act .n{position:absolute;right:4px;bottom:2px;font-size:13px;font-weight:bold;color:#fff;text-shadow:0 1px 2px #000}
+.act .cd{position:absolute;left:0;right:0;bottom:0;height:0;background:rgba(0,0,0,.6)}
+.act .cdt{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:20px;color:#fff;text-shadow:0 1px 3px #000}
+.act.on{border-color:var(--gold)}
+.sq{width:46px;height:46px;border:2px solid var(--line);border-radius:8px;background:var(--panel);padding:6px}
+#sideBtns{position:fixed;right:12px;bottom:12px;display:flex;gap:8px}
+#toasts{position:fixed;left:50%;top:70px;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:6px;pointer-events:none;z-index:60}
+.toast{background:rgba(18,12,8,.9);border:1px solid var(--line);border-radius:8px;padding:7px 14px;color:var(--txt);transition:opacity .4s;max-width:80vw;text-align:center}
+.toast.good{border-color:#5fd35f;color:#d8ffd0} .toast.out{opacity:0}
+.tip{position:fixed;z-index:80;width:230px;background:rgba(14,10,6,.96);border:1.5px solid var(--line);border-radius:8px;padding:10px 12px;pointer-events:none}
+.tip b{display:block;font-size:16px} .tip small{color:var(--dim)} .tip p{margin:3px 0;font-size:14px} .tip .gold{color:#ffd34d} .tip .bad{color:#ff8a7a} .tip hr{border:none;border-top:1px solid #4a3a2a}
+.charwin{display:flex;gap:22px;flex-wrap:wrap}
+.doll{display:grid;grid-template-columns:auto auto;gap:10px;align-items:start}
+.doll canvas{width:170px;height:200px;background:radial-gradient(#3a2d1c,#120c08 70%);border-radius:10px;border:1px solid #4a3a2a}
+.eq{display:grid;grid-template-columns:52px;gap:6px}
+.cell{width:52px;height:52px;border:1.5px solid #4a3a2a;border-radius:8px;background:#120c08;display:flex;align-items:center;justify-content:center;position:relative;padding:0}
+.cell .empty{font-size:10px;color:#6a5a40;text-align:center}
+.cell .pr{position:absolute;right:2px;bottom:0;font-size:11px;color:#ffd34d;font-weight:bold;text-shadow:0 1px 2px #000}
+.stats{grid-column:1/3;font-size:14px}
+.bag{display:grid;grid-template-columns:repeat(6,52px);gap:6px}
+.vend{display:flex;gap:26px;flex-wrap:wrap}
+.ware{display:flex;gap:10px;align-items:center;width:300px;text-align:left;background:#1a120c;border:1.5px solid #5a4630;border-radius:8px;padding:8px}
+.ware small{display:block;color:var(--dim);font-size:12px} .ware .pr{margin-left:auto;color:#ffd34d;font-weight:bold;font-size:18px}
+.who{color:var(--dim);font-style:italic} .box .gold{color:#ffd34d}
+.box.death{text-align:center} .box.death h2{color:#ff6a5a;font-size:32px}
+.tgl{display:flex;gap:8px;align-items:center;font-size:17px;margin:6px 0 12px}
+.vol{display:grid;grid-template-columns:120px 1fr;align-items:center;margin:6px 0}
+.keys p{font-size:14px;color:var(--dim);line-height:1.6} .keys b{color:var(--hi)}
+#touch{display:none}
+@media (pointer:coarse){
+  #touch{display:block} #actbar{right:10px;left:auto;transform:none;bottom:10px;display:grid;grid-template-columns:repeat(2,62px);gap:8px;padding:8px;background:rgba(18,12,8,.55)}
+  .act{width:62px;height:62px} .act .k{display:none} #sideBtns{top:150px;bottom:auto}
+  #target{left:12px;top:100px}
+}
+@media (max-width:760px){ .bars{width:150px} #target{left:12px;top:100px} #mini{width:140px;height:88px} #selInfo{display:none} #selRight{left:4vw;right:4vw;width:auto;top:11vh} .slot{min-height:64px} #selFiles{bottom:12vh} }
+</style>
+
+<canvas id="game" hidden></canvas>
+
+<div id="select" hidden>
+  <canvas id="selCanvas"></canvas>
+  <h1>Лагерь лесоруба II</h1>
+  <div id="selInfo" class="pan"></div>
+  <div id="selRight">
+    <div class="t">Твои герои</div>
+    <div id="selList" style="display:flex;flex-direction:column;gap:8px"></div>
+    <button class="btn" id="selNew">Создать героя</button>
+    <div class="row"><button class="btn" id="selDel">Удалить</button><button class="btn" id="selSet">Настройки</button></div>
+  </div>
+  <div id="selFiles"><button class="btn" id="selSave">В файл</button><button class="btn" id="selLoad">Из файла</button></div>
+  <div id="selBottom"><button class="btn main" id="selEnter">Войти в мир</button></div>
+  <div id="ver"></div>
+</div>
+
+<div id="hud" hidden>
+  <div id="portrait">
+    <div id="pfRing"><canvas id="pfCanvas" width="160" height="160"></canvas><div id="pfLvl">1</div></div>
+    <div class="bars"><b id="pfName"></b><div class="bar" id="pfHp"><i></i><span></span></div><div class="bar" id="pfXp"><i></i><span></span></div>
+      <span class="status" id="pfWeak" hidden></span><span class="status" id="pfPoison" hidden>отравлен</span></div>
+  </div>
+  <div id="target" hidden><div class="top"><span id="tgLvl"></span><span id="tgName"></span></div><div class="bar" id="tgHp"><i></i><span></span></div><span id="tgNote"></span></div>
+  <div id="topRight"><canvas id="mini" width="200" height="125"></canvas><div id="zoneName"></div><div id="goldBox">Золото: <span id="gold">0</span></div></div>
+  <div id="actbar">
+    <button class="act" id="actAttack"><span class="ico"></span><span class="k">Пробел</span><span class="cd"></span><span class="cdt"></span></button>
+    <button class="act" id="actAbil"><span class="ico"></span><span class="k">C</span><span class="cd"></span><span class="cdt"></span></button>
+    <button class="act" id="actPot"><span class="ico"></span><span class="k">Q</span><span class="n"></span><span class="cd"></span><span class="cdt"></span></button>
+    <button class="act" id="actUse" title="Говорить, торговать — E"><span class="ico"><svg viewBox="0 0 32 32"><path d="M6 8h20v13H14l-6 5v-5H6z" fill="#e8e0cc" stroke="#24180f" stroke-width="1.5"/><text x="16" y="19" text-anchor="middle" font-size="11" font-weight="bold" fill="#24180f">E</text></svg></span><span class="k">E</span></button>
+  </div>
+  <div id="sideBtns"><button class="sq" id="btnBag" title="Персонаж и сумка — I"></button><button class="sq" id="btnMenu" title="Меню — Esc"></button></div>
+  <div id="touch"></div>
+</div>
+<div id="toasts"></div>
+<!--SCRIPT-->
