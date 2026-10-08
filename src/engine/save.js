@@ -33,8 +33,13 @@ export function deleteHero(id) { del(KEY(id)); writeIdx(listHeroes().filter(x =>
 
 /** Подтянуть старое сохранение героя к текущей версии. Ничего не теряем. */
 export function migrate(h) {
+  if (!h) return null;
   h.v = h.v || 1;
-  h.bag = h.bag || []; h.dead = h.dead || {}; h.stats = Object.assign({ kills: 0, deaths: 0, gold: 0, items: 0, play: 0 }, h.stats || {});
+  h.bag = (h.bag || []).filter(Boolean);
+  // ячейки сумки (v55): у каждой вещи своя; старым сохранениям — по порядку, без повторов
+  { const used = new Set(); for (const it of h.bag) { if (!(Number.isInteger(it.pos) && it.pos >= 0 && it.pos < 24) || used.has(it.pos)) it.pos = null; else used.add(it.pos); }
+    let p = 0; for (const it of h.bag) if (it.pos == null) { while (used.has(p)) p++; it.pos = p; used.add(p); } }
+  for (const it of Object.values(h.eq || {})) if (it) delete it.pos; h.dead = h.dead || {}; h.stats = Object.assign({ kills: 0, deaths: 0, gold: 0, items: 0, play: 0 }, h.stats || {});
   h.potions = h.potions ?? 2; h.gold = h.gold || 0; h.worldT = h.worldT || 0; h.zone = h.zone || 'pine';
   if (h.v < HERO_V) h.v = HERO_V;
   return h;

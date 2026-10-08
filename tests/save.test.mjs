@@ -41,3 +41,9 @@ test('старое сохранение без новых полей допол�
   const h = migrate({ id: 'x', name: 'Старый', cls: 'archer', lvl: 3, xp: 5, eq: {} });
   assert.deepEqual(h.bag, []); assert.equal(h.potions, 2); assert.equal(h.stats.kills, 0); assert.equal(h.zone, 'pine');
 });
+
+test('сумка старого сохранения получает ячейки по порядку, повторы разводятся', () => {
+  const h = migrate({ id: 'y', name: 'Старый', cls: 'mage', lvl: 2, eq: {}, bag: [{ id: 'a', slot: 'head' }, { id: 'b', slot: 'legs', pos: 0 }, { id: 'c', slot: 'chest', pos: 0 }, null] });
+  assert.equal(h.bag.length, 3, 'ни одна вещь не потерялась');
+  assert.deepEqual(h.bag.map(i => i.pos).sort(), [0, 1, 2]);
+});

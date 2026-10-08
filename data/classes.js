@@ -5,24 +5,37 @@ export const CLASSES = {
     name: 'Воин', color: '#d9584a',
     hpMul: 1.4, armor: 12,
     attack: { kind: 'melee', reach: 56, cd: 0.9, mul: 1.0, sfx: 'axe' },
-    abil: { name: 'Вихрь', key: 'C', cd: 10, d: 'Кружится 1,2 с, бьёт всех рядом',
-      icon: 'whirl', sfx: 'whirl' },
+    // умения: первое — с 1 уровня (C), второе — с 5-го (V)
+    abils: [
+      { id: 'charge', name: 'Рывок', key: 'C', lvl: 1, cd: 8, range: 340, mul: 1.6, stun: 2.5,
+        d: 'Бросок к врагу: удар сильнее обычного и оглушение на 2,5 с', icon: 'charge', sfx: 'hammer' },
+      { id: 'whirl', name: 'Вихрь', key: 'V', lvl: 5, cd: 10,
+        d: 'Кружится 1,2 с и бьёт всех рядом', icon: 'whirl', sfx: 'whirl' },
+    ],
     desc: 'Живучий боец ближнего боя с топором.',
   },
   mage: {
     name: 'Маг', color: '#6a9ae4',
     hpMul: 0.9, armor: 0,
     attack: { kind: 'bolt', reach: 380, cd: 1.25, mul: 1.4, speed: 520, sfx: 'staff' },
-    abil: { name: 'Огненный залп', key: 'C', cd: 9, d: 'Три огненных шара веером, поджигают',
-      icon: 'fire', sfx: 'fireVolley' },
+    abils: [
+      { id: 'fireball', name: 'Огненный шар', key: 'C', lvl: 1, cd: 6, mul: 2.4,
+        d: 'Большой огненный шар: сильный удар и поджог. По замёрзшему врагу — урон в полтора раза больше', icon: 'fire', sfx: 'fireVolley' },
+      { id: 'frost', name: 'Ледяная стрела', key: 'V', lvl: 5, cd: 8, mul: 1.1, chill: 5,
+        d: 'Замораживает врага: 5 с он вдвое медленнее ходит и бьёт', icon: 'frost', sfx: 'staff' },
+    ],
     desc: 'Огонь издалека, но мало здоровья.',
   },
   archer: {
     name: 'Лучник', color: '#6fbe5a',
     hpMul: 1.0, armor: 4,
     attack: { kind: 'arrow', reach: 420, cd: 0.9, mul: 0.95, speed: 900, sfx: 'bow' },
-    abil: { name: 'Град стрел', key: 'C', cd: 14, d: '6 секунд каждый выстрел — три стрелы',
-      icon: 'volley', sfx: 'arrowVolley' },
+    abils: [
+      { id: 'triple', name: 'Тройной выстрел', key: 'C', lvl: 1, cd: 6, mul: 0.9,
+        d: 'Три стрелы разом в цель и в тех, кто рядом', icon: 'volley', sfx: 'arrowVolley' },
+      { id: 'net', name: 'Сеть', key: 'V', lvl: 5, cd: 12, root: 3,
+        d: 'Набрасывает сеть: враг 3 с не может сойти с места', icon: 'net', sfx: 'bow' },
+    ],
     desc: 'Быстрые выстрелы с большого расстояния.',
   },
 };

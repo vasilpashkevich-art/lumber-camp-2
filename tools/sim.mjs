@@ -68,7 +68,7 @@ export function runBot(cls, minutes, seed = 1, log = false) {
         const body = !busy && G.corpses.filter(hasLoot).sort((a, b) => dist(P.x, P.y, a.x, a.y) - dist(P.x, P.y, b.x, b.y))[0];
         const t = busy || (body && dist(P.x, P.y, body.x, body.y) < 500 ? null : goal);
         // без врагов на хвосте и с малым здоровьем — сначала отдохнуть
-        if (!busy && P.hp < G.st.maxHp * 0.7 && H.potions === 0) { /* стоим, здоровье копится */ }
+        if (!busy && (P.hp < G.st.maxHp * 0.65 || P.sit && P.hp < G.st.maxHp * 0.95)) { if (!P.sit && G.t - P.lastCombat > 1.6) I.sit = true; }  // сесть и перевести дух
         else if (!busy && body && dist(P.x, P.y, body.x, body.y) < 500) {
           if (dist(P.x, P.y, body.x, body.y) > LOOT.lootR - 15) { const [x, y] = via(W, P, body.x, body.y); toward(I, P, x, y); }
           else lootAll(G, body);
@@ -77,7 +77,8 @@ export function runBot(cls, minutes, seed = 1, log = false) {
           G.P.target = t;
           if (d > reach) { const [x, y] = via(W, P, t.x, t.y); toward(I, P, x, y); }
           if (P.hp > G.st.maxHp * 0.25 || H.potions > 0) I.attack = true;
-          if (d < 120 && P.abCd <= 0 && R() < 0.05) I.ability = true;
+          if (d < 300 && R() < 0.05) I.ability = true;
+          if (H.lvl >= 5 && d < 150 && R() < 0.04) I.ability2 = true;
         } else if (P.hp < G.st.maxHp * 0.6) { /* отдых */ }
       }
     }

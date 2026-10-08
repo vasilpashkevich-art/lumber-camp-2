@@ -51,9 +51,9 @@ export function starterGear(cls) {
   };
 }
 
-/** Случайная вещь с моба. */
-export function rollDrop(cls, mobL, rare, r = Math.random) {
-  const rar = weighted(rare ? LOOT.rareMobRarity : LOOT.rarity, r);
+/** Случайная вещь с моба. table — добыча зоны {rarity, rare}; без неё — запасные таблицы из balance.js. */
+export function rollDrop(cls, mobL, rare, r = Math.random, table = null) {
+  const rar = weighted(rare ? (table && table.rare) || LOOT.rareMobRarity : (table && table.rarity) || LOOT.rarity, r);
   const slot = weighted([['head', 2], ['chest', 3], ['legs', 3], ['weapon', 2]], r);
   const ilvl = Math.max(1, mobL + (r() < 0.3 ? 1 : 0));
   return makeItem(cls, slot, ilvl, rar, r);

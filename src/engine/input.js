@@ -46,7 +46,7 @@ export function createInput(cv) {
     const I = {
       mx, my,
       attack: k('Space') || attackHeld, attackTap: t('Space') || t('Attack'),
-      ability: t('KeyC'), potion: t('KeyQ'), interact: t('KeyE'),
+      ability: t('KeyC'), ability2: t('KeyV'), sit: t('KeyX'), potion: t('KeyQ'), interact: t('KeyE'),
       pick: pick && toWorld ? toWorld(pick.sx, pick.sy) : null,
       tabTarget: t('Tab'),
     };

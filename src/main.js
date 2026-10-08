@@ -1,22 +1,23 @@
 // Запуск игры: экран выбора героя → мир. Связывает ход игры, рисование, интерфейс и звук.
 import { PINE } from '../data/zones.js';
 import { buildWorld, inCity } from './world/world.js';
-import { createGame, update } from './systems/game.js';
+import { createGame, update, abilsOf } from './systems/game.js';
 import { loadHero, saveHero, migrate } from './engine/save.js';
 import { createRenderer, render } from './engine/render.js';
 import { createInput } from './engine/input.js';
 import { soundInit, sfx, music, setSound, soundState } from './engine/audio.js';
 import { showSelect } from './ui/select.js';
 import { createHud } from './ui/hud.js';
-import { openChar, openVendor, openMenu, showDeath, hideTip, openLoot } from './ui/windows.js';
+import { openChar, openVendor, openMenu, showDeath, hideTip, openLoot, openAbils } from './ui/windows.js';
 import { openMap } from './ui/map.js';
-import { rollDrop } from './systems/items.js';
+import { doll } from './art/hero.js';
+import { rollDrop, makeItem } from './systems/items.js';
 import { LOOT } from '../data/balance.js';
 import { dist } from './engine/util.js';
 import { $, toast } from './ui/dom.js';
 import { RAR_COL } from '../data/balance.js';
 
-const VERSION = 54;
+const VERSION = 55;
 let W = null, G = null, R = null, In = null, hud = null, raf = 0, last = 0, saveT = 0, musicT = 0, paused = false;
 
 function boot() {
@@ -32,9 +33,9 @@ function boot() {
     if (code === 'KeyK') { mapWin(); return false; }
     if (code === 'KeyM') { setSound(!soundState().on); toast(soundState().on ? 'Звук включён' : 'Звук выключен', '', 'snd'); return false; }
   };
-  $('#btnBag').onclick = () => charWin(); $('#btnMenu').onclick = () => menu(); $('#btnMap').onclick = () => mapWin(); $('#mini').onclick = () => mapWin();
+  $('#btnBag').onclick = () => charWin(); $('#btnMenu').onclick = () => menu(); $('#btnMap').onclick = () => mapWin(); $('#mini').onclick = () => mapWin(); $('#pfRing').onclick = () => { if (G && !document.querySelector('.modal')) openAbils(G); };
   $('#ver').textContent = 'версия ' + VERSION;
-  if (location.hash === '#dev') window.__G = { get G() { return G; }, start, toSelect, R: () => R, rollDrop };
+  if (location.hash === '#dev') window.__G = { get G() { return G; }, start, toSelect, R: () => R, rollDrop, makeItem, doll };
   toSelect();
 }
 
@@ -56,7 +57,7 @@ function start(id) {
   $('#hud').hidden = false; $('#game').hidden = false;
   hud.bind(G); In.clear();
   last = performance.now(); raf = requestAnimationFrame(frame);
-  if (!hero.stats.play) toast(`Добро пожаловать в Сосновый дол! Мобы бродят за стенами Столицы. Пробел — бить, C — умение, E — торговать.`, 'good');
+  if (!hero.stats.play) toast(`Добро пожаловать в Сосновый дол! Мобы бродят за стенами Столицы. Пробел — бить, C — умение, X — отдых, K — карта, E — обыскать или поговорить.`, 'good');
   saveHero(hero);
 }
 
@@ -82,7 +83,7 @@ function frame(now) {
     if (e.k === 'sfx') sfx(e.n);
     if (e.k === 'toast') toast(e.s, e.kind || '', e.id);
     if (e.k === 'loot') { toast(`Добыча: <b style="color:${RAR_COL[e.it.rar]}">${e.it.name}</b>`, '', null); sfx('loot'); }
-    if (e.k === 'lvl') toast(`Новый уровень: ${e.L}! Здоровье восстановлено.`, 'good');
+    if (e.k === 'lvl') { toast(`Новый уровень: ${e.L}! Здоровье восстановлено.`, 'good'); const A = abilsOf(G.hero).find(a => a.lvl === e.L); if (A) toast(`Новое умение: <b>${A.name}</b> — клавиша ${A.key}. ${A.d}`, 'good'); }
     if (e.k === 'vendor') openVendor(G, () => hud.update());
     if (e.k === 'lootOpen' && !document.querySelector('.modal')) { lootWin = openLoot(G, e.c, () => hud.update()); const oc = lootWin.onclose; lootWin.onclose = () => { lootWin = null; oc && oc(); }; }
     if (e.k === 'die') { sfx('die'); setTimeout(() => G && showDeath(G, () => hud.update()), 900); }

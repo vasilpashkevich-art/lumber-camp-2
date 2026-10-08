@@ -49,8 +49,8 @@ export const armorCut = (armor, L) => Math.min(0.75, armor / (armor + 45 + 12 * 
 
 // --- мобы: база по уровню, умножается на коэффициенты вида
 export const MOBL = {
-  hp: L => 55 * Math.pow(1.22, L - 1),
-  dmg: L => 4.8 * Math.pow(1.17, L - 1),
+  hp: L => 66 * Math.pow(1.22, L - 1),     // v55: +20%
+  dmg: L => 5.76 * Math.pow(1.17, L - 1),  // v55: +20%
   armor: L => 4 * L,
 };
 
@@ -64,11 +64,13 @@ export const LOOT = {
   goldMin: 0.25, goldMax: 0.7,                 // монеты (в меди) = уровень моба × случайно
   corpseT: 180,                                // сколько лежит тело с добычей, секунд
   lootR: 70,                                   // с какого расстояния можно обыскать тело
-  itemChance: 0.07,                            // шанс вещи с обычного моба
-  rarity: [['common', 70], ['good', 25], ['rare', 4.6], ['epic', 0.4]],
-  rareMobRarity: [['good', 70], ['rare', 27], ['epic', 3]],
+  // какие вещи падают — задаёт зона (zones.js → loot), здесь только запас на случай, если зона не задала
+  itemChance: 0.07,
+  rarity: [['common', 1]],
+  rareMobRarity: [['good', 80], ['rare', 20]],
   bag: 24,                                     // мест в сумке
   potionHeal: 0.4, potionCd: 20,
+  sitRegen: 0.04,                              // доля здоровья в секунду сидя (X)
 };
 export const RAR_MUL = { start: 0.8, common: 1, good: 1.15, rare: 1.32, epic: 1.55 };
 export const RAR_IDX = { start: 0, common: 1, good: 2, rare: 3, epic: 4 };

@@ -155,3 +155,42 @@ test('логова: у каждого лагеря есть название и 
   for (const c of PINE.camps) { assert.ok(c.name && c.name.length > 3, 'название'); assert.ok(kinds.has(c.lair), c.name); }
   assert.equal(new Set(PINE.camps.map(c => c.name)).size, PINE.camps.length, 'названия не повторяются');
 });
+
+test('добыча Соснового дола: с обычных мобов только белые, с Атамана — зелёная или синяя, фиолетовых нет', () => {
+  const r = rng(11), cnt = {};
+  for (let i = 0; i < 400; i++) { const d = rollDrop('mage', 3, false, r, PINE.loot); cnt[d.rar] = (cnt[d.rar] || 0) + 1; }
+  assert.deepEqual(Object.keys(cnt), ['common']);
+  const a = {}; for (let i = 0; i < 1000; i++) { const d = rollDrop('mage', 6, true, r, PINE.loot); a[d.rar] = (a[d.rar] || 0) + 1; }
+  assert.ok(!a.epic && !a.common); assert.ok(a.rare > 140 && a.rare < 260, `синих ${a.rare} из 1000`);
+});
+
+test('сумка: перекладывание по ячейкам, обмен местами, снятие в выбранную ячейку', async () => {
+  const { bagMove, bagAdd } = await import('../src/systems/game.js');
+  const G = game('archer'), H = G.hero;
+  const a = makeItem('archer', 'head', 2, 'common', rng(1)), b = makeItem('archer', 'legs', 2, 'common', rng(2));
+  giveItem(G, a, 0, 0); giveItem(G, b, 0, 0); assert.equal(a.pos, 0); assert.equal(b.pos, 1);
+  bagMove(G, a, 10); assert.equal(a.pos, 10);
+  bagMove(G, b, 10); assert.equal(b.pos, 10); assert.equal(a.pos, 1, 'поменялись местами');
+  unequip(G, 'chest', 5); assert.equal(H.bag.find(x => x.slot === 'chest').pos, 5);
+  equip(G, b); assert.equal(H.bag.find(x => x.slot === 'legs').pos, 10, 'снятые штаны встали на место надетых');
+});
+
+test('умения: второе закрыто до 5 уровня; рывок оглушает, сеть держит, лёд замедляет', () => {
+  const W2 = game('warrior'), P = W2.P, m = W2.mobs.find(m => m.kind === 'boar');
+  P.x = m.x - 200; P.y = m.y; P.target = m;
+  run(W2, 0.05, { ability2: true }); assert.equal(W2.P.whirl, 0, 'вихрь закрыт на 1 уровне');
+  update(W2, 0.05, { ability: true }); run(W2, 0.6);
+  assert.ok(m.stun > 0 || m.state === 'dead', 'оглушён'); assert.ok(dist(P.x, P.y, m.x, m.y) < 80, 'долетел');
+  const A = game('archer'); A.hero.lvl = 5; const s = A.mobs.find(m => m.kind === 'wolf'); A.P.x = s.x - 250; A.P.y = s.y; A.P.target = s;
+  update(A, 0.05, { ability2: true }); run(A, 1); assert.ok(A.mobs.some(m => m.root > 0), 'в сети');
+  const M = game('mage'); M.hero.lvl = 5; const f = M.mobs.find(m => m.kind === 'boar'); M.P.x = f.x - 250; M.P.y = f.y; M.P.target = f;
+  update(M, 0.05, { ability2: true }); run(M, 1); assert.ok(M.mobs.some(m => m.chill > 0), 'заморожен');
+});
+
+test('сидя здоровье восстанавливается быстрее, движение поднимает', () => {
+  const a = game('mage'), b = game('mage');
+  for (const G of [a, b]) { G.P.x = 3300; G.P.y = 2900; G.P.hp = 20; G.P.lastCombat = -99; G.mobs.forEach(m => { m.state = 'dead'; m.respawnAt = 1e9; }); }
+  update(a, 0.05, { sit: true }); assert.ok(a.P.sit);
+  run(a, 5); run(b, 5); assert.ok(a.P.hp > b.P.hp + 5, `${a.P.hp} против ${b.P.hp}`);
+  update(a, 0.05, { mx: 1 }); assert.ok(!a.P.sit);
+});

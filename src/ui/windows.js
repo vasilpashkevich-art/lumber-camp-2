@@ -3,7 +3,8 @@ import { CLASSES, SLOTS, SLOT_NAME } from '../../data/classes.js';
 import { RAR_COL, RAR_NAME, LOOT, armorCut } from '../../data/balance.js';
 import { itemIcon, moneyHtml } from './icons.js';
 import { itemLines, lookOf } from '../systems/items.js';
-import { equip, unequip, sellItem, buyPotion, POTION_PRICE, respawnHero, lootTake, hasLoot } from '../systems/game.js';
+import { equip, unequip, sellItem, buyPotion, POTION_PRICE, respawnHero, lootTake, hasLoot, bagMove, abilsOf } from '../systems/game.js';
+import { ABIL_ICON } from './icons.js';
 import { doll } from '../art/hero.js';
 import { $, el, modal } from './dom.js';
 import { soundState, setSound, setVol } from '../engine/audio.js';
@@ -26,26 +27,36 @@ export const hideTip = () => { if (tipEl) tipEl.hidden = true; };
 
 /** Окно персонажа: слева облик и надетое, справа сумка. Клик по вещи в сумке — надеть, по надетой — снять. */
 export function openChar(G, onChange) {
-  const m = modal(`<h2>${G.hero.name}</h2><div class="charwin"><div class="doll"><canvas width="220" height="260"></canvas><div class="eq"></div><dl class="stats"></dl></div><div class="bagside"><h3>Сумка <span class="cnt"></span></h3><div class="bag"></div><p class="hint">Нажмите на вещь в сумке, чтобы надеть; на надетую слева — чтобы снять в сумку. Ненужное продаётся на рынке в столице.</p></div></div>`, 'wide');
+  const m = modal(`<h2>${G.hero.name}</h2><div class="charwin"><div class="doll"><canvas width="220" height="260"></canvas><div class="eq"></div><dl class="stats"></dl></div><div class="bagside"><h3>Сумка <span class="cnt"></span></h3><div class="bag"></div><p class="hint">Нажмите на вещь в сумке — надеть, на надетую — снять. Вещи можно перетаскивать мышью: по ячейкам сумки, на снаряжение и обратно. Закрыть — I, B или Esc.</p></div></div>`, 'wide');
   const draw = () => {
     const h = G.hero, st = G.st, C = CLASSES[h.cls];
     const g = m.querySelector('canvas').getContext('2d'); g.clearRect(0, 0, 220, 260); doll(g, 110, 196, 5.0, 1, lookOf(h), 0.3);
     const eq = m.querySelector('.eq'); eq.innerHTML = '';
     for (const s of SLOTS) {
       const it = h.eq[s]; const b = el('button', 'cell', it ? itemIcon(it, 44) : `<span class="empty">${SLOT_NAME[s]}</span>`);
-      if (it) { b.title = 'Снять'; b.onmouseenter = e => tip(e, it, G, true); b.onmouseleave = hideTip; b.onclick = () => { hideTip(); unequip(G, s); onChange(); draw(); }; }
+      if (it) { b.onmouseenter = e => tip(e, it, G, true); b.onmouseleave = hideTip; b.onclick = () => { hideTip(); unequip(G, s); onChange(); draw(); }; drag(b, { eq: s }); }
+      drop(b, src => { if (src.it && src.it.slot === s) equip(G, src.it); });
       eq.append(b);
     }
     m.querySelector('.stats').innerHTML = `<dt>Уровень</dt><dd>${h.lvl}</dd><dt>Здоровье</dt><dd>${st.maxHp}</dd><dt>Сила удара</dt><dd>${fmt1(st.hit)}</dd><dt>Урон в секунду</dt><dd>${fmt1(st.dps)}</dd><dt>Броня</dt><dd>${st.armor} (−${Math.round(armorCut(st.armor, h.lvl) * 100)}%)</dd><dt>Деньги</dt><dd>${moneyHtml(h.gold)}</dd><dt>Зелья</dt><dd>${h.potions}</dd>`;
     m.querySelector('.cnt').textContent = `${h.bag.length} / ${LOOT.bag}`;
     const bag = m.querySelector('.bag'); bag.innerHTML = '';
     for (let i = 0; i < LOOT.bag; i++) {
-      const it = h.bag[i], b = el('button', 'cell', it ? itemIcon(it, 44) : '');
-      if (it) { b.onmouseenter = e => tip(e, it, G); b.onmouseleave = hideTip; b.onclick = () => { hideTip(); equip(G, it); onChange(); draw(); }; }
+      const it = h.bag.find(x => x.pos === i), b = el('button', 'cell', it ? itemIcon(it, 44) : '');
+      if (it) { b.onmouseenter = e => tip(e, it, G); b.onmouseleave = hideTip; b.onclick = () => { hideTip(); equip(G, it); onChange(); draw(); }; drag(b, { it }); }
+      drop(b, src => { if (src.it) bagMove(G, src.it, i); else if (src.eq) { const cur = h.bag.find(x => x.pos === i); if (cur && cur.slot === src.eq) equip(G, cur); else if (!cur) unequip(G, src.eq, i); } });
       bag.append(b);
     }
   };
-  m.onclose = hideTip; draw(); return m;
+  // перетаскивание мышью: из сумки в сумку, на снаряжение и обратно
+  let dragSrc = null;
+  const drag = (b, src) => { b.draggable = true; b.ondragstart = e => { hideTip(); dragSrc = src; b.classList.add('drag'); e.dataTransfer.effectAllowed = 'move'; try { e.dataTransfer.setData('text/plain', 'вещь'); } catch (_) { } }; b.ondragend = () => { b.classList.remove('drag'); dragSrc = null; }; };
+  const drop = (b, fn) => { b.ondragover = e => { if (dragSrc) { e.preventDefault(); b.classList.add('over'); } }; b.ondragleave = () => b.classList.remove('over');
+    b.ondrop = e => { e.preventDefault(); b.classList.remove('over'); const s = dragSrc; dragSrc = null; if (s) { fn(s); onChange(); draw(); } }; };
+  m.isChar = true;
+  const onKey = e => { if ((e.code === 'KeyI' || e.code === 'KeyB') && !e.repeat) { e.preventDefault(); e.stopPropagation(); m.close(); } };
+  addEventListener('keydown', onKey, true);
+  m.onclose = () => { hideTip(); removeEventListener('keydown', onKey, true); }; draw(); return m;
 }
 
 /** Рынок: продать вещи, купить зелья. */
@@ -60,7 +71,7 @@ export function openVendor(G, onChange) {
     b.onclick = () => { buyPotion(G); onChange(); draw(); }; buy.append(b);
     const bag = m.querySelector('.bag'); bag.innerHTML = '';
     for (let i = 0; i < LOOT.bag; i++) {
-      const it = h.bag[i], c = el('button', 'cell', it ? itemIcon(it, 44) : '');
+      const it = h.bag.find(x => x.pos === i), c = el('button', 'cell', it ? itemIcon(it, 44) : '');
       if (it) { c.onmouseenter = e => tip(e, it, G); c.onmouseleave = hideTip; c.onclick = () => { hideTip(); sellItem(G, it); onChange(); draw(); }; }
       bag.append(c);
     }
@@ -97,13 +108,22 @@ export function openLoot(G, c, onChange) {
 }
 const moneyIcon = () => `<svg viewBox="0 0 32 32" width="34" height="34"><ellipse cx="16" cy="24" rx="11" ry="4" fill="#c4703a" stroke="#24180f"/><ellipse cx="14" cy="19" rx="11" ry="4" fill="#cfd6dc" stroke="#24180f"/><ellipse cx="17" cy="13" rx="11" ry="4" fill="#f2c037" stroke="#24180f"/><ellipse cx="15" cy="12" rx="4" ry="1.2" fill="#fff6c0"/></svg>`;
 
+/** Умения класса: что открыто и что откроется на каком уровне. */
+export function openAbils(G) {
+  const h = G.hero, C = CLASSES[h.cls];
+  const rows = abilsOf(h).map(A => { const open = h.lvl >= A.lvl; return `<div class="abl${open ? '' : ' locked'}"><span class="ic">${ABIL_ICON[A.icon]}</span><div><b>${A.name}</b><span class="kk">${A.key}</span>${open ? '' : ` <span class="lv">Доступно с ${A.lvl}-го уровня</span>`}<p>${A.d}</p><small>Перезарядка ${A.cd} с</small></div></div>`; }).join('');
+  const m = modal(`<h2>Умения: ${C.name.toLowerCase()}</h2><div class="abl"><span class="ic">${ABIL_ICON.attack[h.cls]}</span><div><b>Обычный удар</b><span class="kk">Пробел</span><p>${h.eq.weapon ? 'Держите пробел — герой бьёт ближайшего врага или выбранную цель.' : 'Оружие снято — герой бьёт кулаками, слабо и только вплотную.'}</p></div></div>${rows}<p class="hint">X — сесть и перевести дух: здоровье восстанавливается быстрее, любое движение или удар поднимает. Q — зелье.</p><div class="row"><button class="btn main" data-x="ok">Закрыть</button></div>`, 'abils');
+  m.querySelector('[data-x=ok]').onclick = () => m.close();
+  return m;
+}
+
 /** Меню по Esc: звук, громкость, выход к выбору героя. */
 export function openMenu({ onExit, inGame }) {
   const s = soundState();
   const m = modal(`<h2>Меню</h2>
     <label class="tgl"><input type="checkbox" ${s.on ? 'checked' : ''}> Звук</label>
     ${[['m', 'Музыка'], ['a', 'Шум города'], ['f', 'Звуки']].map(([k, n]) => `<label class="vol">${n}<input type="range" min="0" max="1" step="0.05" value="${s.vol[k]}" data-k="${k}"></label>`).join('')}
-    <div class="keys"><h3>Управление</h3><p><b>WASD</b> или стрелки — ходить · <b>Пробел</b> — бить (держать) · <b>C</b> — умение · <b>Q</b> — зелье · <b>E</b> — обыскать тело, говорить, торговать · <b>K</b> — карта · <b>Tab</b> — ближайшая цель · <b>I</b> или <b>B</b> — персонаж и сумка · клик по врагу — выбрать цель</p></div>
+    <div class="keys"><h3>Управление</h3><p><b>WASD</b> или стрелки — ходить · <b>Пробел</b> — бить (держать) · <b>C</b> и <b>V</b> — умения (второе — с 5-го уровня) · <b>X</b> — сесть отдохнуть · <b>Q</b> — зелье · <b>E</b> — обыскать тело, говорить, торговать · <b>K</b> — карта · <b>Tab</b> — ближайшая цель · <b>I</b> или <b>B</b> — персонаж и сумка · клик по врагу — выбрать цель</p></div>
     <div class="row">${inGame ? '<button class="btn" data-x="exit">Выйти к выбору героя</button>' : ''}<button class="btn main" data-x="ok">Продолжить</button></div>`);
   m.querySelector('.tgl input').onchange = e => setSound(e.target.checked);
   m.querySelectorAll('.vol input').forEach(r => r.oninput = () => setVol(r.dataset.k, +r.value));
