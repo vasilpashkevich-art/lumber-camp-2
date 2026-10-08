@@ -1,0 +1,23 @@
+<title>Анимации героев и мобов</title>
+<style>
+:root{color-scheme:dark;--bg:#14100b;--pan:#221a12;--line:#5a4630;--txt:#e9dfc8;--dim:#a89878;--hi:#ffe9a8;--gold:#e7c35a}
+body{background:var(--bg);color:var(--txt);font:15px Georgia,'Times New Roman',serif;margin:0;padding:18px 16px 40px}
+h1{margin:0 0 4px;color:var(--hi);font-size:28px} h2{color:var(--hi);font-size:20px;margin:22px 0 8px}
+p{color:var(--dim);max-width:860px;line-height:1.5;margin:4px 0}
+.bar{position:sticky;top:0;z-index:2;background:rgba(20,16,11,.95);padding:10px 0;display:flex;flex-wrap:wrap;gap:8px;align-items:center;border-bottom:1px solid var(--line)}
+.bar b{color:var(--dim);font-weight:normal;margin:0 4px 0 10px}
+button{font:inherit;color:var(--hi);background:linear-gradient(#4a3420,#24180f);border:1.5px solid var(--line);border-radius:8px;padding:7px 12px;cursor:pointer}
+button.on{border-color:var(--gold);box-shadow:0 0 0 1px var(--gold)}
+#dirNow{color:var(--gold);margin-left:10px}
+.row{display:flex;flex-wrap:wrap;gap:12px}
+figure{margin:0;background:var(--pan);border:1px solid var(--line);border-radius:10px;padding:6px}
+figure canvas{display:block;width:180px;height:180px;border-radius:6px}
+figcaption{text-align:center;color:var(--txt);font-size:14px;padding-top:4px}
+</style>
+<h1>Анимации героев и мобов — эскиз</h1>
+<p>Каждый герой и моб ходит в четыре стороны: вниз (лицом к нам), вправо, вверх (спиной) и влево. Ниже кнопки: стойка, удар, удар по нему, падение. Это эскиз для обсуждения — после правок встрою в игру.</p>
+<div class="bar"><b>Действие:</b>
+<button data-mode="walk" class="on">Ходьба</button><button data-mode="idle">Стоит</button><button data-mode="atk">Удар</button><button data-mode="hit">Получил удар</button><button data-mode="dead">Падает</button>
+<b>Сторона:</b><button data-dir="cycle" class="on">По кругу</button><button data-dir="0">Вниз</button><button data-dir="1">Вправо</button><button data-dir="2">Вверх</button><button data-dir="3">Влево</button><span id="dirNow"></span></div>
+<div id="grid"></div>
+<!--SCRIPT-->
