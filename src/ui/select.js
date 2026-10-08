@@ -1,5 +1,6 @@
 // Экран входа: ночная поляна у костра, выбранный герой впереди — в том, что на нём надето.
 import { doll } from '../art/hero.js';
+import { heroSpr, drawSpr } from '../art/sprites.js';
 import { CLASSES, NAMES } from '../../data/classes.js';
 import { listHeroes, deleteHero, saveHero, exportAll, importAll, MAX_SLOTS } from '../engine/save.js';
 import { newHero } from '../entities/hero.js';
@@ -7,7 +8,16 @@ import { lookOf } from '../systems/items.js';
 import { rng, plural } from '../engine/util.js';
 import { CONTINENT } from '../../data/zones.js';
 import { $, el, modal, toast } from './dom.js';
+import { moneyHtml } from './icons.js';
 
+// затемнённая копия готовой картинки (герои у костра за спиной выбранного); фильтры холста слишком медленные
+const DARK = new WeakMap();
+function darkOf(s) {
+  if (!s) return null; if (DARK.has(s)) return DARK.get(s);
+  const cv = document.createElement('canvas'); cv.width = s.cv.width; cv.height = s.cv.height;
+  const g = cv.getContext('2d'); g.drawImage(s.cv, 0, 0); g.globalCompositeOperation = 'source-atop'; g.fillStyle = 'rgba(10,6,4,.45)'; g.fillRect(0, 0, cv.width, cv.height);
+  const d = { ...s, cv }; DARK.set(s, d); return d;
+}
 const CN = c => CLASSES[c].name, CC = c => CLASSES[c].color;
 const zoneName = id => (CONTINENT.find(z => z.id === id) || {}).name || '';
 export const playTime = s => { const m = Math.round(s / 60); return m < 60 ? `${m} мин` : `${Math.floor(m / 60)} ч ${m % 60} мин`; };
@@ -28,7 +38,7 @@ export function showSelect({ onEnter, onSettings }) {
     scene(c, Wd, Hd, t);
     const cx = Wd * 0.5, gy = Hd * 0.78, k = Math.min(Wd / 1600, Hd / 900) * 1.05 + 0.05;
     const others = heroes.map((h, i) => i).filter(i => i !== sel).slice(0, 4);
-    others.forEach((i, n) => { c.save(); c.filter = 'brightness(0.6)'; doll(c, cx + (110 + n * 85) * k, gy - 50 * k, 2.8 * k, -1, lookOf(heroes[i]), t); c.restore(); });
+    others.forEach((i, n) => drawSpr(c, darkOf(heroSpr(lookOf(heroes[i]), -1)), cx + (110 + n * 85) * k, gy - 50 * k, 1, 2.8 * k));
     fire(c, cx + 25 * k, gy - 30 * k, 3.1 * k, t);
     if (sel >= 0) {
       c.fillStyle = 'rgba(0,0,0,.45)'; c.beginPath(); c.ellipse(cx - 140 * k, gy + 18 * k, 80 * k, 16 * k, 0, 0, 7); c.fill();
@@ -54,7 +64,7 @@ export function showSelect({ onEnter, onSettings }) {
     else {
       const h = heroes[sel];
       info.innerHTML = `<h2>${esc(h.name)}</h2><p class="cls" style="color:${CC(h.cls)}">${CN(h.cls)}, ${h.lvl} уровень</p>
-        <dl><dt>Где сейчас</dt><dd>${zoneName(h.zone)}</dd><dt>В игре</dt><dd>${playTime(h.play || 0)}</dd><dt>Золото</dt><dd>${h.gold || 0}</dd><dt>Повержено</dt><dd>${h.kills || 0} ${plural(h.kills || 0, 'враг', 'врага', 'врагов')}</dd></dl>`;
+        <dl><dt>Где сейчас</dt><dd>${zoneName(h.zone)}</dd><dt>В игре</dt><dd>${playTime(h.play || 0)}</dd><dt>Деньги</dt><dd>${moneyHtml(h.gold || 0)}</dd><dt>Повержено</dt><dd>${h.kills || 0} ${plural(h.kills || 0, 'враг', 'врага', 'врагов')}</dd></dl>`;
     }
     $('#selEnter').disabled = sel < 0; $('#selDel').disabled = sel < 0;
     $('#selNew').disabled = heroes.length >= MAX_SLOTS;
@@ -89,7 +99,7 @@ export function showSelect({ onEnter, onSettings }) {
 
   function del() {
     if (sel < 0) return; const h = heroes[sel];
-    const m = modal(`<h2>Удалить героя?</h2><p>«${esc(h.name)}», ${CN(h.cls).toLowerCase()} ${h.lvl} уровня, будет удалён навсегда вместе с вещами и золотом.</p><div class="row"><button class="btn" data-x="no">Оставить</button><button class="btn danger" data-x="yes">Удалить</button></div>`);
+    const m = modal(`<h2>Удалить героя?</h2><p>«${esc(h.name)}», ${CN(h.cls).toLowerCase()} ${h.lvl} уровня, будет удалён навсегда вместе с вещами и деньгами.</p><div class="row"><button class="btn" data-x="no">Оставить</button><button class="btn danger" data-x="yes">Удалить</button></div>`);
     m.querySelector('[data-x=no]').onclick = () => m.close();
     m.querySelector('[data-x=yes]').onclick = () => { deleteHero(h.id); m.close(); sel = Math.min(sel, listHeroes().length - 1); render(); };
   }

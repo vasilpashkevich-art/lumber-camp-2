@@ -1,5 +1,5 @@
 // Облик героя по надетым вещам (вариант Б): у каждой части тела свой ярус, кайма и сияние — по редкости.
-// L = {cls, head, chest, legs, wt, rar, glow, mask, bandit}. Рисует в точке (x,y) — это ступни.
+// L = {cls, head, chest, legs, wt, rar, glow, mask, bandit}. chest/legs/wt = −1 — вещь снята (голый торс, трусы, пустые руки). Рисует в точке (x,y) — это ступни.
 const HO='#24180f',SKIN='#f2c9a0';
 const RAR={common:null,good:'#5fd35f',rare:'#4a9eff',epic:'#b46aff'};
 // линейки брони по классу: 0 простая одежда, 1..4 растущие ярусы
@@ -28,16 +28,19 @@ export function doll(c,x,y,s,dir,L,t=0){
   // оружие за спиной не носим — оно в руке (рисуется в конце)
   // ноги
   const robe=cl==='mage'&&tc>=1;
-  const lc=ln.legs[tl],boot=tl===0?'#3a2616':tl>=3&&cl==='warrior'?'#9aa3aa':'#2a1a0e';
+  const bare=tl<0,lc=bare?SKIN:ln.legs[tl],boot=bare?'#e8b890':tl===0?'#3a2616':tl>=3&&cl==='warrior'?'#9aa3aa':'#2a1a0e';
   for(const lx of [-5,1]){hp(()=>c.roundRect(lx,3.5,4.2,9,1.6),lc);
-    if(tl>=1)hp(()=>c.roundRect(lx-0.5,9.6,5.2,3,1.2),boot,0.8);else hp(()=>c.roundRect(lx-0.3,10.4,4.8,2.2,1),boot,0.7);
+    if(tl>=1)hp(()=>c.roundRect(lx-0.5,9.6,5.2,3,1.2),boot,0.8);else if(!bare)hp(()=>c.roundRect(lx-0.3,10.4,4.8,2.2,1),boot,0.7);else hp(()=>c.ellipse(lx+2.6,11.8,2.8,1.3,0,0,7),boot,0.7);
     if(cl==='warrior'&&tl>=2)hp(()=>c.arc(lx+2.1,6.5,1.6,0,7),tl>=3?'#f4c766':'#5a5f66',0.6);
     if(tl>=4&&rc){c.fillStyle=rc;c.fillRect(lx+0.6,4.6,3,1)}}
   // тело
   const tor=()=>{c.moveTo(-7,-5);c.quadraticCurveTo(0,-8,7,-5);c.lineTo(8,6);c.quadraticCurveTo(0,8.5,-8,6);c.closePath()};
   const robeP=()=>{c.moveTo(-7,-5);c.quadraticCurveTo(0,-8,7,-5);c.lineTo(10,11);c.quadraticCurveTo(0,14,-10,11);c.closePath()};
   const cc=ln.chest[tc];
-  if(tc===0){ // простая рубаха и верёвочный пояс
+  if(tc<0){ // голый торс
+    hp(tor,SKIN);c.strokeStyle='rgba(150,90,60,.55)';c.lineWidth=0.7;c.beginPath();c.moveTo(-5,-2.5);c.quadraticCurveTo(-2.5,-0.8,-0.4,-2.2);c.moveTo(1.4,-2.2);c.quadraticCurveTo(3.5,-0.8,6,-2.5);c.stroke();
+    c.fillStyle='rgba(150,90,60,.6)';c.beginPath();c.arc(0.6,2.6,0.6,0,7);c.fill();
+  }else if(tc===0){ // простая рубаха и верёвочный пояс
     hp(tor,cc);c.strokeStyle='#a8916a';c.lineWidth=0.8;c.beginPath();c.moveTo(-2.5,-6.4);c.lineTo(0.5,-2);c.lineTo(3.5,-6.4);c.stroke();
     c.strokeStyle='#8a6a3a';c.lineWidth=1.6;c.beginPath();c.moveTo(-8,4.4);c.quadraticCurveTo(0,5.6,8,4.4);c.stroke();c.beginPath();c.moveTo(-3,5);c.lineTo(-4,8.5);c.stroke();
     c.fillStyle='rgba(120,90,50,.35)';c.fillRect(3,-1,2.4,2.4); // заплатка
@@ -67,8 +70,11 @@ export function doll(c,x,y,s,dir,L,t=0){
       c.strokeStyle=tc>=4&&rc?rc:'#f4c766';c.lineWidth=0.9;c.beginPath();c.moveTo(-7,-5);c.quadraticCurveTo(0,-8,7,-5);c.stroke()}
     hp(()=>c.rect(-8,3.6,16,2.6),'#3a2416',.8);hp(()=>c.rect(-1.4,3.6,2.8,2.6),tc>=4&&rc?rc:'#f4c766',.6);
   }
+  // пояс штанов поверх голого торса; без штанов — трусы
+  if(tc<0&&tl>=0)hp(()=>c.rect(-8,3.4,16,3.6),lc,.8);
+  if(tl<0)hp(()=>{c.moveTo(-8,3.6);c.quadraticCurveTo(0,4.8,8,3.6);c.lineTo(7.4,8.6);c.lineTo(1.2,8);c.lineTo(0,6.4);c.lineTo(-1.2,8);c.lineTo(-7.4,8.6);c.closePath()},'#ece6da',.9);
   // руки и плечи
-  const sl=tc===0?'#d8c8a4':cc;
+  const sl=tc<0?SKIN:tc===0?'#d8c8a4':cc;
   hp(()=>c.ellipse(-8,0,2.6,4,0.2,0,7),sl,.9);
   if(cl==='warrior'&&tc>=2){const pc=tc>=3?cc:'#7c858c';for(const sx of [-7.5,7.5]){hp(()=>c.arc(sx,-4.5,4.6,Math.PI,0),pc,1);if(tc>=3){c.strokeStyle=tc>=4&&rc?rc:'#f4c766';c.lineWidth=0.8;c.beginPath();c.arc(sx,-4.5,4.6,Math.PI,0);c.stroke()}
     if(tc>=4)for(const d of [-2,2])hp(()=>{c.moveTo(sx+d-1.2,-8.4);c.lineTo(sx+d*1.4,-13);c.lineTo(sx+d+1.2,-8.4);c.closePath()},'#cfd8de',0.6)}}
@@ -109,19 +115,20 @@ export function doll(c,x,y,s,dir,L,t=0){
   hp(()=>c.arc(8.6,3,2.4,0,7),SKIN,.9);
   // оружие в руке
   const wt=L.wt|0;
-  if(cl==='warrior'){c.save();c.translate(8.6,3);c.rotate(0.42);
+  if(wt<0){/* без оружия — кулак */}
+  else if(cl==='warrior'){c.save();c.translate(8.6,3);c.rotate(0.42);
     c.strokeStyle=HO;c.lineWidth=3.6;c.beginPath();c.moveTo(0,6);c.lineTo(0,-20-wt*2);c.stroke();c.strokeStyle=wt>=3?'#3a2416':'#7a5230';c.lineWidth=2.2;c.beginPath();c.moveTo(0,6);c.lineTo(0,-20-wt*2);c.stroke();
     const top=-20-wt*2,bc=wt>=3?'#7ec8ff':wt>=2?'#d8dde2':'#a8b0b6',w=4+wt*1.6,hh=5+wt*1.8;
     hp(()=>{c.moveTo(0,top+1);c.lineTo(w,top-hh/2);c.quadraticCurveTo(w+3,top+2,w,top+hh);c.lineTo(0,top+4);c.closePath()},bc);
     if(wt>=2)hp(()=>{c.moveTo(0,top+1);c.lineTo(-w*0.8,top-hh/2.5);c.quadraticCurveTo(-w-2,top+2,-w*0.8,top+hh*0.8);c.lineTo(0,top+4);c.closePath()},bc);
     if(wt>=3){c.strokeStyle='#ffffff';c.lineWidth=0.8;c.beginPath();c.moveTo(w-1,top-2);c.lineTo(w-3,top+2);c.lineTo(w-1,top+5);c.stroke()}
     c.restore()}
-  if(cl==='mage'){const sx=11.5;c.strokeStyle=HO;c.lineWidth=3.6;c.beginPath();c.moveTo(sx,13);c.quadraticCurveTo(sx+(wt?0:1.5),-6,sx,-24);c.stroke();c.strokeStyle=wt===0?'#8a6a3a':wt>=3?'#3a2a5a':'#6b4a2c';c.lineWidth=2.2;c.beginPath();c.moveTo(sx,13);c.quadraticCurveTo(sx+(wt?0:1.5),-6,sx,-24);c.stroke();
+  if(wt>=0&&cl==='mage'){const sx=11.5;c.strokeStyle=HO;c.lineWidth=3.6;c.beginPath();c.moveTo(sx,13);c.quadraticCurveTo(sx+(wt?0:1.5),-6,sx,-24);c.stroke();c.strokeStyle=wt===0?'#8a6a3a':wt>=3?'#3a2a5a':'#6b4a2c';c.lineWidth=2.2;c.beginPath();c.moveTo(sx,13);c.quadraticCurveTo(sx+(wt?0:1.5),-6,sx,-24);c.stroke();
     if(wt===0){hp(()=>c.ellipse(sx-1,-24,2.2,1.6,0.4,0,7),'#7a5a32',0.8);hp(()=>c.ellipse(sx+2.5,-19,2,1,0.8,0,7),'#5a8a3a',0.6)}
     else{const oc=['','#7ec8ff','#9affc8','#c8a0ff'][wt],R=3+wt;const g=c.createRadialGradient(sx,-27,1,sx,-27,R*2.6);g.addColorStop(0,oc+'cc');g.addColorStop(1,oc+'00');c.fillStyle=g;c.beginPath();c.arc(sx,-27,R*2.6,0,7);c.fill();
       if(wt>=2){c.strokeStyle='#cfd8de';c.lineWidth=1.2;c.beginPath();c.arc(sx,-27,R+2,0,7);c.stroke()}
       hp(()=>c.arc(sx,-27,R,0,7),oc,0.9);c.fillStyle='rgba(255,255,255,.75)';c.beginPath();c.arc(sx-1.3,-28.4,1.3,0,7);c.fill()}}
-  if(cl==='archer'){const bx=12,bh=13+wt*2.5,bc=['#8a6a3a','#6b4a2c','#4a3420','#d8c050'][wt];
+  if(wt>=0&&cl==='archer'){const bx=12,bh=13+wt*2.5,bc=['#8a6a3a','#6b4a2c','#4a3420','#d8c050'][wt];
     c.strokeStyle=HO;c.lineWidth=3.6;c.beginPath();c.moveTo(bx-2,-bh);c.quadraticCurveTo(bx+7,0,bx-2,bh);c.stroke();c.strokeStyle=bc;c.lineWidth=2.2;c.beginPath();c.moveTo(bx-2,-bh);c.quadraticCurveTo(bx+7,0,bx-2,bh);c.stroke();
     c.strokeStyle='#e8e0cc';c.lineWidth=0.6;c.beginPath();c.moveTo(bx-2,-bh);c.lineTo(bx-2,bh);c.stroke();
     if(wt>=3){c.strokeStyle='#9affc8';c.lineWidth=0.8;for(let i=0;i<3;i++){c.beginPath();c.arc(bx+3,-6+i*6,2,0,3);c.stroke()}}}

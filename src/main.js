@@ -8,11 +8,15 @@ import { createInput } from './engine/input.js';
 import { soundInit, sfx, music, setSound, soundState } from './engine/audio.js';
 import { showSelect } from './ui/select.js';
 import { createHud } from './ui/hud.js';
-import { openChar, openVendor, openMenu, showDeath, hideTip } from './ui/windows.js';
+import { openChar, openVendor, openMenu, showDeath, hideTip, openLoot } from './ui/windows.js';
+import { openMap } from './ui/map.js';
+import { rollDrop } from './systems/items.js';
+import { LOOT } from '../data/balance.js';
+import { dist } from './engine/util.js';
 import { $, toast } from './ui/dom.js';
 import { RAR_COL } from '../data/balance.js';
 
-const VERSION = 53;
+const VERSION = 54;
 let W = null, G = null, R = null, In = null, hud = null, raf = 0, last = 0, saveT = 0, musicT = 0, paused = false;
 
 function boot() {
@@ -25,11 +29,12 @@ function boot() {
     if (document.querySelector('.modal')) return;   // окно само закроется по Esc
     if (code === 'Escape') { menu(); return false; }
     if (code === 'KeyI' || code === 'KeyB') { charWin(); return false; }
+    if (code === 'KeyK') { mapWin(); return false; }
     if (code === 'KeyM') { setSound(!soundState().on); toast(soundState().on ? 'Звук включён' : 'Звук выключен', '', 'snd'); return false; }
   };
-  $('#btnBag').onclick = () => charWin(); $('#btnMenu').onclick = () => menu();
+  $('#btnBag').onclick = () => charWin(); $('#btnMenu').onclick = () => menu(); $('#btnMap').onclick = () => mapWin(); $('#mini').onclick = () => mapWin();
   $('#ver').textContent = 'версия ' + VERSION;
-  if (location.hash === '#dev') window.__G = { get G() { return G; }, start, toSelect, R: () => R };
+  if (location.hash === '#dev') window.__G = { get G() { return G; }, start, toSelect, R: () => R, rollDrop };
   toSelect();
 }
 
@@ -60,6 +65,8 @@ function stop() { cancelAnimationFrame(raf); if (G) { persist(); G = null; } }
 function persist() { if (!G) return; const h = G.hero; h.pos = { x: Math.round(G.P.x), y: Math.round(G.P.y) }; h.hp = Math.round(G.P.hp); saveHero(h); }
 
 function charWin() { if (!G) return; openChar(G, () => hud.update()); }
+function mapWin() { if (!G || document.querySelector('.modal')) return; openMap(G); }
+let lootWin = null;
 function menu() { if (!G) return; paused = true; const m = openMenu({ inGame: true, onExit: () => toSelect() }); const oc = m.onclose; m.onclose = () => { paused = false; oc && oc(); }; }
 
 function frame(now) {
@@ -77,8 +84,11 @@ function frame(now) {
     if (e.k === 'loot') { toast(`Добыча: <b style="color:${RAR_COL[e.it.rar]}">${e.it.name}</b>`, '', null); sfx('loot'); }
     if (e.k === 'lvl') toast(`Новый уровень: ${e.L}! Здоровье восстановлено.`, 'good');
     if (e.k === 'vendor') openVendor(G, () => hud.update());
+    if (e.k === 'lootOpen' && !document.querySelector('.modal')) { lootWin = openLoot(G, e.c, () => hud.update()); const oc = lootWin.onclose; lootWin.onclose = () => { lootWin = null; oc && oc(); }; }
     if (e.k === 'die') { sfx('die'); setTimeout(() => G && showDeath(G, () => hud.update()), 900); }
   }
+  // подсумок закрывается, если отошли от тела или тело исчезло
+  if (lootWin && (dist(G.P.x, G.P.y, lootWin.corpse.x, lootWin.corpse.y) > LOOT.lootR + 50 || !G.corpses.includes(lootWin.corpse) || G.P.dead)) lootWin.close();
   render(R, G, now);
   G.ev.length = 0;
   hud.update();

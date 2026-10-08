@@ -1,12 +1,13 @@
 // Отрисовка мира: земля кусками, предметы по глубине, мобы, герой, выстрелы, эффекты, всплывающие числа.
 import { LOOK } from '../art/look.js';
+import { lairSpr } from '../art/lairs.js';
 import { BLD } from '../art/bld.js';
 import { sprite, drawSpr, flashOf, heroSpr, mobSpr, MOB_SCALE, treeSpr, wallSpr, hallSpr, bldSpr, mountainSpr } from '../art/sprites.js';
 import { treesIn, GATE_W } from '../world/world.js';
 import { lookOf } from '../systems/items.js';
 import { interactTarget } from '../systems/game.js';
-import { lvlColor } from '../../data/balance.js';
-import { rng, dist, inPoly } from './util.js';
+import { lvlColor, RAR_COL, RAR_IDX } from '../../data/balance.js';
+import { rng, dist, inPoly, money } from './util.js';
 
 const CHUNK = 512;
 
@@ -70,9 +71,11 @@ function buildStatics(W) {
     const sp = sprite('sign', 120, 110, 60, 90, 2, g => signpost(g));
     S.push({ y: e.y, draw: g => drawSpr(g, sp, e.x - 40, e.y), label: `${e.to} · ${e.lvl}`, lx: e.x - 40, ly: e.y - 100 });
   }
-  // костры у лагерей разбойников
-  for (const cp of W.camps) if (cp.mob === 'ataman' || Array.isArray(cp.mob)) {
-    S.push({ y: cp.y, fire: true, x: cp.x, draw: (g, t) => campfire(g, cp.x, cp.y, t) });
+  // приметы логов: нора, логово, лёжка, паутина, шатры; у людей — костёр
+  for (const cp of W.camps) {
+    const sp = lairSpr(cp.lair), ly = cp.y - 10;
+    if (sp) S.push({ y: ly, x: cp.x, draw: g => drawSpr(g, sp, cp.x, ly) });
+    if (cp.lair === 'bandit' || cp.lair === 'ataman') { const fx = cp.x + (cp.lair === 'ataman' ? -85 : 0), fy = cp.y + (cp.lair === 'ataman' ? 20 : 40); S.push({ y: fy, fire: true, x: fx, draw: (g, t) => campfire(g, fx, fy, t) }); }
   }
   // горы за северным и западным краем
   const mt = [];
@@ -181,6 +184,7 @@ export function render(R, G, now) {
   // события → всплывающие числа и частицы
   for (const e of G.ev) {
     if (e.k === 'dmg') R.floats.push({ x: e.x + (Math.random() - 0.5) * 16, y: e.y, s: String(Math.round(e.v)), col: e.crit ? '#ffd34d' : '#fff', big: e.crit, t: 0.9 });
+    if (e.k === 'coins') R.floats.push({ x: P.x, y: P.y - 64, s: '+' + money(e.v), col: '#ffd34d', t: 1.4 });
     if (e.k === 'txt') R.floats.push({ x: e.x, y: e.y, s: e.s, col: e.col, t: 1.4 });
     if (e.k === 'hdmg') { R.floats.push({ x: P.x + (Math.random() - 0.5) * 20, y: P.y - 50, s: '−' + Math.round(e.v), col: '#ff6a5a', t: 0.9 }); R.shake = Math.max(R.shake, 0.12); }
     if (e.k === 'lvl') { for (let i = 0; i < 40; i++) R.parts.push(part(P.x, P.y - 20, ['#ffd34d', '#fff2a0', '#c8a0ff'])); R.floats.push({ x: P.x, y: P.y - 80, s: `Уровень ${e.L}!`, col: '#ffd34d', big: true, t: 2.4 }); }
@@ -208,8 +212,7 @@ export function render(R, G, now) {
   const L = [];
   for (const s of R.statics) if (vis(s.lx ?? s.x ?? R.cam.x, s.y, 400)) L.push(s);
   for (const tr of treesIn(W, x0 - 100, y0 - 60, x0 + zw + 100, y0 + zh + 160)) L.push({ y: tr.y, tree: tr });
-  for (const f of G.fx) if (f.k === 'corpse' && vis(f.x, f.y)) L.push({ y: f.y - 1, corpse: f });
-  for (const d of G.drops) if (vis(d.x, d.y)) L.push({ y: d.y, drop: d });
+  for (const k of G.corpses) if (vis(k.x, k.y)) L.push({ y: k.y - 1, corpse: k });
   for (const m of G.mobs) if (m.state !== 'dead' && vis(m.x, m.y)) L.push({ y: m.y, mob: m });
   if (!P.dead) L.push({ y: P.y, hero: true });
   L.sort((a, b) => a.y - b.y);
@@ -218,8 +221,7 @@ export function render(R, G, now) {
     if (o.tree) { const tr = o.tree, sp = treeSpr(tr.kind, tr.v), fade = !P.dead && Math.abs(P.x - tr.x) < 26 * tr.s && P.y < tr.y - 4 && P.y > tr.y - 80 * tr.s ? 0.42 : 1; drawSpr(c, sp, tr.x, tr.y, fade, tr.s); }
     else if (o.mob) drawMob(c, G, o.mob, t);
     else if (o.hero) drawHero(c, G, look, t);
-    else if (o.corpse) { const f = o.corpse, sp = mobSpr(f.kind, f.dir, 0, false); c.save(); c.globalAlpha = Math.min(1, f.t / 1.5) * 0.85; c.translate(f.x, f.y); c.scale(1, 0.55); c.rotate(f.dir * 1.3); drawSpr(c, sp, 0, 0, 1, MOB_SCALE[f.kind] || 1); c.restore(); }
-    else if (o.drop) drawBag(c, o.drop.x, o.drop.y, t);
+    else if (o.corpse) drawCorpse(c, o.corpse, t);
     else o.draw(c, t);
   }
   // выстрелы
@@ -244,7 +246,7 @@ export function render(R, G, now) {
   for (const m of G.mobs) if (m.state !== 'dead' && vis(m.x, m.y) && (m === P.target || m.state === 'chase' || m.hp < m.max || dist(m.x, m.y, P.x, P.y) < 260)) plate(c, G, m);
   // подсказка «E»
   const it = !P.dead && interactTarget(G);
-  if (it) label(c, it.k === 'b' ? `E — ${it.b.name}` : it.k === 'exit' ? 'E — дорога' : 'E — поднять', P.x, P.y - 78, '#fff2a0', 14);
+  if (it) label(c, it.k === 'b' ? `E — ${it.b.name}` : it.k === 'exit' ? 'E — дорога' : 'E — обыскать', P.x, P.y - 78, '#fff2a0', 14);
   // всплывающие числа
   for (const f of R.floats) { f.t -= 1 / 60; f.y -= 32 / 60; c.globalAlpha = Math.min(1, f.t * 2); label(c, f.s, f.x, f.y, f.col, f.big ? 22 : 15, true); }
   c.globalAlpha = 1; R.floats = R.floats.filter(f => f.t > 0);
@@ -290,6 +292,27 @@ function drawHero(c, G, look, t) {
   c.restore();
   if (P.swing > 0) { const q = 1 - P.swing / 0.22, a = P.face; c.strokeStyle = `rgba(255,250,230,${0.7 * (1 - q)})`; c.lineWidth = 6; c.beginPath(); c.arc(P.x, P.y - 16, 42, a - 1 + q * 0.8, a + 0.2 + q * 0.8); c.stroke(); }
   if (P.poison) { c.fillStyle = 'rgba(120,220,80,.6)'; for (let i = 0; i < 3; i++) c.fillRect(P.x - 10 + i * 9, P.y - 60 - ((t * 40 + i * 13) % 20), 3, 3); }
+}
+
+// тело моба: лежит на боку; если в нём есть добыча — над ним мерцает искорка цвета лучшей вещи
+function drawCorpse(c, k, t) {
+  const a = Math.min(1, k.t / 1.5);
+  if (!k.kind) drawBag(c, k.x, k.y, t);
+  else {
+    const sp = mobSpr(k.kind, k.dir, 0, false), sc = MOB_SCALE[k.kind] || 1;
+    c.save(); c.globalAlpha = a * 0.92; c.translate(k.x, k.y - 4); c.rotate(k.dir * 1.45); c.scale(0.92, 0.92);
+    drawSpr(c, sp, 0, 0, 1, sc); c.restore();
+    c.save(); c.globalAlpha = a * 0.5; c.fillStyle = 'rgba(30,20,12,.5)'; c.beginPath(); c.ellipse(k.x, k.y + 2, 20 * sc, 6 * sc, 0, 0, 7); c.fill(); c.restore();
+  }
+  if (k.money > 0 || k.items.length) {
+    const best = k.items.reduce((b, it) => (RAR_IDX[it.rar] > RAR_IDX[b] ? it.rar : b), 'start');
+    const col = k.items.length ? (best === 'common' || best === 'start' ? '#fff2c0' : RAR_COL[best]) : '#ffd34d';
+    const q = 0.6 + 0.4 * Math.sin(t * 5 + k.id), y = k.y - 26 - Math.sin(t * 2.5 + k.id) * 3;
+    const g = c.createRadialGradient(k.x, y, 0.5, k.x, y, 20); g.addColorStop(0, col); g.addColorStop(1, 'rgba(255,255,255,0)');
+    c.globalAlpha = q * a; c.fillStyle = g; c.beginPath(); c.arc(k.x, y, 20, 0, 7); c.fill();
+    c.fillStyle = '#fff'; c.beginPath(); c.moveTo(k.x, y - 7); c.lineTo(k.x + 1.6, y - 1.6); c.lineTo(k.x + 7, y); c.lineTo(k.x + 1.6, y + 1.6); c.lineTo(k.x, y + 7); c.lineTo(k.x - 1.6, y + 1.6); c.lineTo(k.x - 7, y); c.lineTo(k.x - 1.6, y - 1.6); c.closePath(); c.fill();
+    c.globalAlpha = 1;
+  }
 }
 
 function drawBag(c, x, y, t) {

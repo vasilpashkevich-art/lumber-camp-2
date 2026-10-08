@@ -1,5 +1,5 @@
 // Герой: создание, характеристики, опыт.
-import { CLASSES } from '../../data/classes.js';
+import { CLASSES, FIST } from '../../data/classes.js';
 import { HERO, MAX_LVL, xpNeed } from '../../data/balance.js';
 import { starterGear } from '../systems/items.js';
 import { uid } from '../engine/util.js';
@@ -30,9 +30,12 @@ export function heroStats(h) {
   }
   const maxHp = Math.round((HERO.hp(h.lvl) + stam * 10) * C.hpMul);
   const power = HERO.power(h.lvl) + pow;
-  const hit = (power + wdmg * 1.6) * C.attack.mul;
-  return { maxHp, armor, stam, power, wdmg, hit, dps: hit / C.attack.cd };
+  const A = attackOf(h), hit = (power + wdmg * 1.6) * A.mul;
+  return { maxHp, armor, stam, power, wdmg, hit, dps: hit / A.cd, unarmed: !h.eq.weapon };
 }
+
+/** Обычный удар героя: оружием класса или кулаками, если оружие снято. */
+export const attackOf = h => h.eq.weapon ? CLASSES[h.cls].attack : FIST;
 
 /** Добавить опыт. Возвращает число полученных уровней. */
 export function addXp(h, n) {

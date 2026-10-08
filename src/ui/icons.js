@@ -38,5 +38,16 @@ export const ABIL_ICON = {
     archer: `<svg viewBox="0 0 32 32"><path d="M4 28 L26 6" stroke="#e8e0cc" stroke-width="2.4"/><path d="M26 6l-7 1 6 6z" fill="#cfd8de"/><path d="M4 28l2-6 4 4z" fill="#c43a2c"/></svg>` },
   potion: `<svg viewBox="0 0 32 32"><rect x="13" y="3" width="6" height="6" fill="#c9a06a" stroke="#24180f"/><path d="M12 9h8v4l5 6v6a4 4 0 0 1-4 4H11a4 4 0 0 1-4-4v-6l5-6z" fill="#e8e0cc" stroke="#24180f"/><path d="M8 19h16v6a4 4 0 0 1-4 4H12a4 4 0 0 1-4-4z" fill="#d8323a"/></svg>`,
   bag: `<svg viewBox="0 0 32 32"><path d="M8 28 Q3 14 12 9 h8 Q29 14 24 28z" fill="#8a6a3a" stroke="#24180f" stroke-width="1.5"/><path d="M12 9 Q16 3 20 9" fill="none" stroke="#24180f" stroke-width="2"/><circle cx="16" cy="18" r="2.5" fill="#ffd34d"/></svg>`,
+  map: `<svg viewBox="0 0 32 32"><path d="M4 8l8-3 8 3 8-3v19l-8 3-8-3-8 3z" fill="#d9c79a" stroke="#24180f" stroke-width="1.4"/><path d="M12 5v19M20 8v19" stroke="#8a6a3a" stroke-width="1.2"/><path d="M7 18q4-6 8-2t9-5" fill="none" stroke="#c8323a" stroke-width="1.6" stroke-dasharray="2 2"/></svg>`,
   menu: `<svg viewBox="0 0 32 32"><g fill="#ffe9a8"><rect x="7" y="8" width="18" height="3" rx="1.5"/><rect x="7" y="15" width="18" height="3" rx="1.5"/><rect x="7" y="22" width="18" height="3" rx="1.5"/></g></svg>`,
 };
+
+/** Деньги монетками: золото, серебро, медь (пустые старшие не показываются). */
+import { coins } from '../engine/util.js';
+export function moneyHtml(v) {
+  const { g, s, c } = coins(v), out = [];
+  if (g) out.push(`<b>${g}</b><i class="coin cg" title="золото"></i>`);
+  if (s || g) out.push(`<b>${s}</b><i class="coin cs" title="серебро"></i>`);
+  out.push(`<b>${c}</b><i class="coin cc" title="медь"></i>`);
+  return `<span class="money">${out.join('')}</span>`;
+}

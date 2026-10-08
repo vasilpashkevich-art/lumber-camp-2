@@ -52,3 +52,12 @@ export function plural(n, one, few, many) {
 }
 
 export const fmt1 = v => (Math.round(v * 10) / 10).toString().replace('.', ',');
+
+/** Деньги хранятся в меди: 100 меди = 1 серебро, 100 серебра = 1 золото. */
+export const coins = v => { v = Math.max(0, Math.round(v)); return { g: Math.floor(v / 10000), s: Math.floor(v / 100) % 100, c: v % 100 }; };
+/** Деньги текстом: «1 з 25 с 40 м». */
+export function money(v) {
+  const { g, s, c } = coins(v), out = [];
+  if (g) out.push(g + ' з'); if (s) out.push(s + ' с'); if (c || !out.length) out.push(c + ' м');
+  return out.join(' ');
+}

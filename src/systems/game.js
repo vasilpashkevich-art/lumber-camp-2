@@ -3,10 +3,10 @@
 import { CLASSES } from '../../data/classes.js';
 import { MOBS } from '../../data/mobs.js';
 import { HERO, MOBL, RESPAWN, LEASH, AGGRO, LOOT, armorCut, xpKill, lvlColor, xpNeed } from '../../data/balance.js';
-import { heroStats, addXp } from '../entities/hero.js';
+import { heroStats, addXp, attackOf } from '../entities/hero.js';
 import { rollDrop } from './items.js';
 import { moveTo, inCity } from '../world/world.js';
-import { dist, clamp } from '../engine/util.js';
+import { dist, clamp, money } from '../engine/util.js';
 
 export function createGame(hero, W, opts = {}) {
   const st = heroStats(hero);
@@ -18,7 +18,7 @@ export function createGame(hero, W, opts = {}) {
       cd: 0, abCd: 0, potCd: 0, target: null, lastCombat: -99, weak: 0, poison: null, slow: 0,
       whirl: 0, whirlT: 0, volley: 0, swing: 0, shot: 0, dead: false, moving: false, hurt: 0, step: 0,
     },
-    mobs: [], shots: [], ev: [], fx: [], drops: [],
+    mobs: [], shots: [], ev: [], fx: [], corpses: [], corpseSeq: 0,
   };
   if (G.P.hp <= 0) G.P.hp = Math.round(st.maxHp * 0.5);
   for (const camp of W.camps) for (const s of camp.spawns) {
@@ -67,7 +67,7 @@ export function update(G, dt, I) {
       P.step += dt * sp / 40;
     }
     // яд
-    if (P.poison) { P.poison.t -= dt; hurtHero(G, P.poison.dps * dt, null, true); if (P.poison.t <= 0) P.poison = null; }
+    if (P.poison) { P.poison.t -= dt; hurtHero(G, P.poison.dps * dt, null, true); if (P.poison && P.poison.t <= 0) P.poison = null; }
     // отдых
     const city = inCity(G.W, P.x, P.y);
     if (G.t - P.lastCombat > HERO.outOfCombat || city) P.hp = Math.min(G.st.maxHp, P.hp + G.st.maxHp * (city ? HERO.regenCity : HERO.regenOut) * dt);
@@ -84,6 +84,8 @@ export function update(G, dt, I) {
   }
   for (const mob of G.mobs) mobTick(G, mob, dt);
   shotsTick(G, dt);
+  for (const c of G.corpses) c.t -= dt;
+  if (G.corpses.some(c => c.t <= 0)) G.corpses = G.corpses.filter(c => c.t > 0);
   for (const f of G.fx) f.t -= dt;
   G.fx = G.fx.filter(f => f.t > 0);
   H.worldT = G.t;
@@ -112,7 +114,7 @@ function nearest(G, reach) {
 }
 
 function heroAttack(G, tap) {
-  const P = G.P, A = C(G).attack;
+  const P = G.P, A = attackOf(G.hero);
   let t = P.target && hostile(P.target) ? P.target : null;
   const inReach = m => dist(P.x, P.y, m.x, m.y) - m.r <= A.reach;
   if (!t || !inReach(t)) {
@@ -170,7 +172,6 @@ function killMob(G, m) {
   m.state = 'dead'; m.hp = 0; m.respawnAt = G.t + (m.D.rare ? RESPAWN.rare : RESPAWN.normal);
   H.dead[m.key] = m.respawnAt; H.stats.kills++;
   if (P.target === m) P.target = null;
-  G.fx.push({ k: 'corpse', x: m.x, y: m.y, kind: m.kind, lvl: m.lvl, dir: m.face, t: 4, max: 4 });
   sfx(G, 'kill');
   // опыт
   const xp = xpKill(m.lvl, H.lvl, m.D.rare ? 3 : 1);
@@ -179,22 +180,36 @@ function killMob(G, m) {
     emit(G, { k: 'txt', x: m.x, y: m.y - 46, s: `+${xp} опыта`, col: '#c8a0ff' });
     if (up) { const old = G.st.maxHp; G.st = heroStats(H); P.hp += G.st.maxHp - old; P.hp = G.st.maxHp; emit(G, { k: 'lvl', L: H.lvl }); sfx(G, 'levelUp'); }
   }
-  // золото
-  const g = Math.max(1, Math.round(m.lvl * m.D.gold * (LOOT.goldMin + G.rand() * (LOOT.goldMax - LOOT.goldMin))));
-  H.gold += g; H.stats.gold += g;
-  emit(G, { k: 'txt', x: m.x, y: m.y - 30, s: `+${g} золота`, col: '#ffd34d' });
-  // вещь
-  if (m.D.rare || G.rand() < LOOT.itemChance) {
-    const it = rollDrop(H.cls, m.lvl, m.D.rare, G.rand);
-    giveItem(G, it, m.x, m.y);
-  }
+  // добыча остаётся в теле: монеты (в меди) и вещи
+  const money = Math.max(1, Math.round(m.lvl * m.D.gold * (LOOT.goldMin + G.rand() * (LOOT.goldMax - LOOT.goldMin))));
+  const items = [];
+  if (m.D.rare || G.rand() < LOOT.itemChance) items.push(rollDrop(H.cls, m.lvl, m.D.rare, G.rand));
+  G.corpses.push({ id: ++G.corpseSeq, x: m.x, y: m.y, kind: m.kind, name: m.D.name, lvl: m.lvl, dir: m.face, t: LOOT.corpseT, money, items });
 }
 
+/** Тело, у которого ещё есть что взять. */
+export const hasLoot = c => c.money > 0 || c.items.length > 0;
+
+/** Взять монеты и вещь номер idx (или все вещи, если idx не задан). Возвращает, сколько вещей не влезло. */
+export function lootTake(G, c, idx = null) {
+  const H = G.hero; let left = 0;
+  if (c.money > 0) { H.gold += c.money; H.stats.gold += c.money; emit(G, { k: 'coins', v: c.money }); sfx(G, 'coin'); c.money = 0; }
+  const take = idx == null ? c.items.slice() : [c.items[idx]].filter(Boolean);
+  for (const it of take) {
+    if (H.bag.length >= LOOT.bag) { left++; continue; }
+    H.bag.push(it); H.stats.items++; c.items.splice(c.items.indexOf(it), 1); emit(G, { k: 'loot', it });
+  }
+  if (left) emit(G, { k: 'toast', s: 'Сумка полна — вещь осталась в теле', id: 'bagfull' });
+  if (!hasLoot(c)) c.t = Math.min(c.t, 8);   // пустое тело скоро исчезает
+  return left;
+}
+export const lootAll = (G, c) => lootTake(G, c, null);
+
+/** Положить вещь в сумку (награды, проверки). Если места нет — вещь падает в тело-мешок рядом. */
 export function giveItem(G, it, x, y) {
   const H = G.hero;
-  H.stats.items++;
-  if (H.bag.length < LOOT.bag) { H.bag.push(it); emit(G, { k: 'loot', it }); }
-  else { G.drops.push({ x: x + 10, y: y + 10, it, t: 300 }); emit(G, { k: 'toast', s: 'Сумка полна — вещь осталась на земле', id: 'bagfull' }); }
+  if (H.bag.length < LOOT.bag) { H.bag.push(it); H.stats.items++; emit(G, { k: 'loot', it }); }
+  else G.corpses.push({ id: ++G.corpseSeq, x: x + 10, y: y + 10, kind: null, name: 'Мешок', lvl: 0, dir: 1, t: LOOT.corpseT, money: 0, items: [it] });
 }
 
 // ---------------------------------------------------------------- умения и зелья
@@ -221,8 +236,6 @@ function abilityTick(G, dt) {
       for (const m of G.mobs) if (hostile(m) && dist(m.x, m.y, P.x, P.y) < 92 + m.r) strike(G, m, G.st.hit * 0.6, 'melee', { noCrit: true });
     }
   }
-  for (const d of G.drops) d.t -= dt;
-  G.drops = G.drops.filter(d => d.t > 0);
 }
 
 function drinkPotion(G) {
@@ -238,16 +251,18 @@ function drinkPotion(G) {
 // ---------------------------------------------------------------- взаимодействие
 export function interactTarget(G) {
   const P = G.P, c = G.W.cap;
+  let best = null, bd = LOOT.lootR;
+  for (const k of G.corpses) { if (!hasLoot(k)) continue; const d = dist(P.x, P.y, k.x, k.y); if (d < bd) { bd = d; best = k; } }
+  if (best) return { k: 'corpse', c: best, x: best.x, y: best.y };
   for (const b of c.buildings) { const x = c.x + b.dx, y = c.y + b.dy; if (dist(P.x, P.y, x, y + 40) < 95) return { k: 'b', b, x, y }; }
   for (const e of G.W.exits) if (dist(P.x, P.y, e.x, e.y) < 220) return { k: 'exit', e, x: e.x, y: e.y };
-  for (const d of G.drops) if (dist(P.x, P.y, d.x, d.y) < 60) return { k: 'drop', d, x: d.x, y: d.y };
   return null;
 }
 function interact(G) {
   const t = interactTarget(G); if (!t) return;
+  if (t.k === 'corpse') { emit(G, { k: 'lootOpen', c: t.c }); return; }
   if (t.k === 'b') { if (t.b.vendor) emit(G, { k: 'vendor' }); else emit(G, { k: 'toast', s: `${t.b.name}. ${t.b.note}`, id: 'bld' }); }
   if (t.k === 'exit') emit(G, { k: 'toast', s: `Дорога в ${t.e.to} (ур. ${t.e.lvl}) откроется в следующих версиях`, id: 'exit' });
-  if (t.k === 'drop') { if (G.hero.bag.length < LOOT.bag) { G.hero.bag.push(t.d.it); G.drops = G.drops.filter(d => d !== t.d); emit(G, { k: 'loot', it: t.d.it }); } else emit(G, { k: 'toast', s: 'Сумка полна', id: 'bagfull' }); }
 }
 
 // ---------------------------------------------------------------- урон герою и смерть
@@ -370,11 +385,11 @@ export const POTION_PRICE = L => 4 + L * 2;
 export function sellItem(G, it) {
   const H = G.hero, i = H.bag.indexOf(it); if (i < 0) return;
   H.bag.splice(i, 1); H.gold += it.price; sfx(G, 'coin');
-  emit(G, { k: 'toast', s: `Продано: ${it.name} за ${it.price} золота`, id: 'sell' });
+  emit(G, { k: 'toast', s: `Продано: ${it.name} за ${money(it.price)}`, id: 'sell' });
 }
 export function buyPotion(G) {
   const H = G.hero, p = POTION_PRICE(H.lvl);
-  if (H.gold < p) { emit(G, { k: 'toast', s: 'Не хватает золота', id: 'gold' }); return false; }
+  if (H.gold < p) { emit(G, { k: 'toast', s: 'Не хватает денег', id: 'gold' }); return false; }
   if (H.potions >= 10) { emit(G, { k: 'toast', s: 'Больше 10 зелий не унести', id: 'pot' }); return false; }
   H.gold -= p; H.potions++; sfx(G, 'coin'); return true;
 }
@@ -382,9 +397,15 @@ export function buyPotion(G) {
 export function equip(G, it) {
   const H = G.hero, i = H.bag.indexOf(it); if (i < 0 || it.cls !== H.cls) return;
   const old = H.eq[it.slot]; H.bag.splice(i, 1); H.eq[it.slot] = it;
-  if (old && old.rar !== 'start') H.bag.push(old);
-  const ratio = G.P.hp / G.st.maxHp; G.st = heroStats(H); G.P.hp = Math.max(1, Math.round(G.st.maxHp * ratio));
-  sfx(G, 'equip');
+  if (old) H.bag.splice(i, 0, old);   // снятая вещь встаёт на место надетой
+  restat(G); sfx(G, 'equip');
 }
+/** Снять вещь в сумку. false — сумка полна. */
+export function unequip(G, slot) {
+  const H = G.hero, it = H.eq[slot]; if (!it) return false;
+  if (H.bag.length >= LOOT.bag) { emit(G, { k: 'toast', s: 'Сумка полна — снять некуда', id: 'bagfull' }); return false; }
+  H.eq[slot] = null; H.bag.push(it); restat(G); sfx(G, 'equip'); return true;
+}
+function restat(G) { const ratio = G.P.hp / G.st.maxHp; G.st = heroStats(G.hero); G.P.hp = Math.max(1, Math.round(G.st.maxHp * ratio)); }
 
 export { xpNeed };

@@ -3,7 +3,8 @@
 import { PINE } from '../data/zones.js';
 import { buildWorld } from '../src/world/world.js';
 import { newHero } from '../src/entities/hero.js';
-import { createGame, update, respawnHero, equip, buyPotion, sellItem, POTION_PRICE } from '../src/systems/game.js';
+import { createGame, update, respawnHero, equip, buyPotion, sellItem, POTION_PRICE, lootAll, hasLoot } from '../src/systems/game.js';
+import { LOOT } from '../data/balance.js';
 import { lvlColor } from '../data/balance.js';
 import { rng, dist } from '../src/engine/util.js';
 
@@ -63,8 +64,15 @@ export function runBot(cls, minutes, seed = 1, log = false) {
             const d = dist(P.x, P.y, m.x, m.y); if (d < bd) { bd = d; goal = m; }
           }
         }
-        const t = busy || goal;
-        if (t) {
+        // обыскать ближайшее тело с добычей, если никто не нападает
+        const body = !busy && G.corpses.filter(hasLoot).sort((a, b) => dist(P.x, P.y, a.x, a.y) - dist(P.x, P.y, b.x, b.y))[0];
+        const t = busy || (body && dist(P.x, P.y, body.x, body.y) < 500 ? null : goal);
+        // без врагов на хвосте и с малым здоровьем — сначала отдохнуть
+        if (!busy && P.hp < G.st.maxHp * 0.7 && H.potions === 0) { /* стоим, здоровье копится */ }
+        else if (!busy && body && dist(P.x, P.y, body.x, body.y) < 500) {
+          if (dist(P.x, P.y, body.x, body.y) > LOOT.lootR - 15) { const [x, y] = via(W, P, body.x, body.y); toward(I, P, x, y); }
+          else lootAll(G, body);
+        } else if (t) {
           const reach = { warrior: 50, mage: 340, archer: 380 }[cls], d = dist(P.x, P.y, t.x, t.y);
           G.P.target = t;
           if (d > reach) { const [x, y] = via(W, P, t.x, t.y); toward(I, P, x, y); }
@@ -80,7 +88,7 @@ export function runBot(cls, minutes, seed = 1, log = false) {
     }
     lx = G.P.x; ly = G.P.y;
     update(G, dt, I); G.ev.length = 0;
-    if (log && i % (log === 2 ? 20 : 1200) === 0) console.log(Math.round(G.t/60), H.lvl, Math.round(P.x), Math.round(P.y), Math.round(P.hp), H.potions, H.gold, shopping, goal && goal.kind, goal && Math.round(goal.x), goal && Math.round(goal.y), goal && goal.state);
+    if (log && i % (log === 2 ? 20 : 1200) === 0) console.log(Math.round(G.t/60), H.lvl, Math.round(P.x), Math.round(P.y), Math.round(P.hp), H.potions, H.gold, shopping, goal && goal.kind, goal && Math.round(goal.x), goal && Math.round(goal.y), goal && goal.state, P.dead, Math.round(G.t - P.lastCombat), G.corpses.length);
     if (!lvAt[H.lvl]) lvAt[H.lvl] = Math.round(G.t / 6) / 10;
   }
   return { cls, lvl: H.lvl, lvAt, kills: H.stats.kills, deaths: H.stats.deaths, gold: H.gold, items: H.stats.items, eq: Object.values(H.eq).filter(Boolean).map(i => `${i.name}(${i.rar})`) };

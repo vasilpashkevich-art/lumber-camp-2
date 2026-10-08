@@ -6,8 +6,11 @@ import { MOBS } from '../data/mobs.js';
 import { xpNeed, xpKill, lvlColor, MAX_LVL, RESPAWN, LEASH } from '../data/balance.js';
 import { buildWorld, moveTo, inCity } from '../src/world/world.js';
 import { newHero, heroStats, addXp } from '../src/entities/hero.js';
-import { createGame, update, respawnHero, equip, sellItem, buyPotion, POTION_PRICE, giveItem } from '../src/systems/game.js';
-import { makeItem, rollDrop, starterGear, lookOf, visTier } from '../src/systems/items.js';
+import { createGame, update, respawnHero, equip, unequip, sellItem, buyPotion, POTION_PRICE, giveItem, lootTake, lootAll, hasLoot, interactTarget } from '../src/systems/game.js';
+import { LOOT } from '../data/balance.js';
+import { money, coins } from '../src/engine/util.js';
+import { attackOf } from '../src/entities/hero.js';
+import { makeItem, rollDrop, starterGear, lookOf, visTier, sellPrice } from '../src/systems/items.js';
 import { rng, dist } from '../src/engine/util.js';
 
 const W = buildWorld(PINE);
@@ -63,12 +66,16 @@ test('вещи: стартовые, ярусы облика, цены', () => {
   assert.equal(L.chest, 4); assert.equal(L.rar, 'epic');
 });
 
-test('бой: воин убивает лису, получает опыт и золото, моб возрождается через 6 минут', () => {
+test('бой: воин убивает лису, получает опыт, добыча лежит в теле, моб возрождается через 6 минут', () => {
   const G = game('warrior');
   const m = G.mobs.find(m => m.kind === 'fox'); G.P.x = m.x - 30; G.P.y = m.y; G.P.target = m;
   run(G, 20, G => { const t = G.P.target && G.P.target.state !== 'dead' ? G.P.target : m; return { attack: true, mx: Math.sign(t.x - G.P.x) * (dist(G.P.x, G.P.y, t.x, t.y) > 40 ? 1 : 0), my: Math.sign(t.y - G.P.y) * (dist(G.P.x, G.P.y, t.x, t.y) > 40 ? 1 : 0) }; });
   assert.equal(m.state, 'dead', 'лиса повержена');
-  assert.ok(G.hero.xp > 0 || G.hero.lvl > 1); assert.ok(G.hero.gold > 0);
+  assert.ok(G.hero.xp > 0 || G.hero.lvl > 1);
+  assert.equal(G.hero.gold, 0, 'деньги не падают в кошелёк сами');
+  const body = G.corpses.find(c => c.kind === 'fox'); assert.ok(body && body.money > 0, 'монеты лежат в теле');
+  G.P.x = body.x + 20; G.P.y = body.y; assert.equal(interactTarget(G).k, 'corpse');
+  const got = body.money; lootAll(G, body); assert.equal(G.hero.gold, got); assert.ok(!hasLoot(body));
   assert.ok(G.hero.dead[m.key] > G.t);
   run(G, RESPAWN.normal + 2);
   assert.notEqual(m.state, 'dead', 'возродилась');
@@ -113,4 +120,38 @@ test('у каждого вида моба есть всё нужное', () => {
 test('характеристики: у воина больше здоровья, у мага сильнее удар', () => {
   const w = heroStats(newHero('a', 'warrior')), m = heroStats(newHero('b', 'mage'));
   assert.ok(w.maxHp > m.maxHp); assert.ok(m.hit > w.hit);
+});
+
+test('тело: лежит 3 минуты, вещь при полной сумке остаётся в теле, можно взять по одной', () => {
+  const G = game('mage'); const it1 = makeItem('mage', 'head', 2, 'good', rng(5)), it2 = makeItem('mage', 'legs', 2, 'common', rng(6));
+  const c = { id: 1, x: G.P.x + 10, y: G.P.y, kind: 'wolf', name: 'Волк', lvl: 2, dir: 1, t: LOOT.corpseT, money: 7, items: [it1, it2] };
+  G.corpses.push(c);
+  lootTake(G, c, 1); assert.equal(G.hero.gold, 7); assert.deepEqual(c.items, [it1]); assert.equal(G.hero.bag[0], it2);
+  while (G.hero.bag.length < LOOT.bag) G.hero.bag.push(makeItem('mage', 'chest', 1, 'common', rng(1)));
+  assert.equal(lootAll(G, c), 1, 'не влезла'); assert.deepEqual(c.items, [it1]); assert.ok(hasLoot(c));
+  run(G, LOOT.corpseT + 1); assert.ok(!G.corpses.includes(c), 'тело исчезло');
+});
+
+test('вещи: старая при замене уходит в сумку, любую можно снять; без оружия — кулаки', () => {
+  const G = game('warrior'), H = G.hero, shirt = H.eq.chest;
+  const it = makeItem('warrior', 'chest', 3, 'good', rng(2)); giveItem(G, it, 0, 0);
+  equip(G, it); assert.equal(H.eq.chest, it); assert.ok(H.bag.includes(shirt), 'рубаха в сумке');
+  assert.ok(unequip(G, 'chest')); assert.equal(H.eq.chest, null); assert.ok(H.bag.includes(it));
+  assert.ok(unequip(G, 'legs')); assert.equal(lookOf(H).chest, -1); assert.equal(lookOf(H).legs, -1);
+  const hit0 = G.st.hit; assert.ok(unequip(G, 'weapon')); assert.ok(G.st.unarmed); assert.ok(G.st.hit < hit0); assert.equal(attackOf(H).reach, 50);
+  while (H.bag.length < LOOT.bag) H.bag.push(makeItem('warrior', 'head', 1, 'common', rng(1)));
+  equip(G, H.bag.find(x => x.slot === 'head')); assert.ok(!unequip(G, 'head') || H.bag.length <= LOOT.bag, 'сумка полна — не снять');
+  assert.equal(H.bag.length, LOOT.bag);
+  assert.equal(sellPrice(shirt), 1, 'стартовая рубаха стоит 1 медь');
+});
+
+test('деньги: медь, серебро, золото', () => {
+  assert.equal(money(0), '0 м'); assert.equal(money(57), '57 м'); assert.equal(money(100), '1 с');
+  assert.equal(money(12540), '1 з 25 с 40 м'); assert.deepEqual(coins(10003), { g: 1, s: 0, c: 3 });
+});
+
+test('логова: у каждого лагеря есть название и примета', () => {
+  const kinds = new Set(['den', 'wolf', 'boar', 'web', 'bandit', 'ataman']);
+  for (const c of PINE.camps) { assert.ok(c.name && c.name.length > 3, 'название'); assert.ok(kinds.has(c.lair), c.name); }
+  assert.equal(new Set(PINE.camps.map(c => c.name)).size, PINE.camps.length, 'названия не повторяются');
 });

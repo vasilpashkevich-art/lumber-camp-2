@@ -37,7 +37,7 @@ export function itemName(it) {
 }
 
 export function sellPrice(it) {
-  if (it.rar === 'start') return 0;
+  if (it.rar === 'start') return 1;
   return Math.max(1, Math.round((1 + it.ilvl * 0.8) * [0, 1, 2.2, 5, 12][RAR_IDX[it.rar]]));
 }
 
@@ -66,9 +66,9 @@ export function lookOf(hero) {
   return {
     cls: hero.cls,
     head: e.head ? e.head.tier : 0,
-    chest: e.chest ? e.chest.tier : 0,
-    legs: e.legs ? e.legs.tier : 0,
-    wt: e.weapon ? (e.weapon.wt ?? 0) : 0,
+    chest: e.chest ? e.chest.tier : -1,     // −1 — снято: голый торс
+    legs: e.legs ? e.legs.tier : -1,        // −1 — в трусах
+    wt: e.weapon ? (e.weapon.wt ?? 0) : -1, // −1 — пустые руки
     rar: best === 'start' ? 'common' : best,
     glow: RAR_IDX[best] >= 4,
   };

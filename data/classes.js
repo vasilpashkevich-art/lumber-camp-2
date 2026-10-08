@@ -27,6 +27,9 @@ export const CLASSES = {
   },
 };
 
+// Без оружия любой класс бьёт кулаками: рядом и слабо.
+export const FIST = { kind: 'melee', reach: 50, cd: 1.0, mul: 0.6, sfx: 'axe' };
+
 // Названия вещей по классу, слоту и ярусу облика (0 — стартовая одежда).
 export const GEAR_NAMES = {
   warrior: {
