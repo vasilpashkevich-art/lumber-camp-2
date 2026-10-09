@@ -11,7 +11,7 @@ const shade = (hex, k) => { const n = parseInt(hex.slice(1), 16), f = v => Math.
 const HAIR = { warrior: '#c8742a', mage: '#ece6df', archer: '#6a3e1e' };
 
 export function person(c, L, view, pose = {}) {
-  const cl = L.cls, ln = LINE[cl], tc = L.chest | 0, tl = L.legs | 0, th = L.head | 0, wt = L.wt | 0, rc = RAR[L.rar || 'common'], t = pose.t || 0;
+  const cl = L.cls, ln = L.line || LINE[cl], tc = L.chest | 0, tl = L.legs | 0, th = L.head | 0, wt = L.wt | 0, rc = RAR[L.rar || 'common'], t = pose.t || 0;
   const hp = (fn, fill, lw = 1.1) => { c.beginPath(); fn(); c.fillStyle = fill; c.fill(); c.strokeStyle = HO; c.lineWidth = lw; c.stroke(); };
   const limb = (x1, y1, x2, y2, w, col) => { c.lineCap = 'round'; c.strokeStyle = HO; c.lineWidth = w + 2.2; c.beginPath(); c.moveTo(x1, y1); c.lineTo(x2, y2); c.stroke(); c.strokeStyle = col; c.lineWidth = w; c.beginPath(); c.moveTo(x1, y1); c.lineTo(x2, y2); c.stroke(); };
   const robe = cl === 'mage' && tc >= 1;
@@ -96,7 +96,7 @@ export function person(c, L, view, pose = {}) {
       for(const sx of [-1,1]){hp(()=>{c.moveTo(sx*6,-15);c.quadraticCurveTo(sx*15,-15,sx*15,-28);c.quadraticCurveTo(sx*11,-21,sx*4,-19);c.closePath()},'#ece2c8',1)}
       hp(()=>{c.arc(0,-13,8.4,Math.PI,0);c.lineTo(8.4,-9);c.lineTo(6,-9);c.lineTo(6,-12);c.lineTo(-8.4,-12);c.closePath()},hc,1.1);hp(()=>c.rect(-8.8,-14.8,17.6,3),tr,.8);hp(()=>c.rect(3.3,-14.5,1.5,5),tr,.6);
       c.fillStyle='rgba(255,255,255,.35)';c.beginPath();c.arc(-3,-18,2,0,7);c.fill()}c.restore()}
-  if(cl==='mage'&&th>=2){c.save();c.translate(0,-1.8);const hc=['','','#3a5a9a','#4a2f78','#241a50'][th];hp(()=>c.ellipse(0,-16.5,11,2.8,0,0,7),'#1e1438');hp(()=>{c.moveTo(-6.5,-17);c.quadraticCurveTo(-4,-26,-3,-30);c.quadraticCurveTo(-6,-33,-10,-31);c.quadraticCurveTo(-4,-35,0,-31);c.quadraticCurveTo(3,-24,6.5,-17);c.closePath()},hc);hp(()=>c.rect(-6.3,-19.3,12.6,2.4),th>=4&&rc?rc:'#f4c766',.8);
+  if(cl==='mage'&&th>=2){c.save();c.translate(0,-1.8);const hc=L.hatCol||['','','#3a5a9a','#4a2f78','#241a50'][th];hp(()=>c.ellipse(0,-16.5,11,2.8,0,0,7),'#1e1438');hp(()=>{c.moveTo(-6.5,-17);c.quadraticCurveTo(-4,-26,-3,-30);c.quadraticCurveTo(-6,-33,-10,-31);c.quadraticCurveTo(-4,-35,0,-31);c.quadraticCurveTo(3,-24,6.5,-17);c.closePath()},hc);hp(()=>c.rect(-6.3,-19.3,12.6,2.4),th>=4&&rc?rc:'#f4c766',.8);
     if(th>=3){c.fillStyle='#f4c766';c.beginPath();c.arc(-1,-25,1.2,0,7);c.fill()}
     if(th>=4){const fy=-38+Math.sin(t*2)*1.5,g=c.createRadialGradient(0,fy,0.5,0,fy,7);g.addColorStop(0,'rgba(190,150,255,.9)');g.addColorStop(1,'rgba(150,110,255,0)');c.fillStyle=g;c.beginPath();c.arc(0,fy,7,0,7);c.fill();hp(()=>{c.moveTo(0,fy-4.5);c.lineTo(2.6,fy);c.lineTo(0,fy+4.5);c.lineTo(-2.6,fy);c.closePath()},'#b48aff',0.8)}c.restore()}
   if(cl==='archer'&&th>=3){hp(()=>{c.moveTo(-6,-19);c.quadraticCurveTo(-12,-28,-9,-33);c.quadraticCurveTo(-8,-26,-4,-20);c.closePath()},th>=4&&rc?rc:'#d8c050',0.7)}
@@ -120,7 +120,8 @@ export function person(c, L, view, pose = {}) {
   // оружие в руке (hx,hy), a2 — направление предплечья
   function weapon(hx, hy, a2, sw) {
     c.save(); c.translate(hx, hy);
-    if (cl === 'warrior') { c.rotate(a2 - 0.1); axe(); }                       // топор перпендикулярно предплечью
+    if (L.torch) { c.rotate(a2 - 0.1); torch(); }
+    else if (cl === 'warrior') { c.rotate(a2 - 0.1); axe(); }                       // топор перпендикулярно предплечью
     else if (cl === 'mage') { c.rotate(sw ? sw.glow * 0.8 : 0.04); staff(sw ? sw.glow : 0); }   // посох почти отвесно, при ударе — вперёд
     else { c.rotate(sw ? 0 : 0.12); bow(sw && sw.bow ? sw.pull : 0, !!(sw && sw.bow)); }      // лук отвесно, тетива к себе
     c.restore();
@@ -133,6 +134,13 @@ export function person(c, L, view, pose = {}) {
     hp(() => { c.moveTo(0, top + 1); c.lineTo(w, top - hh / 2); c.quadraticCurveTo(w + 3, top + 2, w, top + hh); c.lineTo(0, top + 4); c.closePath(); }, bc);
     if (wt >= 2) hp(() => { c.moveTo(0, top + 1); c.lineTo(-w * 0.8, top - hh / 2.5); c.quadraticCurveTo(-w - 2, top + 2, -w * 0.8, top + hh * 0.8); c.lineTo(0, top + 4); c.closePath(); }, bc);
     if (wt >= 3) { c.strokeStyle = '#ffffff'; c.lineWidth = 0.8; c.beginPath(); c.moveTo(w - 1, top - 2); c.lineTo(w - 3, top + 2); c.lineTo(w - 1, top + 5); c.stroke(); }
+  }
+  // факел поджигателя: палка с огнём
+  function torch() {
+    c.strokeStyle = HO; c.lineWidth = 3.4; c.beginPath(); c.moveTo(0, 5); c.lineTo(0, -15); c.stroke(); c.strokeStyle = '#7a5230'; c.lineWidth = 2; c.stroke();
+    hp(() => c.rect(-2.4, -17, 4.8, 3.4), '#5a3a1c', 0.8);
+    const f = Math.sin(t * 14) * 1.2, g = c.createRadialGradient(0, -21, 1, 0, -21, 11); g.addColorStop(0, 'rgba(255,200,90,.7)'); g.addColorStop(1, 'rgba(255,120,40,0)'); c.fillStyle = g; c.beginPath(); c.arc(0, -21, 11, 0, 7); c.fill();
+    for (const [col, w, h] of [['#ff6a2a', 4.5, 11], ['#ffb347', 3, 8], ['#fff2a0', 1.6, 4.5]]) { c.fillStyle = col; c.beginPath(); c.moveTo(-w, -17); c.quadraticCurveTo(-w, -17 - h * 0.6, f * 0.4, -17 - h - f); c.quadraticCurveTo(w, -17 - h * 0.6, w, -17); c.closePath(); c.fill(); }
   }
   // посох: древко через кисть, навершие сверху; glow — вспышка при ударе
   function staff(glow) {
@@ -233,7 +241,8 @@ export function person(c, L, view, pose = {}) {
     // оружие: спереди — в правой руке героя (слева на экране), сзади — справа
     const [hx, hy] = back ? R : Lh;
     if (wt >= 0) { c.save(); c.translate(hx, hy);
-      if (cl === 'warrior') { c.rotate(SW ? (SW.a < 0 ? -0.6 : 0.5) * (back ? -1 : 1) + (back ? 0.15 : -0.15) : (back ? 0.12 : -0.12)); axe(); }
+      if (L.torch) { c.rotate(back ? 0.12 : -0.12); torch(); }
+      else if (cl === 'warrior') { c.rotate(SW ? (SW.a < 0 ? -0.6 : 0.5) * (back ? -1 : 1) + (back ? 0.15 : -0.15) : (back ? 0.12 : -0.12)); axe(); }
       else if (cl === 'mage') { c.rotate(back ? 0.06 : -0.06); staff(SW ? SW.glow : 0); }
       else { if (SW && SW.bow) { c.rotate(Math.PI / 2); c.scale(1, back ? -1 : 1); bow(SW.pull, !back); } else { c.rotate(back ? 0.1 : -0.1); c.scale(back ? 1 : -1, 1); bow(0, false); } }
       c.restore(); }
@@ -290,7 +299,7 @@ export function person(c, L, view, pose = {}) {
         if (!back) hp(() => c.rect(-0.75, -14.5, 1.5, 5), tr, .6); c.fillStyle = 'rgba(255,255,255,.35)'; c.beginPath(); c.arc(-3, -18, 2, 0, 7); c.fill(); }
       c.restore();
     }
-    if (cl === 'mage' && th >= 2) { const hc = ['', '', '#3a5a9a', '#4a2f78', '#241a50'][th]; c.save(); c.translate(0, -1.8);
+    if (cl === 'mage' && th >= 2) { const hc = L.hatCol || ['', '', '#3a5a9a', '#4a2f78', '#241a50'][th]; c.save(); c.translate(0, -1.8);
       hp(() => c.ellipse(0, -16.5, 11, 2.8, 0, 0, 7), '#1e1438'); hp(() => { c.moveTo(-6.5, -17); c.quadraticCurveTo(-3, -27, 1, -31); c.quadraticCurveTo(3, -33, 6, -31); c.quadraticCurveTo(2, -27, 6.5, -17); c.closePath(); }, hc);
       hp(() => c.rect(-6.3, -19.3, 12.6, 2.4), th >= 4 && rc ? rc : '#f4c766', .8); if (th >= 3 && !back) { c.fillStyle = '#f4c766'; c.beginPath(); c.arc(0, -24, 1.2, 0, 7); c.fill(); } c.restore(); }
     if (cl === 'archer' && th >= 3) hp(() => { c.moveTo(back ? 4 : -4, -19); c.quadraticCurveTo(back ? 9 : -9, -28, back ? 6 : -6, -33); c.quadraticCurveTo(back ? 5 : -5, -26, back ? 2 : -2, -20); c.closePath(); }, th >= 4 && rc ? rc : '#d8c050', 0.7);

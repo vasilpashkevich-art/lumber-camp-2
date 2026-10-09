@@ -44,4 +44,40 @@ export const MOBS = {
     trait: 'smash', gold: 6, humanoid: true,
     smash: { every: 6, wind: 1.1, r: 110, mul: 2.4 },
   },
+  // ---- Хуторские угодья
+  dog: {
+    name: 'Дикий пёс', art: 'dog', r: 14,
+    hp: 0.85, dmg: 1.0, speed: 168, reach: 30, cd: 1.3,
+    trait: 'pack', gold: 1.0,
+  },
+  crow: {
+    name: 'Чёрная ворона', art: 'crow', r: 11, flying: true,
+    hp: 0.55, dmg: 0.7, speed: 175, reach: 34, cd: 1.1,
+    trait: 'pack', gold: 0.5,
+  },
+  scarecrow: {
+    name: 'Ожившее пугало', art: 'scarecrow', r: 15,
+    hp: 1.5, dmg: 1.35, speed: 95, reach: 40, cd: 1.9,
+    trait: 'dormant', wake: 95, gold: 1.1,
+  },
+  bull: {
+    name: 'Бешеный бык', art: 'bull', r: 22,
+    hp: 1.7, dmg: 1.25, speed: 135, reach: 40, cd: 1.9,
+    trait: 'charge', gold: 1.2,
+  },
+  robber: {
+    name: 'Грабитель', art: 'robber', r: 15,
+    hp: 1.15, dmg: 1.15, speed: 155, reach: 36, cd: 1.5,
+    trait: 'pack', gold: 1.8, humanoid: true,
+  },
+  firestarter: {
+    name: 'Поджигатель', art: 'firestarter', r: 14,
+    hp: 0.9, dmg: 0.9, speed: 150, reach: 260, cd: 2.2,
+    trait: 'ranged', shot: 'fire', burn: 0.35, gold: 1.8, humanoid: true,
+  },
+  miller: {
+    name: 'Мельник-колдун', art: 'miller', r: 19, rare: true,
+    hp: 5, dmg: 1.4, speed: 115, reach: 300, cd: 2.0,
+    trait: 'caster', summon: { kind: 'crow', n: 2, every: 11 }, gold: 7, humanoid: true,
+  },
 };

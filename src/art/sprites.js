@@ -46,7 +46,7 @@ export function heroSpr(L, dir) {
 // mode: idle — стоит, walk — 8 кадров шага, atk — 6 кадров удара, dead — 4 кадра падения
 export const FRAMES = { idle: 1, walk: 8, atk: 6, dead: 4 };
 const poseOf = (mode, f) => mode === 'walk' ? { walk: f / 8 } : mode === 'atk' ? { atk: (f + 0.5) / 6 } : mode === 'dead' ? { dead: (f + 1) / 4 } : { walk: -1 };
-const lookKey = L => [L.cls, L.head, L.chest, L.legs, L.wt, L.rar, L.mask || '', L.band || '', L.patch ? 1 : 0, L.glow ? 1 : 0].join(',');
+const lookKey = L => [L.cls, L.head, L.chest, L.legs, L.wt, L.rar, L.mask || '', L.band || '', L.patch ? 1 : 0, L.glow ? 1 : 0, L.torch ? 1 : 0, L.hatCol || '', L.line ? L.line.chest[1] : ''].join(',');
 /** Кадр человека (герой, разбойники). Начало — как у heroSpr: ступни на +12,6. */
 export function personSpr(L, view, mode, f) {
   return sprite('p|' + lookKey(L) + '|' + view + '|' + mode + '|' + f, 100, 104, 50, 72, 1.7, g => person(g, L, view, poseOf(mode, f)));
@@ -69,8 +69,13 @@ export const MOB_LOOK = {
   bandit: { cls: 'warrior', chest: 1, legs: 1, head: 0, wt: 0, mask: '#7a2a2a', band: '#7a2a2a' },
   bandit_archer: { cls: 'archer', chest: 1, legs: 1, head: 0, wt: 0, mask: '#7a2a2a' },
   ataman: { cls: 'warrior', chest: 2, legs: 2, head: 0, wt: 2, patch: true, band: '#a8282a', rar: 'good' },
+  // Хуторские угодья
+  robber: { cls: 'warrior', chest: 2, legs: 1, head: 0, wt: 1, mask: '#4a4a52', band: '#3a3a42' },
+  firestarter: { cls: 'warrior', chest: 1, legs: 1, head: 0, wt: 0, mask: '#2a2a2a', torch: true },
+  miller: { cls: 'mage', chest: 2, legs: 1, head: 2, wt: 2, rar: 'good', hatCol: '#5a4030',
+    line: { chest: ['#d8c8a4', '#cfc6b0', '#cfc6b0', '#cfc6b0', '#cfc6b0'], legs: ['#6b4a2c', '#5a4a3a', '#5a4a3a', '#5a4a3a', '#5a4a3a'] } },
 };
-export const MOB_SCALE = { ataman: 1.35, bandit: 1.05, bandit_archer: 1.05 };
+export const MOB_SCALE = { ataman: 1.35, bandit: 1.05, bandit_archer: 1.05, robber: 1.08, firestarter: 1.02, miller: 1.3, bull: 1.15 };
 
 /** Моб: звери с кадрами шага, люди — облик героя. */
 export function mobSpr(kind, dir, frame, bite) {

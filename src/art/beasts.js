@@ -11,8 +11,8 @@ function legs(c, xs, top, h, w, col, a, amp = 2.5) {
 function eye(c, x, y, r = 1.1, col = O) { c.fillStyle = col; c.beginPath(); c.arc(x, y, r, 0, 7); c.fill(); c.fillStyle = '#fff'; c.beginPath(); c.arc(x + 0.35, y - 0.4, r * 0.35, 0, 7); c.fill(); }
 
 /** Волк (и лиса — другой окрас, меньше). */
-function canine(c, a, bite, fox) {
-  const body = fox ? '#d9783a' : '#8a8f96', dark = fox ? '#a8542a' : '#5e636a', light = fox ? '#f4e6d0' : '#c9cdd2';
+function canine(c, a, bite, fox, K = fox ? COL.fox : COL.wolf) {
+  const body = K.body, dark = K.dark, light = K.light;
   shadow(c, 17, 4);
   const bob = Math.sin(a * Math.PI * 4) * 0.8;
   // хвост
@@ -30,7 +30,8 @@ function canine(c, a, bite, fox) {
   hp(c, () => { c.moveTo(5, -2); c.lineTo(15, 1); c.quadraticCurveTo(15, 4, 12, 4.5); c.lineTo(4, 4); c.closePath(); }, body);
   hp(c, () => { c.moveTo(4, 2); c.lineTo(12, 4.5); c.quadraticCurveTo(8, 6, 3, 5); c.closePath(); }, light, 0.6);
   c.fillStyle = O; c.beginPath(); c.arc(14.5, 1.6, 1.4, 0, 7); c.fill();
-  eye(c, 5.5, -1.5, 1.1, fox ? '#3a2410' : '#d8b44a');
+  eye(c, 5.5, -1.5, 1.1, K.eye);
+  if (K.collar) { hp(c, () => c.rect(-3, 2, 3, 5), K.collar, 0.7); }
   if (bite) { c.fillStyle = '#fff'; c.fillRect(9, 4, 1, 1.6); c.fillRect(11, 4.3, 1, 1.4); }
   c.restore();
 }
@@ -81,13 +82,85 @@ export function spider(c, a, bite) {
   hp(c, () => { c.moveTo(10, -9 + bob); c.quadraticCurveTo(14 + j, -8 + bob, 12, -5 + bob); c.lineTo(10.5, -7 + bob); c.closePath(); }, '#d8c8a4', 0.6);
 }
 
-export const BEASTS = { wolf, fox, boar, spider };
+export function dog(c, a, bite) { c.save(); c.scale(0.95, 0.95); canine(c, a, bite, false, COL.dog); c.restore(); }
+
+// бешеный бык: большой, рога, кольцо в носу
+export function bull(c, a, bite) {
+  const K = COL.bull; shadow(c, 24, 6);
+  const bob = Math.sin(a * Math.PI * 4) * 0.8;
+  legs(c, [-14, -7], -12, 12, 5, K.dark, a, 2.5);
+  hp(c, () => { c.moveTo(-20, -14 + bob); c.quadraticCurveTo(-26, -6, -24, 2 + bob); c.lineTo(-22, 2 + bob); c.quadraticCurveTo(-23, -6, -18, -12 + bob); c.closePath(); }, K.dark, 0.9);
+  hp(c, () => c.ellipse(0, -19 + bob, 21, 12, 0, 0, 7), K.body, 1.3);
+  hp(c, () => c.ellipse(4, -27 + bob, 10, 5, 0.1, 0, 7), K.body, 0);   // холка
+  c.fillStyle = K.light; c.beginPath(); c.ellipse(-6, -21 + bob, 6, 4, 0.3, 0, 7); c.fill();
+  legs(c, [7, 13], -12, 12, 5, K.body, a + 0.25, 2.5);
+  c.save(); c.translate(19, -20 + bob); c.rotate(bite ? 0.35 * bite : 0.1);
+  for (const [sx, col] of [[-1, '#d8cfb8'], [1, '#ece2c8']]) hp(c, () => { c.moveTo(-1, -7 + sx); c.quadraticCurveTo(-4, -16, 3 + sx * 2, -17); c.quadraticCurveTo(0, -12, 2, -6 + sx); c.closePath(); }, col, 0.9);
+  hp(c, () => c.ellipse(4, 0, 9, 8, 0.2, 0, 7), K.body, 1.2);
+  hp(c, () => c.ellipse(11, 4, 5, 4.5, 0, 0, 7), K.light, 1);
+  c.fillStyle = '#3a2418'; c.beginPath(); c.arc(11, 3, 0.9, 0, 7); c.arc(13.4, 5, 0.9, 0, 7); c.fill();
+  c.strokeStyle = '#d8b44a'; c.lineWidth = 1.2; c.beginPath(); c.arc(13.5, 7.2, 2, 0.3, 3); c.stroke();
+  eye(c, 5, -2.5, 1.2, '#c8323a');
+  c.restore();
+}
+
+// ворона: летит над землёй, тень внизу; a — взмах крыльев
+export function crow(c, a, bite) {
+  const fly = -26 + Math.sin(a * Math.PI * 2) * 2.5, flap = Math.sin(a * Math.PI * 4);
+  c.fillStyle = 'rgba(0,0,0,.2)'; c.beginPath(); c.ellipse(0, 1, 9, 2.6, 0, 0, 7); c.fill();
+  c.save(); c.translate(bite * 5, fly + bite * 10);
+  hp(c, () => { c.moveTo(-3, -1); c.quadraticCurveTo(-6, -12 - flap * 6, -16, -10 - flap * 8); c.quadraticCurveTo(-8, -4, -2, 2); c.closePath(); }, '#2a2630', 0.9); // дальнее крыло
+  hp(c, () => { c.moveTo(-8, 0); c.lineTo(-15, -3); c.lineTo(-15, 3); c.closePath(); }, '#1e1a24', 0.8);           // хвост
+  hp(c, () => c.ellipse(0, 0, 8, 4.6, 0, 0, 7), '#2e2a36', 1);
+  hp(c, () => c.arc(7, -2.5, 3.6, 0, 7), '#2e2a36', 1);
+  hp(c, () => { c.moveTo(9.5, -3.5); c.lineTo(15, -1.5 + bite); c.lineTo(9.8, -0.6); c.closePath(); }, '#c9a24a', 0.8);
+  c.fillStyle = '#ffd34d'; c.beginPath(); c.arc(8, -3.4, 0.9, 0, 7); c.fill();
+  hp(c, () => { c.moveTo(-2, -1); c.quadraticCurveTo(-2, -12 - flap * 9, 6, -14 - flap * 10); c.quadraticCurveTo(2, -4, 3, 1); c.closePath(); }, '#3a3644', 0.9);   // ближнее крыло
+  c.restore();
+}
+
+// пугало: на жерди, прыгает; соломенная шляпа, мешок-голова со швами, руки-палки
+export function scarecrow(c, a, bite, view = 'side') {
+  const hop = -Math.abs(Math.sin(a * Math.PI * 2)) * 5, sw = Math.sin(a * Math.PI * 2) * 0.12, front = view === 'front', back = view === 'back';
+  c.fillStyle = 'rgba(0,0,0,.25)'; c.beginPath(); c.ellipse(0, 1, 11 + hop * 0.6, 3.5, 0, 0, 7); c.fill();
+  c.save(); c.translate(0, hop); c.rotate(sw);
+  // жердь
+  c.strokeStyle = O; c.lineWidth = 4; c.beginPath(); c.moveTo(0, 0); c.lineTo(0, -34); c.stroke(); c.strokeStyle = '#7a5530'; c.lineWidth = 2.4; c.stroke();
+  // руки-палки (при ударе — взмах)
+  const r = bite * 0.9;
+  c.save(); c.translate(0, -27); c.rotate(-r);
+  c.strokeStyle = O; c.lineWidth = 3.6; c.beginPath(); c.moveTo(-17, 1); c.lineTo(17, -1); c.stroke(); c.strokeStyle = '#8a6a3a'; c.lineWidth = 2; c.stroke();
+  c.strokeStyle = '#e8c860'; c.lineWidth = 1.2; for (const sx of [-1, 1]) for (let i = 0; i < 3; i++) { c.beginPath(); c.moveTo(sx * 17, 0); c.lineTo(sx * (20 + i), -3 + i * 3); c.stroke(); }
+  c.restore();
+  // рубаха в заплатах
+  hp(c, () => { c.moveTo(-9, -31); c.lineTo(9, -31); c.lineTo(11, -12); c.lineTo(6, -9); c.lineTo(3, -12); c.lineTo(0, -8); c.lineTo(-3, -12); c.lineTo(-6, -9); c.lineTo(-11, -12); c.closePath(); }, '#6a7a4a');
+  c.fillStyle = '#8a5a3a'; c.fillRect(-6, -24, 5, 5); c.fillStyle = '#c9a24a'; c.fillRect(2, -19, 4, 4);
+  c.strokeStyle = 'rgba(36,24,15,.6)'; c.lineWidth = 0.6; c.strokeRect(-6, -24, 5, 5); c.strokeRect(2, -19, 4, 4);
+  c.strokeStyle = '#e8c860'; c.lineWidth = 1.2; for (let i = 0; i < 5; i++) { c.beginPath(); c.moveTo(-8 + i * 4, -11); c.lineTo(-9 + i * 4.4, -6); c.stroke(); }
+  hp(c, () => c.rect(-9, -16, 18, 2.4), '#5a3a1c', 0.7);
+  // голова-мешок
+  hp(c, () => c.ellipse(0, -38, 7.5, 7, 0, 0, 7), '#d8c49a');
+  if (!back) {
+    const ex = front ? [-2.8, 2.8] : [1.5, 5]; c.fillStyle = '#1a1010'; for (const x of ex) { c.beginPath(); c.moveTo(x - 1.6, -40); c.lineTo(x + 1.6, -40); c.lineTo(x, -37.6); c.closePath(); c.fill(); }
+    const g = c.createRadialGradient(ex[1], -39, 0.2, ex[1], -39, 4); g.addColorStop(0, 'rgba(255,170,60,.7)'); g.addColorStop(1, 'rgba(255,170,60,0)'); c.fillStyle = g; c.beginPath(); c.arc(ex[1], -39, 4, 0, 7); c.fill();
+    c.strokeStyle = '#3a2418'; c.lineWidth = 0.8; c.beginPath(); const mx = front ? 0 : 3; c.moveTo(mx - 3.5, -34.5); for (let i = 0; i <= 6; i++) c.lineTo(mx - 3.5 + i * 1.2, -34.5 + (i % 2 ? 1 : -0.6)); c.stroke();
+  } else { c.strokeStyle = '#a8916a'; c.lineWidth = 0.8; c.beginPath(); c.moveTo(-5, -38); c.lineTo(5, -36); c.stroke(); }
+  // соломенная шляпа
+  hp(c, () => c.ellipse(0, -44, 11, 3, 0, 0, 7), '#d8b44a');
+  hp(c, () => { c.moveTo(-6, -44); c.quadraticCurveTo(-5, -51, 0, -52); c.quadraticCurveTo(5, -51, 6, -44); c.closePath(); }, '#e8c860');
+  hp(c, () => c.rect(-6, -46.5, 12, 2), '#8a3a2a', 0.6);
+  c.restore();
+}
+
+export const BEASTS = { wolf, fox, boar, spider, dog, bull, crow, scarecrow };
 
 // ---------------------------------------------------------------- три вида: сбоку, спереди (идёт вниз), сзади (идёт вверх)
 // pose = { walk: фаза 0..1 или -1, atk: -1 или 0..1 (укус), hit: 0..1, dead: 0..1, t }
 const COL = {
   wolf: { body: '#8a8f96', dark: '#5e636a', light: '#c9cdd2', eye: '#d8b44a', s: 1 },
   fox: { body: '#d9783a', dark: '#a8542a', light: '#f4e6d0', eye: '#3a2410', s: 0.85 },
+  dog: { body: '#6a4a32', dark: '#3a2a1e', light: '#c9a07a', eye: '#e8b040', s: 0.95, collar: '#8a2a2a' },
+  bull: { body: '#4a3226', dark: '#2a1c14', light: '#8a6a52', eye: '#c8323a', s: 1 },
   boar: { body: '#6b4a32', dark: '#4a3020', light: '#8a6a4a', eye: O, s: 1 },
   spider: { body: '#3a2a3a', dark: '#2a1e2a', light: '#4a3a4a', eye: '#ff4a3a', s: 1 },
 };
@@ -104,6 +177,22 @@ export function beast(c, kind, view, pose = {}) {
 const legPair = (c, xs, top, h, w, col, p, W, amp = 2.2) => xs.forEach((x, i) => { const lift = W ? Math.max(0, Math.sin((p + i * 0.5) * Math.PI * 2)) * amp : 0; hp(c, () => c.roundRect(x - w / 2, top - lift, w, h, 1.6), col, 0.9); });
 
 const FRONT = {
+  dog: (c, p, W, bite, K) => { c.save(); c.scale(K.s, K.s); canineFront(c, p, W, bite, K, false); c.restore(); },
+  bull(c, p, W, bite, K) {
+    shadow(c, 18, 6); const bob = W ? Math.sin(p * Math.PI * 4) * 0.8 : 0;
+    legPair(c, [-9, 9], -12, 12, 5, K.dark, p, W, 2.4);
+    hp(c, () => c.ellipse(0, -19 + bob, 16, 13, 0, 0, 7), K.body, 1.3);
+    legPair(c, [-5, 5], -11, 11, 5, K.body, p + 0.25, W, 2.4);
+    const hy = -16 + bob + bite * 3;
+    for (const sx of [-1, 1]) hp(c, () => { c.moveTo(sx * 6, hy - 6); c.quadraticCurveTo(sx * 16, hy - 8, sx * 17, hy - 17); c.quadraticCurveTo(sx * 12, hy - 11, sx * 4, hy - 9); c.closePath(); }, '#ece2c8', 0.9);
+    hp(c, () => c.ellipse(0, hy, 9, 9, 0, 0, 7), K.body, 1.2);
+    hp(c, () => c.ellipse(0, hy + 5, 6, 4.2, 0, 0, 7), K.light, 1);
+    c.fillStyle = '#3a2418'; c.beginPath(); c.arc(-2, hy + 5, 1, 0, 7); c.arc(2, hy + 5, 1, 0, 7); c.fill();
+    c.strokeStyle = '#d8b44a'; c.lineWidth = 1.3; c.beginPath(); c.arc(0, hy + 8, 2.2, 0.2, 2.9); c.stroke();
+    eye(c, -4, hy - 2.5, 1.2, '#c8323a'); eye(c, 4, hy - 2.5, 1.2, '#c8323a');
+  },
+  crow: (c, p, W, bite) => crowFB(c, p, bite, true),
+  scarecrow: (c, p, W, bite) => scarecrow(c, W ? p : 0, bite, 'front'),
   wolf: (c, p, W, bite, K) => canineFront(c, p, W, bite, K, false),
   fox: (c, p, W, bite, K) => { c.save(); c.scale(K.s, K.s); canineFront(c, p, W, bite, K, true); c.restore(); },
   boar(c, p, W, bite, K) {
@@ -124,6 +213,18 @@ const FRONT = {
   spider(c, p, W, bite, K) { spiderTop(c, p, W, bite, K, true); },
 };
 const BACK = {
+  dog: (c, p, W, bite, K) => { c.save(); c.scale(K.s, K.s); canineBack(c, p, W, K, false); c.restore(); },
+  bull(c, p, W, bite, K) {
+    shadow(c, 18, 6); const bob = W ? Math.sin(p * Math.PI * 4) * 0.8 : 0;
+    for (const sx of [-1, 1]) hp(c, () => { c.moveTo(sx * 6, -30 + bob); c.quadraticCurveTo(sx * 16, -32 + bob, sx * 17, -40 + bob); c.quadraticCurveTo(sx * 12, -35 + bob, sx * 4, -33 + bob); c.closePath(); }, '#ece2c8', 0.9);
+    legPair(c, [-5, 5], -11, 11, 5, K.dark, p + 0.25, W, 2.4);
+    hp(c, () => c.ellipse(0, -19 + bob, 16, 13, 0, 0, 7), K.body, 1.3);
+    legPair(c, [-9, 9], -12, 12, 5.4, K.body, p, W, 2.4);
+    c.strokeStyle = O; c.lineWidth = 2; c.beginPath(); c.moveTo(0, -18 + bob); c.quadraticCurveTo(3 * Math.sin(p * 18), -9, 1, -4 + bob); c.stroke();
+    c.fillStyle = K.dark; c.beginPath(); c.ellipse(1, -3 + bob, 2, 2.6, 0, 0, 7); c.fill();
+  },
+  crow: (c, p, W, bite) => crowFB(c, p, bite, false),
+  scarecrow: (c, p, W, bite) => scarecrow(c, W ? p : 0, bite, 'back'),
   wolf: (c, p, W, bite, K) => canineBack(c, p, W, K, false),
   fox: (c, p, W, bite, K) => { c.save(); c.scale(K.s, K.s); canineBack(c, p, W, K, true); c.restore(); },
   boar(c, p, W, bite, K) {
@@ -191,4 +292,17 @@ function spiderTop(c, p, W, bite, K, front) {
     hp(c, () => { c.moveTo(0, -21 + bob); c.lineTo(3, -16 + bob); c.lineTo(0, -11 + bob); c.lineTo(-3, -16 + bob); c.closePath(); }, '#c8323a', 0.6);
     c.fillStyle = 'rgba(255,255,255,.15)'; c.beginPath(); c.ellipse(-3, -20 + bob, 4, 2, -0.3, 0, 7); c.fill();
   }
+}
+
+// ворона спереди и сзади: крылья в стороны
+function crowFB(c, p, bite, front) {
+  const fly = -26 + Math.sin(p * Math.PI * 2) * 2.5, flap = Math.sin(p * Math.PI * 4);
+  c.fillStyle = 'rgba(0,0,0,.2)'; c.beginPath(); c.ellipse(0, 1, 9, 2.6, 0, 0, 7); c.fill();
+  c.save(); c.translate(0, fly + bite * 10);
+  for (const sx of [-1, 1]) hp(c, () => { c.moveTo(sx * 3, -2); c.quadraticCurveTo(sx * 10, -8 - flap * 7, sx * 18, -4 - flap * 9); c.quadraticCurveTo(sx * 10, 0, sx * 3, 3); c.closePath(); }, '#2e2a36', 0.9);
+  if (!front) hp(c, () => { c.moveTo(-3, 4); c.lineTo(0, 10); c.lineTo(3, 4); c.closePath(); }, '#1e1a24', 0.8);
+  hp(c, () => c.ellipse(0, 0, 5, 6, 0, 0, 7), '#2e2a36', 1);
+  hp(c, () => c.arc(0, -6, 4, 0, 7), '#2e2a36', 1);
+  if (front) { hp(c, () => { c.moveTo(-1.6, -5); c.lineTo(0, 0 + bite * 2); c.lineTo(1.6, -5); c.closePath(); }, '#c9a24a', 0.8); c.fillStyle = '#ffd34d'; for (const x of [-1.8, 1.8]) { c.beginPath(); c.arc(x, -7, 0.9, 0, 7); c.fill(); } }
+  c.restore();
 }

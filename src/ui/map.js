@@ -5,7 +5,8 @@ import { modal } from './dom.js';
 
 const O = '#24180f';
 // цвет области логова по виду
-const TINT = { den: '217,120,58', wolf: '150,150,160', boar: '140,95,55', web: '200,200,215', bandit: '200,60,50', ataman: '255,180,60' };
+const TINT = { den: '217,120,58', wolf: '150,150,160', boar: '140,95,55', web: '200,200,215', bandit: '200,60,50', ataman: '255,180,60',
+  kennel: '150,100,60', crowfield: '70,60,90', scarefield: '220,190,90', pasture: '120,80,60', burned: '240,110,40', mill: '120,255,170' };
 
 /** Значок логова: голова лисы, волка, кабана, паук, шатёр, звезда атамана. */
 export function lairGlyph(g, kind, x, y, s) {
@@ -17,6 +18,12 @@ export function lairGlyph(g, kind, x, y, s) {
   else if (kind === 'boar') { p([[-7, -4], [0, -7], [7, -4], [7, 3], [0, 7], [-7, 3]], '#8a5a34'); g.fillStyle = '#f0e8d0'; g.beginPath(); g.moveTo(-4, 3); g.lineTo(-6, -1); g.lineTo(-3, 2); g.moveTo(4, 3); g.lineTo(6, -1); g.lineTo(3, 2); g.fill(); }
   else if (kind === 'web') { g.strokeStyle = '#e8e8f0'; g.lineWidth = 1.1; for (let i = 0; i < 4; i++) { const a = -0.9 + i * 0.6; g.beginPath(); g.moveTo(0, 0); g.lineTo(-Math.cos(a) * 8, Math.sin(a) * 6); g.moveTo(0, 0); g.lineTo(Math.cos(a) * 8, Math.sin(a) * 6); g.stroke(); } g.fillStyle = '#2a2230'; g.beginPath(); g.arc(0, 0, 3.6, 0, 7); g.fill(); g.fillStyle = '#c8323a'; g.fillRect(-0.8, -1.5, 1.6, 3); }
   else if (kind === 'bandit') { p([[-7, 6], [0, -7], [7, 6]], '#c8504a'); g.fillStyle = O; g.beginPath(); g.moveTo(-2, 6); g.lineTo(0, 1); g.lineTo(2, 6); g.fill(); }
+  else if (kind === 'kennel') { p([[-7, -4], [-4, -7], [4, -7], [7, -4], [6, 3], [0, 7], [-6, 3]], '#7a5232'); g.fillStyle = '#2a1a10'; g.beginPath(); g.ellipse(0, 3, 2, 1.4, 0, 0, 7); g.fill(); g.fillStyle = '#e8b040'; g.fillRect(-3.4, -2, 1.6, 1.6); g.fillRect(1.8, -2, 1.6, 1.6); }
+  else if (kind === 'crowfield') { p([[-8, -1], [-3, -5], [0, -2], [3, -5], [8, -1], [3, 0], [0, 4], [-3, 0]], '#3a3444'); g.fillStyle = '#c9a24a'; g.beginPath(); g.moveTo(0, 1); g.lineTo(2, 3); g.lineTo(0, 4); g.fill(); }
+  else if (kind === 'scarefield') { p([[-8, -1], [8, -1], [4, -3], [-4, -3]], '#d8b44a'); p([[-3, -3], [-2, -8], [2, -8], [3, -3]], '#e8c860'); g.fillStyle = '#d8c49a'; g.beginPath(); g.arc(0, 3, 4, 0, 7); g.fill(); g.fillStyle = '#2a1a10'; g.fillRect(-2.2, 2, 1.4, 1.4); g.fillRect(0.8, 2, 1.4, 1.4); }
+  else if (kind === 'pasture') { p([[-7, -2], [7, -2], [5, 6], [-5, 6]], '#5a3a28'); for (const sx of [-1, 1]) p([[sx * 4, -2], [sx * 9, -8], [sx * 6, -1]], '#ece2c8'); }
+  else if (kind === 'burned') { p([[-5, 6], [-6, 0], [-2, -3], [-1, -8], [3, -3], [6, 0], [5, 6]], '#ff7a2a'); p([[-2, 6], [-2, 2], [0, -1], [2, 2], [2, 6]], '#ffd34d'); }
+  else if (kind === 'mill') { g.strokeStyle = '#e8e0cc'; g.lineWidth = 2; for (let i = 0; i < 4; i++) { const a = i * Math.PI / 2 + 0.4; g.beginPath(); g.moveTo(0, -1); g.lineTo(Math.cos(a) * 8, -1 + Math.sin(a) * 8); g.stroke(); } p([[-3, 7], [-2, -1], [2, -1], [3, 7]], '#8a6a4a'); g.fillStyle = '#9affc8'; g.beginPath(); g.arc(0, -1, 1.6, 0, 7); g.fill(); }
   else { p(Array.from({ length: 10 }, (_, i) => { const r = i % 2 ? 3.4 : 8, a = i * Math.PI / 5 - Math.PI / 2; return [Math.cos(a) * r, Math.sin(a) * r]; }), '#ffb347'); }
   g.restore();
 }
