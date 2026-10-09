@@ -1,0 +1,31 @@
+<title>Королевский замок — эскиз</title>
+<style>
+:root{color-scheme:dark;--bg:#14100b;--pan:#221a12;--line:#5a4630;--txt:#e9dfc8;--dim:#a89878;--hi:#ffe9a8;--gold:#e7c35a}
+body{background:var(--bg);color:var(--txt);font:15px Georgia,'Times New Roman',serif;margin:0;padding:18px 16px 40px}
+h1{margin:0 0 4px;color:var(--hi);font-size:28px} h2{color:var(--hi);font-size:21px;margin:26px 0 6px}
+p{color:var(--dim);max-width:900px;line-height:1.5;margin:4px 0}
+canvas.big{width:100%;max-width:1100px;height:auto;border:1px solid var(--line);border-radius:10px;display:block}
+.bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:10px 0}
+.bar b{color:var(--dim);font-weight:normal;margin:0 4px 0 10px}
+button{font:inherit;color:var(--hi);background:linear-gradient(#4a3420,#24180f);border:1.5px solid var(--line);border-radius:8px;padding:6px 12px;cursor:pointer}
+button.on{border-color:var(--gold);box-shadow:0 0 0 1px var(--gold)}
+ul{color:var(--dim);max-width:900px;line-height:1.55;margin:6px 0;padding-left:20px} ul b{color:var(--txt)}
+</style>
+<h1>Столица: королевский замок — эскиз</h1>
+<p>Всё нарисовано в масштабе игры: 1 рост героя ≈ 55 шагов мира. Вид — как в игре, тот же размер на экране.</p>
+<h2>1. Вид от фонтана на замок</h2>
+<p>Фонтан в центре площади, от него прямая аллея из плит с фонарями, лестница на террасу, большой замок у северной стены. Стража в полный рост у лестницы и у ворот. Герой стоит на аллее.</p>
+<div class="bar"><b>Замок:</b><button data-v="a" class="on">А — Твердыня</button><button data-v="b">Б — Королевский дворец</button><button data-v="c">В — Белый кремль</button>
+<b>Время:</b><button data-n="0" class="on">День</button><button data-n="1">Ночь</button></div>
+<canvas id="scene" class="big"></canvas>
+<ul>
+<li><b>А — Твердыня.</b> Серый камень, красные крыши: донжон, две круглые башни, зубцы. Суровый, «рыцарский».</li>
+<li><b>Б — Королевский дворец.</b> Светлый песчаник, синие крыши, золото, окно-роза и балкон над воротами — место, где выходит король.</li>
+<li><b>В — Белый кремль.</b> Белый камень, зелёные шатры, золотые купола-луковицы, зубцы «ласточкин хвост». Ближе к русским названиям игры (Ермолай, Хутор Подгорный).</li>
+</ul>
+<h2>2. План столицы</h2>
+<p>Столица шире: радиус стены 560 → 820 (на 46% больше). Пунктир — нынешняя стена. Дорожки из плит от ворот к фонтану и от фонтана к замку, газоны с клумбами и деревьями, постройки по краям.</p>
+<canvas id="plan" class="big"></canvas>
+<h2>3. Масштаб: как сейчас и как будет</h2>
+<canvas id="scale" class="big"></canvas>
+<!--SCRIPT-->
