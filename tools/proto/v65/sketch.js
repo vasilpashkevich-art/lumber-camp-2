@@ -6,6 +6,7 @@ import { palette } from '../../../src/art/gear.js';
 import { vein } from '../../../src/art/ore.js';
 import { lookOf, makeItem } from '../../../src/systems/items.js';
 import * as Z from './world3.js';
+import { FOREST, drawMap } from './map.js';
 
 const DPR = Math.min(2, window.devicePixelRatio || 1);
 const $ = s => document.querySelector(s);
@@ -144,6 +145,18 @@ const MERCH = { key: 'merchant', hair: '#5a3a22', beard: 'full', head: { m: 'ran
     g.restore();
     label(g, 'Квакуны у пруда', 240, 590); label(g, 'Грибной круг', 740, 545); label(g, 'Паутина', 980, 175); label(g, 'Железная жила', 1120, 650); label(g, 'Поваленный ствол', 1010, 600);
   }));
+}
+
+// ================================================================= 7. карта зоны
+{
+  const s = sec('7. Карта Грибного леса (большая карта, клавиша K)', 'Вход — с востока Соснового дола, герой приходит на западный край. Тропа ведёт на восток через стоянку купца к Болотному краю (пока закрыт). Сложность растёт с запада на восток: у входа логова 10–11 уровня, у дальнего края — 13–14. Квакуны живут у прудов вдоль Квакушкина ручья, грибоеды — на полянах и в логах на севере, пауки — в тёмных местах на востоке. Редкий вожак — Великий Полоз (★, 14 ур.) в каменистой низине на юго-востоке. Густой туман — в низинах у прудов, в Сыром овраге и в Паучьем ущелье. 11 логов, как во второй зоне. Цвет уровней — для героя 12-го уровня.');
+  const k = 0.145, W = Math.round(FOREST.W * k), H = Math.round(FOREST.H * k);
+  const row = el('div', 'maps'); s.appendChild(row);
+  const mk = (ore, cap) => { const box = el('div', 'card'); box.appendChild(el('b', null, cap)); const cv = document.createElement('canvas'); cv.width = W * DPR; cv.height = H * DPR; cv.style.width = W + 'px'; cv.style.height = H + 'px'; const g = cv.getContext('2d'); g.setTransform(DPR, 0, 0, DPR, 0, 0); drawMap(g, FOREST, k, ore); box.appendChild(cv); row.appendChild(box); };
+  mk(false, 'Как в игре');
+  mk(true, 'Для обсуждения: где жилы (в игре на карте не видны). Олово — светлое, железо — рыжее');
+  const tbl = el('table', 'lairs'); tbl.innerHTML = '<tr><th>Логово</th><th>Кто</th><th>Уровни</th></tr>' + FOREST.camps.map(c => `<tr><td>${c.rare ? '★ ' : ''}${c.name}</td><td>${[].concat(c.mob).map(m => NAMES[m]).filter((v, i, a) => a.indexOf(v) === i).join(', ')}</td><td>${c.lvl[0] === c.lvl[1] ? c.lvl[0] : c.lvl.join('–')}</td></tr>`).join('');
+  s.appendChild(tbl);
 }
 
 let t0 = performance.now();
