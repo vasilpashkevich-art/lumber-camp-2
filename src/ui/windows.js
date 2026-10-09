@@ -98,7 +98,7 @@ function closeOnE(m, extra) {
 
 /** Рынок: продать вещи, купить зелья. */
 export function openVendor(G, onChange, shop = null) {
-  const who = shop && shop.name === 'Лавка' ? 'Лавочник Трофим: «Колечко, бусы, зелье — всё для путника. Хорошее нынче дорого».' : 'Торговка Агафья: «Что продаёшь, путник? Зелья свежие, утром варила. А вот и украшения — не дёшево, да того стоят».';
+  const who = shop && shop.name === 'Лавка' ? 'Лавочник Трофим: «Колечко, бусы, зелье — всё для путника. Хорошее нынче дорого».' : shop && shop.id === 'cart' ? 'Купец Демьян: «В этом лесу, путник, без зелья ни шагу — туман, споры да пауки. Бери, пока я тут стою».' : 'Купец Савва: «Что продаёшь, путник? Зелья свежие, утром привезли. А вот и украшения — не дёшево, да того стоят».';
   const m = modal(`<h2>${shop ? shop.name : 'Рынок'}</h2><p class="who">${who}</p><div class="vend"><div><h3>Купить</h3><div class="buy"></div></div><div><h3>Продать <small>(нажмите на вещь, цена — в подсказке)</small></h3><div class="bag"></div><div class="row"><button class="btn sellall">Продать всё, что не надеть</button><button class="btn sellore">Продать руду, слитки и камни</button></div></div></div><p class="gold">Деньги: <b></b></p>`, 'wide');
   const draw = () => {
     const h = G.hero, p = POTION_PRICE(h.lvl);
@@ -164,7 +164,7 @@ export function openGuild(G, onChange) {
     const leg = ['orange', 'yellow', 'green', 'gray'].map(c => `<span style="color:${MINE.colorHex[c]}">●</span> ${{ orange: 'оранжевая — навык растёт всегда', yellow: 'жёлтая — часто', green: 'зелёная — редко', gray: 'серая — не растёт' }[c]}`).join('<br>');
     L.innerHTML = `<div class="ware2">${accIcon('pickaxe', 'common', 44)}<div><b>Горное дело</b><small>${sk ? `Навык: ${sk} / ${MINE.cap}` : 'Не изучено. Учу бесплатно.'}</small></div><button class="btn" data-x="learn" ${sk ? 'disabled' : ''}>${sk ? 'Изучено' : 'Выучить'}</button></div>
       <div class="ware2">${accIcon('pickaxe', 'common', 44)}<div><b>Кирка рудокопа</b><small>${hasPick(h) ? 'У вас уже есть' : 'Без неё жилу не выкопать'}</small></div><button class="btn" data-x="pick" ${hasPick(h) ? 'disabled' : ''}>${moneyHtml(MINE.pickPrice)}</button></div>
-      <table class="ores"><tr><th>Руда</th><th>Где</th><th>Нужно</th><th>Сейчас</th></tr>${Object.values(ORES).map(O => { const c = sk ? veinColor(sk, O.req).c : 'none'; return `<tr><td>${O.ore}</td><td>${O.req < 50 ? 'Сосновый дол' : 'Хуторские угодья'}</td><td>${O.req}</td><td style="color:${MINE.colorHex[c] || '#a89878'}">${{ none: 'не изучено', red: 'рано', orange: 'оранжевая', yellow: 'жёлтая', green: 'зелёная', gray: 'серая' }[c]}</td></tr>`; }).join('')}</table>
+      <table class="ores"><tr><th>Руда</th><th>Где</th><th>Нужно</th><th>Сейчас</th></tr>${Object.values(ORES).map(O => { const c = sk ? veinColor(sk, O.req).c : 'none'; return `<tr><td>${O.ore}</td><td>${O.where || (O.req < 50 ? 'Сосновый дол' : 'Хуторские угодья')}</td><td>${O.req}</td><td style="color:${MINE.colorHex[c] || '#a89878'}">${{ none: 'не изучено', red: 'рано', orange: 'оранжевая', yellow: 'жёлтая', green: 'зелёная', gray: 'серая' }[c]}</td></tr>`; }).join('')}</table>
       <p class="hint">Цвет жилы: ${leg}<br>Подойдите к жиле и нажмите E — 3 секунды копать. Удар врага прерывает. Выкопанная жила появится через 5–10 минут в другом месте.</p>`;
     L.querySelector('[data-x=learn]').onclick = () => { learnMining(G); onChange(); draw(); };
     L.querySelector('[data-x=pick]').onclick = () => { buyPick(G); onChange(); draw(); };

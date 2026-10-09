@@ -1,16 +1,18 @@
 // Отрисовка мира: земля кусками, предметы по глубине, мобы, герой, выстрелы, эффекты, всплывающие числа.
 import { LOOK } from '../art/look.js';
 import { lairSpr } from '../art/lairs.js';
-import { legColor } from '../art/body.js';
+import { legColor, person } from '../art/body.js';
 import { palette } from '../art/gear.js';
 import { field, river as riverArt, bridge, haystack, millBase, millBlades, well } from '../art/farmland.js';
 import { BLD } from '../art/bld.js';
 import { castle, stairs, brazierFire, paving, roundPlaza, ringPath, fountain, lamp, flowerbed, terrace, wallSeg, roundTower, merlons, cone } from '../art/castle.js';
 import { house, inn, tavern, enchant, barn, miners, forge, farmstead } from '../art/houses.js';
 import { vein, glint, outcrop } from '../art/ore.js';
+import { BAR_H } from '../art/beasts.js';
+import * as FOR from '../art/forest.js';
 import { ORES, veinColor, MINE } from '../../data/mining.js';
 import { miningSkill } from '../systems/mining.js';
-import { sprite, drawSpr, flashOf, heroSpr, mobSpr, MOB_SCALE, MOB_LOOK, personSpr, beastSpr, drawFrame, GUARD_LOOK, viewOf, sprBox, FRAMES, treeSpr, TREE_K, bldSpr, mountainSpr } from '../art/sprites.js';
+import { sprite, drawSpr, flashOf, heroSpr, mobSpr, MOB_SCALE, MOB_LOOK, personSpr, beastSpr, drawFrame, GUARD_LOOK, MERCH_LOOK, viewOf, sprBox, FRAMES, treeSpr, TREE_K, bldSpr, mountainSpr } from '../art/sprites.js';
 import { treesIn, GATE_W } from '../world/world.js';
 import { lookOf } from '../systems/items.js';
 import { interactTarget } from '../systems/game.js';
@@ -78,26 +80,26 @@ function buildStatics(W) {
   // постройки столицы и посёлка
   const K = 0.78, big = (key, fn, w = 360, h = 300) => sprite('h|' + key, w, h, w / 2, h - 30, 2, g => { g.scale(K, K); fn(g); });
   const ART = {
-    market: () => bldSpr('stall', 200, 150, 100, 116, 1.9, B => { B.stall(0); }),
-    stall: () => bldSpr('stall2', 200, 150, 100, 116, 1.9, B => B.stall(0)),
+    market: () => stallSpr(), stall: () => stallSpr(), cart: () => cartSpr(),
     forge: () => big('forge', forge), tavern: () => big('tavern', tavern), miners: () => big('miners', miners, 420),
     enchant: () => big('enchant', enchant), inn: () => big('inn', inn), barn: () => big('barn', barn),
     house: v => big('house' + v, g => house(g, v)),
   };
-  const LBL = { castle: 455, market: 125, stall: 115, forge: 170, tavern: 210, miners: 200, enchant: 210, inn: 230, barn: 190 };
+  const LBL = { castle: 455, market: 105, stall: 105, cart: 110, forge: 170, tavern: 210, miners: 200, enchant: 210, inn: 230, barn: 190 };
   for (const b of W.houses) {
     const sp = ART[b.art] ? ART[b.art](b.v || 0) : null;
     S.push({ y: b.y, oc: sp && occ(sp, b.x, b.y), draw: g => sp && drawSpr(g, sp, b.x, b.y), label: b.name, lx: b.x, ly: b.y - (LBL[b.art] || 120) });
   }
-  if (W.village) { const v = W.village, sp = sprite('well', 70, 80, 35, 66, 2, g => well(g)); S.push({ y: v.y + 10, draw: g => drawSpr(g, sp, v.x, v.y + 10), label: v.name, lx: v.x, ly: v.y - v.R + 30 }); }
-  // кладбище
+  if (W.village) { const v = W.village, sp = v.well !== false ? sprite('well', 70, 80, 35, 66, 2, g => well(g)) : null; S.push({ y: v.y + 10, draw: g => sp && drawSpr(g, sp, v.x, v.y + 10), label: v.name, lx: v.x, ly: v.y - v.R + 30 });
+    if (v.camp) { const fx = v.x + 140, fy = v.y + 120; S.push({ y: fy, fire: true, x: fx, draw: (g, t) => campfire(g, fx, fy, t) }); } }
+  // кладбище (у стоянки купца в Грибном лесу его нет — возрождение у тележки)
   const gy = W.graveyard;
-  for (let i = 0; i < 9; i++) {
+  if (!gy.hidden) for (let i = 0; i < 9; i++) {
     const x = gy.x - 110 + (i % 3) * 110 + (r() - 0.5) * 20, y = gy.y - 60 + Math.floor(i / 3) * 60 + (r() - 0.5) * 10, cross = r() < 0.5;
     const sp = sprite('grave' + (cross ? 1 : 0), 40, 50, 20, 40, 2, g => grave(g, cross));
     S.push({ y, draw: g => drawSpr(g, sp, x, y) });
   }
-  S.push({ y: gy.y + 110, label: gy.name, lx: gy.x, ly: gy.y - 110, draw: () => {} });
+  if (!gy.hidden) S.push({ y: gy.y + 110, label: gy.name, lx: gy.x, ly: gy.y - 110, draw: () => {} });
   // указатели на выходах
   for (const e of W.exits) {
     const sp = sprite('sign', 120, 110, 60, 90, 2, g => signpost(g));
@@ -111,6 +113,13 @@ function buildStatics(W) {
   }
   // Хуторские угодья: мосты, стога, хутора, мельница
   if (W.river) for (const b of W.river.bridgeAt) { const len = Math.round(b.len), sp = sprite('bridge' + len, 110, len + 40, 55, len / 2 + 20, 2, g => bridge(g, len)); S.push({ y: b.y - len / 2 + 6, x: b.x, draw: g => { g.save(); g.translate(b.x, b.y); g.rotate(b.ra - Math.PI / 2); drawSpr(g, sp, 0, 0); g.restore(); } }); }
+  // Грибной лес: поваленные стволы, папоротники, светящиеся грибочки, камыш у прудов
+  for (const p of W.props) {
+    if (p.kind === 'log') { const L = Math.round(p.len / 10) * 10, sp = sprite('log|' + L + '|' + (p.s % 4), L + 40, 50, L / 2 + 20, 34, 2, g => FOR.fallenLog(g, L, p.s % 4 + 1)); S.push({ y: p.y, x: p.x, oc: occ(sp, p.x, p.y), draw: g => drawSpr(g, sp, p.x, p.y) }); }
+    if (p.kind === 'fern') { const sp = sprite('fern|' + (p.s % 6), 50, 34, 25, 24, 2, g => FOR.fern(g, 1, p.s % 6 + 1)); S.push({ y: p.y, x: p.x, draw: g => drawSpr(g, sp, p.x, p.y, 1, p.k) }); }
+    if (p.kind === 'glow') S.push({ y: p.y, x: p.x, draw: (g, t) => { g.save(); g.translate(p.x, p.y); FOR.glowShrooms(g, 4, p.s, t); g.restore(); } });
+    if (p.kind === 'reeds') { const sp = sprite('reeds|' + (p.s % 5), 40, 44, 20, 38, 2, g => FOR.reeds(g, 8, p.s % 5 + 2, 0)); S.push({ y: p.y, x: p.x, draw: g => drawSpr(g, sp, p.x, p.y) }); }
+  }
   for (const p of W.props) if (p.kind === 'hay') { const sp = sprite('hay', 80, 80, 40, 66, 2, g => haystack(g)); S.push({ y: p.y, x: p.x, draw: g => drawSpr(g, sp, p.x, p.y) }); }
   for (const f of W.Z.farmsteads || []) { const sp = sprite('farmst' + (f.burned ? 'B' : ''), 460, 280, 200, 250, 2, g => { g.scale(K, K); farmstead(g, f.burned); }); S.push({ y: f.y, x: f.x, oc: occ(sp, f.x, f.y), draw: g => drawSpr(g, sp, f.x, f.y) }); if (f.burned) S.push({ y: f.y + 1, x: f.x, draw: (g, t) => smoke(g, f.x + 20, f.y - 60, t) }); }
   if (W.Z.mill) { const m = W.Z.mill, ms = 1.5, sp = sprite('millbase', 210, 255, 105, 228, 1.6, g => { g.scale(ms, ms); millBase(g, false); }); S.push({ y: m.y, x: m.x, oc: { x0: m.x - 150, y0: m.y - 340, x1: m.x + 150, y1: m.y }, label: 'Старая мельница', lx: m.x, ly: m.y - 300, draw: (g, t) => { drawSpr(g, sp, m.x, m.y); g.save(); g.translate(m.x, m.y - 112 * ms); g.scale(ms, ms); millBlades(g, t * 0.5, false); g.restore(); } }); }
@@ -132,6 +141,9 @@ function hides(o, pts) { const b = o.oc; if (!b) return false;
   // стена — кусками: прозрачность плавно спадает в стороны от героя, без резких границ
   if (o.soft != null) { let a = 1; for (const [x, y] of pts) if (y < o.y - 4 && y > b.y0 + 10) a = Math.min(a, 0.42 + 0.58 * Math.max(0, Math.min(1, (Math.abs(x - o.soft) - 50) / 150))); return a; }
   for (const [x, y] of pts) if (y < o.y - 4 && x > b.x0 + 14 && x < b.x1 - 14 && y > b.y0 + 10) return 0.42; return 1; }
+// прилавок рынка с купцом за стойкой (v65) и тележка купца с купцом рядом
+function stallSpr() { return sprite('stallM', 100, 80, 50, 70, 2.2, g => { g.save(); g.translate(0, -7); g.scale(1.15, 1.15); person(g, MERCH_LOOK, 'front', {}); g.restore(); FOR.stallFront(g); FOR.stallTop(g); }); }
+function cartSpr() { return sprite('cartM', 160, 90, 80, 76, 2.2, g => { FOR.cart(g, 0); g.save(); g.translate(46, 6); g.scale(1.15, 1.15); person(g, MERCH_LOOK, 'front', {}); g.restore(); }); }
 // городской стражник в полный рост (как герой), чуть дышит
 function guard(g, x, y, view, dir, t) {
   g.fillStyle = 'rgba(0,0,0,.25)'; g.beginPath(); g.ellipse(x, y + 2, 14, 5, 0, 0, 7); g.fill();
@@ -178,6 +190,8 @@ function chunk(R, i, j) {
   cv = document.createElement('canvas'); cv.width = CHUNK; cv.height = CHUNK;
   const g = cv.getContext('2d'); g.translate(-x0, -y0); LOOK.use(g);
   LOOK.ground(x0, y0, CHUNK, CHUNK, W.Z.ground, W.Z.seed, 3);
+  if (W.Z.moss) { FOR.ground(g, x0, y0, CHUNK, CHUNK, W.Z.seed, false); LOOK.use(g); }
+  if (W.creek) { FOR.creek(g, W.creek.pts, W.creek.w); LOOK.use(g); }
   // за краем зоны — тёмный лес и скалы
   g.save(); g.beginPath(); g.rect(x0 - 2, y0 - 2, CHUNK + 4, CHUNK + 4);
   g.moveTo(W.edge[0][0], W.edge[0][1]); for (const p of W.edge) g.lineTo(p[0], p[1]); g.closePath();
@@ -192,6 +206,7 @@ function chunk(R, i, j) {
   g.save(); roadPath(); g.strokeStyle = '#b39a6a'; g.lineWidth = 64; g.stroke(); plazaPath(32); g.fillStyle = '#b39a6a'; g.fill(); g.restore();
   roadPath(); g.strokeStyle = 'rgba(210,190,140,.45)'; g.lineWidth = 30; g.stroke();
   if (PL.length) { plazaPath(-14); g.fillStyle = 'rgba(210,190,140,.32)'; g.fill(); }
+  for (const [px, py, rx, ry] of W.ponds || []) if (Math.abs(px - (x0 + CHUNK / 2)) < rx + CHUNK && Math.abs(py - (y0 + CHUNK / 2)) < ry + CHUNK) { g.save(); g.translate(px, py); FOR.pond(g, rx, ry, Math.round(px) % 97, 0); g.restore(); LOOK.use(g); }
   const r = rng(i * 7919 + j * 104729 + 5);
   // камушки на дорогах
   for (let k = 0; k < 120; k++) { const x = x0 + r() * CHUNK, y = y0 + r() * CHUNK; if (W.roadD(x, y) < 28) { g.fillStyle = r() < 0.5 ? 'rgba(120,100,70,.55)' : 'rgba(230,215,180,.5)'; g.beginPath(); g.ellipse(x, y, 2 + r() * 2, 1.4 + r(), 0, 0, 7); g.fill(); } }
@@ -218,7 +233,7 @@ function chunk(R, i, j) {
   if (W.river) { const R = W.river, near = R.pts.some(([x, y], i) => i < R.pts.length - 1 && segDist(x0 + CHUNK / 2, y0 + CHUNK / 2, x, y, R.pts[i + 1][0], R.pts[i + 1][1]) < CHUNK); if (near) riverArt(g, R, 0); }
   // кладбище: тёмная земля
   const gy = W.graveyard;
-  if (Math.abs(gy.x - (x0 + CHUNK / 2)) < 500 && Math.abs(gy.y - (y0 + CHUNK / 2)) < 500) {
+  if (!gy.hidden && Math.abs(gy.x - (x0 + CHUNK / 2)) < 500 && Math.abs(gy.y - (y0 + CHUNK / 2)) < 500) {
     g.fillStyle = 'rgba(60,50,35,.45)'; g.beginPath(); g.ellipse(gy.x, gy.y, 200, 110, 0, 0, 7); g.fill();
     // ограда с калиткой — в сторону ближней дороги
     const ga = gateAngle(W, gy);
@@ -233,7 +248,7 @@ function chunk(R, i, j) {
   // трава и цветы
   for (let k = 0; k < 70; k++) {
     const x = x0 + r() * CHUNK, y = y0 + r() * CHUNK;
-    if (!inPoly(x, y, W.edge) || W.roadD(x, y) < 44 || (W.town && !W.cap && dist(x, y, W.town.x, W.town.y) < W.town.R + 20) || (W.cap && (W.onPave(x, y) || W.blocked(x, y) || Math.abs(dist(x, y, W.cap.x, W.cap.y) - W.cap.R) < 30)) || (W.river && W.riverD(x, y) < W.river.w / 2 + 16) || W.inField(x, y, 4)) continue;
+    if (!inPoly(x, y, W.edge) || W.roadD(x, y) < 44 || (W.town && !W.cap && dist(x, y, W.town.x, W.town.y) < W.town.R + 20) || (W.cap && (W.onPave(x, y) || W.blocked(x, y) || Math.abs(dist(x, y, W.cap.x, W.cap.y) - W.cap.R) < 30)) || (W.ponds && W.ponds.length && W.water(x, y, 6)) || (W.river && W.riverD(x, y) < W.river.w / 2 + 16) || W.inField(x, y, 4)) continue;
     LOOK.tuft(x, y, 0.9 + r() * 0.6, W.Z.ground, r());
   }
   R.chunks.set(key, cv); if (R.chunks.size > 48) R.chunks.delete(R.chunks.keys().next().value);
@@ -299,6 +314,7 @@ export function render(R, G, now) {
   for (const s of G.shots) {
     if (s.kind === 'net') { const a = (performance.now() / 120) % 6.28; c.save(); c.translate(s.x, s.y); c.rotate(a); c.strokeStyle = '#e8dcc0'; c.lineWidth = 1.4; for (let i = -1; i <= 1; i++) { c.beginPath(); c.moveTo(-10, i * 6); c.lineTo(10, i * 6); c.moveTo(i * 6, -10); c.lineTo(i * 6, 10); c.stroke(); } c.fillStyle = '#a8845a'; for (const [x, y] of [[-10, -10], [10, -10], [-10, 10], [10, 10]]) { c.beginPath(); c.arc(x, y, 2.4, 0, 7); c.fill(); } c.restore(); continue; }
     if (s.kind === 'bottle') { const a = performance.now() / 90; c.save(); c.translate(s.x, s.y); c.rotate(a); c.fillStyle = '#6a8a6a'; c.strokeStyle = '#24180f'; c.lineWidth = 1; c.beginPath(); c.ellipse(0, 0, 4, 6, 0, 0, 7); c.fill(); c.stroke(); c.fillStyle = '#ffb347'; c.beginPath(); c.moveTo(-2, -6); c.quadraticCurveTo(0, -14, 2, -6); c.fill(); c.restore(); if (Math.random() < 0.6) R.parts.push({ x: s.x, y: s.y, vx: (Math.random() - 0.5) * 20, vy: -20, t: 0.4, col: Math.random() < 0.5 ? '#ff7a2a' : '#ffd34d', s: 2.5 }); continue; }
+    if (s.kind === 'spore') { for (let i = 0; i < 5; i++) { const a = performance.now() / 200 + i * 1.26; c.fillStyle = `rgba(210,232,140,${0.75 - i * 0.1})`; c.beginPath(); c.arc(s.x + Math.cos(a) * 5, s.y + Math.sin(a) * 4, 4.5 - i * 0.4, 0, 7); c.fill(); } if (Math.random() < 0.5) R.parts.push({ x: s.x, y: s.y, vx: (Math.random() - 0.5) * 30, vy: -20, t: 0.5, col: '#c8e070', s: 2.4 }); continue; }
     if (s.kind === 'curse') { const g2 = c.createRadialGradient(s.x, s.y, 1, s.x, s.y, 14); g2.addColorStop(0, 'rgba(200,255,220,1)'); g2.addColorStop(0.5, 'rgba(120,255,170,.85)'); g2.addColorStop(1, 'rgba(60,200,120,0)'); c.fillStyle = g2; c.beginPath(); c.arc(s.x, s.y, 14, 0, 7); c.fill(); if (Math.random() < 0.6) R.parts.push({ x: s.x, y: s.y, vx: (Math.random() - 0.5) * 30, vy: (Math.random() - 0.5) * 30, t: 0.4, col: '#9affc8', s: 2.2 }); continue; }
     if (s.kind === 'frost') { const a = Math.atan2(s.vy, s.vx); c.save(); c.translate(s.x, s.y); c.rotate(a); const g = c.createRadialGradient(0, 0, 1, 0, 0, 14); g.addColorStop(0, 'rgba(230,248,255,1)'); g.addColorStop(1, 'rgba(120,190,255,0)'); c.fillStyle = g; c.beginPath(); c.arc(0, 0, 14, 0, 7); c.fill(); c.fillStyle = '#e8f8ff'; c.strokeStyle = '#4a8ac0'; c.lineWidth = 1; c.beginPath(); c.moveTo(12, 0); c.lineTo(-6, -4); c.lineTo(-2, 0); c.lineTo(-6, 4); c.closePath(); c.fill(); c.stroke(); c.restore(); if (Math.random() < 0.5) R.parts.push({ x: s.x, y: s.y, vx: (Math.random() - 0.5) * 20, vy: (Math.random() - 0.5) * 20, t: 0.4, col: '#cfeaff', s: 2 }); continue; }
     if (s.kind === 'arrow') { const a = Math.atan2(s.vy, s.vx); c.save(); c.translate(s.x, s.y); c.rotate(a); c.strokeStyle = '#24180f'; c.lineWidth = 3; c.beginPath(); c.moveTo(-14, 0); c.lineTo(6, 0); c.stroke(); c.strokeStyle = s.from === 'mob' ? '#8a5a3a' : s.red ? '#d83a3a' : '#e8e0cc'; c.lineWidth = 1.6; c.stroke(); c.fillStyle = s.red ? '#ff6a6a' : '#cfd8de'; c.beginPath(); c.moveTo(9, 0); c.lineTo(4, -3); c.lineTo(4, 3); c.fill(); c.restore(); }
@@ -316,6 +332,11 @@ export function render(R, G, now) {
   // частицы
   for (const p of R.parts) { p.t -= 1 / 60; p.x += p.vx / 60; p.y += p.vy / 60; p.vy += 300 / 60; c.globalAlpha = Math.max(0, p.t * 2); c.fillStyle = p.col; c.fillRect(p.x, p.y, p.s, p.s); }
   c.globalAlpha = 1; R.parts = R.parts.filter(p => p.t > 0);
+  // туман Грибного леса: лёгкий везде, густые клочья в низинах (полоски здоровья и уровни рисуются поверх)
+  if (W.Z.fog) { const dense = W.Z.fog.filter(([x, y, R]) => x + R > x0 - 100 && x - R < x0 + zw + 100 && y + R > y0 - 100 && y - R < y0 + zh + 100); // рисуется в холст в 4 раза меньше и растягивается — туман мягкий, а кадр дешевле
+    const k = 0.25, fw = Math.ceil(zw * k) + 2, fh = Math.ceil(zh * k) + 2; let fc = R.fogCv; if (!fc || fc.width !== fw || fc.height !== fh) { fc = R.fogCv = document.createElement('canvas'); fc.width = fw; fc.height = fh; }
+    const q = fc.getContext('2d'); q.setTransform(1, 0, 0, 1, 0, 0); q.clearRect(0, 0, fw, fh); q.setTransform(k, 0, 0, k, -x0 * k, -y0 * k); FOR.fog(q, x0, y0, zw, zh, t * 8, dense);
+    c.drawImage(fc, x0, y0, fw / k, fh / k); }
   // подписи построек
   c.textAlign = 'center';
   const bar = barRect(), z = R.cam.z / R.dpr;
@@ -345,7 +366,7 @@ function label(c, s, x, y, col, size, bold) {
 }
 
 function plate(c, G, m) {
-  const y = m.y - (m.D.humanoid ? 62 * (MOB_SCALE[m.kind] || 1) : 44) - (m.D.rare ? 14 : 0), w = m.D.rare ? 64 : 46;
+  const y = m.y - (m.D.humanoid ? 62 * (MOB_SCALE[m.kind] || 1) : BAR_H[m.kind] || 44) - (m.D.rare ? 14 : 0), w = m.D.rare ? 64 : 46;
   const col = lvlColor(m.lvl, G.hero.lvl);
   c.font = 'bold 12px Georgia, serif'; c.textAlign = 'center'; c.lineWidth = 3; c.strokeStyle = 'rgba(20,14,8,.9)';
   const txt = (m.D.rare ? '★ ' : '') + m.lvl;
@@ -374,7 +395,7 @@ function drawMob(c, G, m, t) {
   const breathe = mode === 'idle' ? Math.sin(t * 2 + m.walkPh * 6) * 0.4 : 0;
   drawFrame(c, m.hurt > 0 ? flashOf(sp) : sp, m.x - (m.hurt > 0 ? dir * 2 : 0), m.y + breathe, dir, sc, m.state === 'return' ? 0.6 : 1);
   c.restore();
-  const tt = performance.now() / 1000, top = m.y - (m.D.humanoid ? 58 * sc : 34);
+  const tt = performance.now() / 1000, top = m.y - (m.D.humanoid ? 58 * sc : (BAR_H[m.kind] || 44) - 10);
   if (m.chill > 0) { c.fillStyle = 'rgba(140,200,255,.28)'; c.beginPath(); c.ellipse(m.x, m.y - 12, m.r + 8, m.r + 2, 0, 0, 7); c.fill(); c.fillStyle = '#e8f8ff'; for (let i = 0; i < 3; i++) { const q = (tt * 0.8 + i / 3) % 1; c.fillRect(m.x - 10 + i * 10, m.y - 6 - q * 30, 2, 2); } }
   if (m.root > 0) { c.strokeStyle = 'rgba(232,220,192,.9)'; c.lineWidth = 1.2; const w = m.r + 8; for (let i = -2; i <= 2; i++) { c.beginPath(); c.moveTo(m.x - w, m.y - 10 + i * 6); c.quadraticCurveTo(m.x, m.y - 4 + i * 6, m.x + w, m.y - 10 + i * 6); c.stroke(); c.beginPath(); c.moveTo(m.x + i * 7, m.y - 26); c.lineTo(m.x + i * 8, m.y + 4); c.stroke(); } }
   if (m.stun > 0) for (let i = 0; i < 3; i++) { const a = tt * 4 + i * 2.09, x = m.x + Math.cos(a) * 12, y = top + Math.sin(a) * 4; c.fillStyle = '#ffe066'; c.strokeStyle = '#24180f'; c.lineWidth = 0.8; c.beginPath(); for (let k = 0; k < 10; k++) { const r = k % 2 ? 1.6 : 4, b = k * Math.PI / 5; c.lineTo(x + Math.cos(b) * r, y + Math.sin(b) * r); } c.closePath(); c.fill(); c.stroke(); }

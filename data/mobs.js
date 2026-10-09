@@ -6,6 +6,8 @@
 //   ranged  — стреляет издалека и держит дистанцию
 //   flee    — при малом здоровье пытается убежать
 //   smash   — элитный: раз в несколько секунд мощный удар по площади (видно, куда ударит)
+//   caster  — держит дистанцию, бьёт проклятием (замедляет)
+//   summon  — (поле) зовёт помощников раз в несколько секунд; работает у любого моба
 
 export const MOBS = {
   fox: {
@@ -79,5 +81,42 @@ export const MOBS = {
     name: 'Мельник-колдун', art: 'miller', r: 19, rare: true,
     hp: 5, dmg: 1.4, speed: 115, reach: 300, cd: 2.0,
     trait: 'caster', summon: { kind: 'crow', n: 2, every: 11 }, gold: 7, humanoid: true,
+  },
+  // ---- Грибной лес (v65)
+  kvakun: {
+    name: 'Квакун-копейщик', art: 'kvakun', r: 14,
+    hp: 1.05, dmg: 1.05, speed: 150, reach: 40, cd: 1.5,
+    trait: 'pack', packN: 2, packR: 260, gold: 1.2,   // зовёт двух ближних сородичей
+  },
+  kvak_shaman: {
+    name: 'Квакун-шаман', art: 'kvak_shaman', r: 14,
+    hp: 0.85, dmg: 0.95, speed: 135, reach: 280, cd: 2.1,
+    trait: 'caster', curseSay: 'тина вяжет', summon: { kind: 'kvakun', n: 1, max: 1, every: 16, say: 'зовёт сородича!' }, gold: 1.6,
+  },
+  gribo: {
+    name: 'Грибоед', art: 'gribo', r: 16,
+    hp: 1.3, dmg: 1.1, speed: 110, reach: 34, cd: 1.7,
+    trait: 'poison', poisonSay: 'споры', gold: 1.2,
+  },
+  sporo: {
+    name: 'Споровик', art: 'sporo', r: 15,
+    hp: 0.8, dmg: 0.9, speed: 120, reach: 240, cd: 2.3,
+    trait: 'ranged', shot: 'spore', gold: 1.1,
+  },
+  weaver: {
+    name: 'Тенепряд', art: 'weaver', r: 17,
+    hp: 0.95, dmg: 1.0, speed: 160, reach: 34, cd: 1.4,
+    trait: 'poison', gold: 1.1,
+  },
+  broodmother: {
+    name: 'Паучиха-мать', art: 'broodmother', r: 24,
+    hp: 2.6, dmg: 1.3, speed: 120, reach: 42, cd: 1.8,
+    trait: 'poison', summon: { kind: 'weaver', n: 2, every: 14, say: 'зовёт выводок!' }, gold: 3,
+  },
+  snake: {
+    name: 'Великий Полоз', art: 'snake', r: 26, rare: true,
+    hp: 6, dmg: 1.5, speed: 140, reach: 50, cd: 1.7,
+    trait: 'poison', gold: 8,
+    smash: { every: 7, wind: 1.0, r: 120, mul: 2.4, say: 'готовит бросок!' },
   },
 };

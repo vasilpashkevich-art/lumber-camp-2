@@ -113,7 +113,7 @@ export const TRINKET = id => TRINKETS.find(t => t.id === id);
 
 /** Руда или слиток стопкой: kind — 'ore' | 'bar', metal — copper/tin. price — за штуку. */
 export function makeStack(kind, metal, n = 1) {
-  if (kind === 'gem') return { id: uid(), kind, metal, n, name: GEMS[metal].name, rar: metal === 'amethyst' ? 'good' : 'common', price: GEMS[metal].price };
+  if (kind === 'gem') return { id: uid(), kind, metal, n, name: GEMS[metal].name, rar: metal === 'emerald' ? 'rare' : metal === 'amethyst' ? 'good' : 'common', price: GEMS[metal].price };
   const O = ORES[metal];
   return { id: uid(), kind, metal, n, name: kind === 'ore' ? O.ore : O.bar, rar: 'common', price: kind === 'ore' ? O.oreP : O.barP };
 }

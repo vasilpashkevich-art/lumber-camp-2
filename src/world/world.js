@@ -49,7 +49,7 @@ export function buildWorld(Z) {
     W.castle = { x: cx, y: fy, ...K };
   }
   if (cap && cap.fountain) W.blocks.push({ x: cap.x, y: cap.y - 18, rx: cap.fountain.r + 8, ry: (cap.fountain.r + 8) * 0.55 });
-  if (Z.village) { for (const b of Z.village.buildings) block(Z.village.x + b.dx, Z.village.y + b.dy, b.col || 70); block(Z.village.x, Z.village.y + 10, 26); }
+  if (Z.village) { for (const b of Z.village.buildings) block(Z.village.x + b.dx, Z.village.y + b.dy, b.col || 70); if (Z.village.well !== false) block(Z.village.x, Z.village.y + 10, 26); }
   for (const f of Z.farmsteads || []) block(f.x + (f.burned ? 20 : 50), f.y, f.burned ? 80 : 128);
   if (Z.mill) block(Z.mill.x, Z.mill.y, 58);
   // плиточные дорожки столицы (для травы и проверок)
@@ -75,7 +75,11 @@ export function buildWorld(Z) {
     return best;
   }).filter(Boolean);
   W.riverD = (x, y) => { if (!R) return 1e9; let m = 1e9; for (let i = 0; i < R.pts.length - 1; i++) m = Math.min(m, segDist(x, y, R.pts[i][0], R.pts[i][1], R.pts[i + 1][0], R.pts[i + 1][1])); return m; };
-  W.water = (x, y, pad = 0) => R && W.riverD(x, y) < R.w / 2 + pad && !R.bridgeAt.some(b => { const dx = x - b.x, dy = y - b.y, u = -dx * Math.sin(b.ra) + dy * Math.cos(b.ra), l = dx * Math.cos(b.ra) + dy * Math.sin(b.ra); return Math.abs(u) < 36 && Math.abs(l) < b.len / 2; });
+  // пруды Грибного леса (v65): вода-эллипс, обходить
+  const PONDS = Z.ponds || [];
+  W.ponds = PONDS; W.creek = Z.creek || null;
+  const inPond = (x, y, pad) => PONDS.some(([px, py, rx, ry]) => ((x - px) / (rx + pad)) ** 2 + ((y - py) / (ry + pad * 0.6)) ** 2 < 1);
+  W.water = (x, y, pad = 0) => (PONDS.length && inPond(x, y, pad)) || R && W.riverD(x, y) < R.w / 2 + pad && !R.bridgeAt.some(b => { const dx = x - b.x, dy = y - b.y, u = -dx * Math.sin(b.ra) + dy * Math.cos(b.ra), l = dx * Math.cos(b.ra) + dy * Math.sin(b.ra); return Math.abs(u) < 36 && Math.abs(l) < b.len / 2; });
   W.blocked = (x, y) => W.blocks.some(b => b.rect ? x > b.x0 && x < b.x1 && y > b.y0 && y < b.y1 : Math.abs(x - b.x) < b.rx && ((x - b.x) / b.rx) ** 2 + ((y - b.y) / b.ry) ** 2 < 1);
   /** Можно ли стоять здесь мобу: внутри зоны, не в воде, не в постройке. */
   W.walkable = (x, y) => inside(x, y) && !W.water(x, y) && !W.blocked(x, y);
@@ -110,6 +114,7 @@ export function buildWorld(Z) {
     if (!inside(x, y, 40)) continue;
     if (town && dist(x, y, town.x, town.y) < town.R + 120) continue;
     if (R && W.riverD(x, y) < R.w / 2 + 50) continue;
+    if (PONDS.length && inPond(x, y, 60)) continue;
     if (inField(x, y, 30)) continue;
     if (W.blocks.some(b => !b.rect && dist(x, y, b.x, b.y) < b.rx + 60)) continue;
     if (roadD(x, y) < 70) continue;
@@ -157,6 +162,14 @@ export function buildWorld(Z) {
     if (!rockOk(x, y, w * 0.5) || edgeDist(x, y) < 500) continue; W.rocks.push({ x, y, w, h: w * (0.55 + r3() * 0.15), s: Math.floor(r3() * 1000) }); i++;
   }
   for (const o of W.rocks) W.blocks.push({ x: o.x, y: o.y - 4, rx: o.w * 0.48, ry: o.w * 0.16 });
+  // Грибной лес (v65): поваленные стволы (обходить), рощи грибов-великанов, папоротники, светящиеся грибочки, камыш у прудов — отдельным зерном
+  if (Z.moss) {
+    const r4 = rng(Z.seed + 900), free = (x, y, rr) => inside(x, y, 40) && roadD(x, y) > rr + 30 && !W.water(x, y, rr * 0.4) && !(town && dist(x, y, town.x, town.y) < town.R + rr + 40) && !W.camps.some(c => dist(x, y, c.x, c.y) < c.r * 0.6 + rr) && !Z.exits.some(e => dist(x, y, e.x, e.y) < 260);
+    for (const [lx, ly] of Z.logs || []) { const len = 80 + r4() * 40; if (!free(lx, ly, 60)) continue; W.props.push({ kind: 'log', x: lx, y: ly, len, s: Math.floor(r4() * 1000) }); W.blocks.push({ rect: true, x0: lx - len / 2 - 4, y0: ly - 14, x1: lx + len / 2 + 4, y1: ly + 2 }); }
+    for (const [gx, gy, gr] of Z.groves || []) for (let i = 0; i < 6; i++) { const a = r4() * 6.283, d = Math.sqrt(r4()) * gr, x = gx + Math.cos(a) * d, y = gy + Math.sin(a) * d * 0.8; if (!free(x, y, 40) || W.trees.some(t => Math.abs(t.x - x) < 50 && Math.abs(t.y - y) < 40)) continue; addTree(W, { x, y, kind: 'gshroom', s: 0.8 + r4() * 0.5, v: r4() }); }
+    for (let i = 0; i < 260; i++) { const x = r4() * Z.W, y = r4() * Z.H; if (!free(x, y, 16) || W.blocked(x, y)) continue; W.props.push({ kind: r4() < 0.75 ? 'fern' : 'glow', x, y, s: Math.floor(r4() * 1000), k: 0.8 + r4() * 0.5 }); }
+    for (const [px, py, rx, ry] of PONDS) for (let i = 0; i < 9; i++) { const a = r4() * 6.283, x = px + Math.cos(a) * (rx + 14), y = py + Math.sin(a) * (ry + 10); if (Math.sin(a) < -0.2 && r4() < 0.5) continue; W.props.push({ kind: 'reeds', x, y, s: Math.floor(r4() * 1000) }); }
+  }
   if (W.rocks.length) { W.trees = W.trees.filter(t => !W.rocks.some(o => Math.abs(t.x - o.x) < o.w * 0.6 && Math.abs(t.y - o.y) < o.w * 0.3)); W.grid.clear(); const all = W.trees; W.trees = []; for (const t of all) addTree(W, t); }
   return W;
 }

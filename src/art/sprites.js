@@ -1,9 +1,10 @@
 // Готовые картинки: сложное рисуется один раз и потом только копируется (как в ветке I, v50).
 import { LOOK } from './look.js';
 import { BLD } from './bld.js';
-import { BEASTS, beast } from './beasts.js';
+import { BEASTS, beast, BOX } from './beasts.js';
 import { person, doll } from './body.js';
 import { palette } from './gear.js';
+import { mossTree, giantShroom } from './forest.js';
 
 const CACHE = new Map();
 
@@ -63,7 +64,8 @@ export function personSpr(L, view, mode, f) {
 }
 /** Кадр зверя. Начало — земля под ним. */
 export function beastSpr(kind, view, mode, f) {
-  return sprite('bz|' + kind + '|' + view + '|' + mode + '|' + f, 96, 76, 48, 56, 2, g => beast(g, kind, view, poseOf(mode, f)));
+  const B = BOX[kind] || [130, 84, 65, 68];
+  return sprite('bz|' + kind + '|' + view + '|' + mode + '|' + f, B[0], B[1], B[2], B[3], 2, g => beast(g, kind, view, { ...poseOf(mode, f), t: 1 }));
 }
 /** Нарисовать кадр; dir = −1 — зеркально (вид сбоку влево). */
 export function drawFrame(c, s, x, y, dir = 1, sc = 1, a = 1) {
@@ -88,15 +90,17 @@ export const MOB_LOOK = {
 };
 // городской стражник: кольчуга, синяя накидка, шапель, копьё
 const GP = NP('good', 8, { cloth: ['#2f5d9a', '#24497a'], acc: '#e7c35a' });
+// купец (v65): кафтан с золотой каймой, шляпа с пером — за прилавками городов и у тележки в Грибном лесу
+export const MERCH_LOOK = { key: 'npc-merchant', hair: '#5a3a22', beard: 'full', head: { m: 'ranger', P: { ...palette('rare', 3), leather: '#5a2a4a', gem: '#e7c35a' } }, chest: { m: 'robe_emb', P: { ...palette('rare', 5), cloth: ['#6a2a4a', '#4a1a34'], acc: '#e7c35a' } }, legs: { m: 'leggings', P: palette('common', 2) } };
 export const GUARD_LOOK = { key: 'npc-guard', hair: '#6a4a2a', beard: 'full', chest: { m: 'brig', P: GP }, legs: { m: 'chausses', P: GP }, head: { m: 'kettle', P: GP }, weapon: { m: 'spear', P: GP } };
 // люди-мобы — в том же масштабе, что герой (1,15), вожаки крупнее
-export const MOB_SCALE = { ataman: 1.45, bandit: 1.15, bandit_archer: 1.15, robber: 1.2, firestarter: 1.12, miller: 1.32, bull: 1.15 };
+export const MOB_SCALE = { ataman: 1.45, bandit: 1.15, bandit_archer: 1.15, robber: 1.2, firestarter: 1.12, miller: 1.32 };
 
 /** Моб: звери с кадрами шага, люди — облик героя. */
 export function mobSpr(kind, dir, frame, bite) {
   if (MOB_LOOK[kind]) return heroSpr(MOB_LOOK[kind], dir);
-  const k = 'm|' + kind + '|' + dir + '|' + frame + '|' + (bite ? 1 : 0);
-  return sprite(k, 72, 48, 36, 38, 3, g => { g.scale(dir, 1); BEASTS[kind](g, frame / 4, bite ? 1 : 0); });
+  const k = 'm|' + kind + '|' + dir + '|' + frame + '|' + (bite ? 1 : 0), B = BOX[kind] || [130, 84, 65, 68];
+  return sprite(k, B[0], B[1], B[2], B[3], 2, g => { g.scale(dir, 1); BEASTS[kind](g, frame / 4, bite ? 1 : 0); });
 }
 
 // ---------------------------------------------------------------- мир
@@ -104,6 +108,8 @@ export function mobSpr(kind, dir, frame, bite) {
 export const TREE_K = 1.5;
 export function treeSpr(kind, v) {
   const vb = Math.floor(v * 4) % 4, k = TREE_K;
+  if (kind === 'moss') return sprite('t|moss|' + vb, 160, 160, 80, 140, 1.6, g => mossTree(g, 118 + vb * 6, vb * 7 + 3));
+  if (kind === 'gshroom') return sprite('t|gshroom|' + vb, 110, 120, 55, 112, 1.6, g => giantShroom(g, 88 + vb * 6, vb === 3 ? 2 : vb % 2));
   return sprite('t|' + kind + '|' + vb, 90 * k, 116 * k, 45 * k, 94 * k, 1.6, g => { g.scale(k, k); LOOK.use(g); LOOK.tree(kind, 0, 0, 1, (vb + 0.5) / 4, 1.2); });
 }
 

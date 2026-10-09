@@ -1,6 +1,7 @@
 // Приметы логов в мире: по ним место узнаётся без карты. Рисуются один раз готовыми картинками.
 // Начало координат — точка на земле в середине приметы.
 import { sprite } from './sprites.js';
+import * as FOR from './forest.js';
 
 const O = '#24180f';
 function hp(g, fn, fill, lw = 1.3) { g.beginPath(); fn(); if (fill) { g.fillStyle = fill; g.fill(); } if (lw) { g.strokeStyle = O; g.lineWidth = lw; g.stroke(); } }
@@ -154,7 +155,14 @@ function burned(g) {
   g.fillStyle = '#ff7a2a'; for (let i = 0; i < 12; i++) { g.beginPath(); g.arc(-40 + i * 7, 2 + (i % 3) * 3, 1.4, 0, 7); g.fill(); }
 }
 
+// Грибной лес (v65): хижины квакунов с камышом, грибной круг, тёмные тенета, логово Паучихи, логово Полоза
+function frog(g) { g.save(); g.translate(-30, 0); FOR.reedHut(g, 2); g.restore(); g.save(); g.translate(34, 14); g.scale(0.8, 0.8); FOR.reedHut(g, 5); g.restore(); g.save(); g.translate(4, 18); FOR.reeds(g, 6, 3, 0); g.restore(); }
+function shroomLair(g) { FOR.shroomRing(g, 58, 3); g.save(); g.translate(-8, -6); FOR.giantShroom(g, 52, 0); g.restore(); }
+function web2(g) { g.save(); g.translate(-26, 0); FOR.web(g, 66, 70, 2); g.restore(); g.save(); g.translate(34, 6); FOR.web(g, 46, 50, 5); g.restore(); }
+function brood(g) { g.save(); FOR.web(g, 110, 90, 3); g.restore(); for (const [x, y, s] of [[-30, -6, 1], [24, -14, 1.2], [6, 4, 0.9], [-50, 4, 0.8]]) { g.fillStyle = '#e8e0c8'; g.strokeStyle = '#24180f'; g.lineWidth = 0.8; g.beginPath(); g.ellipse(x, y, 4 * s, 6 * s, 0.3, 0, 7); g.fill(); g.stroke(); g.strokeStyle = 'rgba(160,150,130,.6)'; g.beginPath(); g.moveTo(x - 3 * s, y - 2 * s); g.lineTo(x + 3 * s, y + 2 * s); g.stroke(); } }
+function snakeL(g) { FOR.snakeLair(g, 4); }
 const ART = {
+  frog: [140, 80, 70, 56, frog], shroom: [150, 100, 75, 60, shroomLair], web2: [150, 100, 75, 80, web2], brood: [140, 110, 70, 94, brood], snake: [130, 70, 65, 40, snakeL],
   kennel: [120, 80, 60, 64, kennel], crowfield: [100, 130, 50, 110, crowfield], scarefield: [130, 70, 65, 46, scarefield], pasture: [150, 70, 75, 46, pasture], burned: [140, 90, 70, 74, burned], den: [140, 70, 70, 56, den], wolf: [150, 80, 75, 64, wolf], boar: [160, 70, 80, 36, boar], web: [140, 110, 70, 92, web], bandit: [420, 170, 210, 140, bandit], ataman: [260, 170, 130, 150, ataman] };
 /** Готовая картинка приметы логова. */
 export function lairSpr(kind) {

@@ -6,7 +6,8 @@ import { modal } from './dom.js';
 const O = '#24180f';
 // цвет области логова по виду
 const TINT = { den: '217,120,58', wolf: '150,150,160', boar: '140,95,55', web: '200,200,215', bandit: '200,60,50', ataman: '255,180,60',
-  kennel: '150,100,60', crowfield: '70,60,90', scarefield: '220,190,90', pasture: '120,80,60', burned: '240,110,40', mill: '120,255,170' };
+  kennel: '150,100,60', crowfield: '70,60,90', scarefield: '220,190,90', pasture: '120,80,60', burned: '240,110,40', mill: '120,255,170',
+  shroom: '220,80,60', frog: '90,180,90', web2: '160,110,230', brood: '200,60,60', snake: '255,180,60' };
 
 /** Значок логова: голова лисы, волка, кабана, паук, шатёр, звезда атамана. */
 export function lairGlyph(g, kind, x, y, s) {
@@ -24,6 +25,9 @@ export function lairGlyph(g, kind, x, y, s) {
   else if (kind === 'pasture') { p([[-7, -2], [7, -2], [5, 6], [-5, 6]], '#5a3a28'); for (const sx of [-1, 1]) p([[sx * 4, -2], [sx * 9, -8], [sx * 6, -1]], '#ece2c8'); }
   else if (kind === 'burned') { p([[-5, 6], [-6, 0], [-2, -3], [-1, -8], [3, -3], [6, 0], [5, 6]], '#ff7a2a'); p([[-2, 6], [-2, 2], [0, -1], [2, 2], [2, 6]], '#ffd34d'); }
   else if (kind === 'mill') { g.strokeStyle = '#e8e0cc'; g.lineWidth = 2; for (let i = 0; i < 4; i++) { const a = i * Math.PI / 2 + 0.4; g.beginPath(); g.moveTo(0, -1); g.lineTo(Math.cos(a) * 8, -1 + Math.sin(a) * 8); g.stroke(); } p([[-3, 7], [-2, -1], [2, -1], [3, 7]], '#8a6a4a'); g.fillStyle = '#9affc8'; g.beginPath(); g.arc(0, -1, 1.6, 0, 7); g.fill(); }
+  else if (kind === 'shroom') { p([[-7, 0], [-5, -5], [0, -7], [5, -5], [7, 0]], '#c8382a'); p([[-2, 0], [2, 0], [2, 6], [-2, 6]], '#efe6d2'); g.fillStyle = '#fff'; for (const [a, b] of [[-3, -3], [2, -4], [0, -1]]) { g.beginPath(); g.arc(a, b, 1, 0, 7); g.fill(); } }
+  else if (kind === 'frog') { g.beginPath(); g.ellipse(0, 1.5, 7, 5, 0, 0, 7); g.fillStyle = '#5a9a4a'; g.fill(); g.lineWidth = 1.2; g.stroke(); for (const sx of [-1, 1]) { g.beginPath(); g.arc(sx * 3.6, -3.4, 2.6, 0, 7); g.fillStyle = '#5a9a4a'; g.fill(); g.stroke(); g.fillStyle = '#e8c040'; g.beginPath(); g.arc(sx * 3.6, -3.4, 1.4, 0, 7); g.fill(); g.fillStyle = O; g.fillRect(sx * 3.6 - 0.4, -4.2, 0.8, 1.6); } g.beginPath(); g.moveTo(-4.4, 2.6); g.quadraticCurveTo(0, 4.8, 4.4, 2.6); g.stroke(); }
+  else if (kind === 'web2' || kind === 'brood') { g.strokeStyle = '#e8e0f0'; g.lineWidth = 0.9; for (let i = 0; i < 4; i++) { const a = -0.9 + i * 0.6; g.beginPath(); g.moveTo(0, 0); g.lineTo(-Math.cos(a) * 8, Math.sin(a) * 6); g.moveTo(0, 0); g.lineTo(Math.cos(a) * 8, Math.sin(a) * 6); g.stroke(); } g.strokeStyle = O; g.beginPath(); g.ellipse(0, 0, 3.4, 4, 0, 0, 7); g.fillStyle = kind === 'brood' ? '#a82a2a' : '#5a3a8a'; g.fill(); g.lineWidth = 1.2; g.stroke(); if (kind === 'brood') { g.fillStyle = '#ffd34d'; g.beginPath(); g.arc(0, -6.4, 1.6, 0, 7); g.fill(); } }
   else { p(Array.from({ length: 10 }, (_, i) => { const r = i % 2 ? 3.4 : 8, a = i * Math.PI / 5 - Math.PI / 2; return [Math.cos(a) * r, Math.sin(a) * r]; }), '#ffb347'); }
   g.restore();
 }
@@ -31,7 +35,7 @@ export function lairGlyph(g, kind, x, y, s) {
 /** Подложка зоны: суша, дороги, деревья, столица, кладбище, выходы. k — масштаб. */
 function base(g, W, k, big, q = 1) {
   g.fillStyle = '#1c2a1a'; g.fillRect(0, 0, W.W * k + 2, W.H * k + 2);
-  g.beginPath(); W.edge.forEach((p, i) => i ? g.lineTo(p[0] * k, p[1] * k) : g.moveTo(p[0] * k, p[1] * k)); g.closePath(); g.fillStyle = W.Z.ground === 'z3' ? '#a8a058' : '#5d8a42'; g.fill();
+  g.beginPath(); W.edge.forEach((p, i) => i ? g.lineTo(p[0] * k, p[1] * k) : g.moveTo(p[0] * k, p[1] * k)); g.closePath(); g.fillStyle = W.Z.ground === 'z3' ? '#a8a058' : W.Z.moss ? '#3e5a2c' : '#5d8a42'; g.fill();
   if (big) { g.strokeStyle = '#3a5a2a'; g.lineWidth = 2; g.stroke(); }
   const FC = { wheat: '#d8b44a', sun: '#c9b030', cabbage: '#7ab04a', pasture: '#9aaa52', orchard: '#6a8a3a' };
   for (const F of W.fields) { g.save(); g.translate(F.x * k, F.y * k); g.rotate(F.a || 0); g.fillStyle = FC[F.crop]; g.globalAlpha = 0.85; g.fillRect(-F.w * k / 2, -F.h * k / 2, F.w * k, F.h * k); g.restore(); }
@@ -39,6 +43,9 @@ function base(g, W, k, big, q = 1) {
   g.fillStyle = big ? '#3e6a2c' : '#4c7a36'; const ts = big ? 4 : 2 * q; for (const t of W.trees) if (!t.edge) g.fillRect(t.x * k - ts / 2, t.y * k - ts / 2, ts, ts);
   g.strokeStyle = '#c9b48a'; g.lineWidth = big ? 4 : 2 * q; g.lineCap = 'round'; g.lineJoin = 'round';
   for (const rd of W.roads) { g.beginPath(); rd.forEach((p, i) => i ? g.lineTo(p[0] * k, p[1] * k) : g.moveTo(p[0] * k, p[1] * k)); g.stroke(); }
+  if (W.creek) { g.beginPath(); W.creek.pts.forEach(([x, y], i) => i ? g.lineTo(x * k, y * k) : g.moveTo(x * k, y * k)); g.strokeStyle = '#2f6a7a'; g.lineWidth = Math.max(1.5 * q, W.creek.w * k + (big ? 2 : 0.5)); g.stroke(); }
+  for (const [x, y, rx, ry] of W.ponds || []) { g.fillStyle = '#2f6a7a'; g.beginPath(); g.ellipse(x * k, y * k, rx * k, ry * k, 0, 0, 7); g.fill(); }
+  if (W.Z.fog && big) for (const [x, y, R] of W.Z.fog) { const gr = g.createRadialGradient(x * k, y * k, 4, x * k, y * k, R * k); gr.addColorStop(0, 'rgba(230,236,232,.4)'); gr.addColorStop(1, 'rgba(230,236,232,0)'); g.fillStyle = gr; g.beginPath(); g.ellipse(x * k, y * k, R * k, R * k * 0.7, 0, 0, 7); g.fill(); }
   if (W.river) { g.beginPath(); W.river.pts.forEach(([x, y], i) => i ? g.lineTo(x * k, y * k) : g.moveTo(x * k, y * k)); g.strokeStyle = '#3f7a92'; g.lineWidth = Math.max(2 * q, W.river.w * k + (big ? 3 : 1)); g.stroke();
     for (const b of W.river.bridgeAt) { g.save(); g.translate(b.x * k, b.y * k); g.rotate(b.ra - Math.PI / 2); g.fillStyle = '#8a6a42'; g.strokeStyle = O; g.lineWidth = 1; const bw = big ? 5 : 2.5 * q, bh = big ? 9 : 4.5 * q; g.fillRect(-bw, -bh, bw * 2, bh * 2); if (big) g.strokeRect(-bw, -bh, bw * 2, bh * 2); g.restore(); } }
   for (const f of W.Z.farmsteads || []) { const x = f.x * k, y = f.y * k, s = big ? 1 : 0.5 * q; g.fillStyle = f.burned ? '#4a3a32' : '#c98a4a'; g.beginPath(); g.moveTo(x - 6 * s, y + 4 * s); g.lineTo(x - 6 * s, y - 2 * s); g.lineTo(x, y - 7 * s); g.lineTo(x + 6 * s, y - 2 * s); g.lineTo(x + 6 * s, y + 4 * s); g.closePath(); g.fill(); }
@@ -46,7 +53,7 @@ function base(g, W, k, big, q = 1) {
   if (W.castle) { const K = W.castle; g.fillStyle = '#c9bfa4'; g.strokeStyle = O; g.lineWidth = 1; g.fillRect((K.x - K.w / 2) * k, (K.y - 300) * k, K.w * k, 300 * k); if (big) g.strokeRect((K.x - K.w / 2) * k, (K.y - 300) * k, K.w * k, 300 * k); g.fillStyle = '#2f5d9a'; for (const sd of [-1, 0, 1]) { g.beginPath(); g.arc((K.x + sd * K.w * 0.4) * k, (K.y - 150) * k, (big ? 6 : 2.5 * q) * (sd ? 1 : 1.4), 0, 7); g.fill(); } }
   if (W.cap && W.cap.fountain) { g.fillStyle = '#4f8fb0'; g.beginPath(); g.arc(W.cap.x * k, W.cap.y * k, Math.max(2, W.cap.fountain.r * k), 0, 7); g.fill(); }
   const gx = W.graveyard.x * k, gy = W.graveyard.y * k, cs = big ? 2.2 : q;
-  g.fillStyle = '#eee'; g.fillRect(gx - 1 * cs, gy - 4 * cs, 2 * cs, 8 * cs); g.fillRect(gx - 3 * cs, gy - 2 * cs, 6 * cs, 2 * cs);
+  if (!W.graveyard.hidden) { g.fillStyle = '#eee'; g.fillRect(gx - 1 * cs, gy - 4 * cs, 2 * cs, 8 * cs); g.fillRect(gx - 3 * cs, gy - 2 * cs, 6 * cs, 2 * cs); }
   for (const e of W.exits) { g.fillStyle = '#ffd34d'; g.strokeStyle = O; g.lineWidth = 1; g.beginPath(); g.arc(e.x * k, e.y * k, big ? 7 : 3 * q, 0, 7); g.fill(); if (big) g.stroke(); }
 }
 
@@ -104,7 +111,7 @@ export function openMap(G) {
       text(g, cp.name, x, ty, '#fff2d8', 14); text(g, lvTxt(cp), x, ty + 15, col, 12);
     }
     const c = W.town; if (c) text(g, c.name, c.x * k, c.y * k + 5, '#ffe9a8', W.cap ? 17 : 15);
-    text(g, W.graveyard.name, W.graveyard.x * k, W.graveyard.y * k + 22, '#e8e0cc', 12, false);
+    if (!W.graveyard.hidden) text(g, W.graveyard.name, W.graveyard.x * k, W.graveyard.y * k + 22, '#e8e0cc', 12, false);
     for (const e of W.exits) { const ex = Math.min(CW - 70, e.x * k), ey = Math.min(CH - 24, e.y * k - 12); text(g, `${e.to} · ${e.lvl}`, ex, ey, '#ffd34d', 12); }
     heroMark(g, G.P, k, 1.6); text(g, 'Вы', G.P.x * k, G.P.y * k - 16, '#fff', 12);
   };

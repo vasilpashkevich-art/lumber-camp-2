@@ -192,7 +192,8 @@ function aggro(G, m) {
   if (m.state === 'dead' || m.state === 'return' || G.P.dead) return;
   const was = m.state; m.state = 'chase'; G.P.lastCombat = G.t;
   if (was !== 'chase' && m.D.trait === 'pack') {
-    for (const o of G.mobs) if (o !== m && o.camp === m.camp && o.state === 'idle' && dist(o.x, o.y, m.x, m.y) < 320) { o.state = 'chase'; }
+    const near = G.mobs.filter(o => o !== m && o.camp === m.camp && o.state === 'idle' && dist(o.x, o.y, m.x, m.y) < (m.D.packR || 320)).sort((a, b) => dist(a.x, a.y, m.x, m.y) - dist(b.x, b.y, m.x, m.y));
+    for (const o of near.slice(0, m.D.packN || 99)) o.state = 'chase';   // packN — сколько сородичей зовёт (квакуны — двух ближних)
   }
 }
 
@@ -437,6 +438,9 @@ function mobTick(G, m, dt) {
   if (P.dead || dHome > LEASH || inCity(G.W, P.x, P.y) && dH > 40) { m.state = 'return'; m.charge.t = 0; m.smash.wind = 0; if (P.target === m) P.target = null; return; }
   m.cd = Math.max(0, m.cd - dt * slowK);
   const D = m.D, reach = D.reach + m.r + 10;
+  // призыв помощников (Мельник — ворон, шаман — сородича, Паучиха — выводок)
+  if (D.summon && !m.summon) { const S = D.summon; m.sumT = (m.sumT ?? S.every * 0.5) - dt;
+    if (m.sumT <= 0) { m.sumT = S.every; if (G.mobs.filter(o => o.owner === m && o.state !== 'dead').length < (S.max || S.n * 2)) { for (let i = 0; i < S.n; i++) { const a = G.rand() * 6.28, x = m.x + Math.cos(a) * 60, y = m.y + Math.sin(a) * 60; const o = spawnMob(G, { key: 'призыв', kind: S.kind, lvl: Math.max(1, m.lvl - 2), x, y }, m.camp); Object.assign(o, { summon: true, owner: m, life: 40, state: 'chase' }); G.mobs.push(o); } emit(G, { k: 'txt', x: m.x, y: m.y - 70, s: S.say || 'зовёт ворон!', col: '#9affc8' }); } } }
   if (m.flee > 0) { m.flee -= dt; const a = Math.atan2(m.y - P.y, m.x - P.x); go(m.x + Math.cos(a) * 100, m.y + Math.sin(a) * 100, D.speed * 0.9); return; }
   // элитный удар по площади
   if (D.smash) {
@@ -451,7 +455,7 @@ function mobTick(G, m, dt) {
       return; // замахивается — стоит
     }
     S.t -= dt;
-    if (S.t <= 0 && dH < 200) { S.wind = D.smash.wind; m.atkT = m.atkDur = D.smash.wind + 0.3; S.x = P.x; S.y = P.y; G.fx.push({ k: 'tele', x: S.x, y: S.y, r: D.smash.r, t: D.smash.wind, max: D.smash.wind }); emit(G, { k: 'txt', x: m.x, y: m.y - 60, s: 'замахивается!', col: '#ff8a2a' }); return; }
+    if (S.t <= 0 && dH < 200) { S.wind = D.smash.wind; m.atkT = m.atkDur = D.smash.wind + 0.3; S.x = P.x; S.y = P.y; G.fx.push({ k: 'tele', x: S.x, y: S.y, r: D.smash.r, t: D.smash.wind, max: D.smash.wind }); emit(G, { k: 'txt', x: m.x, y: m.y - 60, s: D.smash.say || 'замахивается!', col: '#ff8a2a' }); return; }
   }
   // кабан: разбег
   if (D.trait === 'charge') {
@@ -469,10 +473,8 @@ function mobTick(G, m, dt) {
     if (dH > D.reach * 0.85) go(P.x, P.y, D.speed); else if (dH < 170) { const a = Math.atan2(m.y - P.y, m.x - P.x); go(m.x + Math.cos(a) * 60, m.y + Math.sin(a) * 60, D.speed * 0.5); }
     if (dH <= D.reach && m.cd <= 0) {
       m.cd = D.cd; m.face = P.x < m.x ? -1 : 1; m.atkT = m.atkDur = 0.5; const a = Math.atan2(P.y - m.y, P.x - m.x);
-      G.shots.push({ from: 'mob', kind: 'curse', x: m.x, y: m.y - 24, vx: Math.cos(a) * 340, vy: Math.sin(a) * 340, t: 1.2, dmg: m.dmg, m, slow: 2.5 });
+      G.shots.push({ from: 'mob', kind: 'curse', x: m.x, y: m.y - 24, vx: Math.cos(a) * 340, vy: Math.sin(a) * 340, t: 1.2, dmg: m.dmg, m, slow: 2.5, say: D.curseSay });
     }
-    const S = D.summon; m.sumT = (m.sumT ?? S.every * 0.5) - dt;
-    if (S && m.sumT <= 0) { m.sumT = S.every; if (G.mobs.filter(o => o.owner === m && o.state !== 'dead').length < S.n * 2) { for (let i = 0; i < S.n; i++) { const a = G.rand() * 6.28, x = m.x + Math.cos(a) * 60, y = m.y + Math.sin(a) * 60; const o = spawnMob(G, { key: 'призыв', kind: S.kind, lvl: Math.max(1, m.lvl - 2), x, y }, m.camp); Object.assign(o, { summon: true, owner: m, life: 40, state: 'chase' }); G.mobs.push(o); } emit(G, { k: 'txt', x: m.x, y: m.y - 70, s: 'зовёт ворон!', col: '#9affc8' }); } }
     return;
   }
   if (D.trait === 'ranged') {
@@ -480,8 +482,8 @@ function mobTick(G, m, dt) {
     else if (dH < 150) { const a = Math.atan2(m.y - P.y, m.x - P.x); go(m.x + Math.cos(a) * 60, m.y + Math.sin(a) * 60, D.speed * 0.45); }  // отходит медленно — догнать можно
     if (dH <= D.reach && m.cd <= 0) {
       m.cd = D.cd; m.face = P.x < m.x ? -1 : 1; m.atkT = m.atkDur = 0.42; const a = Math.atan2(P.y - 18 - (m.y - 18), P.x - m.x);
-      const fireS = D.shot === 'fire', sp = fireS ? 380 : 520;
-      G.shots.push({ from: 'mob', kind: fireS ? 'bottle' : 'arrow', x: m.x, y: m.y - 18, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, t: 1.0, dmg: m.dmg, m, burn: fireS ? D.burn : 0 });
+      const fireS = D.shot === 'fire', spore = D.shot === 'spore', sp = fireS ? 380 : spore ? 290 : 520;
+      G.shots.push({ from: 'mob', kind: fireS ? 'bottle' : spore ? 'spore' : 'arrow', x: m.x, y: m.y - 18, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, t: spore ? 1.1 : 1.0, dmg: m.dmg, m, burn: fireS ? D.burn : 0, poison: spore ? 0.22 : 0 });
     }
     return;
   }
@@ -489,7 +491,7 @@ function mobTick(G, m, dt) {
   else if (m.cd <= 0) {
     m.cd = D.cd; m.face = P.x < m.x ? -1 : 1; m.bite = 0.2; m.atkT = m.atkDur = 0.35;
     hurtHero(G, m.dmg * (0.9 + G.rand() * 0.2), m);
-    if (D.trait === 'poison' && !P.dead) { P.poison = { t: 6, dps: m.dmg * 0.18 }; P.slow = 3; emit(G, { k: 'txt', x: P.x, y: P.y - 60, s: 'яд', col: '#8ad84a' }); }
+    if (D.trait === 'poison' && !P.dead) { P.poison = { t: 6, dps: m.dmg * 0.18 }; P.slow = 3; emit(G, { k: 'txt', x: P.x, y: P.y - 60, s: D.poisonSay || 'яд', col: '#8ad84a' }); }
   }
   if (m.bite) m.bite = Math.max(0, m.bite - dt);
 }
@@ -511,7 +513,8 @@ function shotsTick(G, dt) {
     } else if (!P.dead && dist(s.x, s.y, P.x, P.y - 16) < 22) {
       s.t = 0; hurtHero(G, s.dmg, s.m);
       if (s.burn && !P.dead) { P.poison = { t: 4, dps: s.dmg * s.burn, fire: true }; emit(G, { k: 'txt', x: P.x, y: P.y - 60, s: 'горит!', col: '#ff8a2a' }); }
-      if (s.slow && !P.dead) { P.slow = Math.max(P.slow, s.slow); emit(G, { k: 'txt', x: P.x, y: P.y - 60, s: 'проклятие', col: '#9affc8' }); }
+      if (s.poison && !P.dead) { P.poison = { t: 5, dps: s.dmg * s.poison }; emit(G, { k: 'txt', x: P.x, y: P.y - 60, s: 'споры', col: '#c8e070' }); }
+      if (s.slow && !P.dead) { P.slow = Math.max(P.slow, s.slow); emit(G, { k: 'txt', x: P.x, y: P.y - 60, s: s.say || 'проклятие', col: '#9affc8' }); }
     }
   }
   G.shots = G.shots.filter(s => s.t > 0);
