@@ -8,7 +8,7 @@ import { itemLines, itemNums, lookOf } from '../systems/items.js';
 import { compareItem } from '../entities/hero.js';
 import { equip, unequip, sellItem, buyPotion, shopStock, buyShop, POTION_PRICE, respawnHero, lootTake, hasLoot, bagMove, abilsOf } from '../systems/game.js';
 import { ABIL_ICON } from './icons.js';
-import { doll } from '../art/hero.js';
+import { doll } from '../art/body.js';
 import { $, el, modal } from './dom.js';
 import { soundState, setSound, setVol } from '../engine/audio.js';
 import { fmt1 } from '../engine/util.js';
@@ -56,7 +56,7 @@ export function openChar(G, onChange) {
   const cell = (it, extra = '') => el('button', 'cell', it ? anyIcon(it, 44) + (it.n > 1 ? `<span class="n">${it.n}</span>` : '') + extra : '');
   const draw = () => {
     const h = G.hero, st = G.st;
-    const g = m.querySelector('canvas').getContext('2d'); g.setTransform(2, 0, 0, 2, 0, 0); g.clearRect(0, 0, 170, 236); doll(g, 85, 196, 3.5, 1, lookOf(h), 0.3);
+    const g = m.querySelector('canvas').getContext('2d'); g.setTransform(2, 0, 0, 2, 0, 0); g.clearRect(0, 0, 170, 236); doll(g, 85, 184, 3.9, 1, lookOf(h), 0.3);
     for (const [sel, list] of [['.eqL', SLOTS_L], ['.eqR', SLOTS_R]]) {
       const eq = m.querySelector(sel); eq.innerHTML = '';
       for (const s of list) {

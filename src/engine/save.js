@@ -1,7 +1,7 @@
 // Сохранения: до 5 героев в браузере, у каждого свой ключ. Перенос — файлом.
 // Ключи ветки II: lumber-camp2-*  (не пересекаются с основной игрой).
 import { HERO_V } from '../entities/hero.js';
-import { remakeItem } from '../systems/items.js';
+import { remakeItem, lookUpgrade } from '../systems/items.js';
 
 const IDX = 'lumber-camp2-heroes';       // список героев: [{id, name, cls, lvl, zone, play, seen}]
 const KEY = id => 'lumber-camp2-hero-' + id;
@@ -28,7 +28,7 @@ export function saveHero(h) {
   writeIdx(a); return ok;
 }
 // для экрана выбора хватит ярусов вещей — сам герой грузится только при входе
-const slimEq = eq => Object.fromEntries(Object.entries(eq).map(([k, v]) => [k, v ? { tier: v.tier, wt: v.wt, rar: v.rar } : null]));
+const slimEq = eq => Object.fromEntries(Object.entries(eq).map(([k, v]) => [k, v ? { tier: v.tier, wt: v.wt, rar: v.rar, m: v.m, seed: v.seed, ilvl: v.ilvl } : null]));
 
 export function deleteHero(id) { del(KEY(id)); writeIdx(listHeroes().filter(x => x.id !== id)); }
 
@@ -47,6 +47,8 @@ export function migrate(h) {
   h.potions = h.potions ?? 2; h.gold = h.gold || 0; h.worldT = h.worldT || 0; h.zone = h.zone || 'pine';
   // v59: вещи по новым правилам — главный параметр класса и свойства; место, уровень и цвет те же
   if (h.v < 2) { for (const s of Object.keys(h.eq || {})) if (h.eq[s]) h.eq[s] = remakeItem(h.eq[s], h.cls); h.bag = h.bag.map(it => remakeItem(it, h.cls)); }
+  // v64: облик вещей моделями — модель и зерно для старых вещей, название по модели
+  if (h.v < 3) { for (const s of Object.keys(h.eq)) lookUpgrade(h.eq[s], h.cls); for (const it of h.bag) lookUpgrade(it, h.cls); }
   if (h.v < HERO_V) h.v = HERO_V;
   return h;
 }

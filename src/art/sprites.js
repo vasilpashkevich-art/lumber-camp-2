@@ -1,9 +1,9 @@
 // Готовые картинки: сложное рисуется один раз и потом только копируется (как в ветке I, v50).
 import { LOOK } from './look.js';
 import { BLD } from './bld.js';
-import { doll } from './hero.js';
 import { BEASTS, beast } from './beasts.js';
-import { person } from './rig.js';
+import { person, doll } from './body.js';
+import { palette } from './gear.js';
 
 const CACHE = new Map();
 
@@ -48,8 +48,7 @@ export function flashOf(s) {
 
 // ---------------------------------------------------------------- герой и люди
 export function heroSpr(L, dir) {
-  const k = 'h|' + [L.cls, L.head, L.chest, L.legs, L.wt, L.rar, L.mask || '', L.band || '', L.patch ? 1 : 0, dir].join(',');
-  return sprite(k, 64, 86, 32, 62, 3, g => doll(g, 0, 0, 1, dir, L, 0.3));
+  return sprite('h|' + L.key + '|' + dir, 90, 104, 45, 72, 3, g => doll(g, 0, 0, 1, dir, L, 0.3));
 }
 
 // ---------------------------------------------------------------- анимация (v56): кадры по виду, действию и номеру
@@ -57,10 +56,10 @@ export function heroSpr(L, dir) {
 // mode: idle — стоит, walk — 8 кадров шага, atk — 6 кадров удара, dead — 4 кадра падения
 export const FRAMES = { idle: 1, walk: 8, atk: 6, dead: 4 };
 const poseOf = (mode, f) => mode === 'walk' ? { walk: f / 8 } : mode === 'atk' ? { atk: (f + 0.5) / 6 } : mode === 'dead' ? { dead: (f + 1) / 4 } : { walk: -1 };
-const lookKey = L => [L.cls, L.head, L.chest, L.legs, L.wt, L.rar, L.mask || '', L.band || '', L.patch ? 1 : 0, L.glow ? 1 : 0, L.torch ? 1 : 0, L.hatCol || '', L.strawHat ? 1 : 0, L.sickle ? 1 : 0, L.pick ? 1 : 0, L.line ? L.line.chest[1] : ''].join(',');
+const lookKey = L => L.key || JSON.stringify([L.cls, L.head && L.head.m, L.chest && L.chest.m, L.legs && L.legs.m, L.weapon && L.weapon.m]);
 /** Кадр человека (герой, разбойники). Начало — как у heroSpr: ступни на +12,6. */
 export function personSpr(L, view, mode, f) {
-  return sprite('p|' + lookKey(L) + '|' + view + '|' + mode + '|' + f, 100, 104, 50, 72, 1.7, g => person(g, L, view, poseOf(mode, f)));
+  return sprite('p|' + lookKey(L) + '|' + view + '|' + mode + '|' + f, 100, 104, 50, 72, 2.2, g => person(g, L, view, poseOf(mode, f)));
 }
 /** Кадр зверя. Начало — земля под ним. */
 export function beastSpr(kind, view, mode, f) {
@@ -76,16 +75,20 @@ export function drawFrame(c, s, x, y, dir = 1, sc = 1, a = 1) {
 /** Куда смотрит по направлению движения: вниз — лицом, вверх — спиной, иначе боком. */
 export function viewOf(dx, dy) { return Math.abs(dy) > Math.abs(dx) * 0.9 ? (dy > 0 ? 'front' : 'back') : 'side'; }
 
+// люди мира (v64): то же тело, что у героя, вещи — моделями из gear.js
+const NP = (rar, seed, over = {}) => ({ ...palette(rar, seed), ...over });
+const RAG = NP('common', 5, { cloth: ['#6b4a2c', '#5a3a1c'], leather: '#5a3a1c' });
 export const MOB_LOOK = {
-  bandit: { cls: 'warrior', chest: 1, legs: 1, head: 0, wt: 0, mask: '#7a2a2a', band: '#7a2a2a' },
-  bandit_archer: { cls: 'archer', chest: 1, legs: 1, head: 0, wt: 0, mask: '#7a2a2a' },
-  ataman: { cls: 'warrior', chest: 2, legs: 2, head: 0, wt: 2, patch: true, band: '#a8282a', rar: 'good' },
-  // Хуторские угодья
-  robber: { cls: 'warrior', chest: 2, legs: 1, head: 0, wt: 1, mask: '#4a4a52', band: '#3a3a42' },
-  firestarter: { cls: 'warrior', chest: 1, legs: 1, head: 0, wt: 0, mask: '#2a2a2a', torch: true },
-  miller: { cls: 'mage', chest: 2, legs: 1, head: 0, wt: 2, rar: 'good', strawHat: true, sickle: true,
-    line: { chest: ['#d8c8a4', '#cfc6b0', '#cfc6b0', '#cfc6b0', '#cfc6b0'], legs: ['#6b4a2c', '#5a4a3a', '#5a4a3a', '#5a4a3a', '#5a4a3a'] } },
+  bandit: { key: 'mob-bandit', hair: '#4a2e1a', hood: '#5a4a3a', mask: '#7a2e22', chest: { m: 'jerkin', P: RAG }, legs: { m: 'trousers', P: RAG }, weapon: { m: 'cleaver', P: NP('common', 9) } },
+  bandit_archer: { key: 'mob-bandit-archer', cls: 'archer', hair: '#3a2416', hairStyle: 'tail', mask: '#7a2e22', head: { m: 'lhood', P: RAG }, chest: { m: 'jerkin', P: RAG }, legs: { m: 'leggings', P: RAG }, weapon: { m: 'hunt', P: NP('common', 4) }, quiver: true },
+  ataman: { key: 'mob-ataman', hair: '#2a1a10', beard: 'full', broad: 1.12, patch: true, chest: { m: 'scale', P: NP('good', 12, { cloth: ['#7a2222', '#5a1818'] }) }, legs: { m: 'leggings', P: RAG }, head: { m: 'band', P: NP('common', 1, { cloth: ['#a8282a', '#7a1818'] }) }, weapon: { m: 'crescent', P: NP('good', 14) } },
+  robber: { key: 'mob-robber', hair: '#3a3a42', mask: '#4a4a52', head: { m: 'band', P: NP('common', 2, { cloth: ['#3a3a42', '#2a2a32'] }) }, chest: { m: 'hauberk', P: NP('common', 6) }, legs: { m: 'leggings', P: RAG }, weapon: { m: 'mace', P: NP('common', 7) } },
+  firestarter: { key: 'mob-fire', hair: '#2a1a10', mask: '#2a2a2a', hood: '#3a3430', chest: { m: 'gambeson', P: NP('common', 8, { cloth: ['#5a4a3a', '#4a3a2a'] }) }, legs: { m: 'trousers', P: RAG }, weapon: { m: 'torch', P: NP('common', 3) } },
+  miller: { key: 'mob-miller', hair: '#c8c2b8', hairStyle: 'long', beard: 'grey', eyes: '#3aa86a', head: { m: 'straw', P: NP('common', 1) }, chest: { m: 'robe', P: NP('common', 3, { cloth: ['#cfc6b0', '#b8ae98'] }) }, legs: { m: 'trousers', P: NP('common', 3, { cloth: ['#5a4a3a', '#5a4a3a'] }) }, weapon: { m: 'sickle', P: NP('good', 2) } },
 };
+// городской стражник: кольчуга, синяя накидка, шапель, копьё
+const GP = NP('good', 8, { cloth: ['#2f5d9a', '#24497a'], acc: '#e7c35a' });
+export const GUARD_LOOK = { key: 'npc-guard', hair: '#6a4a2a', beard: 'full', chest: { m: 'brig', P: GP }, legs: { m: 'chausses', P: GP }, head: { m: 'kettle', P: GP }, weapon: { m: 'spear', P: GP } };
 // люди-мобы — в том же масштабе, что герой (1,15), вожаки крупнее
 export const MOB_SCALE = { ataman: 1.45, bandit: 1.15, bandit_archer: 1.15, robber: 1.2, firestarter: 1.12, miller: 1.32, bull: 1.15 };
 

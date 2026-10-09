@@ -4,7 +4,6 @@
 // Запуск: npm run build
 import { build } from 'esbuild';
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
-await import('./make-rig.mjs');   // собрать src/art/rig.js из шаблона
 
 const res = await build({
   entryPoints: ['src/main.js'], bundle: true, format: 'iife', write: false,

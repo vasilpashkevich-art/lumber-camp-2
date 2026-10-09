@@ -1,10 +1,10 @@
 // Экран входа: ночная поляна у костра, выбранный герой впереди — в том, что на нём надето.
-import { doll } from '../art/hero.js';
+import { doll } from '../art/body.js';
 import { heroSpr, drawSpr } from '../art/sprites.js';
 import { CLASSES, NAMES } from '../../data/classes.js';
 import { listHeroes, deleteHero, saveHero, exportAll, importAll, MAX_SLOTS } from '../engine/save.js';
 import { newHero } from '../entities/hero.js';
-import { lookOf } from '../systems/items.js';
+import { lookOf, starterLook } from '../systems/items.js';
 import { rng, plural } from '../engine/util.js';
 import { CONTINENT } from '../../data/zones.js';
 import { $, el, modal, toast } from './dom.js';
@@ -57,7 +57,7 @@ export function showSelect({ onEnter, onSettings }) {
       const b = el('button', 'slot' + (i === sel ? ' on' : ''), `<canvas width="120" height="120"></canvas><b>${esc(h.name)}</b><i style="color:${CC(h.cls)}">${CN(h.cls)} ${h.lvl} уровня</i><small>${zoneName(h.zone)}</small>`);
       b.onclick = () => { sel = i; render(); }; b.ondblclick = () => enter();
       list.append(b);
-      const pc = b.querySelector('canvas').getContext('2d'); pc.save(); pc.beginPath(); pc.arc(60, 60, 56, 0, 7); pc.fillStyle = CC(h.cls) + '55'; pc.fill(); pc.clip(); doll(pc, 60, 160, 6.4, 1, lookOf(h), 0.3); pc.restore();
+      const pc = b.querySelector('canvas').getContext('2d'); pc.save(); pc.beginPath(); pc.arc(60, 60, 56, 0, 7); pc.fillStyle = CC(h.cls) + '55'; pc.fill(); pc.clip(); doll(pc, 60, 172, 5.6, 1, lookOf(h), 0.3); pc.restore();
     }
     const info = $('#selInfo');
     if (sel < 0) { info.innerHTML = `<h2>Добро пожаловать</h2><p>Создайте первого героя: выберите класс и имя. Новый герой начинает в простой одежде у ворот Столицы.</p>`; }
@@ -84,7 +84,7 @@ export function showSelect({ onEnter, onSettings }) {
     const inp = m.querySelector('#newName');
     const paint = () => m.querySelectorAll('.clsCard').forEach(b => {
       b.classList.toggle('on', b.dataset.c === cls);
-      const g = b.querySelector('canvas').getContext('2d'); g.clearRect(0, 0, 180, 200); doll(g, 90, 160, 4.4, 1, { cls: b.dataset.c, head: 0, chest: 0, legs: 0, wt: 0 }, 0.3);
+      const g = b.querySelector('canvas').getContext('2d'); g.clearRect(0, 0, 180, 200); doll(g, 90, 168, 4.2, 1, starterLook(b.dataset.c), 0.3);
     });
     m.querySelectorAll('.clsCard').forEach(b => b.onclick = () => { const was = NAMES[cls].includes(inp.value); cls = b.dataset.c; if (was || !inp.value) inp.value = pickName(cls); paint(); });
     m.querySelector('.dice').onclick = e => { e.preventDefault(); inp.value = pickName(cls); };

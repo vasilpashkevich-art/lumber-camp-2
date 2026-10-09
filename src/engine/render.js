@@ -1,15 +1,16 @@
 // Отрисовка мира: земля кусками, предметы по глубине, мобы, герой, выстрелы, эффекты, всплывающие числа.
 import { LOOK } from '../art/look.js';
 import { lairSpr } from '../art/lairs.js';
-import { LINE } from '../art/hero.js';
+import { legColor } from '../art/body.js';
+import { palette } from '../art/gear.js';
 import { field, river as riverArt, bridge, haystack, millBase, millBlades, well } from '../art/farmland.js';
 import { BLD } from '../art/bld.js';
 import { castle, stairs, brazierFire, paving, roundPlaza, ringPath, fountain, lamp, flowerbed, terrace, wallSeg, roundTower, merlons, cone } from '../art/castle.js';
-import { house, inn, tavern, enchant, barn, miners, forge, farmstead, GUARD_LOOK } from '../art/houses.js';
+import { house, inn, tavern, enchant, barn, miners, forge, farmstead } from '../art/houses.js';
 import { vein, glint, outcrop } from '../art/ore.js';
 import { ORES, veinColor, MINE } from '../../data/mining.js';
 import { miningSkill } from '../systems/mining.js';
-import { sprite, drawSpr, flashOf, heroSpr, mobSpr, MOB_SCALE, MOB_LOOK, personSpr, beastSpr, drawFrame, viewOf, sprBox, FRAMES, treeSpr, TREE_K, bldSpr, mountainSpr } from '../art/sprites.js';
+import { sprite, drawSpr, flashOf, heroSpr, mobSpr, MOB_SCALE, MOB_LOOK, personSpr, beastSpr, drawFrame, GUARD_LOOK, viewOf, sprBox, FRAMES, treeSpr, TREE_K, bldSpr, mountainSpr } from '../art/sprites.js';
 import { treesIn, GATE_W } from '../world/world.js';
 import { lookOf } from '../systems/items.js';
 import { interactTarget } from '../systems/game.js';
@@ -379,6 +380,7 @@ function drawMob(c, G, m, t) {
   if (m.stun > 0) for (let i = 0; i < 3; i++) { const a = tt * 4 + i * 2.09, x = m.x + Math.cos(a) * 12, y = top + Math.sin(a) * 4; c.fillStyle = '#ffe066'; c.strokeStyle = '#24180f'; c.lineWidth = 0.8; c.beginPath(); for (let k = 0; k < 10; k++) { const r = k % 2 ? 1.6 : 4, b = k * Math.PI / 5; c.lineTo(x + Math.cos(b) * r, y + Math.sin(b) * r); } c.closePath(); c.fill(); c.stroke(); }
 }
 
+const PICK_P = palette('common', 11);
 function drawHero(c, G, look, t) {
   const P = G.P;
   // куда смотрит: при ударе и рывке — на цель, иначе — куда шёл
@@ -394,13 +396,13 @@ function drawHero(c, G, look, t) {
   if (B.thorns > 0) { c.fillStyle = '#c8b890'; c.strokeStyle = '#24180f'; c.lineWidth = 0.8; for (let i = 0; i < 10; i++) { const a = i / 10 * 6.283 + t; const x = P.x + Math.cos(a) * 22, y = P.y - 16 + Math.sin(a) * 26; c.beginPath(); c.moveTo(x, y); c.lineTo(x + Math.cos(a) * 9, y + Math.sin(a) * 9); c.lineTo(x + Math.cos(a + 1.5) * 3, y + Math.sin(a + 1.5) * 3); c.closePath(); c.fill(); c.stroke(); } }
   if (P.weak > 0) { c.strokeStyle = 'rgba(160,160,255,.5)'; c.lineWidth = 2; c.beginPath(); c.ellipse(P.x, P.y + 2, 20, 8, 0, 0, 7); c.stroke(); }
   if (P.sit) { // сидит: ноги поджаты, тело ниже
-    const sp = personSpr(look, 'side', 'idle', 0), lc = look.legs < 0 ? '#f2c9a0' : LINE[look.cls].legs[look.legs];
+    const sp = personSpr(look, 'side', 'idle', 0), lc = legColor(look);
     c.save(); c.beginPath(); c.rect(P.x - 60, P.y - 120, 120, 120 + 5); c.clip(); drawFrame(c, sp, P.x, P.y + 7, P.dir, 1.15); c.restore();
     c.fillStyle = lc; c.strokeStyle = '#24180f'; c.lineWidth = 1.2; for (const ox of [-7, 7]) { c.beginPath(); c.ellipse(P.x + ox * P.dir, P.y + 7, 8, 4, 0, 0, 7); c.fill(); c.stroke(); }
     c.fillStyle = 'rgba(160,220,255,.7)'; const q = (t * 0.7) % 1; c.globalAlpha = 1 - q; c.font = 'bold 11px Georgia'; c.fillText('z', P.x + 14, P.y - 40 - q * 16); c.globalAlpha = 1;
     return;
   }
-  if (P.mine) look = { ...look, pick: true };
+  if (P.mine) look = { ...look, weapon: { m: 'pick', P: PICK_P }, swing: 'chop', key: look.key + '|pick' };
   const sp = personSpr(look, view, mode, f), breathe = mode === 'idle' ? Math.sin(t * 2) * 0.4 : 0;
   drawFrame(c, P.hurt > 0 ? flashOf(sp) : sp, P.x - (P.hurt > 0 && view === 'side' ? dir * 2 : 0), P.y + breathe, dir, 1.15, P.dead ? Math.max(0.35, 1 - P.deadT / 3) : 1);
   if (P.poison) { c.fillStyle = 'rgba(120,220,80,.6)'; for (let i = 0; i < 3; i++) c.fillRect(P.x - 10 + i * 9, P.y - 60 - ((t * 40 + i * 13) % 20), 3, 3); }

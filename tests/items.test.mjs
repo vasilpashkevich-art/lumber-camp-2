@@ -53,7 +53,7 @@ test('сравнение с надетым: лучше по урону — ст�
 test('старое сохранение: вещи пересчитаны, ничего не потерялось, результат одинаковый', () => {
   const old = () => ({ v: 1, id: 'o', name: 'О', cls: 'mage', lvl: 7, eq: { head: null, chest: { id: 'c9', cls: 'mage', slot: 'chest', ilvl: 7, rar: 'rare', armor: 9, stam: 9, pow: 4, tier: 3 } }, bag: [{ id: 'q1', cls: 'mage', slot: 'weapon', ilvl: 5, rar: 'good', dmg: 12, pos: 3 }] });
   const a = migrate(old()), b = migrate(old());
-  assert.equal(a.v, 2); assert.ok(a.eq.chest.main > 0 && !a.eq.chest.pow); assert.equal(Object.keys(a.eq.chest.props).length, 2);
+  assert.equal(a.v, 3); assert.ok(a.eq.chest.main > 0 && !a.eq.chest.pow); assert.ok(a.eq.chest.m && a.eq.chest.seed && a.bag[0].m, 'облик моделью'); assert.equal(Object.keys(a.eq.chest.props).length, 2);
   assert.equal(a.bag.length, 1); assert.equal(a.bag[0].pos, 3); assert.equal(a.bag[0].id, 'q1');
   assert.deepEqual(a.eq.chest, b.eq.chest, 'пересчёт одинаковый при каждой загрузке');
   assert.deepEqual(migrate(a).eq.chest, a.eq.chest, 'второй раз не пересчитывает');

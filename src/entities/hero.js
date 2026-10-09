@@ -4,7 +4,7 @@ import { HERO, MAX_LVL, xpNeed, ITEM, PROPS, armorCut } from '../../data/balance
 import { starterGear } from '../systems/items.js';
 import { uid } from '../engine/util.js';
 
-export const HERO_V = 2; // версия сохранения героя (2 — вещи v59: главный параметр и свойства)
+export const HERO_V = 3; // версия сохранения героя (2 — вещи v59: главный параметр и свойства; 3 — v64: облик вещей моделями)
 
 export function newHero(name, cls) {
   return {

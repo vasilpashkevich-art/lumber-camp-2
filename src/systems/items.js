@@ -4,6 +4,7 @@ import { RAR_MUL, RAR_IDX, RAR_PROPS, LOOT, ITEM, PROPS } from '../../data/balan
 import { TRINKETS } from '../../data/trinkets.js';
 import { ORES, GEMS } from '../../data/mining.js';
 import { weighted, uid, rng } from '../engine/util.js';
+import { pickModel, modelOf, itemLook, seedOf } from '../art/gear.js';
 
 const ARMOR_SLOT = { head: 0.7, chest: 1.2, legs: 0.9 };
 const CLASS_ARMOR = { warrior: 1.6, archer: 1.0, mage: 0.5 };
@@ -27,6 +28,9 @@ export function makeItem(cls, slot, ilvl, rar, r = Math.random) {
   const tier = visTier(ilvl, rar);
   const m = RAR_MUL[rar];
   const it = { id: uid(), cls, slot, ilvl, rar, tier };
+  // облик (v64): модель из набора по классу и ярусу, расцветка — по зерну вещи
+  it.seed = 1 + Math.floor(r() * 2147483000);
+  it.m = rar === 'start' ? START_M[cls][slot] : pickModel(slot, cls, tier, it.seed);
   if (slot === 'weapon') {
     it.dmg = r1((3 + ilvl * 1.5) * m * (0.92 + r() * 0.16));
     it.wt = rar === 'start' ? 0 : Math.min(3, tier);
@@ -52,12 +56,21 @@ export function makeItem(cls, slot, ilvl, rar, r = Math.random) {
   return it;
 }
 
+// начальные вещи у каждого класса свои и одинаковые
+const START_M = { warrior: { chest: 'shirt', legs: 'trousers', weapon: 'hatchet' }, mage: { chest: 'shirt', legs: 'trousers', weapon: 'stick' }, archer: { chest: 'shirt', legs: 'trousers', weapon: 'shortbow' } };
 export function itemName(it) {
-  const names = GEAR_NAMES[it.cls][it.slot];
-  const idx = it.slot === 'weapon' ? (it.wt ?? 0) : it.tier;
-  const base = names[Math.min(idx, names.length - 1)] || 'Вещь';
+  const md = it.m && modelOf(it.slot, it.m);
+  const names = GEAR_NAMES[it.cls] && GEAR_NAMES[it.cls][it.slot];
+  const base = md ? md.name : (names && names[Math.min(it.slot === 'weapon' ? (it.wt ?? 0) : it.tier, names.length - 1)]) || 'Вещь';
   const first = it.props && Object.keys(it.props)[0];
-  return first && it.tier < 4 ? `${base} ${PROPS[first].suf}` : base;
+  return first ? `${base} ${PROPS[first].suf}` : base;
+}
+/** Облик старой вещи (до v64): модель по зерну из id, название — по модели. Остальное не трогаем. */
+export function lookUpgrade(it, cls) {
+  if (!it || !it.slot || it.trinket || it.kind || it.m) return it;
+  it.cls = it.cls || cls; it.seed = seedOf(it);
+  it.m = it.rar === 'start' && START_M[it.cls] && START_M[it.cls][it.slot] ? START_M[it.cls][it.slot] : pickModel(it.slot, it.cls, visTier(it.ilvl || 1, it.rar), it.seed);
+  it.name = itemName(it); return it;
 }
 
 export function sellPrice(it) {
@@ -107,20 +120,24 @@ export function makeStack(kind, metal, n = 1) {
 /** Кирка: без неё жилу не выкопать. */
 export const makePick = () => ({ id: uid(), kind: 'tool', tool: 'pick', name: 'Кирка рудокопа', rar: 'common', price: 12 });
 
-/** Облик героя для рисования: какие ярусы на какой части тела. */
+// облик героя по классу: волосы, борода, сложение
+export const HERO_BODY = {
+  warrior: { hair: '#b8642a', beard: 'full', broad: 1.08 },
+  mage: { hair: '#e8e2d8', hairStyle: 'long', beard: 'grey', eyes: '#3a6fa8' },
+  archer: { hair: '#6a3e1e', hairStyle: 'tail' },
+};
+const LOOKS = new Map();
+/** Облик героя для рисования (v64): модели надетых вещей и их расцветка. key — для готовых кадров. */
 export function lookOf(hero) {
-  const e = hero.eq;
-  const best = ['head', 'chest', 'legs'].map(s => e[s]).filter(Boolean).reduce((a, it) => RAR_IDX[it.rar] > RAR_IDX[a] ? it.rar : a, 'start');
-  return {
-    cls: hero.cls,
-    head: e.head ? e.head.tier : 0,
-    chest: e.chest ? e.chest.tier : -1,     // −1 — снято: голый торс
-    legs: e.legs ? e.legs.tier : -1,        // −1 — в трусах
-    wt: e.weapon ? (e.weapon.wt ?? 0) : -1, // −1 — пустые руки
-    rar: best === 'start' ? 'common' : best,
-    glow: RAR_IDX[best] >= 4,
-  };
+  const e = hero.eq || {}, parts = ['head', 'chest', 'legs', 'weapon'];
+  const key = hero.cls + '|' + parts.map(s => e[s] ? (e[s].m || '') + ':' + e[s].rar + ':' + (e[s].seed || e[s].id || '') + ':' + (e[s].ilvl || e[s].tier || '') : '-').join('|');
+  let L = LOOKS.get(key); if (L) return L;
+  L = { cls: hero.cls, ...HERO_BODY[hero.cls], key };
+  for (const s of parts) if (e[s]) { const it = { ...e[s], slot: s, cls: hero.cls }; if (!it.ilvl && it.tier) it.ilvl = Math.max(1, (it.tier - 1) * 8); const lk = itemLook(it, hero.cls); L[s] = { m: lk.m, P: lk.P }; }
+  if (LOOKS.size > 60) LOOKS.clear(); LOOKS.set(key, L); return L;
 }
+/** Облик нового героя класса (экран выбора). */
+export const starterLook = cls => lookOf({ cls, eq: starterGear(cls) });
 
 /** Строки описания вещи для подсказки: [ключ, текст]. */
 export function itemLines(it) {

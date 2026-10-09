@@ -213,4 +213,3 @@ export function farmstead(g, burned) {
   hp(g, () => g.rect(-60, 14, 110, 22), '#6a4e30', 1.2); g.fillStyle = '#7ab04a'; for (let k = 0; k < 9; k++) { g.beginPath(); g.arc(-52 + k * 12, 25, 4, 0, 7); g.fill(); }
 }
 /** Стражник города: сине-золотая накидка — рисуется через person() героя (rig), здесь только облик. */
-export const GUARD_LOOK = { cls: 'warrior', chest: 3, legs: 3, head: 2, wt: 1, band: '#2f4f8a' };

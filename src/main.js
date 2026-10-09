@@ -11,14 +11,14 @@ import { showSelect } from './ui/select.js';
 import { createHud } from './ui/hud.js';
 import { openChar, openVendor, openMenu, showDeath, hideTip, openLoot, openAbils, openGuild, openSmelt } from './ui/windows.js';
 import { openMap } from './ui/map.js';
-import { doll } from './art/hero.js';
+import { doll } from './art/body.js';
 import { rollDrop, makeItem, makeTrinket, makeStack, makePick } from './systems/items.js';
 import { LOOT } from '../data/balance.js';
 import { dist } from './engine/util.js';
 import { $, toast, zoneTitle } from './ui/dom.js';
 import { RAR_COL } from '../data/balance.js';
 
-const VERSION = 63;
+const VERSION = 64;
 const WORLDS = {}; const worldOf = id => WORLDS[id] || (WORLDS[id] = buildWorld(ZONES[id] || ZONES.pine));
 let W = null, G = null, R = null, In = null, hud = null, raf = 0, last = 0, saveT = 0, musicT = 0, paused = false;
 

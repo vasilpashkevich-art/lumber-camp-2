@@ -3,7 +3,7 @@
 import { CLASSES } from '../../data/classes.js';
 import { xpNeed, lvlColor } from '../../data/balance.js';
 import { lookOf } from '../systems/items.js';
-import { doll } from '../art/hero.js';
+import { doll } from '../art/body.js';
 import { ABIL_ICON, moneyHtml, accIcon } from './icons.js';
 import { TRINKETS } from '../../data/trinkets.js';
 import { drawMini } from './map.js';
@@ -36,8 +36,8 @@ export function createHud(In) {
   H.update = () => {
     const G = H.G, P = G.P, h = G.hero, st = G.st, C = CLASSES[h.cls];
     // портрет перерисовываем только при смене вещей
-    const L = lookOf(h), key = JSON.stringify(L);
-    if (key !== H.portraitKey) { H.portraitKey = key; const c = $('#pfCanvas').getContext('2d'); c.clearRect(0, 0, 160, 160); doll(c, 74, 150, 5.0, 1, L, 0.3); }
+    const L = lookOf(h), key = L.key;
+    if (key !== H.portraitKey) { H.portraitKey = key; const c = $('#pfCanvas').getContext('2d'); c.clearRect(0, 0, 160, 160); doll(c, 80, 186, 6.2, 1, L, 0.3); }
     $('#pfLvl').textContent = h.lvl;
     setBar('#pfHp', P.hp / st.maxHp, `${Math.ceil(P.hp)} / ${st.maxHp}`);
     const need = xpNeed(h.lvl); setBar('#pfXp', isFinite(need) ? h.xp / need : 1, isFinite(need) ? `опыт ${h.xp} / ${need}` : 'наивысший уровень');
