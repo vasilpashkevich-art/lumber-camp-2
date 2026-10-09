@@ -1,16 +1,25 @@
 // Автоигрок: бегает по Сосновому долу, бьёт мобов по силам, пьёт зелья, надевает лучшее.
 // Запуск: node tools/sim.mjs [класс] [минут]   — печатает, за сколько минут берётся каждый уровень.
-import { PINE } from '../data/zones.js';
+import { PINE, ZONES } from '../data/zones.js';
 import { buildWorld } from '../src/world/world.js';
 import { newHero } from '../src/entities/hero.js';
 import { createGame, update, respawnHero, equip, buyPotion, sellItem, POTION_PRICE, lootAll, hasLoot } from '../src/systems/game.js';
 import { LOOT } from '../data/balance.js';
 import { lvlColor } from '../data/balance.js';
+import { makeItem } from '../src/systems/items.js';
 import { rng, dist } from '../src/engine/util.js';
 
 // путь: из столицы — через ближайшие к цели ворота; снаружи — в обход стены; внутрь — через ворота
 function via(W, P, tx, ty) {
-  const c = W.cap, dP = dist(P.x, P.y, c.x, c.y), inP = dP < c.R, inT = dist(tx, ty, c.x, c.y) < c.R;
+  // река: если прямая пересекает воду — сначала к ближайшему мосту, потом на другой берег
+  if (W.river) {
+    let cross = false; const n = Math.ceil(dist(P.x, P.y, tx, ty) / 30); for (let i = 1; i < n; i++) { const x = P.x + (tx - P.x) * i / n, y = P.y + (ty - P.y) * i / n; if (W.water(x, y, 10)) { cross = true; break; } }
+    if (cross) { const b = W.river.bridgeAt.reduce((a, b) => dist(P.x, P.y, b.x, b.y) + dist(b.x, b.y, tx, ty) < dist(P.x, P.y, a.x, a.y) + dist(a.x, a.y, tx, ty) ? b : a); const ts = ty > b.y ? 1 : -1;
+      if (Math.abs(P.x - b.x) < 26 && Math.abs(P.y - b.y) < 160) return [b.x, b.y + ts * 150];   // на мосту — идти на тот берег
+      return [b.x, b.y - ts * 110]; }
+  }
+  const c = W.cap; if (!c) return [tx, ty];
+  const dP = dist(P.x, P.y, c.x, c.y), inP = dP < c.R, inT = dist(tx, ty, c.x, c.y) < c.R;
   // в проёме ворот — сначала пройти его насквозь
   if (Math.abs(dP - c.R) < 70) { const a = Math.atan2(P.y - c.y, P.x - c.x); for (const g of c.gates) { const da = Math.abs(((a - g) + Math.PI * 3) % (Math.PI * 2) - Math.PI); if (da < 0.15) { const out = inT ? -1 : 1; return [c.x + Math.cos(g) * (c.R + out * 100), c.y + Math.sin(g) * (c.R + out * 100)]; } } }
   const gate = (x, y) => { let best = 0, bd = 1e9; for (const g of c.gates) { const d = dist(x, y, c.x + Math.cos(g) * c.R, c.y + Math.sin(g) * c.R); if (d < bd) { bd = d; best = g; } } return best; };
@@ -33,8 +42,8 @@ function via(W, P, tx, ty) {
 }
 const toward = (I, P, x, y) => { const a = Math.atan2(y - P.y, x - P.x); I.mx = Math.cos(a); I.my = Math.sin(a); };
 
-export function runBot(cls, minutes, seed = 1, log = false) {
-  const W = buildWorld(PINE), H = newHero('Бот', cls);
+export function runBot(cls, minutes, seed = 1, log = false, zone = 'pine', lvl = 1) {
+  const W = buildWorld(ZONES[zone]), H = newHero('Бот', cls); H.zone = zone; if (lvl > 1) { H.lvl = lvl; for (const sl of ['head', 'chest', 'legs', 'weapon']) H.eq[sl] = makeItem(cls, sl, lvl, 'common', rng(seed + 3)); }
   const G = createGame(H, W, { rand: rng(seed) });
   const dt = 1 / 20, steps = minutes * 60 / dt, lvAt = {}, R = rng(seed + 7);
   let goal = null, deadT = 0, shopping = false, stuck = 0, side = 0, lx = 0, ly = 0;
@@ -45,10 +54,9 @@ export function runBot(cls, minutes, seed = 1, log = false) {
     else {
       // снаряжение
       for (const it of H.bag.slice()) { const cur = H.eq[it.slot]; if (it.cls === H.cls && (!cur || score(it) > score(cur))) equip(G, it); }
-      const inCity = dist(P.x, P.y, W.cap.x, W.cap.y) < W.cap.R - 40;
       if (H.potions === 0 && H.gold >= POTION_PRICE(H.lvl)) shopping = true;
       if (shopping) {
-        const mk = W.cap.buildings.find(b => b.vendor), mx = W.cap.x + mk.dx, my = W.cap.y + mk.dy + 40;
+        const mk = W.houses.find(b => b.vendor), mx = mk.x, my = mk.y + 40;
         const tx = dist(P.x, P.y, mx, my) > 60 ? mx : null;
         if (tx !== null) { const [x, y] = via(W, P, mx, my); toward(I, P, x, y); }
         else { for (const it of H.bag.slice()) if (it.cls !== H.cls || score(it) <= score(H.eq[it.slot] || { })) sellItem(G, it); while (H.potions < 5 && buyPotion(G)); shopping = false; }
@@ -79,7 +87,7 @@ export function runBot(cls, minutes, seed = 1, log = false) {
           if (P.hp > G.st.maxHp * 0.25 || H.potions > 0) I.attack = true;
           if (d < 300 && R() < 0.05) I.ability = true;
           if (H.lvl >= 5 && d < 150 && R() < 0.04) I.ability2 = true;
-        } else if (P.hp < G.st.maxHp * 0.6) { /* отдых */ }
+        } else { const cp = W.camps[Math.floor(G.t / 90) % W.camps.length]; const [x, y] = via(W, P, cp.x, cp.y); if (dist(P.x, P.y, cp.x, cp.y) > 150) toward(I, P, x, y); }   // никого рядом — к другому логову
       }
     }
     // объезд препятствий: если идём, но не двигаемся — шагнуть вбок
@@ -96,9 +104,9 @@ export function runBot(cls, minutes, seed = 1, log = false) {
 }
 
 if (process.argv[1] && process.argv[1].endsWith('sim.mjs')) {
-  const cls = process.argv[2] || 'all', min = +process.argv[3] || 90;
+  const cls = process.argv[2] || 'all', min = +process.argv[3] || 90, zone = process.argv[4] || 'pine', lv = +process.argv[5] || 1;
   for (const c of cls === 'all' ? ['warrior', 'mage', 'archer'] : [cls]) {
-    const r = runBot(c, min, 1);
+    const r = runBot(c, min, 1, false, zone, lv);
     console.log(`${c}: ур.${r.lvl}, убито ${r.kills}, смертей ${r.deaths}, золото ${r.gold}, вещей ${r.items}`);
     console.log('  минуты до уровня:', Object.entries(r.lvAt).map(([l, m]) => `${l}:${m}`).join(' '));
     console.log('  надето:', r.eq.join(', '));

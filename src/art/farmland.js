@@ -45,7 +45,7 @@ export function field(g, F) {
 /** Точка на ломаной: длина вдоль, координаты, направление. */
 export function riverAt(pts, x) { for (let i = 0; i < pts.length - 1; i++) { const [ax, ay] = pts[i], [bx, by] = pts[i + 1]; if (x >= ax && x <= bx) { const k = (x - ax) / (bx - ax); return { x, y: ay + (by - ay) * k, a: Math.atan2(by - ay, bx - ax) }; } } return null; }
 export function river(g, R, t = 0) {
-  const path = () => { g.beginPath(); R.pts.forEach(([x, y], i) => { if (!i) g.moveTo(x, y); else { const [px, py] = R.pts[i - 1]; g.quadraticCurveTo(px, py, (px + x) / 2, (py + y) / 2); } }); const L = R.pts[R.pts.length - 1]; g.lineTo(L[0], L[1]); };
+  const path = () => { g.beginPath(); R.pts.forEach(([x, y], i) => i ? g.lineTo(x, y) : g.moveTo(x, y)); };   // ломаная: так же считается вода
   g.lineJoin = 'round'; g.lineCap = 'round';
   path(); g.strokeStyle = '#6a5a34'; g.lineWidth = R.w + 26; g.stroke();          // берег
   path(); g.strokeStyle = '#8a9a5a'; g.lineWidth = R.w + 14; g.stroke();          // прибрежная трава

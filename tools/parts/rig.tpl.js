@@ -66,6 +66,7 @@ export function person(c, L, view, pose = {}) {
     __PADS__
     // голова
     __HEAD__
+    if (L.strawHat) strawHat('side');
     // ближняя рука с оружием
     const sw = SW, aFront = sw ? sw.a : (W ? -s * 0.55 : 0.18);
     arm(1.5, aFront, sl, true, sw);
@@ -88,7 +89,7 @@ export function person(c, L, view, pose = {}) {
     c.save(); c.translate(hx, hy);
     if (L.torch) { c.rotate(a2 - 0.1); torch(); }
     else if (cl === 'warrior') { c.rotate(a2 - 0.1); axe(); }                       // топор перпендикулярно предплечью
-    else if (cl === 'mage') { c.rotate(sw ? sw.glow * 0.8 : 0.04); staff(sw ? sw.glow : 0); }   // посох почти отвесно, при ударе — вперёд
+    else if (cl === 'mage') { c.rotate(sw ? sw.glow * 0.8 : 0.04); (L.sickle ? sickle : staff)(sw ? sw.glow : 0); }   // посох почти отвесно, при ударе — вперёд
     else { c.rotate(sw ? 0 : 0.12); bow(sw && sw.bow ? sw.pull : 0, !!(sw && sw.bow)); }      // лук отвесно, тетива к себе
     c.restore();
   }
@@ -107,6 +108,24 @@ export function person(c, L, view, pose = {}) {
     hp(() => c.rect(-2.4, -17, 4.8, 3.4), '#5a3a1c', 0.8);
     const f = Math.sin(t * 14) * 1.2, g = c.createRadialGradient(0, -21, 1, 0, -21, 11); g.addColorStop(0, 'rgba(255,200,90,.7)'); g.addColorStop(1, 'rgba(255,120,40,0)'); c.fillStyle = g; c.beginPath(); c.arc(0, -21, 11, 0, 7); c.fill();
     for (const [col, w, h] of [['#ff6a2a', 4.5, 11], ['#ffb347', 3, 8], ['#fff2a0', 1.6, 4.5]]) { c.fillStyle = col; c.beginPath(); c.moveTo(-w, -17); c.quadraticCurveTo(-w, -17 - h * 0.6, f * 0.4, -17 - h - f); c.quadraticCurveTo(w, -17 - h * 0.6, w, -17); c.closePath(); c.fill(); }
+  }
+  // соломенная шляпа (Мельник): широкие поля, тулья, лента
+  function strawHat(v) {
+    const ox = v === 'side' ? 0.8 : 0;
+    hp(() => c.ellipse(ox, -17.5, 13.5, 3.6, 0, 0, 7), '#d8b44a', 1.1);
+    c.strokeStyle = '#b8942e'; c.lineWidth = 0.6; for (let i = -5; i <= 5; i++) { c.beginPath(); c.moveTo(ox + i * 2.2, -16.2); c.lineTo(ox + i * 2.5, -18.9); c.stroke(); }
+    hp(() => { c.moveTo(ox - 7, -18); c.quadraticCurveTo(ox - 6.5, -26, ox, -26.5); c.quadraticCurveTo(ox + 6.5, -26, ox + 7, -18); c.closePath(); }, '#e8c860', 1.1);
+    hp(() => c.rect(ox - 7, -20.5, 14, 2.4), '#5a3a1c', 0.7);
+    if (v !== 'back') { c.strokeStyle = '#e8c860'; c.lineWidth = 1; for (const [x, y] of [[-12, -16], [12.5, -16.5], [-10, -15]]) { c.beginPath(); c.moveTo(ox + x, y); c.lineTo(ox + x * 1.12, y + 2.5); c.stroke(); } }
+  }
+  // серп колдуна: длинное древко, изогнутое лезвие, зелёный свет
+  function sickle(glow) {
+    c.strokeStyle = HO; c.lineWidth = 3.6; c.beginPath(); c.moveTo(0, 10); c.quadraticCurveTo(1.5, -10, 0, -27); c.stroke(); c.strokeStyle = '#5a3e24'; c.lineWidth = 2.2; c.stroke();
+    hp(() => c.rect(-2, -28, 4, 4), '#4a4f56', 0.8);
+    const G = 10 + (glow || 0) * 10, g = c.createRadialGradient(6, -32, 1, 6, -32, G); g.addColorStop(0, 'rgba(120,255,170,.65)'); g.addColorStop(1, 'rgba(120,255,170,0)'); c.fillStyle = g; c.beginPath(); c.arc(6, -32, G, 0, 7); c.fill();
+    hp(() => { c.moveTo(-1, -27); c.quadraticCurveTo(6, -40, 16, -34); c.quadraticCurveTo(19, -30, 16, -25); c.quadraticCurveTo(15, -31, 8, -32); c.quadraticCurveTo(3, -31, 1, -25); c.closePath(); }, '#cfd8de', 1);
+    c.strokeStyle = '#ffffff'; c.lineWidth = 0.8; c.beginPath(); c.moveTo(3, -33); c.quadraticCurveTo(9, -37, 15, -33); c.stroke();
+    c.fillStyle = '#9affc8'; for (const [x, y] of [[10, -36], [14, -29]]) { c.beginPath(); c.arc(x, y, 0.9, 0, 7); c.fill(); }
   }
   // посох: древко через кисть, навершие сверху; glow — вспышка при ударе
   function staff(glow) {
@@ -171,7 +190,7 @@ export function person(c, L, view, pose = {}) {
     if (wt >= 0) { c.save(); c.translate(hx, hy);
       if (L.torch) { c.rotate(back ? 0.12 : -0.12); torch(); }
       else if (cl === 'warrior') { c.rotate(SW ? (SW.a < 0 ? -0.6 : 0.5) * (back ? -1 : 1) + (back ? 0.15 : -0.15) : (back ? 0.12 : -0.12)); axe(); }
-      else if (cl === 'mage') { c.rotate(back ? 0.06 : -0.06); staff(SW ? SW.glow : 0); }
+      else if (cl === 'mage') { c.rotate(back ? 0.06 : -0.06); (L.sickle ? sickle : staff)(SW ? SW.glow : 0); }
       else { if (SW && SW.bow) { c.rotate(Math.PI / 2); c.scale(1, back ? -1 : 1); bow(SW.pull, !back); } else { c.rotate(back ? 0.1 : -0.1); c.scale(back ? 1 : -1, 1); bow(0, false); } }
       c.restore(); }
     for (const [x, y] of [R, Lh]) hp(() => c.arc(x, y, 2.2, 0, 7), SKIN, 0.9);
@@ -204,7 +223,7 @@ export function person(c, L, view, pose = {}) {
     if (L.mask) hp(() => { c.moveTo(-5.5, -10.2); c.quadraticCurveTo(0, -8.6, 5.5, -10.2); c.quadraticCurveTo(5, -5, 0, -3.6); c.quadraticCurveTo(-5, -5, -5.5, -10.2); }, L.mask, 0.8);
     if (L.band) hp(() => c.rect(-7.8, -17.4, 15.6, 2.6), L.band, 0.7);
     if (L.patch) { c.fillStyle = HO; c.beginPath(); c.ellipse(2.6, -12.5, 2, 2.2, 0, 0, 7); c.fill(); c.strokeStyle = HO; c.lineWidth = 0.7; c.beginPath(); c.moveTo(-7, -15); c.lineTo(7.5, -11); c.stroke(); }
-    helm(false);
+    helm(false); if (L.strawHat) strawHat('front');
   }
   // голова сзади: затылок
   function headBack() {
@@ -213,7 +232,7 @@ export function person(c, L, view, pose = {}) {
     else { hp(() => c.arc(0, -12, 7.5, 0, 7), SKIN); hp(() => { c.arc(0, -12.6, 7.7, Math.PI * 0.95, Math.PI * 2.05); c.lineTo(7.4, -9); c.quadraticCurveTo(0, -5.5, -7.4, -9); c.closePath(); }, HAIR[cl], 1); if (cl === 'mage') hp(() => { c.moveTo(-6, -9); c.quadraticCurveTo(0, 2, 6, -9); c.closePath(); }, HAIR.mage, 0.8); }
     if (L.band) { hp(() => c.rect(-7.8, -17.4, 15.6, 2.6), L.band, 0.7); hp(() => { c.moveTo(0, -16); c.lineTo(-3, -9); c.lineTo(0, -10); c.lineTo(3, -9); c.closePath(); }, L.band, 0.6); }
     if (L.mask) { c.strokeStyle = L.mask; c.lineWidth = 1.4; c.beginPath(); c.moveTo(-7.4, -9.5); c.lineTo(7.4, -9.5); c.stroke(); }
-    helm(true);
+    helm(true); if (L.strawHat) strawHat('back');
   }
   // шлемы спереди и сзади (симметричные)
   function helm(back) {

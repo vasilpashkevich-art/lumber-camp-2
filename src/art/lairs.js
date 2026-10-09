@@ -107,7 +107,55 @@ function ataman(g) {
   for (const [x, y] of [[-30, 6], [34, 8]]) { g.save(); g.translate(x, y); hp(g, () => { g.moveTo(0, 0); g.lineTo(0, -26); }, null, 2.4); g.restore(); }
 }
 
-const ART = { den: [140, 70, 70, 56, den], wolf: [150, 80, 75, 64, wolf], boar: [160, 70, 80, 36, boar], web: [140, 110, 70, 92, web], bandit: [230, 116, 115, 88, bandit], ataman: [160, 120, 80, 104, ataman] };
+// псарня: покосившаяся будка, миска, цепь, кости
+function kennel(g) {
+  shadow(g, 46, 10);
+  hp(g, () => { g.moveTo(-30, 0); g.lineTo(-30, -30); g.lineTo(-4, -50); g.lineTo(22, -32); g.lineTo(22, 0); g.closePath(); }, '#7a5530');
+  g.strokeStyle = 'rgba(36,24,15,.5)'; g.lineWidth = 1; for (let y = -26; y < 0; y += 7) { g.beginPath(); g.moveTo(-30, y); g.lineTo(22, y); g.stroke(); }
+  hp(g, () => { g.moveTo(-36, -28); g.lineTo(-4, -54); g.lineTo(28, -30); g.lineTo(24, -26); g.lineTo(-4, -48); g.lineTo(-32, -24); g.closePath(); }, '#5a3a20');
+  hp(g, () => { g.moveTo(-16, 0); g.lineTo(-16, -16); g.quadraticCurveTo(-5, -28, 6, -16); g.lineTo(6, 0); g.closePath(); }, '#1a120a');
+  hp(g, () => g.ellipse(36, -2, 9, 3.5, 0, 0, 7), '#8a8f96', 1); g.fillStyle = '#5a3a2a'; g.beginPath(); g.ellipse(36, -3, 6, 2, 0, 0, 7); g.fill();
+  g.strokeStyle = '#6c757c'; g.lineWidth = 1.4; g.setLineDash([2, 2]); g.beginPath(); g.moveTo(10, -6); g.quadraticCurveTo(24, 8, 44, 4); g.stroke(); g.setLineDash([]);
+  bone(g, -40, 6, 0.3); bone(g, 18, 8, -0.8);
+}
+// вороньё поле: сухое дерево с гнёздами
+function crowfield(g) {
+  shadow(g, 30, 8);
+  g.strokeStyle = O; g.lineWidth = 9; const br = [[0, 0, 2, -60], [2, -60, -22, -86], [2, -60, 26, -92], [-8, -72, -30, -66], [12, -74, 34, -70], [2, -60, 6, -96]];
+  for (const b of br) { g.beginPath(); g.moveTo(b[0], b[1]); g.lineTo(b[2], b[3]); g.stroke(); }
+  g.strokeStyle = '#4a3a30'; g.lineWidth = 6; for (const b of br) { g.beginPath(); g.moveTo(b[0], b[1]); g.lineTo(b[2], b[3]); g.stroke(); }
+  for (const [x, y] of [[-20, -84], [24, -88]]) { hp(g, () => g.ellipse(x, y, 10, 5, 0, 0, 7), '#6a5030', 1); g.strokeStyle = '#8a6a40'; g.lineWidth = 0.8; for (let i = 0; i < 6; i++) { g.beginPath(); g.moveTo(x - 10 + i * 4, y - 2); g.lineTo(x - 8 + i * 4, y + 3); g.stroke(); } }
+  for (const [x, y] of [[6, -100], [-30, -70]]) { hp(g, () => g.ellipse(x, y, 4.5, 3, 0, 0, 7), '#2e2a36', 0.9); hp(g, () => g.arc(x + 4, y - 2, 2.4, 0, 7), '#2e2a36', 0.8); g.fillStyle = '#c9a24a'; g.beginPath(); g.moveTo(x + 6, y - 2); g.lineTo(x + 9, y - 1); g.lineTo(x + 6, y); g.fill(); }
+  g.fillStyle = '#1e1a24'; for (let i = 0; i < 7; i++) { g.beginPath(); g.ellipse(-30 + i * 10, 4 + (i % 2) * 3, 3, 1, 0.4, 0, 7); g.fill(); }
+}
+// огород пугал: тыквы, тележное колесо, лопата
+function scarefield(g) {
+  shadow(g, 46, 9);
+  for (const [x, y, s] of [[-30, 2, 1], [-14, 8, 0.8], [26, 4, 1.1]]) { hp(g, () => g.ellipse(x, y - 7 * s, 10 * s, 8 * s, 0, 0, 7), '#e07a2a', 1.1); g.strokeStyle = '#a8542a'; g.lineWidth = 0.9; g.beginPath(); g.moveTo(x - 4 * s, y - 14 * s); g.quadraticCurveTo(x - 6 * s, y - 7 * s, x - 4 * s, y); g.moveTo(x + 4 * s, y - 14 * s); g.quadraticCurveTo(x + 6 * s, y - 7 * s, x + 4 * s, y); g.stroke(); hp(g, () => g.rect(x - 1.2, y - 18 * s, 2.4, 4), '#5a8a3a', 0.6); }
+  g.save(); g.translate(4, -14); g.strokeStyle = O; g.lineWidth = 4; g.beginPath(); g.arc(0, 0, 14, 0, 7); g.stroke(); g.strokeStyle = '#8a6a3a'; g.lineWidth = 2.4; g.stroke(); for (let i = 0; i < 6; i++) { const a = i * Math.PI / 3; g.beginPath(); g.moveTo(0, 0); g.lineTo(Math.cos(a) * 13, Math.sin(a) * 13); g.stroke(); } g.restore();
+  g.strokeStyle = O; g.lineWidth = 3.4; g.beginPath(); g.moveTo(40, 6); g.lineTo(52, -34); g.stroke(); g.strokeStyle = '#7a5530'; g.lineWidth = 2; g.stroke(); hp(g, () => { g.moveTo(36, 4); g.lineTo(44, 4); g.lineTo(42, 14); g.lineTo(38, 14); g.closePath(); }, '#9aa3aa', 0.9);
+}
+// выгон: плетёный загон и корыто
+function pasture(g) {
+  shadow(g, 60, 12);
+  for (const [x1, y1, x2, y2] of [[-60, -10, 60, -16], [-60, -10, -64, 14], [60, -16, 64, 10]]) {
+    const L = Math.hypot(x2 - x1, y2 - y1), n = Math.round(L / 20);
+    for (let i = 0; i <= n; i++) { const x = x1 + (x2 - x1) * i / n, y = y1 + (y2 - y1) * i / n; g.strokeStyle = O; g.lineWidth = 3.4; g.beginPath(); g.moveTo(x, y); g.lineTo(x, y - 22); g.stroke(); g.strokeStyle = '#7a5530'; g.lineWidth = 2; g.stroke(); }
+    for (const h of [-8, -16]) { g.strokeStyle = O; g.lineWidth = 3.4; g.beginPath(); g.moveTo(x1, y1 + h); g.lineTo(x2, y2 + h); g.stroke(); g.strokeStyle = '#9a7a4a'; g.lineWidth = 2; g.stroke(); }
+  }
+  hp(g, () => g.rect(-20, -2, 40, 10), '#6b4a2c', 1.2); g.fillStyle = '#4a7a92'; g.fillRect(-17, 0, 34, 4);
+}
+// пепелище: обгоревшие столбы, угли
+function burned(g) {
+  shadow(g, 56, 12);
+  g.fillStyle = 'rgba(30,24,20,.6)'; g.beginPath(); g.ellipse(0, -2, 58, 16, 0, 0, 7); g.fill();
+  for (const [x, h, a] of [[-38, 46, -0.1], [-12, 62, 0.05], [16, 38, 0.2], [40, 54, -0.05]]) { g.save(); g.translate(x, 0); g.rotate(a); hp(g, () => g.rect(-4, -h, 8, h), '#2a201a', 1.2); g.fillStyle = 'rgba(255,120,40,.7)'; g.fillRect(-1.5, -h * 0.6, 3, 6); g.restore(); }
+  hp(g, () => { g.moveTo(-40, -36); g.lineTo(20, -50); g.lineTo(22, -46); g.lineTo(-38, -32); g.closePath(); }, '#2a201a', 1);
+  g.fillStyle = '#ff7a2a'; for (let i = 0; i < 12; i++) { g.beginPath(); g.arc(-40 + i * 7, 2 + (i % 3) * 3, 1.4, 0, 7); g.fill(); }
+}
+
+const ART = {
+  kennel: [120, 80, 60, 64, kennel], crowfield: [100, 130, 50, 110, crowfield], scarefield: [130, 70, 65, 46, scarefield], pasture: [150, 70, 75, 46, pasture], burned: [140, 90, 70, 74, burned], den: [140, 70, 70, 56, den], wolf: [150, 80, 75, 64, wolf], boar: [160, 70, 80, 36, boar], web: [140, 110, 70, 92, web], bandit: [230, 116, 115, 88, bandit], ataman: [160, 120, 80, 104, ataman] };
 /** Готовая картинка приметы логова. */
 export function lairSpr(kind) {
   const a = ART[kind]; if (!a) return null;

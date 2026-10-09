@@ -1,5 +1,5 @@
 // Запуск игры: экран выбора героя → мир. Связывает ход игры, рисование, интерфейс и звук.
-import { PINE } from '../data/zones.js';
+import { ZONES } from '../data/zones.js';
 import { buildWorld, inCity } from './world/world.js';
 import { createGame, update, abilsOf } from './systems/game.js';
 import { loadHero, saveHero, migrate } from './engine/save.js';
@@ -17,7 +17,8 @@ import { dist } from './engine/util.js';
 import { $, toast } from './ui/dom.js';
 import { RAR_COL } from '../data/balance.js';
 
-const VERSION = 56;
+const VERSION = 57;
+const WORLDS = {}; const worldOf = id => WORLDS[id] || (WORLDS[id] = buildWorld(ZONES[id] || ZONES.pine));
 let W = null, G = null, R = null, In = null, hud = null, raf = 0, last = 0, saveT = 0, musicT = 0, paused = false;
 
 function boot() {
@@ -51,7 +52,8 @@ function start(id) {
   if (!hero) { toast('Не удалось загрузить героя'); toSelect(); return; }
   // время мира идёт и без нас: мобы успевают возродиться (не больше часа)
   hero.worldT = (hero.worldT || 0) + Math.min(3600, Math.max(0, (Date.now() - (hero.seen || Date.now())) / 1000));
-  if (!W) W = buildWorld(PINE);
+  if (!ZONES[hero.zone]) hero.zone = 'pine';
+  W = worldOf(hero.zone);
   G = createGame(hero, W);
   R.cam.x = G.P.x; R.cam.y = G.P.y;
   $('#hud').hidden = false; $('#game').hidden = false;
@@ -62,6 +64,14 @@ function start(id) {
 }
 
 function stop() { cancelAnimationFrame(raf); if (G) { persist(); G = null; } }
+
+/** Перейти в другую зону по дороге: сохранить героя на месте прихода и построить новый мир. */
+function goZone(e) {
+  const h = G.hero; h.zone = e.zone; h.pos = { x: e.at.x, y: e.at.y }; h.hp = Math.round(G.P.hp);
+  saveHero(h); W = worldOf(e.zone);
+  G = createGame(h, W); R.cam.x = G.P.x; R.cam.y = G.P.y; hud.bind(G); In.clear();
+  toast(`${W.Z.name} · уровни ${W.Z.lvl[0]}–${W.Z.lvl[1]}`, 'good', 'zone');
+}
 
 function persist() { if (!G) return; const h = G.hero; h.pos = { x: Math.round(G.P.x), y: Math.round(G.P.y) }; h.hp = Math.round(G.P.hp); saveHero(h); }
 
@@ -85,6 +95,7 @@ function frame(now) {
     if (e.k === 'loot') { toast(`Добыча: <b style="color:${RAR_COL[e.it.rar]}">${e.it.name}</b>`, '', null); sfx('loot'); }
     if (e.k === 'lvl') { toast(`Новый уровень: ${e.L}! Здоровье восстановлено.`, 'good'); const A = abilsOf(G.hero).find(a => a.lvl === e.L); if (A) toast(`Новое умение: <b>${A.name}</b> — клавиша ${A.key}. ${A.d}`, 'good'); }
     if (e.k === 'vendor') openVendor(G, () => hud.update());
+    if (e.k === 'zone') { goZone(e.e); break; }
     if (e.k === 'lootOpen' && !document.querySelector('.modal')) { lootWin = openLoot(G, e.c, () => hud.update()); const oc = lootWin.onclose; lootWin.onclose = () => { lootWin = null; oc && oc(); }; }
     if (e.k === 'die') { sfx('die'); setTimeout(() => G && showDeath(G, () => hud.update()), 900); }
   }

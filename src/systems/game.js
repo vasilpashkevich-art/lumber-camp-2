@@ -10,7 +10,7 @@ import { dist, clamp, money } from '../engine/util.js';
 
 export function createGame(hero, W, opts = {}) {
   const st = heroStats(hero);
-  const start = hero.pos && W.inside(hero.pos.x, hero.pos.y) ? hero.pos : { x: W.cap.x + 60, y: W.cap.y + 120 };
+  const start = hero.pos && W.walkable(hero.pos.x, hero.pos.y) ? hero.pos : W.cap ? { x: W.cap.x + 60, y: W.cap.y + 120 } : (W.Z.arrive || { x: W.town.x, y: W.town.y + 60 });
   const G = {
     W, hero, t: hero.worldT || 0, st, rand: opts.rand || Math.random,
     P: {
@@ -93,6 +93,7 @@ export function update(G, dt, I) {
     abilityTick(G, dt);
   }
   for (const mob of G.mobs) mobTick(G, mob, dt);
+  if (G.mobs.some(m => m.gone)) G.mobs = G.mobs.filter(m => !m.gone);
   shotsTick(G, dt);
   for (const c of G.corpses) c.t -= dt;
   if (G.corpses.some(c => c.t <= 0)) G.corpses = G.corpses.filter(c => c.t > 0);
@@ -180,6 +181,7 @@ function aggro(G, m) {
 
 function killMob(G, m) {
   const H = G.hero, P = G.P;
+  if (m.summon) { m.state = 'dead'; m.gone = true; m.hp = 0; if (P.target === m) P.target = null; sfx(G, 'kill'); const xp = Math.round(xpKill(m.lvl, H.lvl) * 0.3); if (xp) { addXp(H, xp); emit(G, { k: 'txt', x: m.x, y: m.y - 46, s: `+${xp} опыта`, col: '#c8a0ff' }); } return; }
   m.state = 'dead'; m.hp = 0; m.respawnAt = G.t + (m.D.rare ? RESPAWN.rare : RESPAWN.normal);
   H.dead[m.key] = m.respawnAt; H.stats.kills++;
   if (P.target === m) P.target = null;
@@ -301,11 +303,11 @@ function drinkPotion(G) {
 
 // ---------------------------------------------------------------- взаимодействие
 export function interactTarget(G) {
-  const P = G.P, c = G.W.cap;
+  const P = G.P;
   let best = null, bd = LOOT.lootR;
   for (const k of G.corpses) { if (!hasLoot(k)) continue; const d = dist(P.x, P.y, k.x, k.y); if (d < bd) { bd = d; best = k; } }
   if (best) return { k: 'corpse', c: best, x: best.x, y: best.y };
-  for (const b of c.buildings) { const x = c.x + b.dx, y = c.y + b.dy; if (dist(P.x, P.y, x, y + 40) < 95) return { k: 'b', b, x, y }; }
+  for (const b of G.W.houses) { if (!b.name) continue; if (dist(P.x, P.y, b.x, b.y + 40) < 95) return { k: 'b', b, x: b.x, y: b.y }; }
   for (const e of G.W.exits) if (dist(P.x, P.y, e.x, e.y) < 220) return { k: 'exit', e, x: e.x, y: e.y };
   return null;
 }
@@ -313,7 +315,7 @@ function interact(G) {
   const t = interactTarget(G); if (!t) return;
   if (t.k === 'corpse') { emit(G, { k: 'lootOpen', c: t.c }); return; }
   if (t.k === 'b') { if (t.b.vendor) emit(G, { k: 'vendor' }); else emit(G, { k: 'toast', s: `${t.b.name}. ${t.b.note}`, id: 'bld' }); }
-  if (t.k === 'exit') emit(G, { k: 'toast', s: `Дорога в ${t.e.to} (ур. ${t.e.lvl}) откроется в следующих версиях`, id: 'exit' });
+  if (t.k === 'exit') { if (t.e.zone) emit(G, { k: 'zone', e: t.e }); else emit(G, { k: 'toast', s: `Дорога в ${t.e.to} (ур. ${t.e.lvl}) откроется в следующих версиях`, id: 'exit' }); }
 }
 
 // ---------------------------------------------------------------- урон герою и смерть
@@ -346,26 +348,29 @@ function mobTick(G, m, dt) {
     if (G.t >= m.respawnAt) { Object.assign(m, spawnMob(G, { key: m.key, kind: m.kind, lvl: m.lvl, x: m.hx, y: m.hy }, m.camp)); delete H.dead[m.key]; G.fx.push({ k: 'spawn', x: m.x, y: m.y, t: 0.6, max: 0.6 }); }
     return;
   }
+  if (m.summon) { m.life -= dt; if (m.life <= 0 || m.owner.state === 'dead') { m.state = 'dead'; m.gone = true; return; } }
   if (m.burn) { m.burn.t -= dt; m.hp -= m.burn.dps * dt; if (m.burn.t <= 0) m.burn = null; if (m.hp <= 0) { killMob(G, m); return; } }
   m.stun = Math.max(0, m.stun - dt); m.root = Math.max(0, m.root - dt); m.chill = Math.max(0, m.chill - dt);
   if (m.stun > 0) return;   // оглушён — стоит
   const dH = dist(m.x, m.y, P.x, P.y), dHome = dist(m.x, m.y, m.hx, m.hy), slowK = m.chill > 0 ? 0.5 : 1;
-  const go = (tx, ty, sp) => { const d = dist(m.x, m.y, tx, ty); if (d < 1 || m.root > 0) { if (Math.abs(tx - m.x) > 2) m.face = tx < m.x ? -1 : 1; return; } sp *= slowK; const k = Math.min(1, sp * dt / d); const nx = m.x + (tx - m.x) * k, ny = m.y + (ty - m.y) * k; if (G.W.inside(nx, ny) && !inCity(G.W, nx, ny)) { const mv = Math.hypot(nx - m.x, ny - m.y); if (mv > 0.05) { m.mdx = nx - m.x; m.mdy = ny - m.y; m.moving = true; m.walkPh = (m.walkPh + mv / (m.D.humanoid ? 56 : 44)) % 1; } m.x = nx; m.y = ny; } if (Math.abs(tx - m.x) > 2) m.face = tx < m.x ? -1 : 1; };
+  const go = (tx, ty, sp) => { const d = dist(m.x, m.y, tx, ty); if (d < 1 || m.root > 0) { if (Math.abs(tx - m.x) > 2) m.face = tx < m.x ? -1 : 1; return; } sp *= slowK; const k = Math.min(1, sp * dt / d); let nx = m.x + (tx - m.x) * k, ny = m.y + (ty - m.y) * k; let ok = (a, b) => G.W.walkable(a, b) && !inCity(G.W, a, b); let ax = nx, ay = ny; if (!ok(ax, ay)) { if (ok(nx, m.y)) ay = m.y; else if (ok(m.x, ny)) ax = m.x; } if (ok(ax, ay)) { const nx2 = ax, ny2 = ay; nx = nx2; ny = ny2; const mv = Math.hypot(nx - m.x, ny - m.y); if (mv > 0.05) { m.mdx = nx - m.x; m.mdy = ny - m.y; m.moving = true; m.walkPh = (m.walkPh + mv / (m.D.humanoid ? 56 : 44)) % 1; } m.x = nx; m.y = ny; } if (Math.abs(tx - m.x) > 2) m.face = tx < m.x ? -1 : 1; };
 
   if (m.state === 'idle') {
     m.wander.t -= dt;
     if (m.wander.t <= 0) { const a = G.rand() * 6.28, r = G.rand() * (m.camp.r * 0.6); m.wander = { t: 3 + G.rand() * 5, x: m.hx + Math.cos(a) * r, y: m.hy + Math.sin(a) * r }; }
-    go(m.wander.x, m.wander.y, m.D.speed * 0.25);
+    if (m.D.trait !== 'dormant') go(m.wander.x, m.wander.y, m.D.speed * 0.25);   // пугало стоит неживым
     if (m.hp < m.max) m.hp = Math.min(m.max, m.hp + m.max * 0.1 * dt);
     if (!P.dead && !inCity(G.W, P.x, P.y)) {
       const gray = lvlColor(m.lvl, H.lvl) === '#9a9a9a';
-      const ar = AGGRO * clamp(1 + (m.lvl - H.lvl) * 0.1, 0.55, 1.6) * (gray ? 0.6 : 1);
+      const ar = m.D.wake || AGGRO * clamp(1 + (m.lvl - H.lvl) * 0.1, 0.55, 1.6) * (gray ? 0.6 : 1);
       if (dH < ar) aggro(G, m);
     }
     return;
   }
   if (m.state === 'return') {
-    go(m.hx, m.hy, m.D.speed * 1.4); m.hp = Math.min(m.max, m.hp + m.max * 0.5 * dt);
+    const bx = m.x, by = m.y; go(m.hx, m.hy, m.D.speed * 1.4); m.hp = Math.min(m.max, m.hp + m.max * 0.5 * dt);
+    m.stuckT = Math.hypot(m.x - bx, m.y - by) < 0.2 ? (m.stuckT || 0) + dt : 0;   // упёрся в реку или постройку — возвращается домой сам
+    if (m.stuckT > 2.5) { m.x = m.hx; m.y = m.hy; m.stuckT = 0; }
     if (dist(m.x, m.y, m.hx, m.hy) < 8) { m.state = 'idle'; m.hp = m.max; m.charge.t = 0; m.smash.wind = 0; }
     return;
   }
@@ -400,12 +405,24 @@ function mobTick(G, m, dt) {
     if (Ch.cd <= 0 && dH > 130 && dH < 330) { Ch.t = 1.0; emit(G, { k: 'txt', x: m.x, y: m.y - 40, s: 'разбег', col: '#e8d7a8' }); return; }
   }
   // стрелок держит дистанцию
+  // колдун: держит дистанцию, бьёт зелёным проклятием (замедляет) и зовёт ворон
+  if (D.trait === 'caster') {
+    if (dH > D.reach * 0.85) go(P.x, P.y, D.speed); else if (dH < 170) { const a = Math.atan2(m.y - P.y, m.x - P.x); go(m.x + Math.cos(a) * 60, m.y + Math.sin(a) * 60, D.speed * 0.5); }
+    if (dH <= D.reach && m.cd <= 0) {
+      m.cd = D.cd; m.face = P.x < m.x ? -1 : 1; m.atkT = m.atkDur = 0.5; const a = Math.atan2(P.y - m.y, P.x - m.x);
+      G.shots.push({ from: 'mob', kind: 'curse', x: m.x, y: m.y - 24, vx: Math.cos(a) * 340, vy: Math.sin(a) * 340, t: 1.2, dmg: m.dmg, m, slow: 2.5 });
+    }
+    const S = D.summon; m.sumT = (m.sumT ?? S.every * 0.5) - dt;
+    if (S && m.sumT <= 0) { m.sumT = S.every; if (G.mobs.filter(o => o.owner === m && o.state !== 'dead').length < S.n * 2) { for (let i = 0; i < S.n; i++) { const a = G.rand() * 6.28, x = m.x + Math.cos(a) * 60, y = m.y + Math.sin(a) * 60; const o = spawnMob(G, { key: 'призыв', kind: S.kind, lvl: Math.max(1, m.lvl - 2), x, y }, m.camp); Object.assign(o, { summon: true, owner: m, life: 40, state: 'chase' }); G.mobs.push(o); } emit(G, { k: 'txt', x: m.x, y: m.y - 70, s: 'зовёт ворон!', col: '#9affc8' }); } }
+    return;
+  }
   if (D.trait === 'ranged') {
     if (dH > D.reach * 0.9) go(P.x, P.y, D.speed);
     else if (dH < 150) { const a = Math.atan2(m.y - P.y, m.x - P.x); go(m.x + Math.cos(a) * 60, m.y + Math.sin(a) * 60, D.speed * 0.45); }  // отходит медленно — догнать можно
     if (dH <= D.reach && m.cd <= 0) {
       m.cd = D.cd; m.face = P.x < m.x ? -1 : 1; m.atkT = m.atkDur = 0.42; const a = Math.atan2(P.y - 18 - (m.y - 18), P.x - m.x);
-      G.shots.push({ from: 'mob', kind: 'arrow', x: m.x, y: m.y - 18, vx: Math.cos(a) * 520, vy: Math.sin(a) * 520, t: 0.9, dmg: m.dmg, m });
+      const fireS = D.shot === 'fire', sp = fireS ? 380 : 520;
+      G.shots.push({ from: 'mob', kind: fireS ? 'bottle' : 'arrow', x: m.x, y: m.y - 18, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, t: 1.0, dmg: m.dmg, m, burn: fireS ? D.burn : 0 });
     }
     return;
   }
@@ -425,14 +442,18 @@ function shotsTick(G, dt) {
     if (s.from === 'hero') {
       for (const m of G.mobs) {
         if (m.state === 'dead') continue;
-        if (dist(s.x, s.y, m.x, m.y - m.r * 0.8) < m.r + (s.big ? 16 : 10)) {
+        if (dist(s.x, s.y, m.x, m.y - m.r * 0.8 - (m.D.flying ? 22 : 0)) < m.r + (s.big ? 16 : 10) + (m.D.flying ? 6 : 0)) {
           s.t = 0; strike(G, m, s.dmg * (s.chillBonus && m.chill > 0 ? s.chillBonus : 1), 'ranged', { burn: s.burn, sure: s.sure });
           if (m.state !== 'dead') { if (s.chill) setStatus(G, m, 'chill', s.chill); if (s.root) setStatus(G, m, 'root', s.root); }
           if (s.kind === 'fire') G.fx.push({ k: 'boom', x: s.x, y: s.y, t: 0.35, max: 0.35, big: s.big });
           break;
         }
       }
-    } else if (!P.dead && dist(s.x, s.y, P.x, P.y - 16) < 22) { s.t = 0; hurtHero(G, s.dmg, s.m); }
+    } else if (!P.dead && dist(s.x, s.y, P.x, P.y - 16) < 22) {
+      s.t = 0; hurtHero(G, s.dmg, s.m);
+      if (s.burn && !P.dead) { P.poison = { t: 4, dps: s.dmg * s.burn, fire: true }; emit(G, { k: 'txt', x: P.x, y: P.y - 60, s: 'горит!', col: '#ff8a2a' }); }
+      if (s.slow && !P.dead) { P.slow = Math.max(P.slow, s.slow); emit(G, { k: 'txt', x: P.x, y: P.y - 60, s: 'проклятие', col: '#9affc8' }); }
+    }
   }
   G.shots = G.shots.filter(s => s.t > 0);
 }

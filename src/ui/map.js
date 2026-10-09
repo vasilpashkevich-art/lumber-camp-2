@@ -31,12 +31,18 @@ export function lairGlyph(g, kind, x, y, s) {
 /** Подложка зоны: суша, дороги, деревья, столица, кладбище, выходы. k — масштаб. */
 function base(g, W, k, big, q = 1) {
   g.fillStyle = '#1c2a1a'; g.fillRect(0, 0, W.W * k + 2, W.H * k + 2);
-  g.beginPath(); W.edge.forEach((p, i) => i ? g.lineTo(p[0] * k, p[1] * k) : g.moveTo(p[0] * k, p[1] * k)); g.closePath(); g.fillStyle = '#5d8a42'; g.fill();
+  g.beginPath(); W.edge.forEach((p, i) => i ? g.lineTo(p[0] * k, p[1] * k) : g.moveTo(p[0] * k, p[1] * k)); g.closePath(); g.fillStyle = W.Z.ground === 'z3' ? '#a8a058' : '#5d8a42'; g.fill();
   if (big) { g.strokeStyle = '#3a5a2a'; g.lineWidth = 2; g.stroke(); }
+  const FC = { wheat: '#d8b44a', sun: '#c9b030', cabbage: '#7ab04a', pasture: '#9aaa52', orchard: '#6a8a3a' };
+  for (const F of W.fields) { g.save(); g.translate(F.x * k, F.y * k); g.rotate(F.a || 0); g.fillStyle = FC[F.crop]; g.globalAlpha = 0.85; g.fillRect(-F.w * k / 2, -F.h * k / 2, F.w * k, F.h * k); g.restore(); }
+  g.globalAlpha = 1;
   g.fillStyle = big ? '#3e6a2c' : '#4c7a36'; const ts = big ? 4 : 2 * q; for (const t of W.trees) if (!t.edge) g.fillRect(t.x * k - ts / 2, t.y * k - ts / 2, ts, ts);
   g.strokeStyle = '#c9b48a'; g.lineWidth = big ? 4 : 2 * q; g.lineCap = 'round'; g.lineJoin = 'round';
   for (const rd of W.roads) { g.beginPath(); rd.forEach((p, i) => i ? g.lineTo(p[0] * k, p[1] * k) : g.moveTo(p[0] * k, p[1] * k)); g.stroke(); }
-  g.fillStyle = '#d9c79a'; g.strokeStyle = '#4a3a24'; g.lineWidth = big ? 3 : 1.5 * q; g.beginPath(); g.arc(W.cap.x * k, W.cap.y * k, W.cap.R * k, 0, 7); g.fill(); g.stroke();
+  if (W.river) { g.beginPath(); W.river.pts.forEach(([x, y], i) => i ? g.lineTo(x * k, y * k) : g.moveTo(x * k, y * k)); g.strokeStyle = '#3f7a92'; g.lineWidth = Math.max(2 * q, W.river.w * k + (big ? 3 : 1)); g.stroke();
+    for (const b of W.river.bridgeAt) { g.save(); g.translate(b.x * k, b.y * k); g.rotate(b.a); g.fillStyle = '#8a6a42'; g.strokeStyle = O; g.lineWidth = 1; const bw = big ? 5 : 2.5 * q, bh = big ? 9 : 4.5 * q; g.fillRect(-bw, -bh, bw * 2, bh * 2); if (big) g.strokeRect(-bw, -bh, bw * 2, bh * 2); g.restore(); } }
+  for (const f of W.Z.farmsteads || []) { const x = f.x * k, y = f.y * k, s = big ? 1 : 0.5 * q; g.fillStyle = f.burned ? '#4a3a32' : '#c98a4a'; g.beginPath(); g.moveTo(x - 6 * s, y + 4 * s); g.lineTo(x - 6 * s, y - 2 * s); g.lineTo(x, y - 7 * s); g.lineTo(x + 6 * s, y - 2 * s); g.lineTo(x + 6 * s, y + 4 * s); g.closePath(); g.fill(); }
+  if (W.town) { g.fillStyle = W.cap ? '#d9c79a' : 'rgba(217,199,154,.8)'; g.strokeStyle = '#4a3a24'; g.lineWidth = big ? 3 : 1.5 * q; g.beginPath(); g.arc(W.town.x * k, W.town.y * k, W.town.R * k, 0, 7); g.fill(); if (W.cap) g.stroke(); }
   const gx = W.graveyard.x * k, gy = W.graveyard.y * k, cs = big ? 2.2 : q;
   g.fillStyle = '#eee'; g.fillRect(gx - 1 * cs, gy - 4 * cs, 2 * cs, 8 * cs); g.fillRect(gx - 3 * cs, gy - 2 * cs, 6 * cs, 2 * cs);
   for (const e of W.exits) { g.fillStyle = '#ffd34d'; g.strokeStyle = O; g.lineWidth = 1; g.beginPath(); g.arc(e.x * k, e.y * k, big ? 7 : 3 * q, 0, 7); g.fill(); if (big) g.stroke(); }
@@ -95,7 +101,7 @@ export function openMap(G) {
       const below = y + r + 16 < CH - 4, ty = below ? y + r + 14 : y - r - 18;
       text(g, cp.name, x, ty, '#fff2d8', 14); text(g, lvTxt(cp), x, ty + 15, col, 12);
     }
-    const c = W.cap; text(g, c.name, c.x * k, c.y * k + 5, '#ffe9a8', 17);
+    const c = W.town; if (c) text(g, c.name, c.x * k, c.y * k + 5, '#ffe9a8', W.cap ? 17 : 15);
     text(g, W.graveyard.name, W.graveyard.x * k, W.graveyard.y * k + 22, '#e8e0cc', 12, false);
     for (const e of W.exits) { const ex = Math.min(CW - 70, e.x * k), ey = Math.min(CH - 24, e.y * k - 12); text(g, `${e.to} · ${e.lvl}`, ex, ey, '#ffd34d', 12); }
     heroMark(g, G.P, k, 1.6); text(g, 'Вы', G.P.x * k, G.P.y * k - 16, '#fff', 12);

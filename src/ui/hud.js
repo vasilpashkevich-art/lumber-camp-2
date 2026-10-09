@@ -40,7 +40,7 @@ export function createHud(In) {
     setBar('#pfHp', P.hp / st.maxHp, `${Math.ceil(P.hp)} / ${st.maxHp}`);
     const need = xpNeed(h.lvl); setBar('#pfXp', isFinite(need) ? h.xp / need : 1, isFinite(need) ? `опыт ${h.xp} / ${need}` : 'наивысший уровень');
     $('#pfWeak').hidden = !(P.weak > 0); if (P.weak > 0) $('#pfWeak').textContent = `слабость ${Math.ceil(P.weak)} с`;
-    $('#pfPoison').hidden = !P.poison;
+    $('#pfPoison').hidden = !P.poison; if (P.poison) $('#pfPoison').textContent = P.poison.fire ? 'горит' : 'отравлен';
     // цель
     const t = P.target && P.target.state !== 'dead' ? P.target : null, tf = $('#target');
     tf.hidden = !t;

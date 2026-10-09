@@ -2,13 +2,14 @@
 import { LOOK } from '../art/look.js';
 import { lairSpr } from '../art/lairs.js';
 import { LINE } from '../art/hero.js';
+import { field, river as riverArt, bridge, haystack, millBase, millBlades, well } from '../art/farmland.js';
 import { BLD } from '../art/bld.js';
 import { sprite, drawSpr, flashOf, heroSpr, mobSpr, MOB_SCALE, MOB_LOOK, personSpr, beastSpr, drawFrame, viewOf, FRAMES, treeSpr, wallSpr, hallSpr, bldSpr, mountainSpr } from '../art/sprites.js';
 import { treesIn, GATE_W } from '../world/world.js';
 import { lookOf } from '../systems/items.js';
 import { interactTarget } from '../systems/game.js';
 import { lvlColor, RAR_COL, RAR_IDX, LOOT } from '../../data/balance.js';
-import { rng, dist, inPoly, money } from './util.js';
+import { rng, dist, inPoly, money, segDist } from './util.js';
 
 const CHUNK = 512;
 
@@ -29,24 +30,26 @@ export function createRenderer(cv) {
 // ---------------------------------------------------------------- статичные предметы зоны
 function buildStatics(W) {
   const S = [], c = W.cap, r = rng(W.Z.seed + 99);
-  // стена столицы
-  const n = 72;
-  for (let i = 0; i < n; i++) {
-    const am = (i + 0.5) / n * Math.PI * 2;
-    let gate = false; for (const g of c.gates) { const d = Math.abs(((am - g) + Math.PI * 3) % (Math.PI * 2) - Math.PI); if (d < GATE_W) gate = true; }
-    if (gate) continue;
-    const s = wallSpr(c.R, i, n); if (s) S.push({ y: c.y + s.py, draw: (g) => drawSpr(g, s, c.x + s.px, c.y + s.py) });
+  if (c) {
+    // стена столицы
+    const n = 72;
+    for (let i = 0; i < n; i++) {
+      const am = (i + 0.5) / n * Math.PI * 2;
+      let gate = false; for (const g of c.gates) { const d = Math.abs(((am - g) + Math.PI * 3) % (Math.PI * 2) - Math.PI); if (d < GATE_W) gate = true; }
+      if (gate) continue;
+      const s = wallSpr(c.R, i, n); if (s) S.push({ y: c.y + s.py, draw: (g) => drawSpr(g, s, c.x + s.px, c.y + s.py) });
+    }
+    // башни у ворот и стража
+    for (const ga of c.gates) for (const sd of [-1, 1]) {
+      const a = ga + sd * (GATE_W + 0.03), x = c.x + Math.cos(a) * c.R, y = c.y + Math.sin(a) * c.R;
+      const sp = bldSpr('tower', 110, 170, 55, 150, 1.0, B => B.tower(6, 0, -Math.PI / 2, 0));
+      S.push({ y: y + 4, draw: g => drawSpr(g, sp, x, y + 4) });
+      const gx = c.x + Math.cos(ga + sd * 0.07) * (c.R + 40), gy = c.y + Math.sin(ga + sd * 0.07) * (c.R + 40);
+      const gs = bldSpr('guard' + sd, 60, 80, 30, 66, 0.6, B => B.person(B.GUARD[3], 0, 0, 1, sd, 0));
+      S.push({ y: gy, draw: g => drawSpr(g, gs, gx, gy) });
+    }
   }
-  // башни у ворот и стража
-  for (const ga of c.gates) for (const sd of [-1, 1]) {
-    const a = ga + sd * (GATE_W + 0.03), x = c.x + Math.cos(a) * c.R, y = c.y + Math.sin(a) * c.R;
-    const sp = bldSpr('tower', 110, 170, 55, 150, 1.0, B => B.tower(6, 0, -Math.PI / 2, 0));
-    S.push({ y: y + 4, draw: g => drawSpr(g, sp, x, y + 4) });
-    const gx = c.x + Math.cos(ga + sd * 0.07) * (c.R + 40), gy = c.y + Math.sin(ga + sd * 0.07) * (c.R + 40);
-    const gs = bldSpr('guard' + sd, 60, 80, 30, 66, 0.6, B => B.person(B.GUARD[3], 0, 0, 1, sd, 0));
-    S.push({ y: gy, draw: g => drawSpr(g, gs, gx, gy) });
-  }
-  // постройки
+  // постройки столицы и посёлка
   const ART = {
     hall: () => hallSpr(),
     market: () => bldSpr('stall', 200, 150, 100, 116, 1.9, B => { B.stall(0); }),
@@ -54,11 +57,17 @@ function buildStatics(W) {
     tavern: () => bldSpr('tavern', 290, 270, 145, 220, 2.1, B => B.house(3, 0)),
     miners: () => bldSpr('miners', 300, 250, 150, 200, 1.55, B => B.sklad(0.8, 0)),
     enchant: () => bldSpr('enchant2', 290, 270, 145, 220, 2.0, (B, g) => { B.house(1, 0); enchantSign(g); }),
+    inn: () => bldSpr('inn', 290, 270, 145, 220, 1.9, B => B.house(2, 0)),
+    stall: () => bldSpr('stall2', 200, 150, 100, 116, 1.6, B => B.stall(0)),
+    barn: () => bldSpr('barn', 300, 250, 150, 200, 1.4, B => B.sklad(0.5, 0)),
+    house: () => bldSpr('house1', 240, 230, 120, 190, 1.6, B => B.house(1, 0)),
   };
-  for (const b of c.buildings) {
-    const x = c.x + b.dx, y = c.y + b.dy, sp = ART[b.art]();
-    S.push({ y, draw: g => drawSpr(g, sp, x, y), label: b.name, lx: x, ly: y - ({ hall: 235, market: 125, forge: 130, tavern: 120, miners: 105, enchant: 160 }[b.art] || 120) });
+  const LBL = { hall: 235, market: 125, forge: 130, tavern: 120, miners: 105, enchant: 160, inn: 150, stall: 100, barn: 90 };
+  for (const b of W.houses) {
+    const sp = ART[b.art] ? ART[b.art]() : null;
+    S.push({ y: b.y, draw: g => drawSpr(g, sp, b.x, b.y), label: b.name, lx: b.x, ly: b.y - (LBL[b.art] || 120) });
   }
+  if (W.village) { const v = W.village, sp = sprite('well', 70, 80, 35, 66, 2, g => well(g)); S.push({ y: v.y + 10, draw: g => drawSpr(g, sp, v.x, v.y + 10), label: v.name, lx: v.x, ly: v.y - v.R + 30 }); }
   // кладбище
   const gy = W.graveyard;
   for (let i = 0; i < 9; i++) {
@@ -76,17 +85,24 @@ function buildStatics(W) {
   for (const cp of W.camps) {
     const sp = lairSpr(cp.lair), ly = cp.y - 10;
     if (sp) S.push({ y: ly, x: cp.x, draw: g => drawSpr(g, sp, cp.x, ly) });
-    if (cp.lair === 'bandit' || cp.lair === 'ataman') { const fx = cp.x + (cp.lair === 'ataman' ? -85 : 0), fy = cp.y + (cp.lair === 'ataman' ? 20 : 40); S.push({ y: fy, fire: true, x: fx, draw: (g, t) => campfire(g, fx, fy, t) }); }
+    if (cp.lair === 'bandit' || cp.lair === 'ataman' || cp.lair === 'burned') { const fx = cp.x + (cp.lair === 'ataman' ? -85 : 0), fy = cp.y + (cp.lair === 'ataman' ? 20 : 40); S.push({ y: fy, fire: true, x: fx, draw: (g, t) => campfire(g, fx, fy, t) }); }
   }
-  // горы за северным и западным краем
-  const mt = [];
+  // Хуторские угодья: мосты, стога, хутора, мельница
+  if (W.river) for (const b of W.river.bridgeAt) { const len = W.river.w + 70, sp = sprite('bridge' + len, 110, len + 40, 55, len / 2 + 20, 2, g => bridge(g, len)); S.push({ y: b.y - len / 2 + 6, x: b.x, draw: g => { g.save(); g.translate(b.x, b.y); g.rotate(b.a - Math.atan2(0, 1)); drawSpr(g, sp, 0, 0); g.restore(); } }); }
+  for (const p of W.props) if (p.kind === 'hay') { const sp = sprite('hay', 80, 80, 40, 66, 2, g => haystack(g)); S.push({ y: p.y, x: p.x, draw: g => drawSpr(g, sp, p.x, p.y) }); }
+  for (const f of W.Z.farmsteads || []) { const sp = bldSpr('farm' + (f.burned ? 'B' : ''), 260, 220, 130, 170, 1.15, B => B.farm(2, false, 0, f.burned)); S.push({ y: f.y, x: f.x, draw: g => drawSpr(g, sp, f.x, f.y) }); if (f.burned) S.push({ y: f.y + 1, x: f.x, draw: (g, t) => smoke(g, f.x + 20, f.y - 60, t) }); }
+  if (W.Z.mill) { const m = W.Z.mill, sp = sprite('millbase', 140, 170, 70, 152, 2, g => millBase(g, false)); S.push({ y: m.y, x: m.x, label: 'Старая мельница', lx: m.x, ly: m.y - 210, draw: (g, t) => { drawSpr(g, sp, m.x, m.y); g.save(); g.translate(m.x, m.y - 112); millBlades(g, t * 0.5, false); g.restore(); } }); }
+  // горы за краем зоны (там, где они есть)
+  const mt = [], ridges = W.Z.ridges || [];
   for (let i = 0; i < W.edge.length; i++) {
     const [x, y] = W.edge[i];
-    if (y < 700 || x < 700) { const ox = x < 700 ? -150 - r() * 120 : (r() - 0.5) * 60, oy = y < 700 ? -90 - r() * 120 : (r() - 0.5) * 60; mt.push([x + ox, y + oy, r()]); }
+    if ((y < 700 && ridges.includes('north')) || (x < 700 && ridges.includes('west'))) { const ox = x < 700 ? -150 - r() * 120 : (r() - 0.5) * 60, oy = y < 700 ? -90 - r() * 120 : (r() - 0.5) * 60; mt.push([x + ox, y + oy, r()]); }
   }
   for (const [x, y, v] of mt) { const sp = mountainSpr(v); S.push({ y, draw: g => drawSpr(g, sp, x, y, 1, 1.3) }); }
   return S;
 }
+// дым над пепелищем
+function smoke(g, x, y, t) { for (let i = 0; i < 4; i++) { const q = (t * 0.25 + i / 4) % 1; g.fillStyle = `rgba(90,85,80,${0.35 * (1 - q)})`; g.beginPath(); g.arc(x + Math.sin(t + i) * 6 + q * 14, y - q * 70, 8 + q * 16, 0, 7); g.fill(); } }
 
 // вывеска мастерской чар: светящийся кристалл над входом
 function enchantSign(g) {
@@ -144,7 +160,7 @@ function chunk(R, i, j) {
   for (let k = 0; k < 120; k++) { const x = x0 + r() * CHUNK, y = y0 + r() * CHUNK; if (W.roadD(x, y) < 28) { g.fillStyle = r() < 0.5 ? 'rgba(120,100,70,.55)' : 'rgba(230,215,180,.5)'; g.beginPath(); g.ellipse(x, y, 2 + r() * 2, 1.4 + r(), 0, 0, 7); g.fill(); } }
   // столица: брусчатка
   const c = W.cap;
-  if (Math.abs(c.x - (x0 + CHUNK / 2)) < c.R + CHUNK && Math.abs(c.y - (y0 + CHUNK / 2)) < c.R + CHUNK) {
+  if (c && Math.abs(c.x - (x0 + CHUNK / 2)) < c.R + CHUNK && Math.abs(c.y - (y0 + CHUNK / 2)) < c.R + CHUNK) {
     g.save(); g.beginPath(); g.arc(c.x, c.y, c.R - 4, 0, 7); g.clip();
     g.fillStyle = '#9a8c74'; g.fillRect(x0, y0, CHUNK, CHUNK);
     const st = 24;
@@ -157,6 +173,15 @@ function chunk(R, i, j) {
     g.restore();
     LOOK.plaza(c.x, c.y, 150, 6, 31);
   }
+  // посёлок: утоптанная земля
+  const v = W.village;
+  if (v && Math.abs(v.x - (x0 + CHUNK / 2)) < v.R + CHUNK && Math.abs(v.y - (y0 + CHUNK / 2)) < v.R + CHUNK) {
+    const gr = g.createRadialGradient(v.x, v.y, 20, v.x, v.y, v.R); gr.addColorStop(0, 'rgba(150,120,80,.55)'); gr.addColorStop(0.8, 'rgba(150,120,80,.35)'); gr.addColorStop(1, 'rgba(150,120,80,0)');
+    g.fillStyle = gr; g.beginPath(); g.arc(v.x, v.y, v.R, 0, 7); g.fill();
+  }
+  // поля и река (в землю)
+  for (const F of W.fields) if (Math.abs(F.x - (x0 + CHUNK / 2)) < (F.w + F.h) / 2 + CHUNK && Math.abs(F.y - (y0 + CHUNK / 2)) < (F.w + F.h) / 2 + CHUNK) field(g, F);
+  if (W.river) { const R = W.river, near = R.pts.some(([x, y], i) => i < R.pts.length - 1 && segDist(x0 + CHUNK / 2, y0 + CHUNK / 2, x, y, R.pts[i + 1][0], R.pts[i + 1][1]) < CHUNK); if (near) riverArt(g, R, 0); }
   // кладбище: тёмная земля
   const gy = W.graveyard;
   if (Math.abs(gy.x - (x0 + CHUNK / 2)) < 500 && Math.abs(gy.y - (y0 + CHUNK / 2)) < 500) {
@@ -171,7 +196,7 @@ function chunk(R, i, j) {
   // трава и цветы
   for (let k = 0; k < 70; k++) {
     const x = x0 + r() * CHUNK, y = y0 + r() * CHUNK;
-    if (!inPoly(x, y, W.edge) || W.roadD(x, y) < 44 || dist(x, y, c.x, c.y) < c.R + 20) continue;
+    if (!inPoly(x, y, W.edge) || W.roadD(x, y) < 44 || (W.town && dist(x, y, W.town.x, W.town.y) < W.town.R + 20) || (W.river && W.riverD(x, y) < W.river.w / 2 + 16) || W.inField(x, y, 4)) continue;
     LOOK.tuft(x, y, 0.9 + r() * 0.6, W.Z.ground, r());
   }
   R.chunks.set(key, cv); if (R.chunks.size > 48) R.chunks.delete(R.chunks.keys().next().value);
@@ -228,6 +253,8 @@ export function render(R, G, now) {
   // выстрелы
   for (const s of G.shots) {
     if (s.kind === 'net') { const a = (performance.now() / 120) % 6.28; c.save(); c.translate(s.x, s.y); c.rotate(a); c.strokeStyle = '#e8dcc0'; c.lineWidth = 1.4; for (let i = -1; i <= 1; i++) { c.beginPath(); c.moveTo(-10, i * 6); c.lineTo(10, i * 6); c.moveTo(i * 6, -10); c.lineTo(i * 6, 10); c.stroke(); } c.fillStyle = '#a8845a'; for (const [x, y] of [[-10, -10], [10, -10], [-10, 10], [10, 10]]) { c.beginPath(); c.arc(x, y, 2.4, 0, 7); c.fill(); } c.restore(); continue; }
+    if (s.kind === 'bottle') { const a = performance.now() / 90; c.save(); c.translate(s.x, s.y); c.rotate(a); c.fillStyle = '#6a8a6a'; c.strokeStyle = '#24180f'; c.lineWidth = 1; c.beginPath(); c.ellipse(0, 0, 4, 6, 0, 0, 7); c.fill(); c.stroke(); c.fillStyle = '#ffb347'; c.beginPath(); c.moveTo(-2, -6); c.quadraticCurveTo(0, -14, 2, -6); c.fill(); c.restore(); if (Math.random() < 0.6) R.parts.push({ x: s.x, y: s.y, vx: (Math.random() - 0.5) * 20, vy: -20, t: 0.4, col: Math.random() < 0.5 ? '#ff7a2a' : '#ffd34d', s: 2.5 }); continue; }
+    if (s.kind === 'curse') { const g2 = c.createRadialGradient(s.x, s.y, 1, s.x, s.y, 14); g2.addColorStop(0, 'rgba(200,255,220,1)'); g2.addColorStop(0.5, 'rgba(120,255,170,.85)'); g2.addColorStop(1, 'rgba(60,200,120,0)'); c.fillStyle = g2; c.beginPath(); c.arc(s.x, s.y, 14, 0, 7); c.fill(); if (Math.random() < 0.6) R.parts.push({ x: s.x, y: s.y, vx: (Math.random() - 0.5) * 30, vy: (Math.random() - 0.5) * 30, t: 0.4, col: '#9affc8', s: 2.2 }); continue; }
     if (s.kind === 'frost') { const a = Math.atan2(s.vy, s.vx); c.save(); c.translate(s.x, s.y); c.rotate(a); const g = c.createRadialGradient(0, 0, 1, 0, 0, 14); g.addColorStop(0, 'rgba(230,248,255,1)'); g.addColorStop(1, 'rgba(120,190,255,0)'); c.fillStyle = g; c.beginPath(); c.arc(0, 0, 14, 0, 7); c.fill(); c.fillStyle = '#e8f8ff'; c.strokeStyle = '#4a8ac0'; c.lineWidth = 1; c.beginPath(); c.moveTo(12, 0); c.lineTo(-6, -4); c.lineTo(-2, 0); c.lineTo(-6, 4); c.closePath(); c.fill(); c.stroke(); c.restore(); if (Math.random() < 0.5) R.parts.push({ x: s.x, y: s.y, vx: (Math.random() - 0.5) * 20, vy: (Math.random() - 0.5) * 20, t: 0.4, col: '#cfeaff', s: 2 }); continue; }
     if (s.kind === 'arrow') { const a = Math.atan2(s.vy, s.vx); c.save(); c.translate(s.x, s.y); c.rotate(a); c.strokeStyle = '#24180f'; c.lineWidth = 3; c.beginPath(); c.moveTo(-14, 0); c.lineTo(6, 0); c.stroke(); c.strokeStyle = s.from === 'mob' ? '#8a5a3a' : '#e8e0cc'; c.lineWidth = 1.6; c.stroke(); c.fillStyle = '#cfd8de'; c.beginPath(); c.moveTo(9, 0); c.lineTo(4, -3); c.lineTo(4, 3); c.fill(); c.restore(); }
     else { const big = s.kind === 'fire', rr = s.big ? 22 : big ? 15 : 10, g = c.createRadialGradient(s.x, s.y, 1, s.x, s.y, rr); g.addColorStop(0, big ? 'rgba(255,240,160,1)' : 'rgba(220,240,255,1)'); g.addColorStop(0.45, big ? 'rgba(255,140,40,.9)' : 'rgba(120,180,255,.85)'); g.addColorStop(1, 'rgba(255,60,20,0)'); c.fillStyle = g; c.beginPath(); c.arc(s.x, s.y, rr, 0, 7); c.fill(); if (Math.random() < 0.5) R.parts.push({ x: s.x, y: s.y, vx: (Math.random() - 0.5) * 30, vy: (Math.random() - 0.5) * 30, t: 0.35, col: big ? '#ffb347' : '#9ad0ff', s: 2.5 }); }
