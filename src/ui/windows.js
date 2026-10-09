@@ -1,7 +1,9 @@
 // Окна: «Персонаж» (надетое, сумка, характеристики), «Рынок», меню (Esc), гибель.
-import { CLASSES, SLOTS, SLOT_NAME, MAIN_STAT } from '../../data/classes.js';
+import { CLASSES, SLOTS, SLOTS_L, SLOTS_R, SLOT_NAME, MAIN_STAT } from '../../data/classes.js';
+import { ORES, MINE, veinColor } from '../../data/mining.js';
+import { learnMining, buyPick, smelt, countOf, miningSkill, hasPick } from '../systems/mining.js';
 import { RAR_COL, RAR_NAME, LOOT, armorCut, PROPS } from '../../data/balance.js';
-import { itemIcon, moneyHtml } from './icons.js';
+import { itemIcon, anyIcon, accIcon, moneyHtml } from './icons.js';
 import { itemLines, itemNums, lookOf } from '../systems/items.js';
 import { compareItem } from '../entities/hero.js';
 import { equip, unequip, sellItem, buyPotion, POTION_PRICE, respawnHero, lootTake, hasLoot, bagMove, abilsOf } from '../systems/game.js';
@@ -18,10 +20,12 @@ const num = v => (v > 0 ? '+' : '−') + String(Math.abs(Math.round(v * 10) / 10
 /** Одна карточка вещи (для подсказки). */
 function card(it, G, head = '') {
   const wrong = it.cls !== G.hero.cls ? `<p class="bad">Не для вашего класса</p>` : '';
-  return `<div class="tcard">${head}<b style="color:${RAR_COL[it.rar]}">${it.name}</b><small>${RAR_NAME[it.rar]} · ${SLOT_NAME[it.slot]}</small>${itemLines(it).map(([k, t, prop]) => `<p class="${prop ? 'prop' : ''}">${t}</p>`).join('')}${wrong}${it.price ? `<p class="gold">Цена у торговца: ${moneyHtml(it.price)}</p>` : ''}</div>`;
+  const kind = it.kind === 'ore' ? 'Руда' : it.kind === 'bar' ? 'Слиток' : it.kind === 'tool' ? 'Инструмент' : `${RAR_NAME[it.rar]} · ${SLOT_NAME[it.slot]}`;
+  return `<div class="tcard">${head}<b style="color:${RAR_COL[it.rar]}">${it.name}${it.n > 1 ? ` <span class="cnt">× ${it.n}</span>` : ''}</b><small>${kind}</small>${itemLines(it).map(([k, t, prop]) => `<p class="${prop ? 'prop' : ''}">${t}</p>`).join('')}${it.slot ? wrong : ''}${it.price ? `<p class="gold">Цена у торговца: ${moneyHtml(it.price * (it.n || 1))}${it.n > 1 ? ` <small>(${moneyHtml(it.price)} за штуку)</small>` : ''}</p>` : ''}</div>`;
 }
 /** Что изменится, если надеть: построчно и итог. */
 function diffHtml(it, G) {
+  if (!it.slot || it.trinket) return '';
   const h = G.hero, cur = h.eq[it.slot], c = compareItem(h, it); if (!c) return '';
   const a = itemNums(cur), b = itemNums(it), keys = [...new Set([...Object.keys(b), ...Object.keys(a)])];
   const NAME = { dmg: 'урон', armor: 'броня', main: MAIN_STAT[h.cls].toLowerCase(), stam: 'выносливость' };
@@ -32,7 +36,7 @@ function diffHtml(it, G) {
 function tip(e, it, G, worn) {
   if (!tipEl) { tipEl = el('div', 'tip'); document.body.append(tipEl); }
   if (!it) { tipEl.hidden = true; return; }
-  const cur = G.hero.eq[it.slot], same = cur && cur.id === it.id;
+  const cur = it.slot ? G.hero.eq[it.slot] : null, same = cur && cur.id === it.id;
   const act = worn ? '<p class="hint2">Нажмите, чтобы снять</p>' : '';
   const main = card(it, G, act).replace(/<\/div>$/, (same || it.cls !== G.hero.cls ? '' : diffHtml(it, G)) + '</div>');
   const other = !same && cur && it.cls === G.hero.cls ? card(cur, G, '<p class="hint2">Сейчас надето</p>') : '';
@@ -43,28 +47,33 @@ function tip(e, it, G, worn) {
   tipEl.style.left = left + 'px'; tipEl.style.top = Math.max(8, Math.min(innerHeight - hh - 8, r.top)) + 'px';
 }
 /** Зелёная стрелка на ячейке: вещь лучше надетой по урону в секунду. */
-const upMark = (it, G) => { const c = compareItem(G.hero, it); return c && c.up ? '<span class="upmark" title="Лучше надетого">▲</span>' : ''; };
+const upMark = (it, G) => { if (!it.slot || it.trinket) return it.trinket && !G.hero.eq.trinket && it.cls === G.hero.cls ? '<span class="upmark" title="Место свободно">▲</span>' : ''; const c = compareItem(G.hero, it); return c && c.up ? '<span class="upmark" title="Лучше надетого">▲</span>' : ''; };
 export const hideTip = () => { if (tipEl) tipEl.hidden = true; };
 
 /** Окно персонажа: слева облик и надетое, справа сумка. Клик по вещи в сумке — надеть, по надетой — снять. */
 export function openChar(G, onChange) {
-  const m = modal(`<h2>${G.hero.name}</h2><div class="charwin"><div class="doll"><canvas width="220" height="260"></canvas><div class="eq"></div><dl class="stats"></dl></div><div class="bagside"><h3>Сумка <span class="cnt"></span></h3><div class="bag"></div><p class="hint">Нажмите на вещь в сумке — надеть, на надетую — снять. Вещи можно перетаскивать мышью: по ячейкам сумки, на снаряжение и обратно. Закрыть — I, B или Esc.</p></div></div>`, 'wide');
+  const m = modal(`<h2>${G.hero.name}</h2><div class="charwin"><div><div class="dollw"><div class="eq eqL"></div><canvas width="340" height="472"></canvas><div class="eq eqR"></div></div><dl class="stats"></dl><div class="skillb"></div></div><div class="bagside"><h3>Сумка <span class="cnt"></span></h3><div class="bag"></div><p class="hint">Нажмите на вещь в сумке — надеть, на надетую — снять. Вещи можно перетаскивать мышью: по ячейкам сумки, на снаряжение и обратно. Руда и слитки лежат стопками до 20. Закрыть — I, B или Esc.</p></div></div>`, 'wide');
+  const cell = (it, extra = '') => el('button', 'cell', it ? anyIcon(it, 44) + (it.n > 1 ? `<span class="n">${it.n}</span>` : '') + extra : '');
   const draw = () => {
-    const h = G.hero, st = G.st, C = CLASSES[h.cls];
-    const g = m.querySelector('canvas').getContext('2d'); g.clearRect(0, 0, 220, 260); doll(g, 110, 196, 5.0, 1, lookOf(h), 0.3);
-    const eq = m.querySelector('.eq'); eq.innerHTML = '';
-    for (const s of SLOTS) {
-      const it = h.eq[s]; const b = el('button', 'cell', it ? itemIcon(it, 44) : `<span class="empty">${SLOT_NAME[s]}</span>`);
-      if (it) { b.onmouseenter = e => tip(e, it, G, true); b.onmouseleave = hideTip; b.onclick = () => { hideTip(); unequip(G, s); onChange(); draw(); }; drag(b, { eq: s }); }
-      drop(b, src => { if (src.it && src.it.slot === s) equip(G, src.it); });
-      eq.append(b);
+    const h = G.hero, st = G.st;
+    const g = m.querySelector('canvas').getContext('2d'); g.setTransform(2, 0, 0, 2, 0, 0); g.clearRect(0, 0, 170, 236); doll(g, 85, 196, 3.5, 1, lookOf(h), 0.3);
+    for (const [sel, list] of [['.eqL', SLOTS_L], ['.eqR', SLOTS_R]]) {
+      const eq = m.querySelector(sel); eq.innerHTML = '';
+      for (const s of list) {
+        const it = h.eq[s]; const b = it ? cell(it) : el('button', 'cell', `<span class="empty">${SLOT_NAME[s]}</span>`);
+        if (it) { b.onmouseenter = e => tip(e, it, G, true); b.onmouseleave = hideTip; b.onclick = () => { hideTip(); unequip(G, s); onChange(); draw(); }; drag(b, { eq: s }); }
+        drop(b, src => { if (src.it && src.it.slot === s) equip(G, src.it); });
+        eq.append(b);
+      }
     }
     m.querySelector('.stats').innerHTML = `<dt>Уровень</dt><dd>${h.lvl}</dd><dt>Здоровье</dt><dd>${st.maxHp}</dd><dt>${MAIN_STAT[h.cls]}</dt><dd>${st.main}</dd><dt>Сила удара</dt><dd>${fmt1(st.hit)}</dd><dt>Урон в секунду</dt><dd>${fmt1(st.dps)}</dd><dt>Крит</dt><dd>${fmt1(st.crit)}%</dd>${Object.entries(st.p).filter(([k, v]) => v > 0 && k !== 'crit').map(([k, v]) => `<dt>${PNAME[k]}</dt><dd>${fmt1(v)}${PROPS[k].unit}</dd>`).join('')}<dt>Броня</dt><dd>${st.armor} (−${Math.round(armorCut(st.armor, h.lvl) * 100)}%)</dd><dt>Деньги</dt><dd>${moneyHtml(h.gold)}</dd><dt>Зелья</dt><dd>${h.potions}</dd>`;
+    const sk = miningSkill(h);
+    m.querySelector('.skillb').innerHTML = sk ? `<div class="skrow"><span>Горное дело</span><span>${sk} / ${MINE.cap}</span></div><div class="skbar"><i style="width:${sk / MINE.cap * 100}%"></i></div>` : `<p class="hint">Горное дело можно выучить в Гильдии рудокопов в Столице.</p>`;
     m.querySelector('.cnt').textContent = `${h.bag.length} / ${LOOT.bag}`;
     const bag = m.querySelector('.bag'); bag.innerHTML = '';
     for (let i = 0; i < LOOT.bag; i++) {
-      const it = h.bag.find(x => x.pos === i), b = el('button', 'cell', it ? itemIcon(it, 44) + upMark(it, G) : '');
-      if (it) { b.onmouseenter = e => tip(e, it, G); b.onmouseleave = hideTip; b.onclick = () => { hideTip(); equip(G, it); onChange(); draw(); }; drag(b, { it }); }
+      const it = h.bag.find(x => x.pos === i), b = cell(it, it ? upMark(it, G) : '');
+      if (it) { b.onmouseenter = e => tip(e, it, G); b.onmouseleave = hideTip; b.onclick = () => { if (!it.slot) return; hideTip(); equip(G, it); onChange(); draw(); }; drag(b, { it }); }
       drop(b, src => { if (src.it) bagMove(G, src.it, i); else if (src.eq) { const cur = h.bag.find(x => x.pos === i); if (cur && cur.slot === src.eq) equip(G, cur); else if (!cur) unequip(G, src.eq, i); } });
       bag.append(b);
     }
@@ -80,9 +89,16 @@ export function openChar(G, onChange) {
   m.onclose = () => { hideTip(); removeEventListener('keydown', onKey, true); }; draw(); return m;
 }
 
+/** Окно закрывается той же клавишей E, которой открыто (и Esc — как все окна). */
+function closeOnE(m, extra) {
+  const onKey = e => { if (e.code === 'KeyE' && !e.repeat) { e.preventDefault(); e.stopPropagation(); m.close(); } };
+  setTimeout(() => addEventListener('keydown', onKey, true), 0);
+  const oc = m.onclose; m.onclose = () => { removeEventListener('keydown', onKey, true); hideTip(); oc && oc(); extra && extra(); };
+}
+
 /** Рынок: продать вещи, купить зелья. */
 export function openVendor(G, onChange) {
-  const m = modal(`<h2>Рынок</h2><p class="who">Торговка Агафья: «Что продаёшь, путник? Зелья свежие, утром варила».</p><div class="vend"><div><h3>Купить</h3><div class="buy"></div></div><div><h3>Продать <small>(нажмите на вещь, цена — в подсказке)</small></h3><div class="bag"></div><button class="btn sellall">Продать всё, что не надеть</button></div></div><p class="gold">Деньги: <b></b></p>`, 'wide');
+  const m = modal(`<h2>Рынок</h2><p class="who">Торговка Агафья: «Что продаёшь, путник? Зелья свежие, утром варила».</p><div class="vend"><div><h3>Купить</h3><div class="buy"></div></div><div><h3>Продать <small>(нажмите на вещь, цена — в подсказке)</small></h3><div class="bag"></div><div class="row"><button class="btn sellall">Продать всё, что не надеть</button><button class="btn sellore">Продать руду и слитки</button></div></div></div><p class="gold">Деньги: <b></b></p>`, 'wide');
   const draw = () => {
     const h = G.hero, p = POTION_PRICE(h.lvl);
     m.querySelector('.gold b').innerHTML = moneyHtml(h.gold);
@@ -92,17 +108,18 @@ export function openVendor(G, onChange) {
     b.onclick = () => { buyPotion(G); onChange(); draw(); }; buy.append(b);
     const bag = m.querySelector('.bag'); bag.innerHTML = '';
     for (let i = 0; i < LOOT.bag; i++) {
-      const it = h.bag.find(x => x.pos === i), c = el('button', 'cell', it ? itemIcon(it, 44) + upMark(it, G) : '');
+      const it = h.bag.find(x => x.pos === i), c = el('button', 'cell', it ? anyIcon(it, 44) + (it.n > 1 ? `<span class="n">${it.n}</span>` : '') + upMark(it, G) : '');
       if (it) { c.onmouseenter = e => tip(e, it, G); c.onmouseleave = hideTip; c.onclick = () => { hideTip(); sellItem(G, it); onChange(); draw(); }; }
       bag.append(c);
     }
   };
   m.querySelector('.sellall').onclick = () => {
     const h = G.hero;
-    for (const it of h.bag.slice()) { const c = compareItem(h, it); if (!c || (h.eq[it.slot] && c.score <= 0)) sellItem(G, it); }
+    for (const it of h.bag.slice()) { if (!it.slot) continue; const c = compareItem(h, it); if (!c || (h.eq[it.slot] && c.score <= 0 && !it.trinket)) sellItem(G, it); }
     onChange(); draw();
   };
-  m.onclose = hideTip; draw(); return m;
+  m.querySelector('.sellore').onclick = () => { for (const it of G.hero.bag.slice()) if (it.kind === 'ore' || it.kind === 'bar') sellItem(G, it); onChange(); draw(); };
+  closeOnE(m); draw(); return m;
 }
 
 /** Подсумок: что лежит в теле моба. Строка — взять одно, «Забрать всё» или E — всё сразу. */
@@ -114,7 +131,7 @@ export function openLoot(G, c, onChange) {
     const L = m.querySelector('.lst'); L.innerHTML = '';
     if (c.money > 0) { const b = el('button', 'lrow', `<span class="cic">${moneyIcon()}</span><span class="nm2">${moneyHtml(c.money)}</span>`); b.onclick = () => { lootTake(G, c, -1); onChange(); draw(); }; L.append(b); }
     c.items.forEach((it, i) => {
-      const b = el('button', 'lrow', `<span class="cic">${itemIcon(it, 38)}${upMark(it, G)}</span><span class="nm2" style="color:${RAR_COL[it.rar]}">${it.name}</span>`);
+      const b = el('button', 'lrow', `<span class="cic">${anyIcon(it, 38)}${upMark(it, G)}</span><span class="nm2" style="color:${RAR_COL[it.rar]}">${it.name}</span>`);
       b.onmouseenter = e => tip(e, it, G); b.onmouseleave = hideTip;
       b.onclick = () => { hideTip(); lootTake(G, c, i); onChange(); draw(); }; L.append(b);
     });
@@ -127,6 +144,41 @@ export function openLoot(G, c, onChange) {
   m.onclose = () => { hideTip(); removeEventListener('keydown', onKey, true); };
   draw(); return m;
 }
+/** Гильдия рудокопов: выучить горное дело, купить кирку, узнать о навыке; отсюда же — плавильня. */
+export function openGuild(G, onChange) {
+  const m = modal(`<h2>Гильдия рудокопов</h2><p class="who">Старшина Гордей: «Руда, путник, сама в руки не идёт. Ищи жилы у скал да на пригорках — блестят на солнце. Кто копает, тот и богатеет».</p><div class="gl"></div><div class="row"><button class="btn" data-x="smelt">Плавильня</button><button class="btn main" data-x="close">Закрыть</button></div>`, 'wide');
+  const draw = () => {
+    const h = G.hero, sk = miningSkill(h), L = m.querySelector('.gl');
+    const leg = ['orange', 'yellow', 'green', 'gray'].map(c => `<span style="color:${MINE.colorHex[c]}">●</span> ${{ orange: 'оранжевая — навык растёт всегда', yellow: 'жёлтая — часто', green: 'зелёная — редко', gray: 'серая — не растёт' }[c]}`).join('<br>');
+    L.innerHTML = `<div class="ware2">${accIcon('pickaxe', 'common', 44)}<div><b>Горное дело</b><small>${sk ? `Навык: ${sk} / ${MINE.cap}` : 'Не изучено. Учу бесплатно.'}</small></div><button class="btn" data-x="learn" ${sk ? 'disabled' : ''}>${sk ? 'Изучено' : 'Выучить'}</button></div>
+      <div class="ware2">${accIcon('pickaxe', 'common', 44)}<div><b>Кирка рудокопа</b><small>${hasPick(h) ? 'У вас уже есть' : 'Без неё жилу не выкопать'}</small></div><button class="btn" data-x="pick" ${hasPick(h) ? 'disabled' : ''}>${moneyHtml(MINE.pickPrice)}</button></div>
+      <table class="ores"><tr><th>Руда</th><th>Где</th><th>Нужно</th><th>Сейчас</th></tr>${Object.values(ORES).map(O => { const c = sk ? veinColor(sk, O.req).c : 'none'; return `<tr><td>${O.ore}</td><td>${O.req < 50 ? 'Сосновый дол' : 'Хуторские угодья'}</td><td>${O.req}</td><td style="color:${MINE.colorHex[c] || '#a89878'}">${{ none: 'не изучено', red: 'рано', orange: 'оранжевая', yellow: 'жёлтая', green: 'зелёная', gray: 'серая' }[c]}</td></tr>`; }).join('')}</table>
+      <p class="hint">Цвет жилы: ${leg}<br>Подойдите к жиле и нажмите E — 3 секунды копать. Удар врага прерывает. Выкопанная жила появится через 5–10 минут в другом месте.</p>`;
+    L.querySelector('[data-x=learn]').onclick = () => { learnMining(G); onChange(); draw(); };
+    L.querySelector('[data-x=pick]').onclick = () => { buyPick(G); onChange(); draw(); };
+  };
+  m.querySelector('[data-x=close]').onclick = () => m.close();
+  m.querySelector('[data-x=smelt]').onclick = () => { m.close(); openSmelt(G, onChange); };
+  closeOnE(m); draw(); return m;
+}
+
+/** Плавильня: 2 руды → 1 слиток. В кузнице Столицы, в Гильдии рудокопов и в кузне Хутора Подгорного. */
+export function openSmelt(G, onChange) {
+  const m = modal(`<h2>Плавильня</h2><div class="sm"></div><p class="hint">Слиток стоит дороже двух руд. Позже из слитков будет ковать кузнец. Закрыть — E или Esc.</p>`, 'wide');
+  const draw = () => {
+    const h = G.hero, sk = miningSkill(h), L = m.querySelector('.sm'); L.innerHTML = '';
+    for (const [k, O] of Object.entries(ORES)) {
+      const have = countOf(h, 'ore', k), n = Math.floor(have / MINE.smelt), ok = sk >= O.req;
+      const r = el('div', 'ware2', `${accIcon('bar_' + k, 'common', 44)}<div><b>${O.bar}</b><small>${MINE.smelt} × ${O.ore.toLowerCase()} · у вас ${have} · слиток ${moneyHtml(O.barP)}, руда ${moneyHtml(O.oreP)}${ok ? '' : ` · нужно горное дело ${O.req}`}</small></div><button class="btn" data-x="one" ${ok && n ? '' : 'disabled'}>Переплавить</button><button class="btn" data-x="all" ${ok && n ? '' : 'disabled'}>Всё (${n})</button>`);
+      r.querySelector('[data-x=one]').onclick = () => { smelt(G, k, 1); onChange(); draw(); };
+      r.querySelector('[data-x=all]').onclick = () => { smelt(G, k, 999); onChange(); draw(); };
+      L.append(r);
+    }
+    if (!sk) L.append(el('p', 'hint', 'Сначала выучите горное дело в Гильдии рудокопов.'));
+  };
+  closeOnE(m); draw(); return m;
+}
+
 const moneyIcon = () => `<svg viewBox="0 0 32 32" width="34" height="34"><ellipse cx="16" cy="24" rx="11" ry="4" fill="#c4703a" stroke="#24180f"/><ellipse cx="14" cy="19" rx="11" ry="4" fill="#cfd6dc" stroke="#24180f"/><ellipse cx="17" cy="13" rx="11" ry="4" fill="#f2c037" stroke="#24180f"/><ellipse cx="15" cy="12" rx="4" ry="1.2" fill="#fff6c0"/></svg>`;
 
 /** Умения класса: что открыто и что откроется на каком уровне. */

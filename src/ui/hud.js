@@ -4,7 +4,8 @@ import { CLASSES } from '../../data/classes.js';
 import { xpNeed, lvlColor } from '../../data/balance.js';
 import { lookOf } from '../systems/items.js';
 import { doll } from '../art/hero.js';
-import { ABIL_ICON, moneyHtml } from './icons.js';
+import { ABIL_ICON, moneyHtml, accIcon } from './icons.js';
+import { TRINKETS } from '../../data/trinkets.js';
 import { drawMini } from './map.js';
 import { attackOf } from '../entities/hero.js';
 import { $ } from './dom.js';
@@ -18,6 +19,7 @@ export function createHud(In) {
   In.button($('#actAbil'), 'KeyC');
   In.button($('#actAbil2'), 'KeyV');
   In.button($('#actPot'), 'KeyQ');
+  In.button($('#actTrinket'), 'Digit1');
   H.bind = G => {
     H.G = G; H.portraitKey = ''; H.mini = null; H.goldK = null;
     const C = CLASSES[cls()];
@@ -25,7 +27,7 @@ export function createHud(In) {
     C.abils.forEach((A, i) => { const b = $(i ? '#actAbil2' : '#actAbil'); b.querySelector('.ico').innerHTML = ABIL_ICON[A.icon]; b.title = `${A.name} — ${A.key}. ${A.d}`; });
     $('#actPot .ico').innerHTML = ABIL_ICON.potion;
     $('#actAttack').title = `Удар — пробел (держать)`; $('#actPot').title = 'Зелье здоровья — Q';
-    H.lockLvl = -1;
+    H.lockLvl = -1; H.trK = null;
     $('#btnBag').innerHTML = ABIL_ICON.bag; $('#btnMap').innerHTML = ABIL_ICON.map; $('#btnMenu').innerHTML = ABIL_ICON.menu;
     $('#pfName').textContent = G.hero.name;
     $('#pfRing').style.borderColor = C.color;
@@ -54,6 +56,10 @@ export function createHud(In) {
     // второе умение закрыто до своего уровня; когда открылось — кнопка мигает
     if (H.lockLvl !== h.lvl) { const A = C.abils[1], open = h.lvl >= A.lvl, b = $('#actAbil2'); const lk = b.querySelector('.lock'); lk.hidden = open; lk.querySelector('b').textContent = `${A.lvl} ур.`; if (open && H.lockLvl > 0 && H.lockLvl < A.lvl) { b.classList.add('ready'); setTimeout(() => b.classList.remove('ready'), 5000); } H.lockLvl = h.lvl; } cool('#actAttack', P.cd, attackOf(h).cd);
     $('#actPot .n').textContent = h.potions;
+    // аксессуар на клавише 1: значок меняется, когда надели другой
+    const tr = h.eq.trinket, tk = tr ? tr.id : ''; const tb = $('#actTrinket');
+    if (tk !== H.trK) { H.trK = tk; tb.hidden = !tr; if (tr) { const T = TRINKETS.find(x => x.id === tr.trinket); tb.querySelector('.ico').innerHTML = accIcon(tr.trinket, tr.rar, 44).replace(/width="44" height="44"/, 'width="100%" height="100%"'); tb.title = `${T.name} — 1. ${T.d}`; } }
+    if (tr) { const T = TRINKETS.find(x => x.id === tr.trinket); cool('#actTrinket', P.tcd, T.cd); }
     const gk = h.gold; if (gk !== H.goldK) { H.goldK = gk; $('#gold').innerHTML = moneyHtml(gk); }
     $('#pfFist').hidden = !st.unarmed;
     drawMini($('#mini'), G, H);

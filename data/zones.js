@@ -33,9 +33,9 @@ export const PINE = {
     buildings: [
       { id: 'hall', name: 'Королевский дворец', dx: 0, dy: -590, col: 0, art: 'castle', note: 'Король пока в отъезде. Задания и сюжет — скоро' },
       { id: 'market', name: 'Рынок', dx: -560, dy: -10, col: 75, art: 'market', vendor: true },
-      { id: 'forge', name: 'Кузница', dx: 560, dy: -280, col: 92, art: 'forge', note: 'Ремонт и ковка — скоро' },
+      { id: 'forge', name: 'Кузница', dx: 560, dy: -280, col: 92, art: 'forge', smelt: true, note: 'Плавка руды. Ремонт и ковка — скоро' },
       { id: 'tavern', name: 'Таверна', dx: -430, dy: 470, col: 92, art: 'tavern', note: 'Отдых: в столице здоровье восстанавливается быстро' },
-      { id: 'miners', name: 'Гильдия рудокопов', dx: 420, dy: 480, col: 92, art: 'miners', note: 'Горное дело — скоро' },
+      { id: 'miners', name: 'Гильдия рудокопов', dx: 420, dy: 480, col: 92, art: 'miners', guild: true, smelt: true, note: 'Горное дело' },
       { id: 'enchant', name: 'Мастерская чар', dx: -560, dy: -280, col: 76, art: 'enchant', note: 'Зачарование — скоро' },
       { id: 'h1', dx: 640, dy: 190, col: 68, art: 'house', v: 2 }, { id: 'h2', dx: -640, dy: 230, col: 68, art: 'house', v: 0 },
       { id: 'h3', dx: 230, dy: 660, col: 68, art: 'house', v: 1 }, { id: 'h4', dx: -230, dy: 660, col: 68, art: 'house', v: 2 },
@@ -74,6 +74,12 @@ export const PINE = {
     { name: 'Логово Атамана', lair: 'ataman', mob: 'ataman', lvl: [6, 6], x: 7250, y: 850, n: 1, r: 60 },
   ],
   trees: { count: 640, kinds: [2, 2, 2, 1, 3], clearR: 140 },
+  // области жил (на карте не видны): в каждой n жил в случайных местах; выкопанная появляется в другом месте области
+  ore: [
+    { metal: 'copper', x: 900, y: 750, r: 420, n: 2 }, { metal: 'copper', x: 3900, y: 700, r: 420, n: 1 }, { metal: 'copper', x: 6200, y: 650, r: 380, n: 1 },
+    { metal: 'copper', x: 2300, y: 4350, r: 380, n: 2 }, { metal: 'copper', x: 5300, y: 4400, r: 320, n: 1 }, { metal: 'copper', x: 7300, y: 2200, r: 320, n: 1 },
+    { metal: 'copper', x: 600, y: 2300, r: 320, n: 1 },
+  ],
 };
 
 // Хуторские угодья (ур. 6–10): к югу от Соснового дола. Поля, хутора, река с двумя мостами, старая мельница.
@@ -92,6 +98,7 @@ export const FARMS = {
       { id: 'barn', name: 'Амбар', dx: 110, dy: 200, col: 92, art: 'barn', note: 'Здесь хутор держит зерно и сено' },
       { id: 'house1', dx: 330, dy: 175, col: 68, art: 'house', v: 1 },
       { id: 'house2', dx: -300, dy: 150, col: 68, art: 'house', v: 0 },
+      { id: 'smithy', name: 'Кузня', dx: -430, dy: -20, col: 90, art: 'forge', smelt: true, note: 'Плавка руды' },
     ],
   },
   graveyard: { x: 3650, y: 1300, name: 'Кладбище' },
@@ -136,6 +143,10 @@ export const FARMS = {
     { name: 'Старая мельница', lair: 'mill', mob: 'miller', lvl: [10, 10], x: 1300, y: 4150, n: 1, r: 80 },
   ],
   trees: { count: 420, kinds: [2, 3, 3, 1, 2], clearR: 140 },
+  ore: [
+    { metal: 'tin', x: 900, y: 600, r: 420, n: 2 }, { metal: 'tin', x: 6900, y: 650, r: 420, n: 1 }, { metal: 'tin', x: 7200, y: 2950, r: 380, n: 1 },
+    { metal: 'tin', x: 3200, y: 4450, r: 380, n: 2 }, { metal: 'tin', x: 700, y: 3200, r: 380, n: 1 }, { metal: 'copper', x: 4300, y: 2900, r: 320, n: 1 },
+  ],
   // с обычных мобов — белые и иногда зелёные; с Мельника — зелёная или синяя (25%)
   loot: { chance: 0.08, rarity: [['common', 85], ['good', 15]], rare: [['good', 75], ['rare', 25]] },
 };

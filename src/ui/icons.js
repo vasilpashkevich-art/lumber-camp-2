@@ -85,3 +85,12 @@ export function accIcon(kind, rar = 'common', size = 40, gemCol = '#4a9eff') {
   const b = ACC_ICON[kind]; const body = typeof b === 'function' ? b(gemCol) : b || '';
   return box(body, RAR_COL[rar] || '#888', size);
 }
+/** Значок любой вещи из сумки: доспех и оружие, кольцо и шея, аксессуар, руда, слиток, кирка. */
+const GEM = { crit: '#ff6a5a', haste: '#9ad0ff', regen: '#5fd38a', pen: '#e7c35a', dodge: '#c8e0ff', vamp: '#c41a3a', block: '#c4c0b6', cdr: '#b46aff' };
+export function anyIcon(it, size = 44) {
+  if (it.kind === 'ore' || it.kind === 'bar') return accIcon(it.kind + '_' + it.metal, 'common', size);
+  if (it.kind === 'tool') return accIcon('pickaxe', 'common', size);
+  if (it.trinket) return accIcon(it.trinket, it.rar, size);
+  if (it.slot === 'ring' || it.slot === 'neck') return accIcon(it.slot, it.rar, size, GEM[Object.keys(it.props || {})[0]] || '#c8b898');
+  return itemIcon(it, size);
+}

@@ -2,9 +2,11 @@
 // Всё, что должен увидеть или услышать игрок, складывается в G.ev (события) и G.fx (эффекты).
 import { CLASSES } from '../../data/classes.js';
 import { MOBS } from '../../data/mobs.js';
-import { HERO, MOBL, RESPAWN, LEASH, AGGRO, LOOT, ITEM, armorCut, xpKill, lvlColor, xpNeed } from '../../data/balance.js';
+import { HERO, MOBL, RESPAWN, LEASH, AGGRO, LOOT, ITEM, TRINKET_DROP, armorCut, xpKill, lvlColor, xpNeed } from '../../data/balance.js';
+import { TRINKETS } from '../../data/trinkets.js';
 import { heroStats, addXp, attackOf } from '../entities/hero.js';
-import { rollDrop } from './items.js';
+import { rollDrop, makeTrinket } from './items.js';
+import { initVeins, veinNear, startMine, stopMine, mineTick, addStack } from './mining.js';
 import { moveTo, inCity } from '../world/world.js';
 import { dist, clamp, money } from '../engine/util.js';
 
@@ -17,10 +19,12 @@ export function createGame(hero, W, opts = {}) {
       x: start.x, y: start.y, hp: hero.hp == null ? st.maxHp : Math.min(hero.hp, st.maxHp), face: 0, dir: 1,
       cd: 0, acd: {}, potCd: 0, target: null, sit: false, dash: null, atkT: 0, atkDur: 0.35, mvx: 0, mvy: 1, deadT: 0, lastCombat: -99, weak: 0, poison: null, slow: 0,
       whirl: 0, whirlT: 0, volley: 0, swing: 0, shot: 0, dead: false, moving: false, hurt: 0, step: 0,
+      mine: null, tcd: 0, buf: { stone: 0, rage: 0, wind: 0, thorns: 0 },
     },
     mobs: [], shots: [], ev: [], fx: [], corpses: [], corpseSeq: 0,
   };
   if (G.P.hp <= 0) G.P.hp = Math.round(st.maxHp * 0.5);
+  initVeins(G);
   for (const camp of W.camps) for (const s of camp.spawns) {
     const m = spawnMob(G, s, camp);
     const at = hero.dead[s.key];
@@ -56,6 +60,7 @@ export function update(G, dt, I) {
   H.stats.play += dt;
   P.cd = Math.max(0, P.cd - dt); P.potCd = Math.max(0, P.potCd - dt);
   for (const k in P.acd) P.acd[k] = Math.max(0, P.acd[k] - dt);
+  P.tcd = Math.max(0, P.tcd - dt); for (const k in P.buf) P.buf[k] = Math.max(0, P.buf[k] - dt);
   P.weak = Math.max(0, P.weak - dt); P.slow = Math.max(0, P.slow - dt); P.hurt = Math.max(0, P.hurt - dt);
   P.atkT = Math.max(0, P.atkT - dt); if (P.dead) P.deadT += dt;
   P.swing = Math.max(0, P.swing - dt); P.shot = Math.max(0, P.shot - dt); P.volley = Math.max(0, P.volley - dt);
@@ -65,11 +70,11 @@ export function update(G, dt, I) {
     let mx = I.mx || 0, my = I.my || 0; const m = Math.hypot(mx, my);
     if (m > 1) { mx /= m; my /= m; }
     P.moving = m > 0.05 && !P.dash;
-    if (P.moving || I.attack || I.attackTap || I.ability || I.ability2) P.sit = false;
+    if (P.moving || I.attack || I.attackTap || I.ability || I.ability2) { P.sit = false; if (P.mine) stopMine(G); }
     if (I.sit) { if (P.sit) P.sit = false; else if (G.t - P.lastCombat < 1.5) emit(G, { k: 'toast', s: 'В бою не присесть', id: 'sit' }); else P.sit = true; }
     if (P.dash) dashTick(G, dt);
     else if (P.moving) {
-      const sp = HERO.speed * (P.slow > 0 ? 0.6 : 1) * (P.whirl > 0 ? 0.8 : 1);
+      const sp = HERO.speed * (P.slow > 0 ? 0.6 : 1) * (P.whirl > 0 ? 0.8 : 1) * (P.buf.wind > 0 ? 1.5 : 1);
       [P.x, P.y] = moveTo(G.W, P.x, P.y, P.x + mx * sp * dt, P.y + my * sp * dt);
       if (Math.abs(mx) > 0.1) P.dir = mx < 0 ? -1 : 1;
       P.step += dt * sp / 40; P.mvx = mx; P.mvy = my;
@@ -91,7 +96,9 @@ export function update(G, dt, I) {
     if (I.ability2) useAbility(G, 1);
     if (I.potion) drinkPotion(G);
     if (I.interact) interact(G);
+    if (I.trinket) useTrinket(G);
     abilityTick(G, dt);
+    mineTick(G, dt);
   }
   for (const mob of G.mobs) mobTick(G, mob, dt);
   if (G.mobs.some(m => m.gone)) G.mobs = G.mobs.filter(m => !m.gone);
@@ -135,7 +142,7 @@ function heroAttack(G, tap) {
     else { if (tap && t) emit(G, { k: 'toast', s: 'Слишком далеко', id: 'far' }); return; }
   }
   P.target = t; P.face = Math.atan2(t.y - P.y, t.x - P.x); P.dir = Math.cos(P.face) < 0 ? -1 : 1;
-  P.cd = G.st.cd; P.lastCombat = G.t; sfx(G, A.sfx);
+  P.cd = G.st.cd / (P.buf.rage > 0 ? 1.3 : 1); P.lastCombat = G.t; sfx(G, A.sfx);
   startAtk(P, A.kind === 'melee' ? 0.32 : 0.42);
   if (A.kind === 'melee') { P.swing = 0.22; strike(G, t, G.st.hit, 'melee'); }
   else {
@@ -168,7 +175,7 @@ function strike(G, m, base, src, opt = {}) {
   const H = G.hero, d = m.lvl - H.lvl;
   if (!opt.sure && G.rand() < clamp(0.04 + 0.05 * d, 0.02, 0.4)) { emit(G, { k: 'txt', x: m.x, y: m.y - m.r - 20, s: 'мимо', col: '#cfd8de' }); aggro(G, m); return; }
   const st = G.st, pen = (st.p ? st.p.pen : 0) / 100;
-  let v = base * (0.9 + G.rand() * 0.2) * (G.P.weak > 0 ? HERO.deathWeakMul : 1) * (1 - armorCut(m.armor * (1 - pen), H.lvl) * 0.5);
+  let v = opt.flat ? base : base * (0.9 + G.rand() * 0.2) * (G.P.weak > 0 ? HERO.deathWeakMul : 1) * (1 - armorCut(m.armor * (1 - pen), H.lvl) * 0.5);
   const crit = !opt.noCrit && G.rand() < (st.crit ?? ITEM.baseCrit) / 100; if (crit) v *= ITEM.critMul;
   v = Math.max(1, v);
   // вампиризм: часть нанесённого урона возвращается здоровьем
@@ -208,6 +215,8 @@ function killMob(G, m) {
   const items = [];
   const ZL = G.W.Z.loot || {};
   if (m.D.rare || G.rand() < (ZL.chance ?? LOOT.itemChance)) items.push(rollDrop(H.cls, m.lvl, m.D.rare, G.rand, ZL));
+  // аксессуар: только с вожаков, 10%, и гарантия — если 8 раз подряд не выпал, на 9-й точно
+  if (m.D.rare) { H.tPity = H.tPity || 0; if (H.tPity >= TRINKET_DROP.pity || G.rand() < TRINKET_DROP.chance) { items.push(makeTrinket(H.cls, m.lvl, 'rare', G.rand)); H.tPity = 0; } else H.tPity++; }
   G.corpses.push({ id: ++G.corpseSeq, x: m.x, y: m.y, kind: m.kind, name: m.D.name, lvl: m.lvl, dir: m.face, vx: m.mdx, vy: m.mdy, t: LOOT.corpseT, money, items });
 }
 
@@ -301,6 +310,26 @@ function abilityTick(G, dt) {
   }
 }
 
+// ---------------------------------------------------------------- аксессуар (клавиша 1)
+export function useTrinket(G) {
+  const P = G.P, H = G.hero, it = H.eq.trinket;
+  if (!it) { emit(G, { k: 'toast', s: 'Аксессуар не надет', id: 'trk' }); return; }
+  const T = TRINKETS.find(t => t.id === it.trinket); if (!T || T.passive) return;
+  if (P.tcd > 0) { emit(G, { k: 'toast', s: `${T.name}: ещё ${Math.ceil(P.tcd)} с`, id: 'trk' }); return; }
+  if (T.id === 'stoneheart') P.buf.stone = 6;
+  else if (T.id === 'rage') P.buf.rage = 10;
+  else if (T.id === 'windfeather') P.buf.wind = 5;
+  else if (T.id === 'thorns') P.buf.thorns = 8;
+  else if (T.id === 'breath') { const v = G.st.maxHp * 0.35; P.hp = Math.min(G.st.maxHp, P.hp + v); emit(G, { k: 'txt', x: P.x, y: P.y - 50, s: `+${Math.round(v)}`, col: '#7cff7c' }); }
+  else if (T.id === 'stormeye') {
+    const list = G.mobs.filter(m => hostile(m) && dist(P.x, P.y, m.x, m.y) < 420).sort((a, b) => dist(P.x, P.y, a.x, a.y) - dist(P.x, P.y, b.x, b.y)).slice(0, 3);
+    if (!list.length) { emit(G, { k: 'toast', s: 'Рядом нет врагов', id: 'trk' }); return; }
+    for (const m of list) { G.fx.push({ k: 'bolt', x: P.x, y: P.y - 30, x2: m.x, y2: m.y - m.r, t: 0.35, max: 0.35 }); strike(G, m, G.st.hit * 1.4, 'spell', { sure: true }); }
+  } else return;   // фиолетовые — позже
+  P.tcd = T.cd; P.sit = false; sfx(G, 'trinket');
+  emit(G, { k: 'txt', x: P.x, y: P.y - 70, s: T.name, col: '#9ad0ff' });
+}
+
 function drinkPotion(G) {
   const P = G.P, H = G.hero;
   if (H.potions <= 0) { emit(G, { k: 'toast', s: 'Зелий нет — купите на рынке в столице', id: 'pot' }); return; }
@@ -317,6 +346,7 @@ export function interactTarget(G) {
   let best = null, bd = LOOT.lootR;
   for (const k of G.corpses) { if (!hasLoot(k)) continue; const d = dist(P.x, P.y, k.x, k.y); if (d < bd) { bd = d; best = k; } }
   if (best) return { k: 'corpse', c: best, x: best.x, y: best.y };
+  const v = veinNear(G); if (v) return { k: 'vein', v, x: v.x, y: v.y };
   for (const b of G.W.houses) { if (!b.name) continue; if (dist(P.x, P.y, b.x, b.y + 40) < 95) return { k: 'b', b, x: b.x, y: b.y }; }
   for (const e of G.W.exits) if (dist(P.x, P.y, e.x, e.y) < 220) return { k: 'exit', e, x: e.x, y: e.y };
   return null;
@@ -324,7 +354,8 @@ export function interactTarget(G) {
 function interact(G) {
   const t = interactTarget(G); if (!t) return;
   if (t.k === 'corpse') { emit(G, { k: 'lootOpen', c: t.c }); return; }
-  if (t.k === 'b') { if (t.b.vendor) emit(G, { k: 'vendor' }); else emit(G, { k: 'toast', s: `${t.b.name}. ${t.b.note}`, id: 'bld' }); }
+  if (t.k === 'vein') { if (G.P.mine) stopMine(G); else startMine(G, t.v); return; }
+  if (t.k === 'b') { if (t.b.vendor) emit(G, { k: 'vendor' }); else if (t.b.guild) emit(G, { k: 'guild', b: t.b }); else if (t.b.smelt) emit(G, { k: 'smelt', b: t.b }); else emit(G, { k: 'toast', s: `${t.b.name}. ${t.b.note}`, id: 'bld' }); }
   if (t.k === 'exit') { if (t.e.zone) emit(G, { k: 'zone', e: t.e }); else emit(G, { k: 'toast', s: `Дорога в ${t.e.to} (ур. ${t.e.lvl}) откроется в следующих версиях`, id: 'exit' }); }
 }
 
@@ -335,7 +366,10 @@ function hurtHero(G, v, m, dot) {
     const p = G.st.p || {};
     if (p.dodge > 0 && G.rand() < p.dodge / 100) { emit(G, { k: 'txt', x: P.x, y: P.y - 60, s: 'уклонение', col: '#cfeaff' }); P.lastCombat = G.t; return; }
     if (p.block > 0 && G.rand() < p.block / 100) { emit(G, { k: 'txt', x: P.x, y: P.y - 60, s: 'блок', col: '#e8e0cc' }); P.lastCombat = G.t; sfx(G, 'hammer'); return; }
+    if (P.buf.stone > 0) v *= 0.5;   // Каменное сердце
     v *= (1 - armorCut(G.st.armor, G.hero.lvl)); P.hurt = 0.18; emit(G, { k: 'hdmg', v }); sfx(G, 'hurt');
+    if (P.buf.thorns > 0 && m && m.state !== 'dead') strike(G, m, v * 0.3, 'thorns', { sure: true, noCrit: true, flat: true });   // Тотем шипов
+    if (P.mine) stopMine(G, 'Копать помешали');
   }
   P.hp -= v; P.lastCombat = G.t; P.sit = false;
   if (P.hp <= 0) heroDie(G);
@@ -488,8 +522,8 @@ export const POTION_PRICE = L => 4 + L * 2;
 
 export function sellItem(G, it) {
   const H = G.hero, i = H.bag.indexOf(it); if (i < 0) return;
-  H.bag.splice(i, 1); H.gold += it.price; sfx(G, 'coin');
-  emit(G, { k: 'toast', s: `Продано: ${it.name} за ${money(it.price)}`, id: 'sell' });
+  const v = it.price * (it.n || 1); H.bag.splice(i, 1); H.gold += v; sfx(G, 'coin');
+  emit(G, { k: 'toast', s: `Продано: ${it.name}${it.n > 1 ? ' × ' + it.n : ''} за ${money(v)}`, id: 'sell' });
 }
 export function buyPotion(G) {
   const H = G.hero, p = POTION_PRICE(H.lvl);
@@ -499,7 +533,7 @@ export function buyPotion(G) {
 }
 /** Надеть вещь из сумки (снятая уходит в сумку). */
 export function equip(G, it) {
-  const H = G.hero, i = H.bag.indexOf(it); if (i < 0 || it.cls !== H.cls) return;
+  const H = G.hero, i = H.bag.indexOf(it); if (i < 0 || !it.slot || it.cls !== H.cls) return;
   const old = H.eq[it.slot], pos = it.pos; H.bag.splice(i, 1); H.eq[it.slot] = it; delete it.pos;
   if (old) { old.pos = pos; H.bag.push(old); }   // снятая вещь встаёт в ту же ячейку
   restat(G); sfx(G, 'equip');
@@ -516,7 +550,7 @@ export function unequip(G, slot, pos = null) {
 const bagAt = (H, pos) => H.bag.find(x => x.pos === pos);
 export function freePos(H) { for (let p = 0; p < LOOT.bag; p++) if (!bagAt(H, p)) return p; return -1; }
 /** Положить вещь в сумку: в ячейку pos, если она свободна, иначе в первую свободную. */
-export function bagAdd(H, it, pos = null) { it.pos = pos != null && pos >= 0 && pos < LOOT.bag && !bagAt(H, pos) ? pos : freePos(H); H.bag.push(it); }
+export function bagAdd(H, it, pos = null) { if (it.kind === 'ore' || it.kind === 'bar') { addStack(H, it); return; } it.pos = pos != null && pos >= 0 && pos < LOOT.bag && !bagAt(H, pos) ? pos : freePos(H); H.bag.push(it); }
 /** Переложить вещь в ячейку pos; если там лежит другая — они меняются местами. */
 export function bagMove(G, it, pos) {
   const H = G.hero; if (!H.bag.includes(it) || pos < 0 || pos >= LOOT.bag || it.pos === pos) return;

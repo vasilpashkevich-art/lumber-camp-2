@@ -1,23 +1,24 @@
 // Запуск игры: экран выбора героя → мир. Связывает ход игры, рисование, интерфейс и звук.
 import { ZONES } from '../data/zones.js';
 import { buildWorld, inCity } from './world/world.js';
-import { createGame, update, abilsOf } from './systems/game.js';
+import { createGame, update, abilsOf, refreshStats } from './systems/game.js';
+import { addStack } from './systems/mining.js';
 import { loadHero, saveHero, migrate } from './engine/save.js';
 import { createRenderer, render } from './engine/render.js';
 import { createInput } from './engine/input.js';
 import { soundInit, sfx, music, setSound, soundState } from './engine/audio.js';
 import { showSelect } from './ui/select.js';
 import { createHud } from './ui/hud.js';
-import { openChar, openVendor, openMenu, showDeath, hideTip, openLoot, openAbils } from './ui/windows.js';
+import { openChar, openVendor, openMenu, showDeath, hideTip, openLoot, openAbils, openGuild, openSmelt } from './ui/windows.js';
 import { openMap } from './ui/map.js';
 import { doll } from './art/hero.js';
-import { rollDrop, makeItem } from './systems/items.js';
+import { rollDrop, makeItem, makeTrinket, makeStack } from './systems/items.js';
 import { LOOT } from '../data/balance.js';
 import { dist } from './engine/util.js';
 import { $, toast, zoneTitle } from './ui/dom.js';
 import { RAR_COL } from '../data/balance.js';
 
-const VERSION = 60;
+const VERSION = 61;
 const WORLDS = {}; const worldOf = id => WORLDS[id] || (WORLDS[id] = buildWorld(ZONES[id] || ZONES.pine));
 let W = null, G = null, R = null, In = null, hud = null, raf = 0, last = 0, saveT = 0, musicT = 0, paused = false;
 
@@ -36,7 +37,7 @@ function boot() {
   };
   $('#btnBag').onclick = () => charWin(); $('#btnMenu').onclick = () => menu(); $('#btnMap').onclick = () => mapWin(); $('#mini').onclick = () => mapWin(); $('#pfRing').onclick = () => { if (G && !document.querySelector('.modal')) openAbils(G); };
   $('#ver').textContent = 'версия ' + VERSION;
-  if (location.hash === '#dev') window.__G = { get G() { return G; }, start, toSelect, R: () => R, rollDrop, makeItem, doll };
+  if (location.hash === '#dev') window.__G = { get G() { return G; }, start, toSelect, R: () => R, rollDrop, makeItem, doll, makeTrinket, makeStack, addStack, refresh: () => { refreshStats(G); hud.update(); } };
   toSelect();
 }
 
@@ -94,7 +95,10 @@ function frame(now) {
     if (e.k === 'toast') toast(e.s, e.kind || '', e.id);
     if (e.k === 'loot') { toast(`Добыча: <b style="color:${RAR_COL[e.it.rar]}">${e.it.name}</b>`, '', null); sfx('loot'); }
     if (e.k === 'lvl') { toast(`Новый уровень: ${e.L}! Здоровье восстановлено.`, 'good'); const A = abilsOf(G.hero).find(a => a.lvl === e.L); if (A) toast(`Новое умение: <b>${A.name}</b> — клавиша ${A.key}. ${A.d}`, 'good'); }
-    if (e.k === 'vendor') openVendor(G, () => hud.update());
+    if (e.k === 'vendor' && !document.querySelector('.modal')) openVendor(G, () => hud.update());
+    if (e.k === 'guild' && !document.querySelector('.modal')) openGuild(G, () => hud.update());
+    if (e.k === 'smelt' && !document.querySelector('.modal')) openSmelt(G, () => hud.update());
+    if (e.k === 'skill') toast(e.s, 'good', 'skill');
     if (e.k === 'zone') { goZone(e.e); break; }
     if (e.k === 'lootOpen' && !document.querySelector('.modal')) { lootWin = openLoot(G, e.c, () => hud.update()); const oc = lootWin.onclose; lootWin.onclose = () => { lootWin = null; oc && oc(); }; }
     if (e.k === 'die') { sfx('die'); setTimeout(() => G && showDeath(G, () => hud.update()), 900); }

@@ -6,6 +6,9 @@ import { field, river as riverArt, bridge, haystack, millBase, millBlades, well 
 import { BLD } from '../art/bld.js';
 import { castle, stairs, brazierFire, paving, roundPlaza, ringPath, fountain, lamp, flowerbed, terrace, wallSeg, roundTower, merlons, cone } from '../art/castle.js';
 import { house, inn, tavern, enchant, barn, miners, forge, farmstead, GUARD_LOOK } from '../art/houses.js';
+import { vein, glint, outcrop } from '../art/ore.js';
+import { ORES, veinColor, MINE } from '../../data/mining.js';
+import { miningSkill } from '../systems/mining.js';
 import { sprite, drawSpr, flashOf, heroSpr, mobSpr, MOB_SCALE, MOB_LOOK, personSpr, beastSpr, drawFrame, viewOf, FRAMES, treeSpr, TREE_K, bldSpr, mountainSpr } from '../art/sprites.js';
 import { treesIn, GATE_W } from '../world/world.js';
 import { lookOf } from '../systems/items.js';
@@ -110,6 +113,8 @@ function buildStatics(W) {
   for (const p of W.props) if (p.kind === 'hay') { const sp = sprite('hay', 80, 80, 40, 66, 2, g => haystack(g)); S.push({ y: p.y, x: p.x, draw: g => drawSpr(g, sp, p.x, p.y) }); }
   for (const f of W.Z.farmsteads || []) { const sp = sprite('farmst' + (f.burned ? 'B' : ''), 460, 280, 200, 250, 2, g => { g.scale(K, K); farmstead(g, f.burned); }); S.push({ y: f.y, x: f.x, draw: g => drawSpr(g, sp, f.x, f.y) }); if (f.burned) S.push({ y: f.y + 1, x: f.x, draw: (g, t) => smoke(g, f.x + 20, f.y - 60, t) }); }
   if (W.Z.mill) { const m = W.Z.mill, ms = 1.5, sp = sprite('millbase', 210, 255, 105, 228, 1.6, g => { g.scale(ms, ms); millBase(g, false); }); S.push({ y: m.y, x: m.x, label: 'Старая мельница', lx: m.x, ly: m.y - 300, draw: (g, t) => { drawSpr(g, sp, m.x, m.y); g.save(); g.translate(m.x, m.y - 112 * ms); g.scale(ms, ms); millBlades(g, t * 0.5, false); g.restore(); } }); }
+  // скалы и пригорки (v61)
+  for (const o of W.rocks || []) { const sp = sprite('rock|' + o.s + '|' + Math.round(o.w), o.w * 1.5 + 40, o.h * 1.4 + 50, o.w * 0.75 + 20, o.h * 1.3 + 20, 1.6, g => outcrop(g, o.w, o.h, o.s)); S.push({ y: o.y, x: o.x, draw: g => drawSpr(g, sp, o.x, o.y) }); }
   // горы за краем зоны (там, где они есть)
   const mt = [], ridges = W.Z.ridges || [];
   for (let i = 0; i < W.edge.length; i++) {
@@ -253,6 +258,7 @@ export function render(R, G, now) {
   for (const s of R.statics) if (vis(s.lx ?? s.x ?? R.cam.x, s.y, 400)) L.push(s);
   for (const tr of treesIn(W, x0 - 150, y0 - 60, x0 + zw + 150, y0 + zh + 240)) L.push({ y: tr.y, tree: tr });
   for (const k of G.corpses) if (vis(k.x, k.y)) L.push({ y: k.y - 1, corpse: k });
+  for (const v of G.veins || []) if ((!v.at || v.at <= G.t) && vis(v.x, v.y)) L.push({ y: v.y, x: v.x, draw: (g, t) => { const sp = sprite('vein|' + v.metal + '|' + (v.s % 5), 110, 90, 55, 70, 2, gg => vein(gg, v.metal, v.s % 5 + 1)); drawSpr(g, sp, v.x, v.y); g.save(); g.translate(v.x, v.y); glint(g, v.metal, t, v.s % 7); g.restore(); } });
   for (const m of G.mobs) if (m.state !== 'dead' && vis(m.x, m.y)) L.push({ y: m.y, mob: m });
   L.push({ y: P.y, hero: true });
   L.sort((a, b) => a.y - b.y);
@@ -277,6 +283,7 @@ export function render(R, G, now) {
   for (const f of G.fx) {
     if (f.k === 'ring') { const q = 1 - f.t / 0.35; c.strokeStyle = f.col; c.globalAlpha = 1 - q; c.lineWidth = 6; c.beginPath(); c.ellipse(f.x, f.y, f.r + (f.max - f.r) * q, (f.r + (f.max - f.r) * q) * 0.5, 0, 0, 7); c.stroke(); c.globalAlpha = 1; }
     if (f.k === 'boom' && f.t > 0.3) for (let i = 0; i < (f.big ? 30 : 14); i++) R.parts.push(part(f.x, f.y, ['#ffd34d', '#ff7a2a', '#cf4b3f']));
+    if (f.k === 'bolt') { const q = f.t / f.max; c.strokeStyle = `rgba(255,240,140,${q})`; c.lineWidth = 3; c.beginPath(); c.moveTo(f.x, f.y); const n = 6; for (let i = 1; i <= n; i++) { const k = i / n; c.lineTo(f.x + (f.x2 - f.x) * k + (i < n ? (Math.random() - 0.5) * 22 : 0), f.y + (f.y2 - f.y) * k + (i < n ? (Math.random() - 0.5) * 22 : 0)); } c.stroke(); c.strokeStyle = `rgba(255,255,255,${q})`; c.lineWidth = 1.2; c.stroke(); }
     if (f.k === 'trail') { c.fillStyle = `rgba(255,240,200,${f.t * 1.4})`; c.beginPath(); c.ellipse(f.x, f.y - 14, 12, 18, 0, 0, 7); c.fill(); }
     if (f.k === 'spawn') { c.fillStyle = `rgba(255,255,255,${f.t})`; c.beginPath(); c.ellipse(f.x, f.y, 26 * (1.4 - f.t), 10, 0, 0, 7); c.fill(); }
   }
@@ -288,11 +295,15 @@ export function render(R, G, now) {
   c.textAlign = 'center';
   const bar = barRect(), z = R.cam.z / R.dpr;
   for (const s of R.statics) if (s.label && vis(s.lx, s.ly, 100)) { const sx = (s.lx - x0) * z, sy = (s.ly - y0) * z; if (bar && sx > bar.left - 90 && sx < bar.right + 90 && sy > bar.top - 14) continue; label(c, s.label, s.lx, s.ly, '#ffe9a8', 15); }
+  // название жилы вблизи — цветом по навыку (как в WoW)
+  for (const v of G.veins || []) if ((!v.at || v.at <= G.t) && dist(v.x, v.y, P.x, P.y) < 320) { const col = MINE.colorHex[miningSkill(G.hero) ? veinColor(miningSkill(G.hero), ORES[v.metal].req).c : 'gray']; label(c, ORES[v.metal].vein, v.x, v.y + 22, col, 13); }
   // таблички над мобами
   for (const m of G.mobs) if (m.state !== 'dead' && vis(m.x, m.y) && (m === P.target || m.state === 'chase' || m.hp < m.max || dist(m.x, m.y, P.x, P.y) < 260)) plate(c, G, m);
   // подсказка «E»
   const it = !P.dead && interactTarget(G);
-  if (it) label(c, it.k === 'b' ? `E — ${it.b.name}` : it.k === 'exit' ? 'E — дорога' : 'E — обыскать', P.x, P.y - 78, '#fff2a0', 14);
+  if (it && !P.mine) label(c, it.k === 'b' ? `E — ${it.b.name}` : it.k === 'exit' ? 'E — дорога' : it.k === 'vein' ? 'E — копать' : 'E — обыскать', P.x, P.y - 78, '#fff2a0', 14);
+  // полоска копания
+  if (P.mine) { const q = Math.min(1, P.mine.t / P.mine.max), x = P.x - 40, y = P.y - 86; c.fillStyle = 'rgba(20,14,8,.9)'; c.fillRect(x - 1, y - 1, 82, 10); c.fillStyle = '#e0a060'; c.fillRect(x, y, 80 * q, 8); label(c, ORES[P.mine.v.metal].ore, P.x, y - 5, '#ffe9a8', 13); }
   // всплывающие числа
   for (const f of R.floats) { f.t -= 1 / 60; f.y -= 32 / 60; c.globalAlpha = Math.min(1, f.t * 2); label(c, f.s, f.x, f.y, f.col, f.big ? 22 : 15, true); }
   c.globalAlpha = 1; R.floats = R.floats.filter(f => f.t > 0);
@@ -347,11 +358,16 @@ function drawMob(c, G, m, t) {
 function drawHero(c, G, look, t) {
   const P = G.P;
   // куда смотрит: при ударе и рывке — на цель, иначе — куда шёл
-  const aim = P.atkT > 0 || P.dash, dx = aim ? Math.cos(P.face) : P.mvx, dy = aim ? Math.sin(P.face) : P.mvy;
+  const aim = P.atkT > 0 || P.dash || P.mine, dx = aim ? Math.cos(P.face) : P.mvx, dy = aim ? Math.sin(P.face) : P.mvy;
   const view = viewOf(dx, dy), dir = view === 'side' ? (Math.abs(dx) > 0.05 ? (dx < 0 ? -1 : 1) : P.dir) : 1;
-  const mode = P.dead ? 'dead' : P.atkT > 0 ? 'atk' : (P.moving || P.dash) ? 'walk' : 'idle';
-  const f = mode === 'dead' ? frameOf('dead', P.deadT / 0.7) : mode === 'atk' ? frameOf('atk', 1 - P.atkT / P.atkDur) : mode === 'walk' ? frameOf('walk', (P.step / 3) % 1) : 0;
+  const mode = P.dead ? 'dead' : (P.atkT > 0 || P.mine) ? 'atk' : (P.moving || P.dash) ? 'walk' : 'idle';
+  const f = mode === 'dead' ? frameOf('dead', P.deadT / 0.7) : mode === 'atk' ? frameOf('atk', P.mine ? (P.mine.t / 0.6) % 1 : 1 - P.atkT / P.atkDur) : mode === 'walk' ? frameOf('walk', (P.step / 3) % 1) : 0;
   c.fillStyle = 'rgba(0,0,0,.28)'; c.beginPath(); c.ellipse(P.x, P.y + 2, 15, 5, 0, 0, 7); c.fill();
+  const B = P.buf || {};
+  if (B.stone > 0) { c.strokeStyle = 'rgba(190,185,170,.85)'; c.lineWidth = 4; c.beginPath(); c.ellipse(P.x, P.y - 18, 24, 30, 0, 0, 7); c.stroke(); c.fillStyle = 'rgba(160,155,140,.18)'; c.fill(); }
+  if (B.rage > 0) { c.fillStyle = `rgba(255,70,40,${0.18 + 0.08 * Math.sin(t * 12)})`; c.beginPath(); c.ellipse(P.x, P.y - 18, 26, 32, 0, 0, 7); c.fill(); }
+  if (B.wind > 0) { c.strokeStyle = 'rgba(220,240,255,.7)'; c.lineWidth = 1.6; for (let i = 0; i < 3; i++) { const yy = P.y - 8 - i * 12; c.beginPath(); c.moveTo(P.x - P.mvx * 20 - 6, yy); c.lineTo(P.x - P.mvx * 46 - 14, yy + (i - 1) * 3); c.stroke(); } }
+  if (B.thorns > 0) { c.fillStyle = '#c8b890'; c.strokeStyle = '#24180f'; c.lineWidth = 0.8; for (let i = 0; i < 10; i++) { const a = i / 10 * 6.283 + t; const x = P.x + Math.cos(a) * 22, y = P.y - 16 + Math.sin(a) * 26; c.beginPath(); c.moveTo(x, y); c.lineTo(x + Math.cos(a) * 9, y + Math.sin(a) * 9); c.lineTo(x + Math.cos(a + 1.5) * 3, y + Math.sin(a + 1.5) * 3); c.closePath(); c.fill(); c.stroke(); } }
   if (P.weak > 0) { c.strokeStyle = 'rgba(160,160,255,.5)'; c.lineWidth = 2; c.beginPath(); c.ellipse(P.x, P.y + 2, 20, 8, 0, 0, 7); c.stroke(); }
   if (P.sit) { // сидит: ноги поджаты, тело ниже
     const sp = personSpr(look, 'side', 'idle', 0), lc = look.legs < 0 ? '#f2c9a0' : LINE[look.cls].legs[look.legs];

@@ -1,11 +1,13 @@
 // Вещи: создание, характеристики, облик, цена.
 import { GEAR_NAMES, MAIN_STAT_TO } from '../../data/classes.js';
 import { RAR_MUL, RAR_IDX, RAR_PROPS, LOOT, ITEM, PROPS } from '../../data/balance.js';
+import { TRINKETS } from '../../data/trinkets.js';
+import { ORES } from '../../data/mining.js';
 import { weighted, uid, rng } from '../engine/util.js';
 
 const ARMOR_SLOT = { head: 0.7, chest: 1.2, legs: 0.9 };
 const CLASS_ARMOR = { warrior: 1.6, archer: 1.0, mage: 0.5 };
-const STAM_SLOT = { head: 0.8, chest: 1.2, legs: 1.0, weapon: 0.5 };
+const STAM_SLOT = { head: 0.8, chest: 1.2, legs: 1.0, weapon: 0.5, neck: 0.7, ring: 0.6 };
 
 /** Ярус облика и названия 1..4: растёт с уровнем вещи (каждые 8) и цветом. */
 export function visTier(ilvl, rar) {
@@ -28,9 +30,9 @@ export function makeItem(cls, slot, ilvl, rar, r = Math.random) {
   if (slot === 'weapon') {
     it.dmg = r1((3 + ilvl * 1.5) * m * (0.92 + r() * 0.16));
     it.wt = rar === 'start' ? 0 : Math.min(3, tier);
-  } else {
+  } else if (ARMOR_SLOT[slot]) {
     it.armor = Math.round((2 + ilvl * 1.6) * ARMOR_SLOT[slot] * CLASS_ARMOR[cls] * m * (0.9 + r() * 0.2));
-  }
+  }   // кольцо и шея — без брони: только параметры
   it.main = rar === 'start' ? 0 : Math.max(1, Math.round((ITEM.main.base + ITEM.main.per * ilvl) * ITEM.slot[slot] * m * (0.9 + r() * 0.2)));
   it.stam = rar === 'start' ? 0 : Math.round((1 + ilvl * 0.9) * STAM_SLOT[slot] * m * (0.85 + r() * 0.3));
   // дополнительные свойства: зелёная — 1, синяя — 2 (одно может быть особым), без повторов, только своего класса
@@ -74,7 +76,7 @@ export function remakeItem(it, cls) {
 /** Стартовые вещи: рубаха, штаны, простое оружие. */
 export function starterGear(cls) {
   return {
-    head: null,
+    head: null, neck: null, ring: null, trinket: null,
     chest: makeItem(cls, 'chest', 1, 'start', () => 0.5),
     legs: makeItem(cls, 'legs', 1, 'start', () => 0.5),
     weapon: makeItem(cls, 'weapon', 1, 'start', () => 0.5),
@@ -84,10 +86,25 @@ export function starterGear(cls) {
 /** Случайная вещь с моба. table — добыча зоны {rarity, rare}; без неё — запасные таблицы из balance.js. */
 export function rollDrop(cls, mobL, rare, r = Math.random, table = null) {
   const rar = weighted(rare ? (table && table.rare) || LOOT.rareMobRarity : (table && table.rarity) || LOOT.rarity, r);
-  const slot = weighted([['head', 2], ['chest', 3], ['legs', 3], ['weapon', 2]], r);
+  const slot = weighted([['head', 2], ['chest', 3], ['legs', 3], ['weapon', 2], ['neck', 1], ['ring', 1]], r);
   const ilvl = Math.max(1, mobL + (r() < 0.3 ? 1 : 0));
   return makeItem(cls, slot, ilvl, rar, r);
 }
+
+/** Аксессуар: способность вместо параметров. Только синие и фиолетовые; id — из TRINKETS (без него — случайный нужного цвета). */
+export function makeTrinket(cls, ilvl, rar = 'rare', r = Math.random, id = null) {
+  const pool = TRINKETS.filter(t => t.rar === rar), T = (id && TRINKETS.find(t => t.id === id)) || pool[Math.floor(r() * pool.length)];
+  return { id: uid(), cls, slot: 'trinket', ilvl, rar: T.rar, tier: 3, trinket: T.id, name: T.name, price: Math.round((40 + ilvl * 12) * (T.rar === 'epic' ? 3 : 1)) };
+}
+export const TRINKET = id => TRINKETS.find(t => t.id === id);
+
+/** Руда или слиток стопкой: kind — 'ore' | 'bar', metal — copper/tin. price — за штуку. */
+export function makeStack(kind, metal, n = 1) {
+  const O = ORES[metal];
+  return { id: uid(), kind, metal, n, name: kind === 'ore' ? O.ore : O.bar, rar: 'common', price: kind === 'ore' ? O.oreP : O.barP };
+}
+/** Кирка: без неё жилу не выкопать. */
+export const makePick = () => ({ id: uid(), kind: 'tool', tool: 'pick', name: 'Кирка рудокопа', rar: 'common', price: 12 });
 
 /** Облик героя для рисования: какие ярусы на какой части тела. */
 export function lookOf(hero) {
@@ -107,6 +124,10 @@ export function lookOf(hero) {
 /** Строки описания вещи для подсказки: [ключ, текст]. */
 export function itemLines(it) {
   const L = [];
+  if (it.kind === 'ore') return [['t', `Руда для плавки: ${2} — на слиток`], ['n', `В стопке: ${it.n} из ${LOOT.stack}`]];
+  if (it.kind === 'bar') return [['t', 'Слиток. Пока его можно продать — позже из слитков будет ковать кузнец'], ['n', `В стопке: ${it.n} из ${LOOT.stack}`]];
+  if (it.kind === 'tool') return [['t', 'Нужна, чтобы копать руду. Достаточно держать в сумке']];
+  if (it.trinket) { const T = TRINKET(it.trinket); return [['ab', T.passive ? `Срабатывает само: ${T.d}` : `Клавиша 1: ${T.d}`, true], ['cd', `Перезарядка ${T.cd >= 120 ? T.cd / 60 + ' мин' : T.cd + ' с'}`], ['ilvl', `Уровень вещи: ${it.ilvl}`]]; }
   const f = v => String(v).replace('.', ',');
   if (it.dmg) L.push(['dmg', `Урон: ${f(it.dmg)}`]);
   if (it.armor) L.push(['armor', `Броня: ${it.armor}`]);

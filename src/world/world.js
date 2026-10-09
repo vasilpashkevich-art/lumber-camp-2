@@ -130,6 +130,23 @@ export function buildWorld(Z) {
     for (let i = 0; i < n; i++) { const c = Math.cos(F.a || 0), s = Math.sin(F.a || 0), u = (r2() - 0.5) * F.w * 0.9, v = F.h / 2 + 45 + r2() * 30, x = F.x + u * c - v * s, y = F.y + u * s + v * c;
       if (inside(x, y, 60) && !W.water(x, y, 40) && roadD(x, y) > 60) { W.props.push({ kind: 'hay', x, y }); W.blocks.push({ x, y: y - 6, rx: 26, ry: 11 }); } }
   }
+  // скалы и пригорки (v61): у края зоны и кое-где посреди — отдельным зерном, остальное не сдвигается
+  const r3 = rng(Z.seed + 700); W.rocks = [];
+  const rockOk = (x, y, rr) => inside(x, y, 30) && roadD(x, y) > rr + 50 && !(town && dist(x, y, town.x, town.y) < town.R + rr + 140)
+    && !W.camps.some(c => dist(x, y, c.x, c.y) < c.r + rr + 60) && !inField(x, y, rr + 20) && !(R && W.riverD(x, y) < R.w / 2 + rr + 30)
+    && !Z.exits.some(e => dist(x, y, e.x, e.y) < 300) && dist(x, y, Z.graveyard.x, Z.graveyard.y) > 260
+    && !W.blocks.some(b => !b.rect && dist(x, y, b.x, b.y) < b.rx + rr + 30) && !W.rocks.some(o => dist(x, y, o.x, o.y) < o.w * 0.5 + rr + 40);
+  for (let i = 0, tries = 0; i < 26 && tries < 2000; tries++) {
+    const e = edge[Math.floor(r3() * edge.length)], cx = Z.W / 2, cy = Z.H / 2, a = Math.atan2(cy - e[1], cx - e[0]), d = 110 + r3() * 200;
+    const x = e[0] + Math.cos(a) * d, y = e[1] + Math.sin(a) * d, w = 130 + r3() * 90;
+    if (!rockOk(x, y, w * 0.5)) continue; W.rocks.push({ x, y, w, h: w * (0.55 + r3() * 0.15), s: Math.floor(r3() * 1000) }); i++;
+  }
+  for (let i = 0, tries = 0; i < 9 && tries < 2000; tries++) {
+    const x = 400 + r3() * (Z.W - 800), y = 400 + r3() * (Z.H - 800), w = 90 + r3() * 60;
+    if (!rockOk(x, y, w * 0.5) || edgeDist(x, y) < 500) continue; W.rocks.push({ x, y, w, h: w * (0.55 + r3() * 0.15), s: Math.floor(r3() * 1000) }); i++;
+  }
+  for (const o of W.rocks) W.blocks.push({ x: o.x, y: o.y - 4, rx: o.w * 0.48, ry: o.w * 0.16 });
+  if (W.rocks.length) { W.trees = W.trees.filter(t => !W.rocks.some(o => Math.abs(t.x - o.x) < o.w * 0.6 && Math.abs(t.y - o.y) < o.w * 0.3)); W.grid.clear(); const all = W.trees; W.trees = []; for (const t of all) addTree(W, t); }
   return W;
 }
 

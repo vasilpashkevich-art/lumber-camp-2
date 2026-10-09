@@ -68,7 +68,8 @@ export const LOOT = {
   itemChance: 0.07,
   rarity: [['common', 1]],
   rareMobRarity: [['good', 80], ['rare', 20]],
-  bag: 24,                                     // мест в сумке
+  bag: 32,                                     // мест в сумке (v61: 8×4)
+  stack: 20,                                   // руда и слитки — стопкой до 20
   potionHeal: 0.4, potionCd: 20,
   sitRegen: 0.04,                              // доля здоровья в секунду сидя (X)
 };
@@ -78,7 +79,7 @@ export const RAR_PROPS = { start: 0, common: 0, good: 1, rare: 2, epic: 3 };   /
 // --- вещи (v59): главный параметр класса и дополнительные свойства
 export const ITEM = {
   main: { base: 0.5, per: 0.45 },                              // главный параметр = (base + per·ур.) × место × цвет
-  slot: { weapon: 1.2, chest: 1.1, legs: 1, head: 0.85 },      // доля места в главном параметре и свойствах
+  slot: { weapon: 1.2, chest: 1.1, legs: 1, head: 0.85, neck: 0.9, ring: 0.8 },   // доля места в главном параметре и свойствах
   propRar: { good: 1, rare: 1.3, epic: 1.6 },                  // сила свойства по цвету
   agiCrit: 20,                                                 // Лучник: каждые 20 Ловкости — +1% крита
   baseCrit: 10, critMul: 1.7,                                  // крит у всех без вещей и во сколько раз сильнее
@@ -97,3 +98,6 @@ export const PROPS = {
 export const RAR_IDX = { start: 0, common: 1, good: 2, rare: 3, epic: 4 };
 export const RAR_COL = { start: '#c8b898', common: '#e9dfc8', good: '#5fd35f', rare: '#4a9eff', epic: '#b46aff' };
 export const RAR_NAME = { start: 'Начальная', common: 'Обычная', good: 'Необычная', rare: 'Редкая', epic: 'Эпическая' };
+
+// --- аксессуары (v61): только с вожаков, 10%; если 8 раз подряд не выпал — на 9-й точно
+export const TRINKET_DROP = { chance: 0.1, pity: 8 };

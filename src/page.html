@@ -36,7 +36,7 @@ dl{display:grid;grid-template-columns:1fr auto;gap:8px 16px;margin:0} dt{color:v
 /* ---------- окна ---------- */
 .modal{position:fixed;inset:0;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;z-index:50;padding:12px}
 .box{background:linear-gradient(#2a2016,#16100b);border:2px solid var(--line);border-radius:12px;box-shadow:0 20px 60px rgba(0,0,0,.6),inset 0 0 0 4px rgba(244,199,102,.1);padding:22px 26px;max-width:min(520px,96vw);max-height:94vh;overflow:auto}
-.box.wide{max-width:min(860px,96vw)}
+.box.wide{max-width:min(920px,96vw)}
 .box p{line-height:1.45} .box .hint{color:var(--dim);font-size:13px} .box .err{color:#ff8a7a}
 .box textarea{width:100%;background:#120c08;color:var(--txt);border:1px solid #5a4630;border-radius:6px;padding:8px;font:12px monospace;user-select:text}
 .box input[type=file]{margin:6px 0 10px;color:var(--dim)}
@@ -93,7 +93,7 @@ dl{display:grid;grid-template-columns:1fr auto;gap:8px 16px;margin:0} dt{color:v
 .act .n{position:absolute;right:4px;bottom:2px;font-size:13px;font-weight:bold;color:#fff;text-shadow:0 1px 2px #000}
 .act .cd{position:absolute;left:0;right:0;bottom:0;height:0;background:rgba(0,0,0,.6)}
 .act .cdt{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:20px;color:#fff;text-shadow:0 1px 3px #000}
-.act.on{border-color:var(--gold)}
+.act.on{border-color:var(--gold)} .act.tr{border-color:#4a9eff;box-shadow:0 0 8px rgba(74,158,255,.35)}
 .act .lock{position:absolute;inset:0;background:rgba(10,6,4,.72);display:flex;flex-direction:column;align-items:center;justify-content:center} .act .lock svg{width:24px;height:24px} .act .lock b{font-size:11px;color:var(--hi);line-height:1}
 .act.ready{animation:glowA 1.2s ease-in-out 4} @keyframes glowA{50%{box-shadow:0 0 14px 4px #ffd34d;border-color:#ffd34d}}
 #pfRing{cursor:pointer}
@@ -121,15 +121,20 @@ dl{display:grid;grid-template-columns:1fr auto;gap:8px 16px;margin:0} dt{color:v
 .tip .up{color:#6fe06f} .tip .down{color:#ff7a6a} .tip .sum{font-weight:bold}
 .cell{position:relative} .upmark,.cic .upmark{position:absolute;right:2px;top:0;color:#5fe05f;font-size:14px;text-shadow:0 0 3px #000,0 0 2px #000;pointer-events:none} .cic{position:relative}
 .tip .hint2{color:#a8d8a0;font-size:12px;margin:0 0 4px} .tip b{display:block;font-size:16px} .tip small{color:var(--dim)} .tip p{margin:3px 0;font-size:14px} .tip .gold{color:#ffd34d} .tip .bad{color:#ff8a7a} .tip hr{border:none;border-top:1px solid #4a3a2a}
-.charwin{display:flex;gap:22px;flex-wrap:wrap} .bagside{flex:1 1 342px;max-width:360px}
-.doll{display:grid;grid-template-columns:auto auto;gap:10px;align-items:start}
-.doll canvas{width:170px;height:200px;background:radial-gradient(#3a2d1c,#120c08 70%);border-radius:10px;border:1px solid #4a3a2a}
-.eq{display:grid;grid-template-columns:52px;gap:6px}
+.charwin{display:flex;gap:22px;flex-wrap:wrap} .bagside{flex:1 1 460px;max-width:470px}
+.dollw{display:grid;grid-template-columns:52px 170px 52px;gap:8px;align-items:start}
+.dollw canvas{width:170px;height:236px;background:radial-gradient(#3a2d1c,#120c08 70%);border-radius:10px;border:1px solid #4a3a2a}
+.eq{display:grid;grid-template-columns:52px;gap:8px}
+.skillb{max-width:290px;margin-top:8px} .skrow{display:flex;justify-content:space-between;color:var(--dim);font-size:13px} .skbar{height:9px;background:#120c08;border:1px solid #4a3a2a;border-radius:5px;overflow:hidden} .skbar i{display:block;height:100%;background:linear-gradient(#e0a060,#a85a28)}
+.ware2{display:flex;align-items:center;gap:12px;background:#1a120c;border:1.5px solid #4a3a2a;border-radius:8px;padding:8px 10px;margin-bottom:8px} .ware2>div{flex:1} .ware2 b{display:block} .ware2 small{color:var(--dim)} .ware2 .btn{padding:6px 12px;min-height:38px;font-size:15px} .ware2 .btn[disabled]{opacity:.45}
+table.ores{width:100%;border-collapse:collapse;margin:6px 0;font-size:14px} table.ores th{color:var(--dim);text-align:left;font-weight:normal} table.ores td,table.ores th{padding:3px 6px;border-bottom:1px solid #3a2a1a}
+.tip .cnt{color:var(--dim);font-size:13px}
 .cell{width:52px;height:52px;border:1.5px solid #4a3a2a;border-radius:8px;background:#120c08;display:flex;align-items:center;justify-content:center;position:relative;padding:0}
 .cell .empty{font-size:10px;color:#6a5a40;text-align:center}
 .cell .pr{position:absolute;right:2px;bottom:0;font-size:11px;color:#ffd34d;font-weight:bold;text-shadow:0 1px 2px #000}
-.stats{grid-column:1/3;font-size:14px}
-.bag{display:grid;grid-template-columns:repeat(6,52px);gap:6px}
+.stats{font-size:14px;max-width:290px}
+.bag{display:grid;grid-template-columns:repeat(8,52px);gap:6px}
+.cell .n{position:absolute;right:3px;bottom:1px;font-size:12px;font-weight:bold;color:#fff;text-shadow:0 1px 2px #000,0 0 2px #000;pointer-events:none}
 .vend{display:flex;gap:26px;flex-wrap:wrap}
 .ware{display:flex;gap:10px;align-items:center;width:300px;text-align:left;background:#1a120c;border:1.5px solid #5a4630;border-radius:8px;padding:8px}
 .ware small{display:block;color:var(--dim);font-size:12px} .ware .pr{margin-left:auto;color:#ffd34d;font-weight:bold;font-size:18px}
@@ -176,6 +181,7 @@ dl{display:grid;grid-template-columns:1fr auto;gap:8px 16px;margin:0} dt{color:v
     <button class="act" id="actAttack"><span class="ico"></span><span class="k">Пробел</span><span class="cd"></span><span class="cdt"></span></button>
     <button class="act" id="actAbil"><span class="ico"></span><span class="k">C</span><span class="cd"></span><span class="cdt"></span></button>
     <button class="act" id="actAbil2"><span class="ico"></span><span class="k">V</span><span class="cd"></span><span class="cdt"></span><span class="lock" hidden><svg viewBox="0 0 32 32"><rect x="9" y="15" width="14" height="11" rx="2" fill="#c9a24a" stroke="#24180f" stroke-width="1.4"/><path d="M12 15v-4a4 4 0 0 1 8 0v4" fill="none" stroke="#24180f" stroke-width="2.4"/></svg><b>5</b></span></button>
+    <button class="act tr" id="actTrinket" hidden><span class="ico"></span><span class="k">1</span><span class="cd"></span><span class="cdt"></span></button>
     <button class="act" id="actPot"><span class="ico"></span><span class="k">Q</span><span class="n"></span><span class="cd"></span><span class="cdt"></span></button>
   </div>
   <div id="sideBtns"><button class="sq" id="btnMap" title="Карта — K"></button><button class="sq" id="btnBag" title="Персонаж и сумка — I"></button><button class="sq" id="btnMenu" title="Меню — Esc"></button></div>

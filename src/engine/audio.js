@@ -50,6 +50,11 @@ const OWN = {
   equip() { nz({ dur: 0.12, freq: 2400, q: 2, vol: 0.2 }); tone({ freq: 220, dur: 0.1, type: 'triangle', vol: 0.15 }); },
   smash() { nz({ dur: 0.35, type: 'lowpass', freq: 400, vol: 0.5 }); tone({ freq: 80, to: 35, dur: 0.4, vol: 0.4 }); },
   die() { tone({ freq: 220, to: 55, dur: 1.2, type: 'sawtooth', vol: 0.12 }); },
+  // v61: кирка по камню, плавка, аксессуар, рост навыка
+  mine() { nz({ dur: 0.09, freq: 3200, q: 3, vol: 0.32 }); tone({ freq: 1900, to: 1500, dur: 0.12, type: 'triangle', vol: 0.12 }); nz({ dur: 0.18, type: 'lowpass', freq: 600, vol: 0.18, delay: 0.03 }); },
+  smelt() { nz({ dur: 0.5, type: 'lowpass', freq: 500, vol: 0.25 }); tone({ freq: 900, dur: 0.1, type: 'triangle', vol: 0.12, delay: 0.35 }); },
+  trinket() { for (let i = 0; i < 4; i++) tone({ freq: 440 * Math.pow(1.26, i), dur: 0.18, type: 'sine', vol: 0.1, delay: i * 0.05 }); },
+  skill() { tone({ freq: 784, dur: 0.12, type: 'triangle', vol: 0.12 }); tone({ freq: 1046, dur: 0.2, type: 'triangle', vol: 0.12, delay: 0.1 }); },
 };
 
 export function sfx(n) {

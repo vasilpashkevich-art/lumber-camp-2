@@ -16,9 +16,3 @@ export const TRINKETS = [
   { id: 'hourglass', rar: 'epic', name: 'Песочные часы', cd: 120, d: 'Сразу сбрасывает перезарядку умений C и V' },
   { id: 'gravity', rar: 'epic', name: 'Камень притяжения', cd: 75, d: 'Стягивает врагов вокруг в одну точку и оглушает на 2 с' },
 ];
-
-// Руда и слитки (v61): стопками по 20; плавка 2 руды → 1 слиток.
-export const ORES = {
-  copper: { ore: 'Медная руда', bar: 'Медный слиток', zone: 'pine', skill: 1, oreP: 4, barP: 11 },
-  tin:    { ore: 'Оловянная руда', bar: 'Оловянный слиток', zone: 'farms', skill: 50, oreP: 7, barP: 19 },
-};
