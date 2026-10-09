@@ -12,6 +12,7 @@ import { doll } from '../art/body.js';
 import { $, el, modal } from './dom.js';
 import { soundState, setSound, setVol } from '../engine/audio.js';
 import { fmt1 } from '../engine/util.js';
+import { statRows } from './stathelp.js';
 
 const PNAME = { crit: 'Крит', haste: 'Скорость удара', regen: 'Восстановление', pen: 'Пробивание брони', dodge: 'Уклонение', vamp: 'Вампиризм', block: 'Блок', cdr: 'Перезарядка' };
 let tipEl = null;
@@ -48,6 +49,13 @@ function tip(e, it, G, worn) {
 }
 /** Зелёная стрелка на ячейке: вещь лучше надетой по урону в секунду. */
 const upMark = (it, G) => { if (!it.slot || it.trinket) return it.trinket && !G.hero.eq.trinket && it.cls === G.hero.cls ? '<span class="upmark" title="Место свободно">▲</span>' : ''; const c = compareItem(G.hero, it); return c && c.up ? '<span class="upmark" title="Лучше надетого">▲</span>' : ''; };
+/** Подсказка-пояснение к строке характеристик. */
+function helpTip(e, title, text) {
+  if (!tipEl) { tipEl = el('div', 'tip'); document.body.append(tipEl); }
+  tipEl.innerHTML = `<div class="tcard thelp"><b>${title}</b><p>${text}</p></div>`; tipEl.classList.remove('two'); tipEl.hidden = false;
+  const a = e.currentTarget, box = (a.closest('.stats') || a).getBoundingClientRect(), r = { left: box.left, right: box.right, top: a.getBoundingClientRect().top }, w = tipEl.offsetWidth || 260, hh = tipEl.offsetHeight || 120;   // справа от столбца значений, чтобы не закрывать цифры
+  tipEl.style.left = (r.right + 10 + w < innerWidth ? r.right + 10 : Math.max(8, r.left - w - 10)) + 'px'; tipEl.style.top = Math.max(8, Math.min(innerHeight - hh - 8, r.top - 10)) + 'px';
+}
 export const hideTip = () => { if (tipEl) tipEl.hidden = true; };
 
 /** Окно персонажа: слева облик и надетое, справа сумка. Клик по вещи в сумке — надеть, по надетой — снять. */
@@ -66,7 +74,9 @@ export function openChar(G, onChange) {
         eq.append(b);
       }
     }
-    m.querySelector('.stats').innerHTML = `<dt>Уровень</dt><dd>${h.lvl}</dd><dt>Здоровье</dt><dd>${st.maxHp}</dd><dt>${MAIN_STAT[h.cls]}</dt><dd>${st.main}</dd><dt>Сила удара</dt><dd>${fmt1(st.hit)}</dd><dt>Урон в секунду</dt><dd>${fmt1(st.dps)}</dd><dt>Крит</dt><dd>${fmt1(st.crit)}%</dd>${Object.entries(st.p).filter(([k, v]) => v > 0 && k !== 'crit').map(([k, v]) => `<dt>${PNAME[k]}</dt><dd>${fmt1(v)}${PROPS[k].unit}</dd>`).join('')}<dt>Броня</dt><dd>${st.armor} (−${Math.round(armorCut(st.armor, h.lvl) * 100)}%)</dd><dt>Деньги</dt><dd>${moneyHtml(h.gold)}</dd><dt>Зелья</dt><dd>${h.potions}</dd>`;
+    const rows = statRows(h, st);
+    m.querySelector('.stats').innerHTML = rows.map((r, i) => `<dt>${r.label}${r.help ? `<span class="si" data-i="${i}">i</span>` : ''}</dt><dd>${r.val}</dd>`).join('') + `<dt>Деньги</dt><dd>${moneyHtml(h.gold)}</dd><dt>Зелья</dt><dd>${h.potions}</dd>`;
+    for (const b of m.querySelectorAll('.stats .si')) { const r = rows[+b.dataset.i]; b.onmouseenter = e => helpTip(e, r.label, r.help); b.onmouseleave = hideTip; }
     const sk = miningSkill(h);
     m.querySelector('.skillb').innerHTML = sk ? `<div class="skrow"><span>Горное дело</span><span>${sk} / ${MINE.cap}</span></div><div class="skbar"><i style="width:${sk / MINE.cap * 100}%"></i></div>` : `<p class="hint">Горное дело можно выучить в Гильдии рудокопов в Столице.</p>`;
     m.querySelector('.cnt').textContent = `${h.bag.length} / ${LOOT.bag}`;
