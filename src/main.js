@@ -18,7 +18,7 @@ import { dist } from './engine/util.js';
 import { $, toast, zoneTitle } from './ui/dom.js';
 import { RAR_COL } from '../data/balance.js';
 
-const VERSION = 61;
+const VERSION = 62;
 const WORLDS = {}; const worldOf = id => WORLDS[id] || (WORLDS[id] = buildWorld(ZONES[id] || ZONES.pine));
 let W = null, G = null, R = null, In = null, hud = null, raf = 0, last = 0, saveT = 0, musicT = 0, paused = false;
 
@@ -95,7 +95,7 @@ function frame(now) {
     if (e.k === 'toast') toast(e.s, e.kind || '', e.id);
     if (e.k === 'loot') { toast(`Добыча: <b style="color:${RAR_COL[e.it.rar]}">${e.it.name}</b>`, '', null); sfx('loot'); }
     if (e.k === 'lvl') { toast(`Новый уровень: ${e.L}! Здоровье восстановлено.`, 'good'); const A = abilsOf(G.hero).find(a => a.lvl === e.L); if (A) toast(`Новое умение: <b>${A.name}</b> — клавиша ${A.key}. ${A.d}`, 'good'); }
-    if (e.k === 'vendor' && !document.querySelector('.modal')) openVendor(G, () => hud.update());
+    if (e.k === 'vendor' && !document.querySelector('.modal')) openVendor(G, () => hud.update(), e.b);
     if (e.k === 'guild' && !document.querySelector('.modal')) openGuild(G, () => hud.update());
     if (e.k === 'smelt' && !document.querySelector('.modal')) openSmelt(G, () => hud.update());
     if (e.k === 'skill') toast(e.s, 'good', 'skill');

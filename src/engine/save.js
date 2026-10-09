@@ -43,7 +43,7 @@ export function migrate(h) {
   for (const it of Object.values(h.eq || {})) if (it) delete it.pos; h.dead = h.dead || {}; h.stats = Object.assign({ kills: 0, deaths: 0, gold: 0, items: 0, play: 0 }, h.stats || {});
   // v61: кольцо, шея, аксессуар; горное дело; гарантия аксессуара; жилы
   h.eq = Object.assign({ head: null, neck: null, chest: null, legs: null, weapon: null, ring: null, trinket: null }, h.eq || {});
-  h.prof = Object.assign({ mining: 0 }, h.prof || {}); h.tPity = h.tPity || 0; h.veins = h.veins || {};
+  h.prof = Object.assign({ mining: 0 }, h.prof || {}); h.tPity = h.tPity || 0; h.veins = h.veins || {}; h.shops = h.shops || {};
   h.potions = h.potions ?? 2; h.gold = h.gold || 0; h.worldT = h.worldT || 0; h.zone = h.zone || 'pine';
   // v59: вещи по новым правилам — главный параметр класса и свойства; место, уровень и цвет те же
   if (h.v < 2) { for (const s of Object.keys(h.eq || {})) if (h.eq[s]) h.eq[s] = remakeItem(h.eq[s], h.cls); h.bag = h.bag.map(it => remakeItem(it, h.cls)); }

@@ -1,6 +1,6 @@
 // Горное дело (v61): жилы в областях зоны, добыча с навыком по цветам, плавка, учитель и кирка.
 // Без рисования. Состояние жил хранится в герое (h.veins[зона]), чтобы не появлялись заново при каждом входе.
-import { ORES, MINE, veinColor } from '../../data/mining.js';
+import { ORES, MINE, GEMS, veinColor } from '../../data/mining.js';
 import { LOOT } from '../../data/balance.js';
 import { makeStack, makePick } from './items.js';
 import { dist } from '../engine/util.js';
@@ -74,6 +74,8 @@ export function mineTick(G, dt) {
   emit(G, { k: 'txt', x: v.x, y: v.y - 60, s: `+${n - left} ${O.ore.toLowerCase()}`, col: '#f0a060' });
   if (left) emit(G, { k: 'toast', s: 'Сумка полна — часть руды осталась в жиле', id: 'bagfull' });
   H.stats.ore = (H.stats.ore || 0) + n - left;
+  // самоцвет: только из жил посильнее меди
+  if (O.gems) { let q = G.rand(); for (const [g, ch] of O.gems) { if (q < ch) { if (!addStack(H, makeStack('gem', g, 1))) { emit(G, { k: 'txt', x: v.x, y: v.y - 80, s: `+ ${GEMS[g].name}!`, col: GEMS[g].col }); emit(G, { k: 'toast', s: `Самоцвет: <b style="color:${GEMS[g].col}">${GEMS[g].name}</b>`, id: 'gem' }); H.stats.gems = (H.stats.gems || 0) + 1; } break; } q -= ch; } }
   const sk = miningSkill(H), col = veinColor(sk, O.req);
   if (sk < MINE.cap && G.rand() < col.chance) { H.prof.mining = sk + 1; emit(G, { k: 'skill', s: `Горное дело: ${sk + 1}` }); sfx(G, 'skill'); }
   v.at = G.t + MINE.respawn[0] + G.rand() * (MINE.respawn[1] - MINE.respawn[0]);
@@ -81,7 +83,7 @@ export function mineTick(G, dt) {
 }
 
 // ---------------------------------------------------------------- стопки
-const isStack = it => it && (it.kind === 'ore' || it.kind === 'bar');
+const isStack = it => it && (it.kind === 'ore' || it.kind === 'bar' || it.kind === 'gem');
 const freePos = H => { for (let p = 0; p < LOOT.bag; p++) if (!H.bag.some(x => x.pos === p)) return p; return -1; };
 /** Положить стопку: сперва в неполные такие же, остаток — в свободные ячейки. Возвращает, сколько не влезло. */
 export function addStack(H, st) {

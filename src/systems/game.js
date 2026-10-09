@@ -2,10 +2,10 @@
 // Всё, что должен увидеть или услышать игрок, складывается в G.ev (события) и G.fx (эффекты).
 import { CLASSES } from '../../data/classes.js';
 import { MOBS } from '../../data/mobs.js';
-import { HERO, MOBL, RESPAWN, LEASH, AGGRO, LOOT, ITEM, TRINKET_DROP, armorCut, xpKill, lvlColor, xpNeed } from '../../data/balance.js';
+import { HERO, MOBL, RESPAWN, LEASH, AGGRO, LOOT, ITEM, TRINKET_DROP, SHOP, armorCut, xpKill, lvlColor, xpNeed } from '../../data/balance.js';
 import { TRINKETS } from '../../data/trinkets.js';
 import { heroStats, addXp, attackOf } from '../entities/hero.js';
-import { rollDrop, makeTrinket } from './items.js';
+import { rollDrop, makeTrinket, makeItem } from './items.js';
 import { initVeins, veinNear, startMine, stopMine, mineTick, addStack } from './mining.js';
 import { moveTo, inCity } from '../world/world.js';
 import { dist, clamp, money } from '../engine/util.js';
@@ -355,7 +355,7 @@ function interact(G) {
   const t = interactTarget(G); if (!t) return;
   if (t.k === 'corpse') { emit(G, { k: 'lootOpen', c: t.c }); return; }
   if (t.k === 'vein') { if (G.P.mine) stopMine(G); else startMine(G, t.v); return; }
-  if (t.k === 'b') { if (t.b.vendor) emit(G, { k: 'vendor' }); else if (t.b.guild) emit(G, { k: 'guild', b: t.b }); else if (t.b.smelt) emit(G, { k: 'smelt', b: t.b }); else emit(G, { k: 'toast', s: `${t.b.name}. ${t.b.note}`, id: 'bld' }); }
+  if (t.k === 'b') { if (t.b.vendor) emit(G, { k: 'vendor', b: t.b }); else if (t.b.guild) emit(G, { k: 'guild', b: t.b }); else if (t.b.smelt) emit(G, { k: 'smelt', b: t.b }); else emit(G, { k: 'toast', s: `${t.b.name}. ${t.b.note}`, id: 'bld' }); }
   if (t.k === 'exit') { if (t.e.zone) emit(G, { k: 'zone', e: t.e }); else emit(G, { k: 'toast', s: `Дорога в ${t.e.to} (ур. ${t.e.lvl}) откроется в следующих версиях`, id: 'exit' }); }
 }
 
@@ -531,6 +531,28 @@ export function buyPotion(G) {
   if (H.potions >= 10) { emit(G, { k: 'toast', s: 'Больше 10 зелий не унести', id: 'pot' }); return false; }
   H.gold -= p; H.potions++; sfx(G, 'coin'); return true;
 }
+/** Бижутерия у торговца: товар героя в этой лавке; меняется каждые 30 минут игры. */
+export function shopStock(G, b) {
+  const H = G.hero, key = G.W.Z.id + ':' + b.id; if (!b.jewel) return null;
+  H.shops = H.shops || {}; let S = H.shops[key];
+  if (!S || G.t >= S.at) {
+    const items = [];
+    for (let i = 0; i < SHOP.slots; i++) {
+      const rar = i === SHOP.slots - 1 && G.rand() < SHOP.rareChance ? 'rare' : 'good';
+      const it = makeItem(H.cls, G.rand() < 0.5 ? 'ring' : 'neck', H.lvl, rar, G.rand); it.cost = b.jewel[rar]; items.push(it);
+    }
+    S = H.shops[key] = { at: G.t + SHOP.refresh, items };
+  }
+  return S;
+}
+export function buyShop(G, b, idx) {
+  const H = G.hero, S = shopStock(G, b), it = S && S.items[idx]; if (!it) return false;
+  if (H.gold < it.cost) { emit(G, { k: 'toast', s: 'Не хватает денег', id: 'gold' }); return false; }
+  if (H.bag.length >= LOOT.bag) { emit(G, { k: 'toast', s: 'Сумка полна', id: 'bagfull' }); return false; }
+  H.gold -= it.cost; S.items.splice(idx, 1); const v = { ...it }; delete v.cost; bagAdd(H, v); sfx(G, 'coin');
+  emit(G, { k: 'toast', s: `Куплено: ${v.name}`, id: 'buy' }); return true;
+}
+
 /** Надеть вещь из сумки (снятая уходит в сумку). */
 export function equip(G, it) {
   const H = G.hero, i = H.bag.indexOf(it); if (i < 0 || !it.slot || it.cls !== H.cls) return;
@@ -550,7 +572,7 @@ export function unequip(G, slot, pos = null) {
 const bagAt = (H, pos) => H.bag.find(x => x.pos === pos);
 export function freePos(H) { for (let p = 0; p < LOOT.bag; p++) if (!bagAt(H, p)) return p; return -1; }
 /** Положить вещь в сумку: в ячейку pos, если она свободна, иначе в первую свободную. */
-export function bagAdd(H, it, pos = null) { if (it.kind === 'ore' || it.kind === 'bar') { addStack(H, it); return; } it.pos = pos != null && pos >= 0 && pos < LOOT.bag && !bagAt(H, pos) ? pos : freePos(H); H.bag.push(it); }
+export function bagAdd(H, it, pos = null) { if (it.kind === 'ore' || it.kind === 'bar' || it.kind === 'gem') { addStack(H, it); return; } it.pos = pos != null && pos >= 0 && pos < LOOT.bag && !bagAt(H, pos) ? pos : freePos(H); H.bag.push(it); }
 /** Переложить вещь в ячейку pos; если там лежит другая — они меняются местами. */
 export function bagMove(G, it, pos) {
   const H = G.hero; if (!H.bag.includes(it) || pos < 0 || pos >= LOOT.bag || it.pos === pos) return;

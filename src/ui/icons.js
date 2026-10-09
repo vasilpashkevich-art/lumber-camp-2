@@ -78,6 +78,8 @@ export const ACC_ICON = {
   ore_tin: `<path d="M5 24l4-10 8-5 9 4 2 10-8 4-10-1z" fill="#867f74" stroke="${O}" stroke-width="1.3"/><path d="M9 16l6 3 6-4 4 6" fill="none" stroke="${O}" stroke-width="3"/><path d="M9 16l6 3 6-4 4 6" fill="none" stroke="#dde3e8" stroke-width="1.8"/><path d="M12 22l3-2 2 3-3 1z" fill="#9aa6b2" stroke="${O}" stroke-width=".7"/>`,
   bar_copper: `<path d="M4 21l6-8h18l-6 8z" fill="#f0a060" stroke="${O}" stroke-width="1.3"/><path d="M4 21h18v5H4z" fill="#c8703a" stroke="${O}" stroke-width="1.3"/><path d="M22 21l6-8v5l-6 8z" fill="#9a5028" stroke="${O}" stroke-width="1.3"/><path d="M11 15h10" stroke="#ffd0a0" stroke-width="1.2"/>`,
   bar_tin: `<path d="M4 21l6-8h18l-6 8z" fill="#f0f4f8" stroke="${O}" stroke-width="1.3"/><path d="M4 21h18v5H4z" fill="#c9ced4" stroke="${O}" stroke-width="1.3"/><path d="M22 21l6-8v5l-6 8z" fill="#9aa2aa" stroke="${O}" stroke-width="1.3"/><path d="M11 15h10" stroke="#fff" stroke-width="1.2"/>`,
+  gem_tigerseye: `<path d="M16 4l10 8-4 14H10L6 12z" fill="#d8a040" stroke="${O}" stroke-width="1.4"/><path d="M6 12h20M16 4l-4 8 4 14 4-14z" fill="none" stroke="#8a5a1a" stroke-width="1"/><path d="M10 12 Q16 15 22 12" stroke="#ffe0a0" stroke-width="1.4" fill="none"/><path d="M12 7l3-1" stroke="#fff" stroke-width="1.4"/>`,
+  gem_amethyst: `<path d="M16 3l9 7-2 16-7 3-7-3-2-16z" fill="#a86ad8" stroke="${O}" stroke-width="1.4"/><path d="M7 10h18M16 3v26M9 26l7-16 7 16" fill="none" stroke="#6a3a9a" stroke-width="1"/><path d="M11 7l4-2" stroke="#f0d8ff" stroke-width="1.6"/>`,
   pickaxe: `<path d="M8 28 L20 10" stroke="${O}" stroke-width="4"/><path d="M8 28 L20 10" stroke="#8a5a32" stroke-width="2.2"/><path d="M6 9 Q16 2 28 9 Q20 8 17 11 Q13 8 6 9z" fill="#a8b0b6" stroke="${O}" stroke-width="1.3"/>`,
 };
 /** Значок: кольцо/шея (gem — цвет камня), аксессуар по id, руда/слиток/кирка. */
@@ -88,7 +90,7 @@ export function accIcon(kind, rar = 'common', size = 40, gemCol = '#4a9eff') {
 /** Значок любой вещи из сумки: доспех и оружие, кольцо и шея, аксессуар, руда, слиток, кирка. */
 const GEM = { crit: '#ff6a5a', haste: '#9ad0ff', regen: '#5fd38a', pen: '#e7c35a', dodge: '#c8e0ff', vamp: '#c41a3a', block: '#c4c0b6', cdr: '#b46aff' };
 export function anyIcon(it, size = 44) {
-  if (it.kind === 'ore' || it.kind === 'bar') return accIcon(it.kind + '_' + it.metal, 'common', size);
+  if (it.kind === 'ore' || it.kind === 'bar' || it.kind === 'gem') return accIcon(it.kind + '_' + it.metal, it.rar || 'common', size);
   if (it.kind === 'tool') return accIcon('pickaxe', 'common', size);
   if (it.trinket) return accIcon(it.trinket, it.rar, size);
   if (it.slot === 'ring' || it.slot === 'neck') return accIcon(it.slot, it.rar, size, GEM[Object.keys(it.props || {})[0]] || '#c8b898');

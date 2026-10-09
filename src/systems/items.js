@@ -2,7 +2,7 @@
 import { GEAR_NAMES, MAIN_STAT_TO } from '../../data/classes.js';
 import { RAR_MUL, RAR_IDX, RAR_PROPS, LOOT, ITEM, PROPS } from '../../data/balance.js';
 import { TRINKETS } from '../../data/trinkets.js';
-import { ORES } from '../../data/mining.js';
+import { ORES, GEMS } from '../../data/mining.js';
 import { weighted, uid, rng } from '../engine/util.js';
 
 const ARMOR_SLOT = { head: 0.7, chest: 1.2, legs: 0.9 };
@@ -100,6 +100,7 @@ export const TRINKET = id => TRINKETS.find(t => t.id === id);
 
 /** Руда или слиток стопкой: kind — 'ore' | 'bar', metal — copper/tin. price — за штуку. */
 export function makeStack(kind, metal, n = 1) {
+  if (kind === 'gem') return { id: uid(), kind, metal, n, name: GEMS[metal].name, rar: metal === 'amethyst' ? 'good' : 'common', price: GEMS[metal].price };
   const O = ORES[metal];
   return { id: uid(), kind, metal, n, name: kind === 'ore' ? O.ore : O.bar, rar: 'common', price: kind === 'ore' ? O.oreP : O.barP };
 }
@@ -126,6 +127,7 @@ export function itemLines(it) {
   const L = [];
   if (it.kind === 'ore') return [['t', `Руда для плавки: ${2} — на слиток`], ['n', `В стопке: ${it.n} из ${LOOT.stack}`]];
   if (it.kind === 'bar') return [['t', 'Слиток. Пока его можно продать — позже из слитков будет ковать кузнец'], ['n', `В стопке: ${it.n} из ${LOOT.stack}`]];
+  if (it.kind === 'gem') return [['t', 'Самоцвет. Пока его можно продать — позже из самоцветов будут гранить камни для вещей'], ['n', `В стопке: ${it.n} из ${LOOT.stack}`]];
   if (it.kind === 'tool') return [['t', 'Нужна, чтобы копать руду. Достаточно держать в сумке']];
   if (it.trinket) { const T = TRINKET(it.trinket); return [['ab', T.passive ? `Срабатывает само: ${T.d}` : `Клавиша 1: ${T.d}`, true], ['cd', `Перезарядка ${T.cd >= 120 ? T.cd / 60 + ' мин' : T.cd + ' с'}`], ['ilvl', `Уровень вещи: ${it.ilvl}`]]; }
   const f = v => String(v).replace('.', ',');

@@ -6,7 +6,7 @@ import { RAR_COL, RAR_NAME, LOOT, armorCut, PROPS } from '../../data/balance.js'
 import { itemIcon, anyIcon, accIcon, moneyHtml } from './icons.js';
 import { itemLines, itemNums, lookOf } from '../systems/items.js';
 import { compareItem } from '../entities/hero.js';
-import { equip, unequip, sellItem, buyPotion, POTION_PRICE, respawnHero, lootTake, hasLoot, bagMove, abilsOf } from '../systems/game.js';
+import { equip, unequip, sellItem, buyPotion, shopStock, buyShop, POTION_PRICE, respawnHero, lootTake, hasLoot, bagMove, abilsOf } from '../systems/game.js';
 import { ABIL_ICON } from './icons.js';
 import { doll } from '../art/hero.js';
 import { $, el, modal } from './dom.js';
@@ -20,8 +20,8 @@ const num = v => (v > 0 ? '+' : '−') + String(Math.abs(Math.round(v * 10) / 10
 /** Одна карточка вещи (для подсказки). */
 function card(it, G, head = '') {
   const wrong = it.cls !== G.hero.cls ? `<p class="bad">Не для вашего класса</p>` : '';
-  const kind = it.kind === 'ore' ? 'Руда' : it.kind === 'bar' ? 'Слиток' : it.kind === 'tool' ? 'Инструмент' : `${RAR_NAME[it.rar]} · ${SLOT_NAME[it.slot]}`;
-  return `<div class="tcard">${head}<b style="color:${RAR_COL[it.rar]}">${it.name}${it.n > 1 ? ` <span class="cnt">× ${it.n}</span>` : ''}</b><small>${kind}</small>${itemLines(it).map(([k, t, prop]) => `<p class="${prop ? 'prop' : ''}">${t}</p>`).join('')}${it.slot ? wrong : ''}${it.price ? `<p class="gold">Цена у торговца: ${moneyHtml(it.price * (it.n || 1))}${it.n > 1 ? ` <small>(${moneyHtml(it.price)} за штуку)</small>` : ''}</p>` : ''}</div>`;
+  const kind = it.kind === 'ore' ? 'Руда' : it.kind === 'bar' ? 'Слиток' : it.kind === 'gem' ? 'Самоцвет' : it.kind === 'tool' ? 'Инструмент' : `${RAR_NAME[it.rar]} · ${SLOT_NAME[it.slot]}`;
+  return `<div class="tcard">${head}<b style="color:${RAR_COL[it.rar]}">${it.name}${it.n > 1 ? ` <span class="cnt">× ${it.n}</span>` : ''}</b><small>${kind}</small>${itemLines(it).map(([k, t, prop]) => `<p class="${prop ? 'prop' : ''}">${t}</p>`).join('')}${it.slot ? wrong : ''}${it.cost ? `<p class="gold">Купить: ${moneyHtml(it.cost)}</p>` : ''}${it.price && !it.cost ? `<p class="gold">Цена у торговца: ${moneyHtml(it.price * (it.n || 1))}${it.n > 1 ? ` <small>(${moneyHtml(it.price)} за штуку)</small>` : ''}</p>` : ''}</div>`;
 }
 /** Что изменится, если надеть: построчно и итог. */
 function diffHtml(it, G) {
@@ -97,8 +97,9 @@ function closeOnE(m, extra) {
 }
 
 /** Рынок: продать вещи, купить зелья. */
-export function openVendor(G, onChange) {
-  const m = modal(`<h2>Рынок</h2><p class="who">Торговка Агафья: «Что продаёшь, путник? Зелья свежие, утром варила».</p><div class="vend"><div><h3>Купить</h3><div class="buy"></div></div><div><h3>Продать <small>(нажмите на вещь, цена — в подсказке)</small></h3><div class="bag"></div><div class="row"><button class="btn sellall">Продать всё, что не надеть</button><button class="btn sellore">Продать руду и слитки</button></div></div></div><p class="gold">Деньги: <b></b></p>`, 'wide');
+export function openVendor(G, onChange, shop = null) {
+  const who = shop && shop.name === 'Лавка' ? 'Лавочник Трофим: «Колечко, бусы, зелье — всё для путника. Хорошее нынче дорого».' : 'Торговка Агафья: «Что продаёшь, путник? Зелья свежие, утром варила. А вот и украшения — не дёшево, да того стоят».';
+  const m = modal(`<h2>${shop ? shop.name : 'Рынок'}</h2><p class="who">${who}</p><div class="vend"><div><h3>Купить</h3><div class="buy"></div></div><div><h3>Продать <small>(нажмите на вещь, цена — в подсказке)</small></h3><div class="bag"></div><div class="row"><button class="btn sellall">Продать всё, что не надеть</button><button class="btn sellore">Продать руду, слитки и камни</button></div></div></div><p class="gold">Деньги: <b></b></p>`, 'wide');
   const draw = () => {
     const h = G.hero, p = POTION_PRICE(h.lvl);
     m.querySelector('.gold b').innerHTML = moneyHtml(h.gold);
@@ -106,6 +107,17 @@ export function openVendor(G, onChange) {
     const b = el('button', 'ware', `<span class="ic"></span><span><b>Зелье здоровья</b><small>+40% здоровья, снимает яд. У вас: ${h.potions} из 10</small></span><span class="pr">${moneyHtml(p)}</span>`);
     b.querySelector('.ic').innerHTML = `<svg viewBox="0 0 32 32" width="40" height="40"><rect x="13" y="3" width="6" height="6" fill="#c9a06a" stroke="#24180f"/><path d="M12 9h8v4l5 6v6a4 4 0 0 1-4 4H11a4 4 0 0 1-4-4v-6l5-6z" fill="#e8e0cc" stroke="#24180f"/><path d="M8 19h16v6a4 4 0 0 1-4 4H12a4 4 0 0 1-4-4z" fill="#d8323a"/></svg>`;
     b.onclick = () => { buyPotion(G); onChange(); draw(); }; buy.append(b);
+    // бижутерия: меняется каждые 30 минут игры, синяя — редко
+    const S = shop && shopStock(G, shop);
+    if (S) {
+      buy.append(el('h4', 'jh', `Украшения <small>новый товар через ${Math.max(1, Math.ceil((S.at - G.t) / 60))} мин</small>`));
+      if (!S.items.length) buy.append(el('p', 'hint', 'Всё раскупили — приходите позже.'));
+      S.items.forEach((it, i) => {
+        const w = el('button', 'ware', `<span class="ic">${anyIcon(it, 40)}${upMark(it, G)}</span><span><b style="color:${RAR_COL[it.rar]}">${it.name}</b><small>${RAR_NAME[it.rar]} · ${SLOT_NAME[it.slot]} · ур. ${it.ilvl}</small></span><span class="pr ${h.gold < it.cost ? 'no' : ''}">${moneyHtml(it.cost)}</span>`);
+        w.onmouseenter = e => tip(e, it, G); w.onmouseleave = hideTip;
+        w.onclick = () => { hideTip(); buyShop(G, shop, i); onChange(); draw(); }; buy.append(w);
+      });
+    }
     const bag = m.querySelector('.bag'); bag.innerHTML = '';
     for (let i = 0; i < LOOT.bag; i++) {
       const it = h.bag.find(x => x.pos === i), c = el('button', 'cell', it ? anyIcon(it, 44) + (it.n > 1 ? `<span class="n">${it.n}</span>` : '') + upMark(it, G) : '');
@@ -118,7 +130,7 @@ export function openVendor(G, onChange) {
     for (const it of h.bag.slice()) { if (!it.slot) continue; const c = compareItem(h, it); if (!c || (h.eq[it.slot] && c.score <= 0 && !it.trinket)) sellItem(G, it); }
     onChange(); draw();
   };
-  m.querySelector('.sellore').onclick = () => { for (const it of G.hero.bag.slice()) if (it.kind === 'ore' || it.kind === 'bar') sellItem(G, it); onChange(); draw(); };
+  m.querySelector('.sellore').onclick = () => { for (const it of G.hero.bag.slice()) if (it.kind === 'ore' || it.kind === 'bar' || it.kind === 'gem') sellItem(G, it); onChange(); draw(); };
   closeOnE(m); draw(); return m;
 }
 

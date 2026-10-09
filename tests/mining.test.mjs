@@ -105,3 +105,33 @@ test('старое сохранение получает новые места, 
   for (const s of ['neck', 'ring', 'trinket']) assert.ok(s in h.eq && h.eq[s] === null);
   assert.equal(h.prof.mining, 0); assert.equal(h.tPity, 0); assert.deepEqual(h.veins, {}); assert.equal(h.bag[0].pos, 23);
 });
+
+// ---------------------------------------------------------------- v62
+import { GEMS } from '../data/mining.js';
+import { SHOP } from '../data/balance.js';
+import { shopStock, buyShop } from '../src/systems/game.js';
+
+test('самоцветы: только из олова, вместе 10%, дороже слитка, стопками', () => {
+  assert.ok(!ORES.copper.gems); const sum = ORES.tin.gems.reduce((s, g) => s + g[1], 0); assert.ok(Math.abs(sum - 0.1) < 1e-9);
+  for (const g of Object.values(GEMS)) assert.ok(g.price > ORES.tin.barP);
+  const F = game('mage', WF); quiet(F); learnMining(F); F.hero.gold = 100; buyPick(F); F.hero.prof.mining = 60;
+  let gems = 0;
+  for (let k = 0; k < 120; k++) {
+    const t = F.veins.find(x => x.metal === 'tin' && (!x.at || x.at <= F.t)); if (!t) { F.t += 700; run(F, 0.1); continue; }
+    F.P.x = t.x + 30; F.P.y = t.y; F.P.lastCombat = -99; run(F, 0.2, { interact: true }); run(F, 3.2);
+    F.hero.bag = F.hero.bag.filter(i => i.kind !== 'ore'); gems = countOf(F.hero, 'gem', 'tigerseye') + countOf(F.hero, 'gem', 'amethyst');
+  }
+  assert.ok(gems >= 3 && gems <= 30, `камней за 120 жил: ${gems}`);
+});
+
+test('торговец: 3 украшения, синее редко, товар меняется через 30 минут, покупка за деньги', () => {
+  const G = game('archer'); const b = G.W.houses.find(x => x.vendor);
+  const S = shopStock(G, b); assert.equal(S.items.length, SHOP.slots);
+  assert.ok(S.items.every(i => i.slot === 'ring' || i.slot === 'neck')); assert.ok(S.items.slice(0, 2).every(i => i.rar === 'good'));
+  const first = S.items.map(i => i.id); assert.deepEqual(shopStock(G, b).items.map(i => i.id), first, 'тот же товар до срока');
+  G.hero.gold = 0; assert.equal(buyShop(G, b, 0), false);
+  G.hero.gold = 1e6; assert.ok(buyShop(G, b, 0)); assert.equal(G.hero.bag.filter(i => i.slot).length, 1); assert.equal(shopStock(G, b).items.length, SHOP.slots - 1);
+  G.t += SHOP.refresh + 1; assert.equal(shopStock(G, b).items.length, SHOP.slots, 'новый товар');
+  let rare = 0; for (let i = 0; i < 400; i++) { G.t += SHOP.refresh + 1; if (shopStock(G, b).items.some(x => x.rar === 'rare')) rare++; }
+  assert.ok(rare > 30 && rare < 100, `синие: ${rare} из 400`);
+});

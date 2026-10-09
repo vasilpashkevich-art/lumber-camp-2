@@ -32,7 +32,7 @@ export const PINE = {
     // постройки: смещение от центра (середина фасада у земли), кто внутри; col — полуширина основания
     buildings: [
       { id: 'hall', name: 'Королевский дворец', dx: 0, dy: -590, col: 0, art: 'castle', note: 'Король пока в отъезде. Задания и сюжет — скоро' },
-      { id: 'market', name: 'Рынок', dx: -560, dy: -10, col: 75, art: 'market', vendor: true },
+      { id: 'market', name: 'Рынок', dx: -560, dy: -10, col: 75, art: 'market', vendor: true, jewel: { good: 800, rare: 2500 } },
       { id: 'forge', name: 'Кузница', dx: 560, dy: -280, col: 92, art: 'forge', smelt: true, note: 'Плавка руды. Ремонт и ковка — скоро' },
       { id: 'tavern', name: 'Таверна', dx: -430, dy: 470, col: 92, art: 'tavern', note: 'Отдых: в столице здоровье восстанавливается быстро' },
       { id: 'miners', name: 'Гильдия рудокопов', dx: 420, dy: 480, col: 92, art: 'miners', guild: true, smelt: true, note: 'Горное дело' },
@@ -94,7 +94,7 @@ export const FARMS = {
     name: 'Хутор Подгорный', x: 3000, y: 1050, R: 430,
     buildings: [
       { id: 'inn', name: 'Постоялый двор', dx: -170, dy: -110, col: 96, art: 'inn', note: 'Отдых: здоровье восстанавливается быстро' },
-      { id: 'market', name: 'Лавка', dx: 190, dy: -70, col: 60, art: 'stall', vendor: true },
+      { id: 'market', name: 'Лавка', dx: 190, dy: -70, col: 60, art: 'stall', vendor: true, jewel: { good: 1800, rare: 5000 } },
       { id: 'barn', name: 'Амбар', dx: 110, dy: 200, col: 92, art: 'barn', note: 'Здесь хутор держит зерно и сено' },
       { id: 'house1', dx: 330, dy: 175, col: 68, art: 'house', v: 1 },
       { id: 'house2', dx: -300, dy: 150, col: 68, art: 'house', v: 0 },
