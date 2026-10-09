@@ -1,4 +1,5 @@
 // Отрисовка мира: земля кусками, предметы по глубине, мобы, герой, выстрелы, эффекты, всплывающие числа.
+import { TOUCH } from '../ui/dom.js';
 import { LOOK } from '../art/look.js';
 import { lairSpr } from '../art/lairs.js';
 import { legColor, person } from '../art/body.js';
@@ -357,9 +358,11 @@ export function render(R, G, now) {
       c.save(); c.translate(ex, ey); c.rotate(a); c.globalAlpha = 0.85 + 0.15 * Math.sin(now / 160);
       c.fillStyle = '#e2453a'; c.strokeStyle = '#2a0c08'; c.lineWidth = 2 / zs; c.beginPath(); c.moveTo(s, 0); c.lineTo(-s * 0.8, -s * 0.8); c.lineTo(-s * 0.4, 0); c.lineTo(-s * 0.8, s * 0.8); c.closePath(); c.fill(); c.stroke(); c.restore();
     } }
+  // куда идёт герой по касанию — кольцо на земле
+  if (P.goal && P.goal.k === 'ground') { c.strokeStyle = 'rgba(255,233,168,.8)'; c.lineWidth = 2; c.beginPath(); c.ellipse(P.goal.x, P.goal.y, 14 + 3 * Math.sin(now / 150), 6, 0, 0, 7); c.stroke(); }
   // подсказка «E»
   const it = !P.dead && interactTarget(G);
-  if (it && !P.mine) label(c, it.k === 'b' ? `E — ${it.b.name}` : it.k === 'exit' ? 'E — дорога' : it.k === 'vein' ? 'E — копать' : 'E — обыскать', P.x, P.y - 78, '#fff2a0', 14);
+  if (it && !P.mine && !TOUCH) label(c, it.k === 'b' ? `E — ${it.b.name}` : it.k === 'exit' ? 'E — дорога' : it.k === 'vein' ? 'E — копать' : 'E — обыскать', P.x, P.y - 78, '#fff2a0', 14);   // на телефоне вместо надписи — кнопка действия
   // полоска копания
   if (P.mine) { const q = Math.min(1, P.mine.t / P.mine.max), x = P.x - 40, y = P.y - 86; c.fillStyle = 'rgba(20,14,8,.9)'; c.fillRect(x - 1, y - 1, 82, 10); c.fillStyle = '#e0a060'; c.fillRect(x, y, 80 * q, 8); label(c, ORES[P.mine.v.metal].ore, P.x, y - 5, '#ffe9a8', 13); }
   // всплывающие числа

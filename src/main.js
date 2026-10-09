@@ -15,10 +15,10 @@ import { doll } from './art/body.js';
 import { rollDrop, makeItem, makeTrinket, makeStack, makePick } from './systems/items.js';
 import { LOOT } from '../data/balance.js';
 import { dist } from './engine/util.js';
-import { $, toast, zoneTitle } from './ui/dom.js';
+import { $, toast, zoneTitle, TOUCH, T } from './ui/dom.js';
 import { RAR_COL } from '../data/balance.js';
 
-const VERSION = 68;
+const VERSION = 69;
 /** Приближение камеры на шаг: +1 ближе, −1 дальше. */
 let zoomT = 0;
 function zoomBy(d) {
@@ -31,7 +31,9 @@ let W = null, G = null, R = null, In = null, hud = null, raf = 0, last = 0, save
 
 function boot() {
   const cv = $('#game');
+  if (TOUCH) document.documentElement.classList.add('touch');
   R = createRenderer(cv); In = createInput(cv); hud = createHud(In);
+  In.onPinch = k => { if (G && !document.querySelector('.modal')) zoomBy(k > 1 ? 1 : -1); };
   addEventListener('resize', () => R.resize());
   ['pointerdown', 'keydown', 'touchstart'].forEach(ev => addEventListener(ev, () => { if (soundState().on) soundInit(); }, { passive: true }));
   In.onKey = (code) => {
@@ -74,7 +76,7 @@ function start(id) {
   $('#hud').hidden = false; $('#game').hidden = false;
   hud.bind(G); In.clear();
   last = performance.now(); raf = requestAnimationFrame(frame);
-  if (!hero.stats.play) toast(`Добро пожаловать в Сосновый дол! Мобы бродят за стенами Столицы. Пробел — бить, C — умение, X — отдых, K — карта, E — обыскать или поговорить.`, 'good');
+  if (!hero.stats.play) toast(T(`Добро пожаловать в Сосновый дол! Мобы бродят за стенами Столицы. Пробел — бить, C — умение, X — отдых, K — карта, E — обыскать или поговорить.`, `Добро пожаловать в Сосновый дол! Ведите пальцем слева — идти. Коснитесь врага — бить, тела или жилы — обыскать и копать. Справа — удар, умения, зелье, отдых.`), 'good');
   saveHero(hero);
 }
 
@@ -108,7 +110,7 @@ function frame(now) {
     if (e.k === 'sfx') sfx(e.n);
     if (e.k === 'toast') toast(e.s, e.kind || '', e.id);
     if (e.k === 'loot') { toast(`Добыча: <b style="color:${RAR_COL[e.it.rar]}">${e.it.name}</b>`, '', null); sfx('loot'); }
-    if (e.k === 'lvl') { toast(`Новый уровень: ${e.L}! Здоровье восстановлено.`, 'good'); const A = abilsOf(G.hero).find(a => a.lvl === e.L); if (A) toast(`Новое умение: <b>${A.name}</b> — клавиша ${A.key}. ${A.d}`, 'good'); }
+    if (e.k === 'lvl') { toast(`Новый уровень: ${e.L}! Здоровье восстановлено.`, 'good'); const A = abilsOf(G.hero).find(a => a.lvl === e.L); if (A) toast(`Новое умение: <b>${A.name}</b> — ${T('клавиша ' + A.key, 'новая кнопка справа')}. ${A.d}`, 'good'); }
     if (e.k === 'vendor' && !document.querySelector('.modal')) openVendor(G, () => hud.update(), e.b);
     if (e.k === 'guild' && !document.querySelector('.modal')) openGuild(G, () => hud.update());
     if (e.k === 'smelt' && !document.querySelector('.modal')) openSmelt(G, () => hud.update());

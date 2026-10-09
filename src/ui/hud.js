@@ -8,7 +8,8 @@ import { ABIL_ICON, moneyHtml, accIcon } from './icons.js';
 import { TRINKETS } from '../../data/trinkets.js';
 import { drawMini } from './map.js';
 import { attackOf } from '../entities/hero.js';
-import { $ } from './dom.js';
+import { $, TOUCH } from './dom.js';
+import { interactTarget } from '../systems/game.js';
 import { fmt1 } from '../engine/util.js';
 
 export function createHud(In) {
@@ -20,6 +21,7 @@ export function createHud(In) {
   In.button($('#actAbil2'), 'KeyV');
   In.button($('#actPot'), 'KeyQ');
   In.button($('#actTrinket'), 'Digit1');
+  In.button($('#actSit'), 'Sit'); In.button($('#actUse'), 'Use');
   H.bind = G => {
     H.G = G; H.portraitKey = ''; H.mini = null; H.miniKey = null; H.goldK = null;
     const C = CLASSES[cls()];
@@ -56,6 +58,9 @@ export function createHud(In) {
     // второе умение закрыто до своего уровня; когда открылось — кнопка мигает
     if (H.lockLvl !== h.lvl) { const A = C.abils[1], open = h.lvl >= A.lvl, b = $('#actAbil2'); const lk = b.querySelector('.lock'); lk.hidden = open; lk.querySelector('b').textContent = `${A.lvl} ур.`; if (open && H.lockLvl > 0 && H.lockLvl < A.lvl) { b.classList.add('ready'); setTimeout(() => b.classList.remove('ready'), 5000); } H.lockLvl = h.lvl; } cool('#actAttack', P.cd, attackOf(h).cd); $('#actAttack').classList.toggle('auto', !!P.auto);
     $('#actPot .n').textContent = h.potions;
+    // телефон: кнопка действия рядом с тем, что можно сделать (вместо клавиши E)
+    if (TOUCH) { const it = !P.dead && !P.mine && interactTarget(G), u = $('#actUse'), lab = it ? (it.k === 'corpse' ? 'Обыскать' : it.k === 'vein' ? 'Копать' : it.k === 'exit' ? 'В путь' : it.b.vendor ? 'Торговать' : it.b.guild || it.b.smelt ? 'Войти' : 'Осмотреть') : '';
+      u.hidden = !it; if (u.textContent !== lab) u.textContent = lab; $('#actSit').classList.toggle('on2', !!P.sit); }
     // аксессуар на клавише 1: значок меняется, когда надели другой
     const tr = h.eq.trinket, tk = tr ? tr.id : ''; const tb = $('#actTrinket');
     if (tk !== H.trK) { H.trK = tk; tb.hidden = !tr; if (tr) { const T = TRINKETS.find(x => x.id === tr.trinket); tb.querySelector('.ico').innerHTML = accIcon(tr.trinket, tr.rar, 44).replace(/width="44" height="44"/, 'width="100%" height="100%"'); tb.title = `${T.name} — 1. ${T.d}`; } }

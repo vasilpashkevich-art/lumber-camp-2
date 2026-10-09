@@ -1,5 +1,6 @@
 // Карта зоны: одна отрисовка для большой карты (K) и мини-карты.
 // Логова показываются областью с названием и уровнями; самих мобов на карте нет.
+import { TOUCH } from './dom.js';
 import { lvlColor } from '../../data/balance.js';
 import { modal } from './dom.js';
 
@@ -111,7 +112,7 @@ export function drawMini(cv, G, cache) {
 /** Большая карта зоны поверх игры. Закрывается по K, Esc или кнопке. */
 export function openMap(G) {
   const W = G.W, CW = 1100, CH = Math.round(CW * W.H / W.W);
-  const m = modal(`<h2>${W.Z.name} <small style="font-size:15px;color:#a89878">ур. ${W.Z.lvl[0]}–${W.Z.lvl[1]}</small></h2><canvas width="${CW * 2}" height="${CH * 2}"></canvas><p class="hint">Цвет подписи — насколько опасно для вас: зелёный — легко, жёлтый — по силам, оранжевый и красный — опасно. Жёлтые кружки на краю — дороги в другие края.</p><div class="row"><button class="btn main" data-x="ok">Закрыть (K)</button></div>`, 'map');
+  const m = modal(`<h2>${W.Z.name} <small style="font-size:15px;color:#a89878">ур. ${W.Z.lvl[0]}–${W.Z.lvl[1]}</small></h2><canvas width="${CW * 2}" height="${CH * 2}"></canvas><p class="hint">Цвет подписи — насколько опасно для вас: зелёный — легко, жёлтый — по силам, оранжевый и красный — опасно. Жёлтые кружки на краю — дороги в другие края.</p><div class="row"><button class="btn main" data-x="ok">Закрыть${TOUCH ? '' : ' (K)'}</button></div>`, 'map');
   const cv = m.querySelector('canvas'), g = cv.getContext('2d'), k = CW / W.W;
   const draw = () => {
     g.setTransform(2, 0, 0, 2, 0, 0); g.clearRect(0, 0, CW, CH);

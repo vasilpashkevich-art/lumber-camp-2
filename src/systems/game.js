@@ -6,6 +6,7 @@ import { HERO, MOBL, RESPAWN, LEASH, AGGRO, LOOT, ITEM, TRINKET_DROP, SHOP, armo
 import { TRINKETS } from '../../data/trinkets.js';
 import { heroStats, addXp, attackOf } from '../entities/hero.js';
 import { rollDrop, makeTrinket, makeItem } from './items.js';
+import { MINE } from '../../data/mining.js';
 import { initVeins, veinNear, startMine, stopMine, mineTick, addStack } from './mining.js';
 import { moveTo, inCity } from '../world/world.js';
 import { dist, clamp, money } from '../engine/util.js';
@@ -19,7 +20,7 @@ export function createGame(hero, W, opts = {}) {
       x: start.x, y: start.y, hp: hero.hp == null ? st.maxHp : Math.min(hero.hp, st.maxHp), face: 0, dir: 1,
       cd: 0, acd: {}, potCd: 0, target: null, sit: false, dash: null, atkT: 0, atkDur: 0.35, mvx: 0, mvy: 1, deadT: 0, lastCombat: -99, weak: 0, poison: null, slow: 0,
       whirl: 0, whirlT: 0, volley: 0, swing: 0, shot: 0, dead: false, moving: false, hurt: 0, step: 0,
-      mine: null, auto: null, tcd: 0, buf: { stone: 0, rage: 0, wind: 0, thorns: 0 },
+      mine: null, auto: null, goal: null, tcd: 0, buf: { stone: 0, rage: 0, wind: 0, thorns: 0 },
     },
     mobs: [], shots: [], ev: [], fx: [], corpses: [], corpseSeq: 0,
   };
@@ -67,7 +68,10 @@ export function update(G, dt, I) {
 
   if (!P.dead) {
     // движение
-    let mx = I.mx || 0, my = I.my || 0; const m = Math.hypot(mx, my);
+    let mx = I.mx || 0, my = I.my || 0;
+    if (Math.hypot(mx, my) > 0.05) P.goal = null;            // своё движение отменяет поход к цели
+    else if (P.goal && !P.dash) { const d = goalStep(G, dt); if (d) { mx = d[0]; my = d[1]; } }
+    const m = Math.hypot(mx, my);
     if (m > 1) { mx /= m; my /= m; }
     P.moving = m > 0.05 && !P.dash;
     if (P.moving || I.attack || I.attackTap || I.ability || I.ability2) { P.sit = false; if (P.mine) stopMine(G); }
@@ -87,7 +91,7 @@ export function update(G, dt, I) {
     if (rate) P.hp = Math.min(G.st.maxHp, P.hp + G.st.maxHp * rate * dt);
     if (G.st.p && G.st.p.regen > 0) P.hp = Math.min(G.st.maxHp, P.hp + G.st.p.regen * dt);   // свойство вещей: всегда, и в бою
     // цель кликом
-    if (I.pick) pickTarget(G, I.pick.x, I.pick.y);
+    if (I.pick) clickAt(G, I.pick.x, I.pick.y, !!I.pick.touch);
     if (I.tabTarget) tabTarget(G);
     if (P.target && (P.target.state === 'dead')) P.target = null;
     // удар
@@ -100,6 +104,7 @@ export function update(G, dt, I) {
     if (I.potion) drinkPotion(G);
     if (I.interact) interact(G);
     if (I.trinket) useTrinket(G);
+    if (P.goal) goalArrive(G);
     abilityTick(G, dt);
     mineTick(G, dt);
   }
@@ -116,12 +121,6 @@ export function update(G, dt, I) {
 // ---------------------------------------------------------------- герой бьёт
 const C = G => CLASSES[G.hero.cls];
 const hostile = m => m.state !== 'dead' && m.state !== 'return';
-
-function pickTarget(G, x, y) {
-  let best = null, bd = 60;
-  for (const m of G.mobs) { if (m.state === 'dead') continue; const d = dist(x, y, m.x, m.y - m.r); if (d < bd + m.r) { bd = d; best = m; } }
-  G.P.target = best;
-}
 
 // Tab: следующая ближайшая цель
 function tabTarget(G) {
@@ -357,6 +356,59 @@ function drinkPotion(G) {
 }
 
 // ---------------------------------------------------------------- взаимодействие
+// ---------------------------------------------------------------- касание и щелчок по миру (v69)
+/** Что лежит под точкой мира: моб, тело с добычей, жила, постройка, дорога в другой край или просто земля. */
+export function whatAt(G, x, y, touch = false) {
+  const pad = touch ? 26 : 8;
+  let best = null, bd = 1e9;
+  for (const m of G.mobs) { if (m.state === 'dead') continue; const d = dist(x, y, m.x, m.y - m.r); if (d < m.r + 30 + pad && d < bd) { bd = d; best = m; } }
+  if (best) return { k: 'mob', m: best };
+  for (const c of G.corpses) if (hasLoot(c) && dist(x, y, c.x, c.y) < 34 + pad) return { k: 'corpse', c, x: c.x, y: c.y };
+  for (const v of G.veins || []) if ((!v.at || v.at <= G.t) && dist(x, y, v.x, v.y - 20) < 42 + pad) return { k: 'vein', v, x: v.x, y: v.y };
+  for (const b of G.W.houses) if (b.name && dist(x, y, b.x, b.y - 30) < Math.max(70, (b.col || 50) * 1.4) + pad) return { k: 'b', b, x: b.x, y: b.y };
+  for (const e of G.W.exits) if (dist(x, y, e.x, e.y) < 90 + pad) return { k: 'exit', e, x: e.x, y: e.y };
+  return { k: 'ground', x, y };
+}
+/** Щелчок мышью: моб — цель; тело, жила, постройка, дорога — подойти и сделать. Касание пальцем: ещё и автоатака, и ходьба по земле. */
+export function clickAt(G, x, y, touch) {
+  const P = G.P; if (P.dead) return; const t = whatAt(G, x, y, touch);
+  if (t.k === 'mob') {
+    P.target = t.m;
+    if (touch && t.m.state !== 'return') { P.auto = null; startAuto(G); P.goal = { k: 'mob', m: t.m, st: 0 }; }
+    return;
+  }
+  if (t.k === 'ground') { if (touch) P.goal = { k: 'ground', x, y, st: 0 }; else P.target = null; return; }
+  P.goal = { ...t, st: 0 }; P.sit = false;
+}
+/** Куда идти к цели (единичный шаг) или null, если уже на месте. */
+function goalDest(G, g) {
+  const P = G.P;
+  if (g.k === 'mob') { const m = g.m; if (m.state === 'dead' || m.state === 'return') return null; return [m.x, m.y, Math.max(20, attackOf(G.hero).reach + m.r - 10)]; }
+  if (g.k === 'corpse') return hasLoot(g.c) ? [g.c.x, g.c.y, LOOT.lootR - 14] : null;
+  if (g.k === 'vein') return [g.v.x, g.v.y, MINE.reach - 8];
+  if (g.k === 'b') return [g.b.x, g.b.y + 40, 60];
+  if (g.k === 'exit') return [g.e.x, g.e.y, 150];
+  return [g.x, g.y, 10];
+}
+function goalStep(G, dt) {
+  const P = G.P, g = P.goal, D = goalDest(G, g);
+  if (!D) { P.goal = null; return null; }
+  const d = dist(P.x, P.y, D[0], D[1]); if (d <= D[2]) return null;
+  // застрял (упёрся в ствол, пруд, стену) — бросить поход
+  if (g.lx != null && dist(P.x, P.y, g.lx, g.ly) < 40 * dt) { g.st += dt; if (g.st > 0.6) { P.goal = null; emit(G, { k: 'toast', s: 'Не пройти — обойдите', id: 'stuck' }); return null; } } else g.st = 0;
+  g.lx = P.x; g.ly = P.y;
+  return [(D[0] - P.x) / d, (D[1] - P.y) / d];
+}
+function goalArrive(G) {
+  const P = G.P, g = P.goal, D = goalDest(G, g);
+  if (!D) { P.goal = null; return; }
+  if (dist(P.x, P.y, D[0], D[1]) > D[2]) return;
+  P.goal = null;
+  if (g.k === 'corpse') { P.auto = null; emit(G, { k: 'lootOpen', c: g.c }); }
+  else if (g.k === 'vein') { if ((!g.v.at || g.v.at <= G.t) && !P.mine) startMine(G, g.v); }
+  else if (g.k === 'b' || g.k === 'exit') doInteract(G, g);
+}
+
 export function interactTarget(G) {
   const P = G.P;
   let best = null, bd = LOOT.lootR;
@@ -367,8 +419,8 @@ export function interactTarget(G) {
   for (const e of G.W.exits) if (dist(P.x, P.y, e.x, e.y) < 220) return { k: 'exit', e, x: e.x, y: e.y };
   return null;
 }
-function interact(G) {
-  const t = interactTarget(G); if (!t) return;
+function interact(G) { const t = interactTarget(G); if (t) doInteract(G, t); }
+function doInteract(G, t) {
   if (t.k === 'corpse') { G.P.auto = null; emit(G, { k: 'lootOpen', c: t.c }); return; }
   if (t.k === 'vein') { if (G.P.mine) stopMine(G); else startMine(G, t.v); return; }
   if (t.k === 'b') { if (t.b.vendor) emit(G, { k: 'vendor', b: t.b }); else if (t.b.guild) emit(G, { k: 'guild', b: t.b }); else if (t.b.smelt) emit(G, { k: 'smelt', b: t.b }); else emit(G, { k: 'toast', s: `${t.b.name}. ${t.b.note}`, id: 'bld' }); }
@@ -392,7 +444,7 @@ function hurtHero(G, v, m, dot) {
 }
 
 function heroDie(G) {
-  const P = G.P; P.hp = 0; P.dead = true; P.deadT = 0; P.target = null; P.auto = null; P.poison = null; P.whirl = 0; P.volley = 0; P.dash = null; P.sit = false;
+  const P = G.P; P.hp = 0; P.dead = true; P.deadT = 0; P.target = null; P.auto = null; P.goal = null; P.poison = null; P.whirl = 0; P.volley = 0; P.dash = null; P.sit = false;
   G.hero.stats.deaths++;
   for (const m of G.mobs) if (m.state === 'chase') m.state = 'return';
   emit(G, { k: 'die' });

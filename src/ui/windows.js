@@ -9,13 +9,26 @@ import { compareItem } from '../entities/hero.js';
 import { equip, unequip, sellItem, buyPotion, shopStock, buyShop, POTION_PRICE, respawnHero, lootTake, hasLoot, bagMove, abilsOf } from '../systems/game.js';
 import { ABIL_ICON } from './icons.js';
 import { doll } from '../art/body.js';
-import { $, el, modal } from './dom.js';
+import { $, el, modal, TOUCH, T } from './dom.js';
 import { soundState, setSound, setVol } from '../engine/audio.js';
 import { fmt1 } from '../engine/util.js';
 import { statRows } from './stathelp.js';
 
 const PNAME = { crit: 'Крит', haste: 'Скорость удара', regen: 'Восстановление', pen: 'Пробивание брони', dodge: 'Уклонение', vamp: 'Вампиризм', block: 'Блок', cdr: 'Перезарядка' };
 let tipEl = null;
+/** Подсказка при наведении мыши. На телефоне наведения нет — вместо неё лист вещи с кнопками (itemSheet). */
+const hov = (b, fn) => { if (!TOUCH) { b.onmouseenter = fn; b.onmouseleave = hideTip; } };
+/** Телефон: касание вещи — карточка со сравнением и кнопками действий. acts: [[надпись, fn, main?]]. */
+function itemSheet(G, it, acts, worn) {
+  const cur = it.slot ? G.hero.eq[it.slot] : null, same = cur && cur.id === it.id;
+  const html = card(it, G).replace(/<\/div>$/, (same || it.cls !== G.hero.cls ? '' : diffHtml(it, G)) + '</div>') + (!same && cur && it.cls === G.hero.cls ? card(cur, G, '<p class="hint2">Сейчас надето</p>') : '');
+  const m = modal(`<div class="sheet">${html}</div><div class="row">${acts.map(([t, , main], i) => `<button class="btn${main ? ' main' : ''}" data-i="${i}">${t}</button>`).join('')}<button class="btn" data-x="no">Закрыть</button></div>`, 'itemsheet');
+  m.querySelectorAll('[data-i]').forEach(b => b.onclick = () => { m.close(); acts[+b.dataset.i][1](); });
+  m.querySelector('[data-x=no]').onclick = () => m.close();
+  return m;
+}
+/** Касание/щелчок по вещи: на компьютере — сразу действие, на телефоне — сначала лист. */
+const onItem = (b, G, it, label, fn, worn) => { b.onclick = () => { hideTip(); if (TOUCH) { if (label) itemSheet(G, it, [[label, fn, true]], worn); else itemSheet(G, it, [], worn); } else if (label) fn(); }; };
 const pct = v => (v >= 0 ? '+' : '−') + Math.abs(Math.round(v * 1000) / 10).toString().replace('.', ',') + '%';
 const num = v => (v > 0 ? '+' : '−') + String(Math.abs(Math.round(v * 10) / 10)).replace('.', ',');
 /** Одна карточка вещи (для подсказки). */
@@ -60,7 +73,7 @@ export const hideTip = () => { if (tipEl) tipEl.hidden = true; };
 
 /** Окно персонажа: слева облик и надетое, справа сумка. Клик по вещи в сумке — надеть, по надетой — снять. */
 export function openChar(G, onChange) {
-  const m = modal(`<h2>${G.hero.name}</h2><div class="charwin"><div><div class="dollw"><div class="eq eqL"></div><canvas width="340" height="472"></canvas><div class="eq eqR"></div></div><dl class="stats"></dl><div class="skillb"></div></div><div class="bagside"><h3>Сумка <span class="cnt"></span></h3><div class="bag"></div><p class="hint">Нажмите на вещь в сумке — надеть, на надетую — снять. Вещи можно перетаскивать мышью: по ячейкам сумки, на снаряжение и обратно. Руда и слитки лежат стопками до 20. Закрыть — I, B или Esc.</p></div></div>`, 'wide');
+  const m = modal(`<h2>${G.hero.name}</h2><div class="charwin"><div><div class="dollw"><div class="eq eqL"></div><canvas width="340" height="472"></canvas><div class="eq eqR"></div></div><dl class="stats"></dl><div class="skillb"></div></div><div class="bagside"><h3>Сумка <span class="cnt"></span></h3><div class="bag"></div><p class="hint">${T('Нажмите на вещь в сумке — надеть, на надетую — снять. Вещи можно перетаскивать мышью: по ячейкам сумки, на снаряжение и обратно. Руда и слитки лежат стопками до 20. Закрыть — I, B или Esc.', 'Коснитесь вещи — увидите, что она даёт, и сможете надеть или снять. Руда и слитки лежат стопками до 20.')}</p></div></div>`, 'wide');
   const cell = (it, extra = '') => el('button', 'cell', it ? anyIcon(it, 44) + (it.n > 1 ? `<span class="n">${it.n}</span>` : '') + extra : '');
   const draw = () => {
     const h = G.hero, st = G.st;
@@ -69,21 +82,21 @@ export function openChar(G, onChange) {
       const eq = m.querySelector(sel); eq.innerHTML = '';
       for (const s of list) {
         const it = h.eq[s]; const b = it ? cell(it) : el('button', 'cell', `<span class="empty">${SLOT_NAME[s]}</span>`);
-        if (it) { b.onmouseenter = e => tip(e, it, G, true); b.onmouseleave = hideTip; b.onclick = () => { hideTip(); unequip(G, s); onChange(); draw(); }; drag(b, { eq: s }); }
+        if (it) { hov(b, e => tip(e, it, G, true)); onItem(b, G, it, 'Снять', () => { unequip(G, s); onChange(); draw(); }, true); drag(b, { eq: s }); }
         drop(b, src => { if (src.it && src.it.slot === s) equip(G, src.it); });
         eq.append(b);
       }
     }
     const rows = statRows(h, st);
     m.querySelector('.stats').innerHTML = rows.map((r, i) => `<dt>${r.label}${r.help ? `<span class="si" data-i="${i}">i</span>` : ''}</dt><dd>${r.val}</dd>`).join('') + `<dt>Деньги</dt><dd>${moneyHtml(h.gold)}</dd><dt>Зелья</dt><dd>${h.potions}</dd>`;
-    for (const b of m.querySelectorAll('.stats .si')) { const r = rows[+b.dataset.i]; b.onmouseenter = e => helpTip(e, r.label, r.help); b.onmouseleave = hideTip; }
+    for (const b of m.querySelectorAll('.stats .si')) { const r = rows[+b.dataset.i]; if (TOUCH) b.onclick = e => { e.stopPropagation(); helpTip(e, r.label, r.help); }; else { b.onmouseenter = e => helpTip(e, r.label, r.help); b.onmouseleave = hideTip; } }
     const sk = miningSkill(h);
     m.querySelector('.skillb').innerHTML = sk ? `<div class="skrow"><span>Горное дело</span><span>${sk} / ${MINE.cap}</span></div><div class="skbar"><i style="width:${sk / MINE.cap * 100}%"></i></div>` : `<p class="hint">Горное дело можно выучить в Гильдии рудокопов в Столице.</p>`;
     m.querySelector('.cnt').textContent = `${h.bag.length} / ${LOOT.bag}`;
     const bag = m.querySelector('.bag'); bag.innerHTML = '';
     for (let i = 0; i < LOOT.bag; i++) {
       const it = h.bag.find(x => x.pos === i), b = cell(it, it ? upMark(it, G) : '');
-      if (it) { b.onmouseenter = e => tip(e, it, G); b.onmouseleave = hideTip; b.onclick = () => { if (!it.slot) return; hideTip(); equip(G, it); onChange(); draw(); }; drag(b, { it }); }
+      if (it) { hov(b, e => tip(e, it, G)); onItem(b, G, it, it.slot ? 'Надеть' : null, () => { equip(G, it); onChange(); draw(); }); drag(b, { it }); }
       drop(b, src => { if (src.it) bagMove(G, src.it, i); else if (src.eq) { const cur = h.bag.find(x => x.pos === i); if (cur && cur.slot === src.eq) equip(G, cur); else if (!cur) unequip(G, src.eq, i); } });
       bag.append(b);
     }
@@ -109,7 +122,7 @@ function closeOnE(m, extra) {
 /** Рынок: продать вещи, купить зелья. */
 export function openVendor(G, onChange, shop = null) {
   const who = shop && shop.name === 'Лавка' ? 'Лавочник Трофим: «Колечко, бусы, зелье — всё для путника. Хорошее нынче дорого».' : shop && shop.id === 'cart' ? 'Купец Демьян: «В этом лесу, путник, без зелья ни шагу — туман, споры да пауки. Бери, пока я тут стою».' : 'Купец Савва: «Что продаёшь, путник? Зелья свежие, утром привезли. А вот и украшения — не дёшево, да того стоят».';
-  const m = modal(`<h2>${shop ? shop.name : 'Рынок'}</h2><p class="who">${who}</p><div class="vend"><div><h3>Купить</h3><div class="buy"></div></div><div><h3>Продать <small>(нажмите на вещь, цена — в подсказке)</small></h3><div class="bag"></div><div class="row"><button class="btn sellall">Продать всё, что не надеть</button><button class="btn sellore">Продать руду, слитки и камни</button></div></div></div><p class="gold">Деньги: <b></b></p>`, 'wide');
+  const m = modal(`<h2>${shop ? shop.name : 'Рынок'}</h2><p class="who">${who}</p><div class="vend"><div><h3>Купить</h3><div class="buy"></div></div><div><h3>Продать <small>(${T('нажмите на вещь, цена — в подсказке', 'коснитесь вещи — увидите цену')})</small></h3><div class="bag"></div><div class="row"><button class="btn sellall">Продать всё, что не надеть</button><button class="btn sellore">Продать руду, слитки и камни</button></div></div></div><p class="gold">Деньги: <b></b></p>`, 'wide');
   const draw = () => {
     const h = G.hero, p = POTION_PRICE(h.lvl);
     m.querySelector('.gold b').innerHTML = moneyHtml(h.gold);
@@ -124,14 +137,14 @@ export function openVendor(G, onChange, shop = null) {
       if (!S.items.length) buy.append(el('p', 'hint', 'Всё раскупили — приходите позже.'));
       S.items.forEach((it, i) => {
         const w = el('button', 'ware', `<span class="ic">${anyIcon(it, 40)}${upMark(it, G)}</span><span><b style="color:${RAR_COL[it.rar]}">${it.name}</b><small>${RAR_NAME[it.rar]} · ${SLOT_NAME[it.slot]} · ур. ${it.ilvl}</small></span><span class="pr ${h.gold < it.cost ? 'no' : ''}">${moneyHtml(it.cost)}</span>`);
-        w.onmouseenter = e => tip(e, it, G); w.onmouseleave = hideTip;
-        w.onclick = () => { hideTip(); buyShop(G, shop, i); onChange(); draw(); }; buy.append(w);
+        hov(w, e => tip(e, it, G));
+        w.onclick = () => { hideTip(); const go = () => { buyShop(G, shop, i); onChange(); draw(); }; if (TOUCH) itemSheet(G, it, [['Купить за ' + moneyHtml(it.cost), go, true]]); else go(); }; buy.append(w);
       });
     }
     const bag = m.querySelector('.bag'); bag.innerHTML = '';
     for (let i = 0; i < LOOT.bag; i++) {
       const it = h.bag.find(x => x.pos === i), c = el('button', 'cell', it ? anyIcon(it, 44) + (it.n > 1 ? `<span class="n">${it.n}</span>` : '') + upMark(it, G) : '');
-      if (it) { c.onmouseenter = e => tip(e, it, G); c.onmouseleave = hideTip; c.onclick = () => { hideTip(); sellItem(G, it); onChange(); draw(); }; }
+      if (it) { hov(c, e => tip(e, it, G)); onItem(c, G, it, 'Продать', () => { sellItem(G, it); onChange(); draw(); }); }
       bag.append(c);
     }
   };
@@ -146,7 +159,7 @@ export function openVendor(G, onChange, shop = null) {
 
 /** Подсумок: что лежит в теле моба. Строка — взять одно, «Забрать всё» или E — всё сразу. */
 export function openLoot(G, c, onChange) {
-  const m = modal(`<h2>${c.name} <span class="lv">${c.lvl ? 'ур. ' + c.lvl : ''}</span></h2><div class="lst"></div><div class="row"><button class="btn" data-x="close">Закрыть</button><button class="btn main" data-x="all">Забрать всё <small>(E)</small></button></div>`, 'loot');
+  const m = modal(`<h2>${c.name} <span class="lv">${c.lvl ? 'ур. ' + c.lvl : ''}</span></h2><div class="lst"></div><div class="row"><button class="btn" data-x="close">Закрыть</button><button class="btn main" data-x="all">Забрать всё${T(' <small>(E)</small>', '')}</button></div>`, 'loot');
   m.corpse = c; m.parentElement.classList.add('light');   // подсумок не затемняет мир, стоит слева от героя
   const draw = () => {
     if (!hasLoot(c)) { m.close(); return; }
@@ -154,7 +167,7 @@ export function openLoot(G, c, onChange) {
     if (c.money > 0) { const b = el('button', 'lrow', `<span class="cic">${moneyIcon()}</span><span class="nm2">${moneyHtml(c.money)}</span>`); b.onclick = () => { lootTake(G, c, -1); onChange(); draw(); }; L.append(b); }
     c.items.forEach((it, i) => {
       const b = el('button', 'lrow', `<span class="cic">${anyIcon(it, 38)}${upMark(it, G)}</span><span class="nm2" style="color:${RAR_COL[it.rar]}">${it.name}</span>`);
-      b.onmouseenter = e => tip(e, it, G); b.onmouseleave = hideTip;
+      hov(b, e => tip(e, it, G));
       b.onclick = () => { hideTip(); lootTake(G, c, i); onChange(); draw(); }; L.append(b);
     });
   };
@@ -175,7 +188,7 @@ export function openGuild(G, onChange) {
     L.innerHTML = `<div class="ware2">${accIcon('pickaxe', 'common', 44)}<div><b>Горное дело</b><small>${sk ? `Навык: ${sk} / ${MINE.cap}` : 'Не изучено. Учу бесплатно.'}</small></div><button class="btn" data-x="learn" ${sk ? 'disabled' : ''}>${sk ? 'Изучено' : 'Выучить'}</button></div>
       <div class="ware2">${accIcon('pickaxe', 'common', 44)}<div><b>Кирка рудокопа</b><small>${hasPick(h) ? 'У вас уже есть' : 'Без неё жилу не выкопать'}</small></div><button class="btn" data-x="pick" ${hasPick(h) ? 'disabled' : ''}>${moneyHtml(MINE.pickPrice)}</button></div>
       <table class="ores"><tr><th>Руда</th><th>Где</th><th>Нужно</th><th>Сейчас</th></tr>${Object.values(ORES).map(O => { const c = sk ? veinColor(sk, O.req).c : 'none'; return `<tr><td>${O.ore}</td><td>${O.where || (O.req < 50 ? 'Сосновый дол' : 'Хуторские угодья')}</td><td>${O.req}</td><td style="color:${MINE.colorHex[c] || '#a89878'}">${{ none: 'не изучено', red: 'рано', orange: 'оранжевая', yellow: 'жёлтая', green: 'зелёная', gray: 'серая' }[c]}</td></tr>`; }).join('')}</table>
-      <p class="hint">Цвет жилы: ${leg}<br>Подойдите к жиле и нажмите E — 3 секунды копать. Удар врага прерывает. Выкопанная жила появится через 5–10 минут в другом месте.</p>`;
+      <p class="hint">Цвет жилы: ${leg}<br>${T('Подойдите к жиле и нажмите E — 3 секунды копать.', 'Коснитесь жилы — герой подойдёт и будет копать 3 секунды.')} Удар врага прерывает. Выкопанная жила появится через 5–10 минут в другом месте.</p>`;
     L.querySelector('[data-x=learn]').onclick = () => { learnMining(G); onChange(); draw(); };
     L.querySelector('[data-x=pick]').onclick = () => { buyPick(G); onChange(); draw(); };
   };
@@ -186,7 +199,7 @@ export function openGuild(G, onChange) {
 
 /** Плавильня: 2 руды → 1 слиток. В кузнице Столицы, в Гильдии рудокопов и в кузне Хутора Подгорного. */
 export function openSmelt(G, onChange) {
-  const m = modal(`<h2>Плавильня</h2><div class="sm"></div><p class="hint">Слиток стоит дороже двух руд. Позже из слитков будет ковать кузнец. Закрыть — E или Esc.</p>`, 'wide');
+  const m = modal(`<h2>Плавильня</h2><div class="sm"></div><p class="hint">Слиток стоит дороже двух руд. Позже из слитков будет ковать кузнец.${T(' Закрыть — E или Esc.', '')}</p>`, 'wide');
   const draw = () => {
     const h = G.hero, sk = miningSkill(h), L = m.querySelector('.sm'); L.innerHTML = '';
     for (const [k, O] of Object.entries(ORES)) {
@@ -206,8 +219,8 @@ const moneyIcon = () => `<svg viewBox="0 0 32 32" width="34" height="34"><ellips
 /** Умения класса: что открыто и что откроется на каком уровне. */
 export function openAbils(G) {
   const h = G.hero, C = CLASSES[h.cls];
-  const rows = abilsOf(h).map(A => { const open = h.lvl >= A.lvl; return `<div class="abl${open ? '' : ' locked'}"><span class="ic">${ABIL_ICON[A.icon]}</span><div><b>${A.name}</b><span class="kk">${A.key}</span>${open ? '' : ` <span class="lv">Доступно с ${A.lvl}-го уровня</span>`}<p>${A.d}</p><small>Перезарядка ${A.cd} с</small></div></div>`; }).join('');
-  const m = modal(`<h2>Умения: ${C.name.toLowerCase()}</h2><div class="abl"><span class="ic">${ABIL_ICON.attack[h.cls]}</span><div><b>Обычный удар</b><span class="kk">Пробел</span><p>${h.eq.weapon ? 'Держите пробел — герой бьёт ближайшего врага или выбранную цель.' : 'Оружие снято — герой бьёт кулаками, слабо и только вплотную.'}</p></div></div>${rows}<p class="hint">X — сесть и перевести дух: здоровье восстанавливается быстрее, любое движение или удар поднимает. Q — зелье.</p><div class="row"><button class="btn main" data-x="ok">Закрыть</button></div>`, 'abils');
+  const rows = abilsOf(h).map(A => { const open = h.lvl >= A.lvl; return `<div class="abl${open ? '' : ' locked'}"><span class="ic">${ABIL_ICON[A.icon]}</span><div><b>${A.name}</b><span class="kk">${T(A.key, 'кнопка')}</span>${open ? '' : ` <span class="lv">Доступно с ${A.lvl}-го уровня</span>`}<p>${A.d}</p><small>Перезарядка ${A.cd} с</small></div></div>`; }).join('');
+  const m = modal(`<h2>Умения: ${C.name.toLowerCase()}</h2><div class="abl"><span class="ic">${ABIL_ICON.attack[h.cls]}</span><div><b>Обычный удар</b><span class="kk">${T('Пробел', 'кнопка')}</span><p>${h.eq.weapon ? T('Нажмите пробел один раз — герой сам бьёт выбранную цель, пока она жива. Держите — бьёт ближайших.', 'Коснитесь врага или кнопки удара — герой сам бьёт цель, пока она жива.') : 'Оружие снято — герой бьёт кулаками, слабо и только вплотную.'}</p></div></div>${rows}<p class="hint">${T('X — сесть и перевести дух: здоровье восстанавливается быстрее, любое движение или удар поднимает. Q — зелье.', 'Кнопка «Сесть» — перевести дух: здоровье восстанавливается быстрее, любое движение или удар поднимает.')}</p><div class="row"><button class="btn main" data-x="ok">Закрыть</button></div>`, 'abils');
   m.querySelector('[data-x=ok]').onclick = () => m.close();
   return m;
 }
@@ -218,7 +231,7 @@ export function openMenu({ onExit, inGame }) {
   const m = modal(`<h2>Меню</h2>
     <label class="tgl"><input type="checkbox" ${s.on ? 'checked' : ''}> Звук</label>
     ${[['m', 'Музыка'], ['a', 'Шум города'], ['f', 'Звуки']].map(([k, n]) => `<label class="vol">${n}<input type="range" min="0" max="1" step="0.05" value="${s.vol[k]}" data-k="${k}"></label>`).join('')}
-    <div class="keys"><h3>Управление</h3><p><b>WASD</b> или стрелки — ходить · <b>Пробел</b> — бить (держать) · <b>C</b> и <b>V</b> — умения (второе — с 5-го уровня) · <b>X</b> — сесть отдохнуть · <b>Q</b> — зелье · <b>E</b> — обыскать тело, говорить, торговать · <b>K</b> — карта · <b>Tab</b> — ближайшая цель · <b>I</b> или <b>B</b> — персонаж и сумка · клик по врагу — выбрать цель</p></div>
+    <div class="keys"><h3>Управление</h3>${TOUCH ? '<p>Ведите пальцем в левой части экрана — идти · коснитесь земли — идти туда · коснитесь врага — бить его · коснитесь тела, жилы, торговца или дороги — герой подойдёт и сделает сам · кнопки справа — удар, умения, зелье, отдых · два пальца — ближе и дальше</p>' : `<p><b>WASD</b> или стрелки — ходить · <b>Пробел</b> — автоатака (держать — бить ближайших) · <b>C</b> и <b>V</b> — умения (второе — с 5-го уровня) · <b>X</b> — сесть отдохнуть · <b>Q</b> — зелье · <b>E</b> — обыскать тело, говорить, торговать · <b>K</b> — карта · <b>Tab</b> — ближайшая цель · <b>I</b> или <b>B</b> — персонаж и сумка · клик по врагу — выбрать цель · клик по телу, жиле, торговцу — подойти и сделать · колесо мыши, + и − — ближе и дальше</p>`}</div>
     <div class="row">${inGame ? '<button class="btn" data-x="exit">Выйти к выбору героя</button>' : ''}<button class="btn main" data-x="ok">Продолжить</button></div>`);
   m.querySelector('.tgl input').onchange = e => setSound(e.target.checked);
   m.querySelectorAll('.vol input').forEach(r => r.oninput = () => setVol(r.dataset.k, +r.value));
@@ -234,3 +247,6 @@ export function showDeath(G, onDone) {
   m.onclose = () => { respawnHero(G); onDone(); };
   return m;
 }
+
+// телефон: пояснение к характеристике закрывается касанием в любом другом месте
+if (TOUCH && typeof addEventListener !== 'undefined') addEventListener('pointerdown', e => { if (!(e.target.closest && e.target.closest('.si'))) hideTip(); }, true);
