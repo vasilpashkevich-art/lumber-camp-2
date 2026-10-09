@@ -60,7 +60,7 @@ test('граница зоны не пускает наружу', () => {
 test('вещи: стартовые, ярусы облика, цены', () => {
   const g = starterGear('archer'); assert.equal(g.head, null); assert.equal(g.chest.tier, 0); assert.equal(g.weapon.name, 'Короткий лук');
   assert.equal(visTier(5, 'common'), 1); assert.equal(visTier(5, 'rare'), 3); assert.equal(visTier(40, 'epic'), 4);
-  const it = makeItem('warrior', 'chest', 4, 'good', rng(3)); assert.equal(it.name, 'Кольчуга'); assert.ok(it.armor > 0 && it.price > 0);
+  const it = makeItem('warrior', 'chest', 4, 'good', rng(3)); assert.ok(it.name.startsWith('Кольчуга '), it.name); assert.ok(it.armor > 0 && it.price > 0 && Object.keys(it.props).length === 1);
   const r = rng(9); for (let i = 0; i < 200; i++) { const d = rollDrop('mage', 3, false, r); assert.equal(d.cls, 'mage'); assert.ok(d.name); }
   const h = newHero('x', 'mage'); h.eq.chest = makeItem('mage', 'chest', 5, 'epic', rng(1)); const L = lookOf(h);
   assert.equal(L.chest, 4); assert.equal(L.rar, 'epic');

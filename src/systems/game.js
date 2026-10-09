@@ -2,7 +2,7 @@
 // Всё, что должен увидеть или услышать игрок, складывается в G.ev (события) и G.fx (эффекты).
 import { CLASSES } from '../../data/classes.js';
 import { MOBS } from '../../data/mobs.js';
-import { HERO, MOBL, RESPAWN, LEASH, AGGRO, LOOT, armorCut, xpKill, lvlColor, xpNeed } from '../../data/balance.js';
+import { HERO, MOBL, RESPAWN, LEASH, AGGRO, LOOT, ITEM, armorCut, xpKill, lvlColor, xpNeed } from '../../data/balance.js';
 import { heroStats, addXp, attackOf } from '../entities/hero.js';
 import { rollDrop } from './items.js';
 import { moveTo, inCity } from '../world/world.js';
@@ -80,6 +80,7 @@ export function update(G, dt, I) {
     const city = inCity(G.W, P.x, P.y);
     const rate = Math.max(city ? HERO.regenCity : 0, P.sit ? LOOT.sitRegen : 0, G.t - P.lastCombat > HERO.outOfCombat ? HERO.regenOut : 0);
     if (rate) P.hp = Math.min(G.st.maxHp, P.hp + G.st.maxHp * rate * dt);
+    if (G.st.p && G.st.p.regen > 0) P.hp = Math.min(G.st.maxHp, P.hp + G.st.p.regen * dt);   // свойство вещей: всегда, и в бою
     // цель кликом
     if (I.pick) pickTarget(G, I.pick.x, I.pick.y);
     if (I.tabTarget) tabTarget(G);
@@ -134,7 +135,7 @@ function heroAttack(G, tap) {
     else { if (tap && t) emit(G, { k: 'toast', s: 'Слишком далеко', id: 'far' }); return; }
   }
   P.target = t; P.face = Math.atan2(t.y - P.y, t.x - P.x); P.dir = Math.cos(P.face) < 0 ? -1 : 1;
-  P.cd = A.cd; P.lastCombat = G.t; sfx(G, A.sfx);
+  P.cd = G.st.cd; P.lastCombat = G.t; sfx(G, A.sfx);
   startAtk(P, A.kind === 'melee' ? 0.32 : 0.42);
   if (A.kind === 'melee') { P.swing = 0.22; strike(G, t, G.st.hit, 'melee'); }
   else {
@@ -160,9 +161,12 @@ function strike(G, m, base, src, opt = {}) {
   if (m.state === 'return') { emit(G, { k: 'txt', x: m.x, y: m.y - m.r - 20, s: 'уклон', col: '#cfd8de' }); return; }
   const H = G.hero, d = m.lvl - H.lvl;
   if (!opt.sure && G.rand() < clamp(0.04 + 0.05 * d, 0.02, 0.4)) { emit(G, { k: 'txt', x: m.x, y: m.y - m.r - 20, s: 'мимо', col: '#cfd8de' }); aggro(G, m); return; }
-  let v = base * (0.9 + G.rand() * 0.2) * (G.P.weak > 0 ? HERO.deathWeakMul : 1) * (1 - armorCut(m.armor, H.lvl) * 0.5);
-  const crit = !opt.noCrit && G.rand() < 0.1; if (crit) v *= 1.7;
+  const st = G.st, pen = (st.p ? st.p.pen : 0) / 100;
+  let v = base * (0.9 + G.rand() * 0.2) * (G.P.weak > 0 ? HERO.deathWeakMul : 1) * (1 - armorCut(m.armor * (1 - pen), H.lvl) * 0.5);
+  const crit = !opt.noCrit && G.rand() < (st.crit ?? ITEM.baseCrit) / 100; if (crit) v *= ITEM.critMul;
   v = Math.max(1, v);
+  // вампиризм: часть нанесённого урона возвращается здоровьем
+  if (st.p && st.p.vamp > 0 && !G.P.dead) G.P.hp = Math.min(st.maxHp, G.P.hp + v * st.p.vamp / 100);
   m.hp -= v; m.hurt = 0.15;
   emit(G, { k: 'dmg', x: m.x, y: m.y - m.r * 2, v, crit });
   if (opt.burn) m.burn = { t: 3, dps: base * 0.3 };
@@ -256,7 +260,7 @@ function useAbility(G, i) {
     if (A.id === 'net') shot('net', G.st.hit * 0.3, 0, { root: A.root, sure: true });
     if (A.id === 'triple') for (const sp of [-0.13, 0, 0.13]) shot('arrow', G.st.hit * A.mul, sp);
   }
-  P.acd[A.id] = A.cd; P.lastCombat = G.t; P.sit = false; sfx(G, A.sfx);
+  P.acd[A.id] = A.cd * (1 - ((G.st.p && G.st.p.cdr) || 0) / 100); P.lastCombat = G.t; P.sit = false; sfx(G, A.sfx);
 }
 
 // рывок: летим к цели, на месте — удар сильнее обычного и оглушение
@@ -321,7 +325,12 @@ function interact(G) {
 // ---------------------------------------------------------------- урон герою и смерть
 function hurtHero(G, v, m, dot) {
   const P = G.P; if (P.dead) return;
-  if (!dot) { v *= (1 - armorCut(G.st.armor, G.hero.lvl)); P.hurt = 0.18; emit(G, { k: 'hdmg', v }); sfx(G, 'hurt'); }
+  if (!dot) {
+    const p = G.st.p || {};
+    if (p.dodge > 0 && G.rand() < p.dodge / 100) { emit(G, { k: 'txt', x: P.x, y: P.y - 60, s: 'уклонение', col: '#cfeaff' }); P.lastCombat = G.t; return; }
+    if (p.block > 0 && G.rand() < p.block / 100) { emit(G, { k: 'txt', x: P.x, y: P.y - 60, s: 'блок', col: '#e8e0cc' }); P.lastCombat = G.t; sfx(G, 'hammer'); return; }
+    v *= (1 - armorCut(G.st.armor, G.hero.lvl)); P.hurt = 0.18; emit(G, { k: 'hdmg', v }); sfx(G, 'hurt');
+  }
   P.hp -= v; P.lastCombat = G.t; P.sit = false;
   if (P.hp <= 0) heroDie(G);
 }

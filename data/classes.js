@@ -41,6 +41,10 @@ export const CLASSES = {
 };
 
 // Без оружия любой класс бьёт кулаками: рядом и слабо.
+// главный параметр класса на вещах (v59): им растёт сила удара и умений
+export const MAIN_STAT = { warrior: 'Сила', mage: 'Интеллект', archer: 'Ловкость' };
+export const MAIN_STAT_TO = { warrior: 'к силе', mage: 'к интеллекту', archer: 'к ловкости' };
+
 export const FIST = { kind: 'melee', reach: 50, cd: 1.0, mul: 0.6, sfx: 'axe' };
 
 // Названия вещей по классу, слоту и ярусу облика (0 — стартовая одежда).

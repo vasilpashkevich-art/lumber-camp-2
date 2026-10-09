@@ -1,30 +1,50 @@
 // Вещи: создание, характеристики, облик, цена.
-import { GEAR_NAMES } from '../../data/classes.js';
-import { RAR_MUL, RAR_IDX, LOOT } from '../../data/balance.js';
-import { weighted, uid } from '../engine/util.js';
+import { GEAR_NAMES, MAIN_STAT_TO } from '../../data/classes.js';
+import { RAR_MUL, RAR_IDX, RAR_PROPS, LOOT, ITEM, PROPS } from '../../data/balance.js';
+import { weighted, uid, rng } from '../engine/util.js';
 
 const ARMOR_SLOT = { head: 0.7, chest: 1.2, legs: 0.9 };
 const CLASS_ARMOR = { warrior: 1.6, archer: 1.0, mage: 0.5 };
 const STAM_SLOT = { head: 0.8, chest: 1.2, legs: 1.0, weapon: 0.5 };
 
-/** Ярус облика 0..4 по уровню вещи и редкости. */
+/** Ярус облика и названия 1..4: растёт с уровнем вещи (каждые 8) и цветом. */
 export function visTier(ilvl, rar) {
-  return Math.max(0, Math.min(4, RAR_IDX[rar] + Math.floor(ilvl / 15)));
+  if (rar === 'start') return 0;
+  return Math.max(1, Math.min(4, RAR_IDX[rar] + Math.floor(ilvl / 8)));
+}
+
+const r1 = v => Math.round(v * 10) / 10;
+/** Величина свойства на вещи. */
+export function propVal(k, slot, ilvl, rar, r = Math.random) {
+  const P = PROPS[k];
+  return Math.max(0.1, r1((P.base + P.per * ilvl) * ITEM.slot[slot] * (ITEM.propRar[rar] || 1) * (0.85 + r() * 0.3)));
 }
 
 /** Новая вещь. cls — класс, для которого вещь; slot — head/chest/legs/weapon. */
 export function makeItem(cls, slot, ilvl, rar, r = Math.random) {
-  const tier = rar === 'start' ? 0 : Math.max(1, visTier(ilvl, rar));
+  const tier = visTier(ilvl, rar);
   const m = RAR_MUL[rar];
   const it = { id: uid(), cls, slot, ilvl, rar, tier };
   if (slot === 'weapon') {
-    it.dmg = Math.round((3 + ilvl * 1.5) * m * (0.92 + r() * 0.16) * 10) / 10;
+    it.dmg = r1((3 + ilvl * 1.5) * m * (0.92 + r() * 0.16));
     it.wt = rar === 'start' ? 0 : Math.min(3, tier);
   } else {
     it.armor = Math.round((2 + ilvl * 1.6) * ARMOR_SLOT[slot] * CLASS_ARMOR[cls] * m * (0.9 + r() * 0.2));
   }
+  it.main = rar === 'start' ? 0 : Math.max(1, Math.round((ITEM.main.base + ITEM.main.per * ilvl) * ITEM.slot[slot] * m * (0.9 + r() * 0.2)));
   it.stam = rar === 'start' ? 0 : Math.round((1 + ilvl * 0.9) * STAM_SLOT[slot] * m * (0.85 + r() * 0.3));
-  if (RAR_IDX[rar] >= 3) it.pow = Math.round(ilvl * 0.6 * m); // редкие+ добавляют силу удара
+  // дополнительные свойства: зелёная — 1, синяя — 2 (одно может быть особым), без повторов, только своего класса
+  const n = RAR_PROPS[rar] || 0;
+  if (n) {
+    it.props = {};
+    const pool = Object.keys(PROPS).filter(k => PROPS[k].cls.includes(cls));
+    for (let i = 0; i < n; i++) {
+      const can = pool.filter(k => !(k in it.props) && (!PROPS[k].special || (RAR_IDX[rar] >= 3 && !Object.keys(it.props).some(q => PROPS[q].special))));
+      if (!can.length) break;
+      const k = can[Math.floor(r() * can.length)];
+      it.props[k] = propVal(k, slot, ilvl, rar, r);
+    }
+  }
   it.name = itemName(it);
   it.price = sellPrice(it);
   return it;
@@ -33,12 +53,22 @@ export function makeItem(cls, slot, ilvl, rar, r = Math.random) {
 export function itemName(it) {
   const names = GEAR_NAMES[it.cls][it.slot];
   const idx = it.slot === 'weapon' ? (it.wt ?? 0) : it.tier;
-  return names[Math.min(idx, names.length - 1)] || 'Вещь';
+  const base = names[Math.min(idx, names.length - 1)] || 'Вещь';
+  const first = it.props && Object.keys(it.props)[0];
+  return first && it.tier < 4 ? `${base} ${PROPS[first].suf}` : base;
 }
 
 export function sellPrice(it) {
   if (it.rar === 'start') return 1;
   return Math.max(1, Math.round((1 + it.ilvl * 0.8) * [0, 1, 2.2, 5, 12][RAR_IDX[it.rar]]));
+}
+
+/** Пересчитать старую вещь по правилам v59 (то же место, уровень и цвет; случайность — от id, чтобы было одинаково). */
+export function remakeItem(it, cls) {
+  let seed = 7; for (const ch of String(it.id)) seed = (seed * 31 + ch.charCodeAt(0)) % 2147483647;
+  const n = makeItem(it.cls || cls, it.slot || 'chest', it.ilvl || 1, it.rar || 'common', it.rar === 'start' ? () => 0.5 : rng(seed || 1));
+  n.id = it.id; if (it.pos != null) n.pos = it.pos;
+  return n;
 }
 
 /** Стартовые вещи: рубаха, штаны, простое оружие. */
@@ -74,13 +104,23 @@ export function lookOf(hero) {
   };
 }
 
-/** Строки описания вещи для подсказки. */
+/** Строки описания вещи для подсказки: [ключ, текст]. */
 export function itemLines(it) {
   const L = [];
-  if (it.dmg) L.push(`Урон: ${String(it.dmg).replace('.', ',')}`);
-  if (it.armor) L.push(`Броня: ${it.armor}`);
-  if (it.stam) L.push(`+${it.stam} к выносливости`);
-  if (it.pow) L.push(`+${it.pow} к силе удара`);
-  L.push(`Уровень вещи: ${it.ilvl}`);
+  const f = v => String(v).replace('.', ',');
+  if (it.dmg) L.push(['dmg', `Урон: ${f(it.dmg)}`]);
+  if (it.armor) L.push(['armor', `Броня: ${it.armor}`]);
+  if (it.main) L.push(['main', `+${it.main} ${MAIN_STAT_TO[it.cls]}`]);
+  if (it.stam) L.push(['stam', `+${it.stam} к выносливости`]);
+  for (const [k, v] of Object.entries(it.props || {})) L.push(['p:' + k, `+${f(v)}${PROPS[k].unit} ${PROPS[k].name}`, true]);
+  L.push(['ilvl', `Уровень вещи: ${it.ilvl}`]);
   return L;
+}
+
+/** Числа вещи по ключам — для сравнения с надетой. */
+export function itemNums(it) {
+  const o = {}; if (!it) return o;
+  if (it.dmg) o.dmg = it.dmg; if (it.armor) o.armor = it.armor; if (it.main) o.main = it.main; if (it.stam) o.stam = it.stam;
+  for (const [k, v] of Object.entries(it.props || {})) o['p:' + k] = v;
+  return o;
 }

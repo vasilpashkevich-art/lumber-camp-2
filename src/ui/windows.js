@@ -1,8 +1,9 @@
 // Окна: «Персонаж» (надетое, сумка, характеристики), «Рынок», меню (Esc), гибель.
-import { CLASSES, SLOTS, SLOT_NAME } from '../../data/classes.js';
-import { RAR_COL, RAR_NAME, LOOT, armorCut } from '../../data/balance.js';
+import { CLASSES, SLOTS, SLOT_NAME, MAIN_STAT } from '../../data/classes.js';
+import { RAR_COL, RAR_NAME, LOOT, armorCut, PROPS } from '../../data/balance.js';
 import { itemIcon, moneyHtml } from './icons.js';
-import { itemLines, lookOf } from '../systems/items.js';
+import { itemLines, itemNums, lookOf } from '../systems/items.js';
+import { compareItem } from '../entities/hero.js';
 import { equip, unequip, sellItem, buyPotion, POTION_PRICE, respawnHero, lootTake, hasLoot, bagMove, abilsOf } from '../systems/game.js';
 import { ABIL_ICON } from './icons.js';
 import { doll } from '../art/hero.js';
@@ -10,19 +11,39 @@ import { $, el, modal } from './dom.js';
 import { soundState, setSound, setVol } from '../engine/audio.js';
 import { fmt1 } from '../engine/util.js';
 
+const PNAME = { crit: 'Крит', haste: 'Скорость удара', regen: 'Восстановление', pen: 'Пробивание брони', dodge: 'Уклонение', vamp: 'Вампиризм', block: 'Блок', cdr: 'Перезарядка' };
 let tipEl = null;
+const pct = v => (v >= 0 ? '+' : '−') + Math.abs(Math.round(v * 1000) / 10).toString().replace('.', ',') + '%';
+const num = v => (v > 0 ? '+' : '−') + String(Math.abs(Math.round(v * 10) / 10)).replace('.', ',');
+/** Одна карточка вещи (для подсказки). */
+function card(it, G, head = '') {
+  const wrong = it.cls !== G.hero.cls ? `<p class="bad">Не для вашего класса</p>` : '';
+  return `<div class="tcard">${head}<b style="color:${RAR_COL[it.rar]}">${it.name}</b><small>${RAR_NAME[it.rar]} · ${SLOT_NAME[it.slot]}</small>${itemLines(it).map(([k, t, prop]) => `<p class="${prop ? 'prop' : ''}">${t}</p>`).join('')}${wrong}${it.price ? `<p class="gold">Цена у торговца: ${moneyHtml(it.price)}</p>` : ''}</div>`;
+}
+/** Что изменится, если надеть: построчно и итог. */
+function diffHtml(it, G) {
+  const h = G.hero, cur = h.eq[it.slot], c = compareItem(h, it); if (!c) return '';
+  const a = itemNums(cur), b = itemNums(it), keys = [...new Set([...Object.keys(b), ...Object.keys(a)])];
+  const NAME = { dmg: 'урон', armor: 'броня', main: MAIN_STAT[h.cls].toLowerCase(), stam: 'выносливость' };
+  const rows = keys.map(k => { const d = (b[k] || 0) - (a[k] || 0); if (Math.abs(d) < 0.05) return ''; const P = k.startsWith('p:') ? PROPS[k.slice(2)] : null;
+    return `<p class="${d > 0 ? 'up' : 'down'}">${num(d)}${P ? P.unit : ''} ${P ? PNAME[k.slice(2)].toLowerCase() : NAME[k]}</p>`; }).join('');
+  return `<div class="tdiff"><i>Если надеть${cur ? ` вместо «${cur.name}»` : ''}:</i>${rows || '<p>без изменений</p>'}<p class="sum ${c.dps > 0.001 ? 'up' : c.dps < -0.001 ? 'down' : ''}">Урон в секунду ${pct(c.dps)}</p><p class="sum ${c.ehp > 0.001 ? 'up' : c.ehp < -0.001 ? 'down' : ''}">Живучесть ${pct(c.ehp)}</p></div>`;
+}
 function tip(e, it, G, worn) {
   if (!tipEl) { tipEl = el('div', 'tip'); document.body.append(tipEl); }
   if (!it) { tipEl.hidden = true; return; }
   const cur = G.hero.eq[it.slot], same = cur && cur.id === it.id;
-  const cmp = !same && cur ? `<hr><small>Сейчас надето: ${cur.name}</small>` : '';
-  const wrong = it.cls !== G.hero.cls ? `<p class="bad">Не для вашего класса</p>` : '';
   const act = worn ? '<p class="hint2">Нажмите, чтобы снять</p>' : '';
-  tipEl.innerHTML = `${act}<b style="color:${RAR_COL[it.rar]}">${it.name}</b><small>${RAR_NAME[it.rar]} · ${SLOT_NAME[it.slot]}</small>${itemLines(it).map(l => `<p>${l}</p>`).join('')}${wrong}${it.price ? `<p class="gold">Цена у торговца: ${moneyHtml(it.price)}</p>` : ''}${cmp}`;
+  const main = card(it, G, act).replace(/<\/div>$/, (same || it.cls !== G.hero.cls ? '' : diffHtml(it, G)) + '</div>');
+  const other = !same && cur && it.cls === G.hero.cls ? card(cur, G, '<p class="hint2">Сейчас надето</p>') : '';
+  tipEl.innerHTML = main + other; tipEl.classList.toggle('two', !!other);
   tipEl.hidden = false;
-  const r = e.currentTarget.getBoundingClientRect(), w = 230;
-  tipEl.style.left = Math.min(innerWidth - w - 8, r.right + 8) + 'px'; tipEl.style.top = Math.max(8, Math.min(innerHeight - 220, r.top)) + 'px';
+  const r = e.currentTarget.getBoundingClientRect(), w = tipEl.offsetWidth || 240, hh = tipEl.offsetHeight || 260;
+  const left = r.right + 8 + w < innerWidth ? r.right + 8 : Math.max(8, r.left - w - 8);
+  tipEl.style.left = left + 'px'; tipEl.style.top = Math.max(8, Math.min(innerHeight - hh - 8, r.top)) + 'px';
 }
+/** Зелёная стрелка на ячейке: вещь лучше надетой по урону в секунду. */
+const upMark = (it, G) => { const c = compareItem(G.hero, it); return c && c.up ? '<span class="upmark" title="Лучше надетого">▲</span>' : ''; };
 export const hideTip = () => { if (tipEl) tipEl.hidden = true; };
 
 /** Окно персонажа: слева облик и надетое, справа сумка. Клик по вещи в сумке — надеть, по надетой — снять. */
@@ -38,11 +59,11 @@ export function openChar(G, onChange) {
       drop(b, src => { if (src.it && src.it.slot === s) equip(G, src.it); });
       eq.append(b);
     }
-    m.querySelector('.stats').innerHTML = `<dt>Уровень</dt><dd>${h.lvl}</dd><dt>Здоровье</dt><dd>${st.maxHp}</dd><dt>Сила удара</dt><dd>${fmt1(st.hit)}</dd><dt>Урон в секунду</dt><dd>${fmt1(st.dps)}</dd><dt>Броня</dt><dd>${st.armor} (−${Math.round(armorCut(st.armor, h.lvl) * 100)}%)</dd><dt>Деньги</dt><dd>${moneyHtml(h.gold)}</dd><dt>Зелья</dt><dd>${h.potions}</dd>`;
+    m.querySelector('.stats').innerHTML = `<dt>Уровень</dt><dd>${h.lvl}</dd><dt>Здоровье</dt><dd>${st.maxHp}</dd><dt>${MAIN_STAT[h.cls]}</dt><dd>${st.main}</dd><dt>Сила удара</dt><dd>${fmt1(st.hit)}</dd><dt>Урон в секунду</dt><dd>${fmt1(st.dps)}</dd><dt>Крит</dt><dd>${fmt1(st.crit)}%</dd>${Object.entries(st.p).filter(([k, v]) => v > 0 && k !== 'crit').map(([k, v]) => `<dt>${PNAME[k]}</dt><dd>${fmt1(v)}${PROPS[k].unit}</dd>`).join('')}<dt>Броня</dt><dd>${st.armor} (−${Math.round(armorCut(st.armor, h.lvl) * 100)}%)</dd><dt>Деньги</dt><dd>${moneyHtml(h.gold)}</dd><dt>Зелья</dt><dd>${h.potions}</dd>`;
     m.querySelector('.cnt').textContent = `${h.bag.length} / ${LOOT.bag}`;
     const bag = m.querySelector('.bag'); bag.innerHTML = '';
     for (let i = 0; i < LOOT.bag; i++) {
-      const it = h.bag.find(x => x.pos === i), b = el('button', 'cell', it ? itemIcon(it, 44) : '');
+      const it = h.bag.find(x => x.pos === i), b = el('button', 'cell', it ? itemIcon(it, 44) + upMark(it, G) : '');
       if (it) { b.onmouseenter = e => tip(e, it, G); b.onmouseleave = hideTip; b.onclick = () => { hideTip(); equip(G, it); onChange(); draw(); }; drag(b, { it }); }
       drop(b, src => { if (src.it) bagMove(G, src.it, i); else if (src.eq) { const cur = h.bag.find(x => x.pos === i); if (cur && cur.slot === src.eq) equip(G, cur); else if (!cur) unequip(G, src.eq, i); } });
       bag.append(b);
@@ -71,14 +92,14 @@ export function openVendor(G, onChange) {
     b.onclick = () => { buyPotion(G); onChange(); draw(); }; buy.append(b);
     const bag = m.querySelector('.bag'); bag.innerHTML = '';
     for (let i = 0; i < LOOT.bag; i++) {
-      const it = h.bag.find(x => x.pos === i), c = el('button', 'cell', it ? itemIcon(it, 44) : '');
+      const it = h.bag.find(x => x.pos === i), c = el('button', 'cell', it ? itemIcon(it, 44) + upMark(it, G) : '');
       if (it) { c.onmouseenter = e => tip(e, it, G); c.onmouseleave = hideTip; c.onclick = () => { hideTip(); sellItem(G, it); onChange(); draw(); }; }
       bag.append(c);
     }
   };
   m.querySelector('.sellall').onclick = () => {
-    const h = G.hero, sc = it => (it.dmg || 0) * 3 + (it.armor || 0) + (it.stam || 0) * 2 + (it.pow || 0) * 3;
-    for (const it of h.bag.slice()) { const cur = h.eq[it.slot]; if (it.cls !== h.cls || (cur && sc(it) <= sc(cur))) sellItem(G, it); }
+    const h = G.hero;
+    for (const it of h.bag.slice()) { const c = compareItem(h, it); if (!c || (h.eq[it.slot] && c.score <= 0)) sellItem(G, it); }
     onChange(); draw();
   };
   m.onclose = hideTip; draw(); return m;
@@ -93,7 +114,7 @@ export function openLoot(G, c, onChange) {
     const L = m.querySelector('.lst'); L.innerHTML = '';
     if (c.money > 0) { const b = el('button', 'lrow', `<span class="cic">${moneyIcon()}</span><span class="nm2">${moneyHtml(c.money)}</span>`); b.onclick = () => { lootTake(G, c, -1); onChange(); draw(); }; L.append(b); }
     c.items.forEach((it, i) => {
-      const b = el('button', 'lrow', `<span class="cic">${itemIcon(it, 38)}</span><span class="nm2" style="color:${RAR_COL[it.rar]}">${it.name}</span>`);
+      const b = el('button', 'lrow', `<span class="cic">${itemIcon(it, 38)}${upMark(it, G)}</span><span class="nm2" style="color:${RAR_COL[it.rar]}">${it.name}</span>`);
       b.onmouseenter = e => tip(e, it, G); b.onmouseleave = hideTip;
       b.onclick = () => { hideTip(); lootTake(G, c, i); onChange(); draw(); }; L.append(b);
     });

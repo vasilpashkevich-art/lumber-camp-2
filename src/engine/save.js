@@ -1,6 +1,7 @@
 // Сохранения: до 5 героев в браузере, у каждого свой ключ. Перенос — файлом.
 // Ключи ветки II: lumber-camp2-*  (не пересекаются с основной игрой).
 import { HERO_V } from '../entities/hero.js';
+import { remakeItem } from '../systems/items.js';
 
 const IDX = 'lumber-camp2-heroes';       // список героев: [{id, name, cls, lvl, zone, play, seen}]
 const KEY = id => 'lumber-camp2-hero-' + id;
@@ -41,6 +42,8 @@ export function migrate(h) {
     let p = 0; for (const it of h.bag) if (it.pos == null) { while (used.has(p)) p++; it.pos = p; used.add(p); } }
   for (const it of Object.values(h.eq || {})) if (it) delete it.pos; h.dead = h.dead || {}; h.stats = Object.assign({ kills: 0, deaths: 0, gold: 0, items: 0, play: 0 }, h.stats || {});
   h.potions = h.potions ?? 2; h.gold = h.gold || 0; h.worldT = h.worldT || 0; h.zone = h.zone || 'pine';
+  // v59: вещи по новым правилам — главный параметр класса и свойства; место, уровень и цвет те же
+  if (h.v < 2) { for (const s of Object.keys(h.eq || {})) if (h.eq[s]) h.eq[s] = remakeItem(h.eq[s], h.cls); h.bag = h.bag.map(it => remakeItem(it, h.cls)); }
   if (h.v < HERO_V) h.v = HERO_V;
   return h;
 }

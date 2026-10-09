@@ -72,7 +72,28 @@ export const LOOT = {
   potionHeal: 0.4, potionCd: 20,
   sitRegen: 0.04,                              // доля здоровья в секунду сидя (X)
 };
-export const RAR_MUL = { start: 0.8, common: 1, good: 1.15, rare: 1.32, epic: 1.55 };
+// v59: цвет заметнее — зелёная +25%, синяя +50%, фиолетовая +80% к белой того же уровня
+export const RAR_MUL = { start: 0.8, common: 1, good: 1.25, rare: 1.5, epic: 1.8 };
+export const RAR_PROPS = { start: 0, common: 0, good: 1, rare: 2, epic: 3 };   // сколько дополнительных свойств
+// --- вещи (v59): главный параметр класса и дополнительные свойства
+export const ITEM = {
+  main: { base: 0.5, per: 0.45 },                              // главный параметр = (base + per·ур.) × место × цвет
+  slot: { weapon: 1.2, chest: 1.1, legs: 1, head: 0.85 },      // доля места в главном параметре и свойствах
+  propRar: { good: 1, rare: 1.3, epic: 1.6 },                  // сила свойства по цвету
+  agiCrit: 20,                                                 // Лучник: каждые 20 Ловкости — +1% крита
+  baseCrit: 10, critMul: 1.7,                                  // крит у всех без вещей и во сколько раз сильнее
+};
+/** Дополнительные свойства: величина = (base + per·ур.) × место × цвет; cap — потолок суммы с героя; special — только на синих и выше. */
+export const PROPS = {
+  crit:  { name: 'к криту', suf: 'орла', unit: '%', base: 1, per: 0.2, cap: 40, cls: ['warrior', 'mage', 'archer'] },
+  haste: { name: 'к скорости удара', suf: 'ветра', unit: '%', base: 1.5, per: 0.35, cap: 30, cls: ['warrior', 'mage', 'archer'] },
+  regen: { name: 'здоровья в секунду', suf: 'родника', unit: '', base: 0.3, per: 0.12, cap: 999, cls: ['warrior', 'mage', 'archer'] },
+  pen:   { name: 'к пробиванию брони', suf: 'клыка', unit: '%', base: 2, per: 0.5, cap: 50, cls: ['warrior', 'mage', 'archer'] },
+  dodge: { name: 'к уклонению', suf: 'лиса', unit: '%', base: 1, per: 0.2, cap: 25, cls: ['mage', 'archer'] },
+  vamp:  { name: 'к вампиризму', suf: 'нетопыря', unit: '%', base: 0.5, per: 0.12, cap: 10, cls: ['warrior', 'archer'], special: true },
+  block: { name: 'к блоку', suf: 'твердыни', unit: '%', base: 1, per: 0.25, cap: 25, cls: ['warrior'], special: true },
+  cdr:   { name: 'к перезарядке умений', suf: 'мудреца', unit: '%', base: 1.5, per: 0.35, cap: 40, cls: ['mage', 'archer'], special: true },
+};
 export const RAR_IDX = { start: 0, common: 1, good: 2, rare: 3, epic: 4 };
 export const RAR_COL = { start: '#c8b898', common: '#e9dfc8', good: '#5fd35f', rare: '#4a9eff', epic: '#b46aff' };
 export const RAR_NAME = { start: 'Начальная', common: 'Обычная', good: 'Необычная', rare: 'Редкая', epic: 'Эпическая' };

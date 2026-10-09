@@ -2,7 +2,7 @@
 // Запуск: node tools/sim.mjs [класс] [минут]   — печатает, за сколько минут берётся каждый уровень.
 import { PINE, ZONES } from '../data/zones.js';
 import { buildWorld } from '../src/world/world.js';
-import { newHero } from '../src/entities/hero.js';
+import { newHero, compareItem } from '../src/entities/hero.js';
 import { createGame, update, respawnHero, equip, buyPotion, sellItem, POTION_PRICE, lootAll, hasLoot } from '../src/systems/game.js';
 import { LOOT } from '../data/balance.js';
 import { lvlColor } from '../data/balance.js';
@@ -50,19 +50,18 @@ export function runBot(cls, minutes, seed = 1, log = false, zone = 'pine', lvl =
   const G = createGame(H, W, { rand: rng(seed) });
   const dt = 1 / 20, steps = minutes * 60 / dt, lvAt = {}, R = rng(seed + 7);
   let goal = null, deadT = 0, shopping = false, stuck = 0, side = 0, sdir = 1, nst = 0, lx = 0, ly = 0;
-  const score = it => (it.dmg || 0) * 3 + (it.armor || 0) + (it.stam || 0) * 2 + (it.pow || 0) * 3;
   for (let i = 0; i < steps; i++) {
     const P = G.P, I = {};
     if (P.dead) { if ((deadT += dt) > 3) { respawnHero(G); deadT = 0; goal = null; } }
     else {
       // снаряжение
-      for (const it of H.bag.slice()) { const cur = H.eq[it.slot]; if (it.cls === H.cls && (!cur || score(it) > score(cur))) equip(G, it); }
+      for (const it of H.bag.slice()) { const c = compareItem(H, it); if (c && c.score > 0) equip(G, it); }
       if (H.potions === 0 && H.gold >= POTION_PRICE(H.lvl)) shopping = true;
       if (shopping) {
         const mk = W.houses.find(b => b.vendor), mx = mk.x, my = mk.y + 40;
         const tx = dist(P.x, P.y, mx, my) > 60 ? mx : null;
         if (tx !== null) { const [x, y] = via(W, P, mx, my); toward(I, P, x, y); }
-        else { for (const it of H.bag.slice()) if (it.cls !== H.cls || score(it) <= score(H.eq[it.slot] || { })) sellItem(G, it); while (H.potions < 5 && buyPotion(G)); shopping = false; }
+        else { for (const it of H.bag.slice()) { const c = compareItem(H, it); if (!c || c.score <= 0) sellItem(G, it); } while (H.potions < 5 && buyPotion(G)); shopping = false; }
       } else {
         if (P.hp < G.st.maxHp * 0.35) I.potion = true;
         const busy = G.mobs.find(m => m.state === 'chase');
