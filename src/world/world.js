@@ -36,17 +36,36 @@ export function buildWorld(Z) {
   W.houses = T0 ? T0.buildings.map(b => ({ ...b, x: T0.x + b.dx, y: T0.y + b.dy })) : [];
   // препятствия: эллипс под основанием построек (столица, посёлок, хутора, мельница)
   const block = (x, y, rx) => W.blocks.push({ x, y: y - 22, rx, ry: rx * 0.42 });
-  if (cap) for (const b of cap.buildings) block(cap.x + b.dx, cap.y + b.dy, b.col || 80);
+  if (cap) for (const b of cap.buildings) if (b.col) block(cap.x + b.dx, cap.y + b.dy, b.col);
+  // дворец, терраса с лестницей, фонтан: прямоугольники и эллипс
+  const rect = (x0, y0, x1, y1) => W.blocks.push({ rect: true, x0, y0, x1, y1 });
+  if (cap && cap.castle) {
+    const K = cap.castle, fy = cap.y + K.dy, cx = cap.x, T = K.terrace, sw = K.stairs + 36;
+    rect(cx - K.w / 2, cap.y - Math.sqrt(cap.R ** 2 - (K.w / 2) ** 2) - 5, cx + K.w / 2, fy);   // сам дворец до северной стены (только внутри стены)
+    rect(cx - T, fy + 56, cx - sw, fy + K.front); rect(cx + sw, fy + 56, cx + T, fy + K.front);   // подпорная стенка террасы
+    rect(cx - T - 14, fy - 10, cx - T + 8, fy + K.front); rect(cx + T - 8, fy - 10, cx + T + 14, fy + K.front);   // торцы террасы
+    rect(cx - T, fy - 10, cx - K.w / 2, fy + 4); rect(cx + K.w / 2, fy - 10, cx + T, fy + 4);   // за террасой к стене не уйти
+    W.castle = { x: cx, y: fy, ...K };
+  }
+  if (cap && cap.fountain) W.blocks.push({ x: cap.x, y: cap.y - 18, rx: cap.fountain.r + 8, ry: (cap.fountain.r + 8) * 0.55 });
   if (Z.village) { for (const b of Z.village.buildings) block(Z.village.x + b.dx, Z.village.y + b.dy, b.col || 70); block(Z.village.x, Z.village.y + 10, 26); }
-  for (const f of Z.farmsteads || []) block(f.x, f.y, 70);
-  if (Z.mill) block(Z.mill.x, Z.mill.y, 40);
+  for (const f of Z.farmsteads || []) block(f.x + (f.burned ? 20 : 50), f.y, f.burned ? 80 : 128);
+  if (Z.mill) block(Z.mill.x, Z.mill.y, 58);
+  // плиточные дорожки столицы (для травы и проверок)
+  W.onPave = (x, y) => {
+    if (!cap || !cap.ring) return false;
+    const dx = x - cap.x, dy = y - cap.y, d = Math.hypot(dx, dy);
+    if (d < cap.fountain.plaza || Math.abs(d - cap.ring.r) < cap.ring.w / 2) return true;
+    for (const p of cap.paths) { const u = dx * Math.cos(p.a) + dy * Math.sin(p.a), v = -dx * Math.sin(p.a) + dy * Math.cos(p.a); if (u > 0 && u < p.to && Math.abs(v) < p.w / 2) return true; }
+    return false;
+  };
   const inside = (x, y, pad = 0) => inPoly(x, y, edge) && (pad <= 0 || edgeDist(x, y) > pad);
   // река: вода по ломаной, мосты — проходы
   const R = W.river;
   if (R) R.bridgeAt = R.bridges.map(bx => { for (let i = 0; i < R.pts.length - 1; i++) { const [ax, ay] = R.pts[i], [cx, cy] = R.pts[i + 1]; if (bx >= ax && bx <= cx) { const k = (bx - ax) / (cx - ax); return { x: bx, y: ay + (cy - ay) * k, a: Math.atan2(cy - ay, cx - ax) }; } } return null; }).filter(Boolean);
   W.riverD = (x, y) => { if (!R) return 1e9; let m = 1e9; for (let i = 0; i < R.pts.length - 1; i++) m = Math.min(m, segDist(x, y, R.pts[i][0], R.pts[i][1], R.pts[i + 1][0], R.pts[i + 1][1])); return m; };
   W.water = (x, y, pad = 0) => R && W.riverD(x, y) < R.w / 2 + pad && !R.bridgeAt.some(b => { const dx = x - b.x, dy = y - b.y, ca = Math.cos(b.a), sa = Math.sin(b.a), u = dx * ca + dy * sa; return Math.abs(u) < 36; });
-  W.blocked = (x, y) => W.blocks.some(b => Math.abs(x - b.x) < b.rx && ((x - b.x) / b.rx) ** 2 + ((y - b.y) / b.ry) ** 2 < 1);
+  W.blocked = (x, y) => W.blocks.some(b => b.rect ? x > b.x0 && x < b.x1 && y > b.y0 && y < b.y1 : Math.abs(x - b.x) < b.rx && ((x - b.x) / b.rx) ** 2 + ((y - b.y) / b.ry) ** 2 < 1);
   /** Можно ли стоять здесь мобу: внутри зоны, не в воде, не в постройке. */
   W.walkable = (x, y) => inside(x, y) && !W.water(x, y) && !W.blocked(x, y);
   const inField = (x, y, pad) => W.fields.some(F => { const dx = x - F.x, dy = y - F.y, c = Math.cos(-(F.a || 0)), s = Math.sin(-(F.a || 0)), u = dx * c - dy * s, v = dx * s + dy * c; return Math.abs(u) < F.w / 2 + pad && Math.abs(v) < F.h / 2 + pad; });
@@ -81,7 +100,7 @@ export function buildWorld(Z) {
     if (town && dist(x, y, town.x, town.y) < town.R + 120) continue;
     if (R && W.riverD(x, y) < R.w / 2 + 50) continue;
     if (inField(x, y, 30)) continue;
-    if (W.blocks.some(b => dist(x, y, b.x, b.y) < b.rx + 60)) continue;
+    if (W.blocks.some(b => !b.rect && dist(x, y, b.x, b.y) < b.rx + 60)) continue;
     if (roadD(x, y) < 70) continue;
     if (W.camps.some(c => dist(x, y, c.x, c.y) < c.r * 0.7 + 30)) continue;
     if (dist(x, y, Z.graveyard.x, Z.graveyard.y) < 180) continue;
@@ -101,6 +120,8 @@ export function buildWorld(Z) {
       addTree(W, { x, y, kind: 2, s: 1 + r() * 0.3, v: r(), edge: true });
     }
   }
+  // деревья в столице — по списку (не из зерна, старые деревья не сдвигаются)
+  if (cap && cap.trees) for (const [dx, dy, kind] of cap.trees) addTree(W, { x: cap.x + dx, y: cap.y + dy, kind, s: 0.95, v: ((dx * 7 + dy * 3) % 100 + 100) % 100 / 100, town: true });
   // стога у полей и плетни вдоль них — отдельным зерном, чтобы деревья не сдвигались
   const r2 = rng(Z.seed + 500);
   for (const F of W.fields) {
@@ -146,7 +167,7 @@ export function moveTo(W, x, y, nx, ny, r = 12) {
 
 export const GATE_W = 0.15; // полуширина ворот в радианах
 export function inGate(c, a) {
-  for (const g of c.gates) { let d = Math.abs(((a - g + Math.PI * 3) % (Math.PI * 2)) - Math.PI); if (d < GATE_W) return true; }
+  for (const g of c.gates) { let d = Math.abs(((a - g + Math.PI * 3) % (Math.PI * 2)) - Math.PI); if (d < (c.gateW || GATE_W)) return true; }
   return false;
 }
 

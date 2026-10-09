@@ -14,10 +14,10 @@ import { doll } from './art/hero.js';
 import { rollDrop, makeItem } from './systems/items.js';
 import { LOOT } from '../data/balance.js';
 import { dist } from './engine/util.js';
-import { $, toast } from './ui/dom.js';
+import { $, toast, zoneTitle } from './ui/dom.js';
 import { RAR_COL } from '../data/balance.js';
 
-const VERSION = 57;
+const VERSION = 58;
 const WORLDS = {}; const worldOf = id => WORLDS[id] || (WORLDS[id] = buildWorld(ZONES[id] || ZONES.pine));
 let W = null, G = null, R = null, In = null, hud = null, raf = 0, last = 0, saveT = 0, musicT = 0, paused = false;
 
@@ -70,7 +70,7 @@ function goZone(e) {
   const h = G.hero; h.zone = e.zone; h.pos = { x: e.at.x, y: e.at.y }; h.hp = Math.round(G.P.hp);
   saveHero(h); W = worldOf(e.zone);
   G = createGame(h, W); R.cam.x = G.P.x; R.cam.y = G.P.y; hud.bind(G); In.clear();
-  toast(`${W.Z.name} · уровни ${W.Z.lvl[0]}–${W.Z.lvl[1]}`, 'good', 'zone');
+  zoneTitle(W.Z.name, `уровни ${W.Z.lvl[0]}–${W.Z.lvl[1]}`);
 }
 
 function persist() { if (!G) return; const h = G.hero; h.pos = { x: Math.round(G.P.x), y: Math.round(G.P.y) }; h.hp = Math.round(G.P.hp); saveHero(h); }

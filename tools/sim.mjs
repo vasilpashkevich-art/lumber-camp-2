@@ -21,9 +21,12 @@ function via(W, P, tx, ty) {
   const c = W.cap; if (!c) return [tx, ty];
   const dP = dist(P.x, P.y, c.x, c.y), inP = dP < c.R, inT = dist(tx, ty, c.x, c.y) < c.R;
   // в проёме ворот — сначала пройти его насквозь
-  if (Math.abs(dP - c.R) < 70) { const a = Math.atan2(P.y - c.y, P.x - c.x); for (const g of c.gates) { const da = Math.abs(((a - g) + Math.PI * 3) % (Math.PI * 2) - Math.PI); if (da < 0.15) { const out = inT ? -1 : 1; return [c.x + Math.cos(g) * (c.R + out * 100), c.y + Math.sin(g) * (c.R + out * 100)]; } } }
+  if (Math.abs(dP - c.R) < 70) { const a = Math.atan2(P.y - c.y, P.x - c.x); for (const g of c.gates) { const da = Math.abs(((a - g) + Math.PI * 3) % (Math.PI * 2) - Math.PI); if (da < (c.gateW || 0.15)) { const out = inT ? -1 : 1; return [c.x + Math.cos(g) * (c.R + out * 100), c.y + Math.sin(g) * (c.R + out * 100)]; } } }
   const gate = (x, y) => { let best = 0, bd = 1e9; for (const g of c.gates) { const d = dist(x, y, c.x + Math.cos(g) * c.R, c.y + Math.sin(g) * c.R); if (d < bd) { bd = d; best = g; } } return best; };
-  if (inP && inT) return [tx, ty];
+  if (inP && inT) { // фонтан в центре — обойти по площади
+    const f = c.fountain ? c.fountain.r + 60 : 0, dx = tx - P.x, dy = ty - P.y, L = Math.hypot(dx, dy) || 1, t = Math.max(0, Math.min(1, ((c.x - P.x) * dx + (c.y - P.y) * dy) / (L * L)));
+    if (f && dist(P.x + dx * t, P.y + dy * t, c.x, c.y) < f) { const a = Math.atan2(P.y - c.y, P.x - c.x), side = (dx * (P.y - c.y) - dy * (P.x - c.x)) > 0 ? -1 : 1; const b = a + side * 0.9; return [c.x + Math.cos(b) * (f + 40), c.y + Math.sin(b) * (f + 40)]; }
+    return [tx, ty]; }
   if (inP) { const g = gate(tx, ty); const ax = c.x + Math.cos(g) * (c.R + 90), ay = c.y + Math.sin(g) * (c.R + 90);
     const ix = c.x + Math.cos(g) * (c.R - 80), iy = c.y + Math.sin(g) * (c.R - 80);
     const da = Math.abs(((Math.atan2(P.y - c.y, P.x - c.x) - g) + Math.PI * 3) % (Math.PI * 2) - Math.PI);
@@ -46,7 +49,7 @@ export function runBot(cls, minutes, seed = 1, log = false, zone = 'pine', lvl =
   const W = buildWorld(ZONES[zone]), H = newHero('Бот', cls); H.zone = zone; if (lvl > 1) { H.lvl = lvl; for (const sl of ['head', 'chest', 'legs', 'weapon']) H.eq[sl] = makeItem(cls, sl, lvl, 'common', rng(seed + 3)); }
   const G = createGame(H, W, { rand: rng(seed) });
   const dt = 1 / 20, steps = minutes * 60 / dt, lvAt = {}, R = rng(seed + 7);
-  let goal = null, deadT = 0, shopping = false, stuck = 0, side = 0, lx = 0, ly = 0;
+  let goal = null, deadT = 0, shopping = false, stuck = 0, side = 0, sdir = 1, nst = 0, lx = 0, ly = 0;
   const score = it => (it.dmg || 0) * 3 + (it.armor || 0) + (it.stam || 0) * 2 + (it.pow || 0) * 3;
   for (let i = 0; i < steps; i++) {
     const P = G.P, I = {};
@@ -92,8 +95,8 @@ export function runBot(cls, minutes, seed = 1, log = false, zone = 'pine', lvl =
     }
     // объезд препятствий: если идём, но не двигаемся — шагнуть вбок
     if (I.mx || I.my) {
-      if (side > 0) { side -= dt; const a = Math.atan2(I.my, I.mx) + Math.PI / 2; I.mx = Math.cos(a); I.my = Math.sin(a); }
-      else if (Math.hypot(G.P.x - lx, G.P.y - ly) < 2) { if ((stuck += dt) > 0.3) { side = 0.9; stuck = 0; } } else stuck = 0;
+      if (side > 0) { side -= dt; const a = Math.atan2(I.my, I.mx) + sdir * Math.PI / 2; I.mx = Math.cos(a); I.my = Math.sin(a); }
+      else if (Math.hypot(G.P.x - lx, G.P.y - ly) < 2) { if ((stuck += dt) > 0.3) { nst++; side = 0.9 + Math.min(2, nst * 0.3); if (nst % 3 === 0) sdir = -sdir; stuck = 0; } } else { stuck = 0; if (Math.hypot(G.P.x - lx, G.P.y - ly) > 3) nst = Math.max(0, nst - dt); }
     }
     lx = G.P.x; ly = G.P.y;
     update(G, dt, I); G.ev.length = 0;

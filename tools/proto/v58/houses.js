@@ -1,0 +1,11 @@
+import { person } from '../../../src/art/rig.js';
+import { house, inn, tavern, enchant, barn, miners, forge, farmstead, GUARD_LOOK } from '../../../src/art/houses.js';
+import { BLD } from '../../../src/art/bld.js';
+const cv = document.createElement('canvas'); document.body.appendChild(cv); cv.id = 'h';
+const W = 2200, H = 760; cv.width = W; cv.height = H; const g = cv.getContext('2d');
+g.fillStyle = '#6f8a3e'; g.fillRect(0, 0, W, H);
+const man = (x, y, L) => { g.save(); g.translate(x, y - 14); g.scale(1.15, 1.15); person(g, L, 'front', { walk: -1 }); g.restore(); };
+const HERO = { cls: 'warrior', chest: 1, legs: 1, head: 0, wt: 0 };
+const row = (y, list) => { let x = 150; for (const [f, w] of list) { g.save(); g.translate(x, y); g.lineJoin = 'round'; g.lineCap = 'round'; f(g); g.restore(); man(x + w * 0.5, y + 30, HERO); x += w + 140; } };
+row(330, [[g => house(g, 0), 200], [g => house(g, 1), 200], [g => house(g, 2), 200], [inn, 260], [tavern, 260], [enchant, 220]]);
+row(700, [[barn, 260], [miners, 300], [forge, 260], [g => farmstead(g, false), 330], [g => farmstead(g, true), 300], [g => { man(0, 30, GUARD_LOOK); }, 60]]);

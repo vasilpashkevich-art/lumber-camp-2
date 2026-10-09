@@ -376,3 +376,54 @@ export function flowerbed(g, w, h, seed = 3) {
   const C = ['#e85a5a', '#f4c766', '#ffffff', '#b86ad8', '#ff9a4a'];
   for (let k = 0; k < w * h / 70; k++) { const x = -w / 2 + 8 + r() * (w - 16), y = -h / 2 + 7 + r() * (h - 14); g.fillStyle = '#3a5a22'; g.beginPath(); g.arc(x, y + 2, 2.6, 0, 7); g.fill(); g.fillStyle = C[Math.floor(r() * 5)]; g.beginPath(); g.arc(x, y, 2.2, 0, 7); g.fill(); }
 }
+
+// ---------------------------------------------------------------- в игре (v58)
+/** Кольцо плит между радиусами r0 и r1 с бордюрами. */
+export function ringPath(g, cx, cy, r0, r1, seed = 4) {
+  const r = rnd(seed), cols = ['#b9b3a6', '#aea89a', '#c4beb0', '#a39d90'], S = (r1 - r0) / 3;
+  for (let k = 0; k < 3; k++) {
+    const ri = r0 + k * S, ro = ri + S, n = Math.round(2 * Math.PI * ro / 26), off = k * 0.37;
+    for (let i = 0; i < n; i++) {
+      const a0 = (i + off) / n * Math.PI * 2, a1 = (i + 1 + off) / n * Math.PI * 2;
+      g.beginPath(); g.arc(cx, cy, ro, a0, a1); g.arc(cx, cy, ri, a1, a0, true); g.closePath();
+      g.fillStyle = cols[Math.floor(r() * 4)]; g.fill(); g.strokeStyle = 'rgba(60,50,40,.45)'; g.lineWidth = 1.2; g.stroke();
+    }
+  }
+  g.strokeStyle = '#7f786c'; g.lineWidth = 6; for (const rr of [r0, r1]) { g.beginPath(); g.arc(cx, cy, rr, 0, 7); g.stroke(); }
+}
+/** Подпорная стенка террасы с балюстрадой по обе стороны лестницы. Начало — середина верхней кромки стенки.
+ *  T — полуширина террасы, sw — полуширина проёма под лестницу, h — высота стенки. */
+export function terrace(g, T, sw, h) {
+  for (const sd of [-1, 1]) {
+    const x0 = sd < 0 ? -T : sw, x1 = sd < 0 ? -sw : T;
+    masonry(g, x0, 0, x1 - x0, h, '#a39d90', 30 + sd, 11);
+    g.strokeStyle = O; g.lineWidth = 2; g.strokeRect(x0, 0, x1 - x0, h);
+    g.fillStyle = '#c9c2b2'; g.fillRect(x0, -7, x1 - x0, 7); g.lineWidth = 1.4; g.strokeRect(x0, -7, x1 - x0, 7);
+    for (let x = x0 + 7; x < x1 - 4; x += 12) { g.beginPath(); g.roundRect(x, -25, 6, 18, 3); g.fillStyle = '#ddd6c6'; g.fill(); g.lineWidth = 0.9; g.stroke(); }
+    g.fillStyle = '#c9c2b2'; g.fillRect(x0, -30, x1 - x0, 6); g.lineWidth = 1.4; g.strokeRect(x0, -30, x1 - x0, 6);
+  }
+}
+/** Кусок городской стены по окружности: p0→p1 в своих координатах (середина основания — начало), высота H, толщина th. */
+export function wallSeg(g, p0, p1, nrm, H, th, seed) {
+  // лицевая сторона — та кромка, что ниже на экране
+  const inn = [[p0[0] - nrm[0] * th / 2, p0[1] - nrm[1] * th / 2], [p1[0] - nrm[0] * th / 2, p1[1] - nrm[1] * th / 2]];
+  const out = [[p0[0] + nrm[0] * th / 2, p0[1] + nrm[1] * th / 2], [p1[0] + nrm[0] * th / 2, p1[1] + nrm[1] * th / 2]];
+  const [f, b] = (out[0][1] + out[1][1]) > (inn[0][1] + inn[1][1]) ? [out, inn] : [inn, out];
+  const base = '#8d8a82';
+  // верх стены (дорожка)
+  g.beginPath(); g.moveTo(f[0][0], f[0][1] - H); g.lineTo(f[1][0], f[1][1] - H); g.lineTo(b[1][0], b[1][1] - H); g.lineTo(b[0][0], b[0][1] - H); g.closePath();
+  g.fillStyle = '#a7a398'; g.fill();
+  g.strokeStyle = O; g.lineWidth = 1.6; g.beginPath(); g.moveTo(b[0][0], b[0][1] - H); g.lineTo(b[1][0], b[1][1] - H); g.stroke();
+  // лицо
+  const dx = f[1][0] - f[0][0], dy = f[1][1] - f[0][1], L = Math.hypot(dx, dy);
+  if (L > 1 && Math.abs(dx) > 2) {
+    g.save(); g.transform(dx / L, dy / L, 0, 1, f[0][0], f[0][1] - H);
+    masonry(g, -1, 0, L + 2, H, base, seed, 12);
+    g.fillStyle = shade(base, 0.82); g.fillRect(-1, H - 12, L + 2, 12);
+    g.strokeStyle = O; g.lineWidth = 2; g.beginPath(); g.moveTo(-1, 0); g.lineTo(L + 1, 0); g.moveTo(-1, H); g.lineTo(L + 1, H); g.stroke();
+    // зубцы
+    const n = Math.max(1, Math.round(L / 26));
+    for (let i = 0; i < n; i++) { const mx = (i + 0.5) * L / n - 7; g.beginPath(); g.rect(mx, -13, 14, 13); g.fillStyle = shade(base, 1.06); g.fill(); g.lineWidth = 1.4; g.stroke(); }
+    g.restore();
+  }
+}

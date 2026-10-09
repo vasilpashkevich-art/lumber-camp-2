@@ -23,3 +23,9 @@ export function toast(s, kind = '', id = null) {
   while (box.children.length > 4) box.firstChild.remove();
   setTimeout(() => t.classList.add('out'), 2600); setTimeout(() => t.remove(), 3100);
 }
+
+/** Название зоны крупно, как в WoW: появляется и гаснет. */
+export function zoneTitle(name, sub) {
+  let e = document.getElementById('zoneTitle'); if (!e) return;
+  e.innerHTML = `<b>${name}</b><small>${sub}</small>`; e.classList.remove('show'); void e.offsetWidth; e.classList.add('show');
+}

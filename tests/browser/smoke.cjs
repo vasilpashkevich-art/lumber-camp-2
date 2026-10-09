@@ -38,7 +38,7 @@ const URL = 'file://' + path.resolve(__dirname, '../../index.html') + '#dev';
   await p.screenshot({ path: OUT + '/7-mobs.png' });
   // окно персонажа с добычей
   await p.evaluate(() => { const G = window.__G.G; G.mobs.forEach(m => m.state = 'dead'); });
-  await p.evaluate(() => { const G = window.__G.G; G.hero.gold = 120; G.P.x = G.W.cap.x - 260; G.P.y = G.W.cap.y - 130; });
+  await p.evaluate(() => { const G = window.__G.G; G.hero.gold = 120; const mk = G.W.houses.find(b => b.vendor); G.P.x = mk.x; G.P.y = mk.y + 50; });
   await p.keyboard.press('KeyI'); await p.waitForTimeout(400);
   await p.screenshot({ path: OUT + '/8-char.png' });
   await p.keyboard.press('Escape'); await p.waitForTimeout(200);

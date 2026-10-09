@@ -189,7 +189,7 @@ test('умения: второе закрыто до 5 уровня; рывок 
 
 test('сидя здоровье восстанавливается быстрее, движение поднимает', () => {
   const a = game('mage'), b = game('mage');
-  for (const G of [a, b]) { G.P.x = 3300; G.P.y = 2900; G.P.hp = 20; G.P.lastCombat = -99; G.mobs.forEach(m => { m.state = 'dead'; m.respawnAt = 1e9; }); }
+  for (const G of [a, b]) { G.P.x = 4300; G.P.y = 2700; G.P.hp = 20; G.P.lastCombat = -99; G.mobs.forEach(m => { m.state = 'dead'; m.respawnAt = 1e9; }); }
   update(a, 0.05, { sit: true }); assert.ok(a.P.sit);
   run(a, 5); run(b, 5); assert.ok(a.P.hp > b.P.hp + 5, `${a.P.hp} против ${b.P.hp}`);
   update(a, 0.05, { mx: 1 }); assert.ok(!a.P.sit);

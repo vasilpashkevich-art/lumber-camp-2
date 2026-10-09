@@ -83,7 +83,7 @@ function tent(g, x, y, w, col, flag) {
   g.fillStyle = 'rgba(0,0,0,.25)'; g.beginPath(); g.ellipse(6, 2, w * 1.1, w * 0.24, 0, 0, 7); g.fill();
   hp(g, () => { g.moveTo(-w, 0); g.lineTo(0, -w * 1.1); g.lineTo(w, 0); g.closePath(); }, col);
   hp(g, () => { g.moveTo(0, -w * 1.1); g.lineTo(w, 0); g.lineTo(w * 0.35, 0); g.closePath(); }, 'rgba(0,0,0,.18)', 0);
-  hp(g, () => { g.moveTo(-w * 0.28, 0); g.lineTo(0, -w * 0.62); g.lineTo(w * 0.28, 0); g.closePath(); }, '#24180f', 1);
+  hp(g, () => { g.moveTo(-w * 0.3, 0); g.lineTo(0, -w * 0.78); g.lineTo(w * 0.3, 0); g.closePath(); }, '#24180f', 1);
   g.strokeStyle = 'rgba(36,24,15,.45)'; g.lineWidth = 1; g.beginPath(); g.moveTo(-w * 0.5, -w * 0.55); g.lineTo(-w * 0.65, 0); g.moveTo(w * 0.5, -w * 0.55); g.lineTo(w * 0.62, 0); g.stroke();
   g.strokeStyle = O; g.lineWidth = 2; g.beginPath(); g.moveTo(0, -w * 1.1); g.lineTo(0, -w * 1.1 - 10); g.stroke();
   if (flag) hp(g, () => { g.moveTo(0, -w * 1.1 - 10); g.lineTo(16, -w * 1.1 - 6); g.lineTo(0, -w * 1.1 - 2); g.closePath(); }, flag, 1);
@@ -93,18 +93,18 @@ function crate(g, x, y) { hp(g, () => g.rect(x - 8, y - 14, 16, 14), '#8a6a3a', 
 
 // лагерь разбойников: два шатра, ящики, частокол из кольев (костёр рисуется отдельно, он горит)
 function bandit(g) {
-  tent(g, -70, -30, 34, '#8a7a5a', '#7a2a2a');
-  tent(g, 64, -24, 30, '#7a6a4e');
-  crate(g, -30, -8); crate(g, -18, -4); crate(g, 30, 2);
-  g.strokeStyle = O; g.lineWidth = 3.6; for (const [x, y] of [[-100, 10], [-92, 18], [96, 14], [104, 4]]) { g.beginPath(); g.moveTo(x, y); g.lineTo(x + 3, y - 18); g.stroke(); }
-  g.strokeStyle = '#7a5530'; g.lineWidth = 2; for (const [x, y] of [[-100, 10], [-92, 18], [96, 14], [104, 4]]) { g.beginPath(); g.moveTo(x, y); g.lineTo(x + 3, y - 18); g.stroke(); }
+  tent(g, -112, -34, 66, '#8a7a5a', '#7a2a2a');
+  tent(g, 106, -26, 58, '#7a6a4e');
+  crate(g, -34, -8); crate(g, -20, -4); crate(g, 34, 2);
+  g.strokeStyle = O; g.lineWidth = 3.6; for (const [x, y] of [[-190, 10], [-182, 18], [176, 14], [184, 4]]) { g.beginPath(); g.moveTo(x, y); g.lineTo(x + 3, y - 18); g.stroke(); }
+  g.strokeStyle = '#7a5530'; g.lineWidth = 2; for (const [x, y] of [[-190, 10], [-182, 18], [176, 14], [184, 4]]) { g.beginPath(); g.moveTo(x, y); g.lineTo(x + 3, y - 18); g.stroke(); }
 }
 // логово Атамана: большой красный шатёр со знаменем, сундук
 function ataman(g) {
-  tent(g, 0, -34, 52, '#8a2a24', '#f4c766');
-  hp(g, () => g.rect(-56, -14, 22, 14), '#6b4a2c', 1.2); hp(g, () => g.rect(-56, -14, 22, 4), '#c9a24a', 1); g.fillStyle = '#c9a24a'; g.fillRect(-46.5, -8, 3, 4);
-  crate(g, 50, -4); crate(g, 62, 4);
-  for (const [x, y] of [[-30, 6], [34, 8]]) { g.save(); g.translate(x, y); hp(g, () => { g.moveTo(0, 0); g.lineTo(0, -26); }, null, 2.4); g.restore(); }
+  tent(g, 0, -40, 84, '#8a2a24', '#f4c766');
+  hp(g, () => g.rect(-112, -14, 26, 16), '#6b4a2c', 1.2); hp(g, () => g.rect(-112, -14, 26, 5), '#c9a24a', 1); g.fillStyle = '#c9a24a'; g.fillRect(-100.5, -8, 3, 4);
+  crate(g, 96, -4); crate(g, 110, 4);
+  for (const [x, y] of [[-40, 8], [44, 10]]) { g.save(); g.translate(x, y); hp(g, () => { g.moveTo(0, 0); g.lineTo(0, -26); }, null, 2.4); g.restore(); }
 }
 
 // псарня: покосившаяся будка, миска, цепь, кости
@@ -155,7 +155,7 @@ function burned(g) {
 }
 
 const ART = {
-  kennel: [120, 80, 60, 64, kennel], crowfield: [100, 130, 50, 110, crowfield], scarefield: [130, 70, 65, 46, scarefield], pasture: [150, 70, 75, 46, pasture], burned: [140, 90, 70, 74, burned], den: [140, 70, 70, 56, den], wolf: [150, 80, 75, 64, wolf], boar: [160, 70, 80, 36, boar], web: [140, 110, 70, 92, web], bandit: [230, 116, 115, 88, bandit], ataman: [160, 120, 80, 104, ataman] };
+  kennel: [120, 80, 60, 64, kennel], crowfield: [100, 130, 50, 110, crowfield], scarefield: [130, 70, 65, 46, scarefield], pasture: [150, 70, 75, 46, pasture], burned: [140, 90, 70, 74, burned], den: [140, 70, 70, 56, den], wolf: [150, 80, 75, 64, wolf], boar: [160, 70, 80, 36, boar], web: [140, 110, 70, 92, web], bandit: [420, 170, 210, 140, bandit], ataman: [260, 170, 130, 150, ataman] };
 /** Готовая картинка приметы логова. */
 export function lairSpr(kind) {
   const a = ART[kind]; if (!a) return null;

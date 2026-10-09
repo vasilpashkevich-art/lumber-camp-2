@@ -10,7 +10,7 @@ import { dist, clamp, money } from '../engine/util.js';
 
 export function createGame(hero, W, opts = {}) {
   const st = heroStats(hero);
-  const start = hero.pos && W.walkable(hero.pos.x, hero.pos.y) ? hero.pos : W.cap ? { x: W.cap.x + 60, y: W.cap.y + 120 } : (W.Z.arrive || { x: W.town.x, y: W.town.y + 60 });
+  const start = hero.pos && W.walkable(hero.pos.x, hero.pos.y) ? hero.pos : W.cap ? { x: W.cap.x + 40, y: W.cap.y + 260 } : (W.Z.arrive || { x: W.town.x, y: W.town.y + 60 });
   const G = {
     W, hero, t: hero.worldT || 0, st, rand: opts.rand || Math.random,
     P: {

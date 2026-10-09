@@ -22,6 +22,7 @@ const URL = 'file://' + path.resolve(__dirname, '../../index.html') + '#dev';
   const C = await ev(() => { const c = window.__G.G.W.Z.capital; return { x: c.x, y: c.y, R: c.R, b: c.buildings }; });
   for (const bd of C.b) await go('pine-' + bd.id, C.x + bd.dx + 40, C.y + bd.dy + 70);
   await go('pine-gate', C.x + C.R + 30, C.y + 20);
+  await go('pine-avenue', C.x + 30, C.y - 330); await go('pine-fountain', C.x + 30, C.y + 240);
   await go('pine-gate-s', C.x + 20, C.y + C.R + 30);
   const camps = await ev(() => window.__G.G.W.Z.camps.map(c => [c.lair, c.x, c.y]));
   const doneL = {}; for (const [l, x, y] of camps) { if (doneL[l]) continue; doneL[l] = 1; await go('pine-lair-' + l, x + 60, y + 90); }

@@ -75,7 +75,8 @@ export const MOB_LOOK = {
   miller: { cls: 'mage', chest: 2, legs: 1, head: 0, wt: 2, rar: 'good', strawHat: true, sickle: true,
     line: { chest: ['#d8c8a4', '#cfc6b0', '#cfc6b0', '#cfc6b0', '#cfc6b0'], legs: ['#6b4a2c', '#5a4a3a', '#5a4a3a', '#5a4a3a', '#5a4a3a'] } },
 };
-export const MOB_SCALE = { ataman: 1.35, bandit: 1.05, bandit_archer: 1.05, robber: 1.08, firestarter: 1.02, miller: 1.3, bull: 1.15 };
+// люди-мобы — в том же масштабе, что герой (1,15), вожаки крупнее
+export const MOB_SCALE = { ataman: 1.45, bandit: 1.15, bandit_archer: 1.15, robber: 1.2, firestarter: 1.12, miller: 1.32, bull: 1.15 };
 
 /** Моб: звери с кадрами шага, люди — облик героя. */
 export function mobSpr(kind, dir, frame, bite) {
@@ -85,9 +86,11 @@ export function mobSpr(kind, dir, frame, bite) {
 }
 
 // ---------------------------------------------------------------- мир
+/** Деревья в 1,5 раза выше прежнего (v58): 2,5–3 роста героя. */
+export const TREE_K = 1.5;
 export function treeSpr(kind, v) {
-  const vb = Math.floor(v * 4) % 4;
-  return sprite('t|' + kind + '|' + vb, 90, 116, 45, 94, 2, g => { LOOK.use(g); LOOK.tree(kind, 0, 0, 1, (vb + 0.5) / 4, 1.2); });
+  const vb = Math.floor(v * 4) % 4, k = TREE_K;
+  return sprite('t|' + kind + '|' + vb, 90 * k, 116 * k, 45 * k, 94 * k, 1.6, g => { g.scale(k, k); LOOK.use(g); LOOK.tree(kind, 0, 0, 1, (vb + 0.5) / 4, 1.2); });
 }
 
 export function wallSpr(R, i, n) {
