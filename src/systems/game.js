@@ -19,7 +19,7 @@ export function createGame(hero, W, opts = {}) {
       x: start.x, y: start.y, hp: hero.hp == null ? st.maxHp : Math.min(hero.hp, st.maxHp), face: 0, dir: 1,
       cd: 0, acd: {}, potCd: 0, target: null, sit: false, dash: null, atkT: 0, atkDur: 0.35, mvx: 0, mvy: 1, deadT: 0, lastCombat: -99, weak: 0, poison: null, slow: 0,
       whirl: 0, whirlT: 0, volley: 0, swing: 0, shot: 0, dead: false, moving: false, hurt: 0, step: 0,
-      mine: null, tcd: 0, buf: { stone: 0, rage: 0, wind: 0, thorns: 0 },
+      mine: null, auto: null, tcd: 0, buf: { stone: 0, rage: 0, wind: 0, thorns: 0 },
     },
     mobs: [], shots: [], ev: [], fx: [], corpses: [], corpseSeq: 0,
   };
@@ -91,7 +91,10 @@ export function update(G, dt, I) {
     if (I.tabTarget) tabTarget(G);
     if (P.target && (P.target.state === 'dead')) P.target = null;
     // удар
-    if ((I.attack || I.attackTap) && P.cd <= 0 && !P.dash && !P.sit) heroAttack(G, !!I.attackTap);
+    // удар: пробел один раз — автоатака по цели (v68), удержание — как раньше
+    if (I.attackTap && !P.dash) startAuto(G);
+    if (P.auto && (!hostile(P.auto) || P.auto.gone || P.target !== P.auto || P.sit || P.mine)) P.auto = null;
+    if (P.cd <= 0 && !P.dash && !P.sit) { if (P.auto) autoSwing(G); else if (I.attack) heroAttack(G, false); }
     if (I.ability) useAbility(G, 0);
     if (I.ability2) useAbility(G, 1);
     if (I.potion) drinkPotion(G);
@@ -132,11 +135,23 @@ function nearest(G, reach) {
   return best;
 }
 
-function heroAttack(G, tap) {
+/** Автоатака: цель — выбранная, а если её нет — ближайшая в досягаемости. Сама на другую цель не переходит. */
+function startAuto(G) {
   const P = G.P, A = attackOf(G.hero);
-  let t = P.target && hostile(P.target) ? P.target : null;
+  const t = P.target && hostile(P.target) ? P.target : nearest(G, A.reach);
+  if (!t) return;
+  P.auto = t; P.autoFar = false; P.target = t; P.sit = false;
+}
+function autoSwing(G) {
+  const P = G.P, A = attackOf(G.hero), t = P.auto;
+  if (dist(P.x, P.y, t.x, t.y) - t.r > A.reach) { if (!P.autoFar) emit(G, { k: 'toast', s: 'Слишком далеко', id: 'far' }); P.autoFar = true; return; }   // ждём, пока цель подойдёт
+  P.autoFar = false; heroAttack(G, false, t);
+}
+function heroAttack(G, tap, force = null) {
+  const P = G.P, A = attackOf(G.hero);
+  let t = force || (P.target && hostile(P.target) ? P.target : null);
   const inReach = m => dist(P.x, P.y, m.x, m.y) - m.r <= A.reach;
-  if (!t || !inReach(t)) {
+  if (!force && (!t || !inReach(t))) {
     const n = nearest(G, A.reach);
     if (n) t = n;
     else { if (tap && t) emit(G, { k: 'toast', s: 'Слишком далеко', id: 'far' }); return; }
@@ -354,7 +369,7 @@ export function interactTarget(G) {
 }
 function interact(G) {
   const t = interactTarget(G); if (!t) return;
-  if (t.k === 'corpse') { emit(G, { k: 'lootOpen', c: t.c }); return; }
+  if (t.k === 'corpse') { G.P.auto = null; emit(G, { k: 'lootOpen', c: t.c }); return; }
   if (t.k === 'vein') { if (G.P.mine) stopMine(G); else startMine(G, t.v); return; }
   if (t.k === 'b') { if (t.b.vendor) emit(G, { k: 'vendor', b: t.b }); else if (t.b.guild) emit(G, { k: 'guild', b: t.b }); else if (t.b.smelt) emit(G, { k: 'smelt', b: t.b }); else emit(G, { k: 'toast', s: `${t.b.name}. ${t.b.note}`, id: 'bld' }); }
   if (t.k === 'exit') { if (t.e.zone) emit(G, { k: 'zone', e: t.e }); else emit(G, { k: 'toast', s: `Дорога в ${t.e.to} (ур. ${t.e.lvl}) откроется в следующих версиях`, id: 'exit' }); }
@@ -377,7 +392,7 @@ function hurtHero(G, v, m, dot) {
 }
 
 function heroDie(G) {
-  const P = G.P; P.hp = 0; P.dead = true; P.deadT = 0; P.target = null; P.poison = null; P.whirl = 0; P.volley = 0; P.dash = null; P.sit = false;
+  const P = G.P; P.hp = 0; P.dead = true; P.deadT = 0; P.target = null; P.auto = null; P.poison = null; P.whirl = 0; P.volley = 0; P.dash = null; P.sit = false;
   G.hero.stats.deaths++;
   for (const m of G.mobs) if (m.state === 'chase') m.state = 'return';
   emit(G, { k: 'die' });

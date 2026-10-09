@@ -26,7 +26,7 @@ export function createHud(In) {
     $('#actAttack .ico').innerHTML = ABIL_ICON.attack[cls()];
     C.abils.forEach((A, i) => { const b = $(i ? '#actAbil2' : '#actAbil'); b.querySelector('.ico').innerHTML = ABIL_ICON[A.icon]; b.title = `${A.name} — ${A.key}. ${A.d}`; });
     $('#actPot .ico').innerHTML = ABIL_ICON.potion;
-    $('#actAttack').title = `Удар — пробел (держать)`; $('#actPot').title = 'Зелье здоровья — Q';
+    $('#actAttack').title = 'Удар — пробел. Нажать один раз — автоатака по цели, пока она жива или пока не выберете другую'; $('#actPot').title = 'Зелье здоровья — Q';
     H.lockLvl = -1; H.trK = null;
     $('#btnBag').innerHTML = ABIL_ICON.bag; $('#btnMap').innerHTML = ABIL_ICON.map; $('#btnMenu').innerHTML = ABIL_ICON.menu;
     $('#pfName').textContent = G.hero.name;
@@ -54,7 +54,7 @@ export function createHud(In) {
     // панель действий
     C.abils.forEach((A, i) => cool(i ? '#actAbil2' : '#actAbil', P.acd[A.id] || 0, A.cd)); cool('#actPot', P.potCd, 20);
     // второе умение закрыто до своего уровня; когда открылось — кнопка мигает
-    if (H.lockLvl !== h.lvl) { const A = C.abils[1], open = h.lvl >= A.lvl, b = $('#actAbil2'); const lk = b.querySelector('.lock'); lk.hidden = open; lk.querySelector('b').textContent = `${A.lvl} ур.`; if (open && H.lockLvl > 0 && H.lockLvl < A.lvl) { b.classList.add('ready'); setTimeout(() => b.classList.remove('ready'), 5000); } H.lockLvl = h.lvl; } cool('#actAttack', P.cd, attackOf(h).cd);
+    if (H.lockLvl !== h.lvl) { const A = C.abils[1], open = h.lvl >= A.lvl, b = $('#actAbil2'); const lk = b.querySelector('.lock'); lk.hidden = open; lk.querySelector('b').textContent = `${A.lvl} ур.`; if (open && H.lockLvl > 0 && H.lockLvl < A.lvl) { b.classList.add('ready'); setTimeout(() => b.classList.remove('ready'), 5000); } H.lockLvl = h.lvl; } cool('#actAttack', P.cd, attackOf(h).cd); $('#actAttack').classList.toggle('auto', !!P.auto);
     $('#actPot .n').textContent = h.potions;
     // аксессуар на клавише 1: значок меняется, когда надели другой
     const tr = h.eq.trinket, tk = tr ? tr.id : ''; const tb = $('#actTrinket');
