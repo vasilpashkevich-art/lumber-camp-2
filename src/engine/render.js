@@ -9,7 +9,7 @@ import { house, inn, tavern, enchant, barn, miners, forge, farmstead, GUARD_LOOK
 import { vein, glint, outcrop } from '../art/ore.js';
 import { ORES, veinColor, MINE } from '../../data/mining.js';
 import { miningSkill } from '../systems/mining.js';
-import { sprite, drawSpr, flashOf, heroSpr, mobSpr, MOB_SCALE, MOB_LOOK, personSpr, beastSpr, drawFrame, viewOf, FRAMES, treeSpr, TREE_K, bldSpr, mountainSpr } from '../art/sprites.js';
+import { sprite, drawSpr, flashOf, heroSpr, mobSpr, MOB_SCALE, MOB_LOOK, personSpr, beastSpr, drawFrame, viewOf, sprBox, FRAMES, treeSpr, TREE_K, bldSpr, mountainSpr } from '../art/sprites.js';
 import { treesIn, GATE_W } from '../world/world.js';
 import { lookOf } from '../systems/items.js';
 import { interactTarget } from '../systems/game.js';
@@ -46,13 +46,13 @@ function buildStatics(W) {
       const xs = [p0[0], p1[0]].flatMap(x => [x - th, x + th]), ys = [p0[1], p1[1]].flatMap(y => [y - H - th - 20, y + th]);
       const x0 = Math.min(...xs) - 6, y0 = Math.min(...ys) - 6, x1 = Math.max(...xs) + 6, y1 = Math.max(...ys) + 6;
       const sp = sprite('cw|' + c.R + '|' + i, x1 - x0, y1 - y0, -x0, -y0, 1.6, g => wallSeg(g, p0, p1, nr, H, th, 100 + i));
-      S.push({ y: c.y + my + (my > 0 ? th / 2 : -th / 2), draw: g => drawSpr(g, sp, c.x + mx, c.y + my) });
+      S.push({ y: c.y + my + (my > 0 ? th / 2 : -th / 2), oc: occ(sp, c.x + mx, c.y + my), soft: c.x + mx, draw: g => drawSpr(g, sp, c.x + mx, c.y + my) });
     }
     // башни: у ворот и по стене
     const towerSpr = sprite('ctower', 130, 320, 65, 290, 1.6, g => { const top = roundTower(g, 0, 0, 72, 170, '#8d8a82', 5); merlons(g, -40, top, 80, '#8d8a82'); cone(g, 0, top - 22, 104, 92, '#2f5d9a', 0, '#e7c35a'); });
     const tw = []; for (const ga of c.gates) for (const sd of [-1, 1]) tw.push(ga + sd * (GW + 0.035));
     for (const a of [Math.PI * 0.25, Math.PI * 0.75, Math.PI, Math.PI * 1.25, Math.PI * 1.5 - 0.5, Math.PI * 1.5 + 0.5, Math.PI * 1.75]) tw.push(a);
-    for (const a of tw) { const x = c.x + Math.cos(a) * c.R, y = c.y + Math.sin(a) * c.R + 10; S.push({ y, draw: g => drawSpr(g, towerSpr, x, y) }); }
+    for (const a of tw) { const x = c.x + Math.cos(a) * c.R, y = c.y + Math.sin(a) * c.R + 10; S.push({ y, oc: occ(towerSpr, x, y), draw: g => drawSpr(g, towerSpr, x, y) }); }
     // стража у ворот — в полный рост, по двое снаружи
     for (const ga of c.gates) for (const sd of [-1, 1]) {
       const a = ga + sd * (GW - 0.03), x = c.x + Math.cos(a) * (c.R + 46), y = c.y + Math.sin(a) * (c.R + 46);
@@ -63,7 +63,7 @@ function buildStatics(W) {
     if (W.castle) {
       const K = W.castle, cx = K.x, fy = K.y, cs = 0.8;
       const pal = sprite('palace', 660, 520, 330, 480, 1.4, g => { g.scale(cs, cs); castle(g, 'b', 0, false); });
-      S.push({ y: fy, draw: g => drawSpr(g, pal, cx, fy) });
+      S.push({ y: fy, oc: occ(pal, cx, fy), draw: g => drawSpr(g, pal, cx, fy) });
       const ter = sprite('terrace', 2 * K.terrace + 40, 140, K.terrace + 20, 40, 1.6, g => { terrace(g, K.terrace, K.stairs + 36, 67); g.save(); g.translate(0, -56); g.scale(cs, cs); stairs(g, 240, 6, 14); g.restore(); });
       S.push({ y: fy + 56, draw: g => drawSpr(g, ter, cx, fy + 56) });
       for (const sd of [-1, 1]) { const bx = cx + sd * 133, by = fy + 30; S.push({ y: fy + 57, draw: (g, t) => brazierFire(g, bx, by, t, false) }); }
@@ -86,7 +86,7 @@ function buildStatics(W) {
   const LBL = { castle: 455, market: 125, stall: 115, forge: 170, tavern: 210, miners: 200, enchant: 210, inn: 230, barn: 190 };
   for (const b of W.houses) {
     const sp = ART[b.art] ? ART[b.art](b.v || 0) : null;
-    S.push({ y: b.y, draw: g => sp && drawSpr(g, sp, b.x, b.y), label: b.name, lx: b.x, ly: b.y - (LBL[b.art] || 120) });
+    S.push({ y: b.y, oc: sp && occ(sp, b.x, b.y), draw: g => sp && drawSpr(g, sp, b.x, b.y), label: b.name, lx: b.x, ly: b.y - (LBL[b.art] || 120) });
   }
   if (W.village) { const v = W.village, sp = sprite('well', 70, 80, 35, 66, 2, g => well(g)); S.push({ y: v.y + 10, draw: g => drawSpr(g, sp, v.x, v.y + 10), label: v.name, lx: v.x, ly: v.y - v.R + 30 }); }
   // кладбище
@@ -105,16 +105,16 @@ function buildStatics(W) {
   // приметы логов: нора, логово, лёжка, паутина, шатры; у людей — костёр
   for (const cp of W.camps) {
     const sp = lairSpr(cp.lair), ly = cp.y - 10;
-    if (sp) S.push({ y: ly, x: cp.x, draw: g => drawSpr(g, sp, cp.x, ly) });
+    if (sp) S.push({ y: ly, x: cp.x, oc: occ(sp, cp.x, ly), draw: g => drawSpr(g, sp, cp.x, ly) });
     if (cp.lair === 'bandit' || cp.lair === 'ataman' || cp.lair === 'burned') { const fx = cp.x + (cp.lair === 'ataman' ? -140 : 0), fy = cp.y + (cp.lair === 'ataman' ? 46 : 40); S.push({ y: fy, fire: true, x: fx, draw: (g, t) => campfire(g, fx, fy, t) }); }
   }
   // Хуторские угодья: мосты, стога, хутора, мельница
-  if (W.river) for (const b of W.river.bridgeAt) { const len = W.river.w + 70, sp = sprite('bridge' + len, 110, len + 40, 55, len / 2 + 20, 2, g => bridge(g, len)); S.push({ y: b.y - len / 2 + 6, x: b.x, draw: g => { g.save(); g.translate(b.x, b.y); g.rotate(b.a - Math.atan2(0, 1)); drawSpr(g, sp, 0, 0); g.restore(); } }); }
+  if (W.river) for (const b of W.river.bridgeAt) { const len = Math.round(b.len), sp = sprite('bridge' + len, 110, len + 40, 55, len / 2 + 20, 2, g => bridge(g, len)); S.push({ y: b.y - len / 2 + 6, x: b.x, draw: g => { g.save(); g.translate(b.x, b.y); g.rotate(b.ra - Math.PI / 2); drawSpr(g, sp, 0, 0); g.restore(); } }); }
   for (const p of W.props) if (p.kind === 'hay') { const sp = sprite('hay', 80, 80, 40, 66, 2, g => haystack(g)); S.push({ y: p.y, x: p.x, draw: g => drawSpr(g, sp, p.x, p.y) }); }
-  for (const f of W.Z.farmsteads || []) { const sp = sprite('farmst' + (f.burned ? 'B' : ''), 460, 280, 200, 250, 2, g => { g.scale(K, K); farmstead(g, f.burned); }); S.push({ y: f.y, x: f.x, draw: g => drawSpr(g, sp, f.x, f.y) }); if (f.burned) S.push({ y: f.y + 1, x: f.x, draw: (g, t) => smoke(g, f.x + 20, f.y - 60, t) }); }
-  if (W.Z.mill) { const m = W.Z.mill, ms = 1.5, sp = sprite('millbase', 210, 255, 105, 228, 1.6, g => { g.scale(ms, ms); millBase(g, false); }); S.push({ y: m.y, x: m.x, label: 'Старая мельница', lx: m.x, ly: m.y - 300, draw: (g, t) => { drawSpr(g, sp, m.x, m.y); g.save(); g.translate(m.x, m.y - 112 * ms); g.scale(ms, ms); millBlades(g, t * 0.5, false); g.restore(); } }); }
+  for (const f of W.Z.farmsteads || []) { const sp = sprite('farmst' + (f.burned ? 'B' : ''), 460, 280, 200, 250, 2, g => { g.scale(K, K); farmstead(g, f.burned); }); S.push({ y: f.y, x: f.x, oc: occ(sp, f.x, f.y), draw: g => drawSpr(g, sp, f.x, f.y) }); if (f.burned) S.push({ y: f.y + 1, x: f.x, draw: (g, t) => smoke(g, f.x + 20, f.y - 60, t) }); }
+  if (W.Z.mill) { const m = W.Z.mill, ms = 1.5, sp = sprite('millbase', 210, 255, 105, 228, 1.6, g => { g.scale(ms, ms); millBase(g, false); }); S.push({ y: m.y, x: m.x, oc: { x0: m.x - 150, y0: m.y - 340, x1: m.x + 150, y1: m.y }, label: 'Старая мельница', lx: m.x, ly: m.y - 300, draw: (g, t) => { drawSpr(g, sp, m.x, m.y); g.save(); g.translate(m.x, m.y - 112 * ms); g.scale(ms, ms); millBlades(g, t * 0.5, false); g.restore(); } }); }
   // скалы и пригорки (v61)
-  for (const o of W.rocks || []) { const sp = sprite('rock|' + o.s + '|' + Math.round(o.w), o.w * 1.5 + 40, o.h * 1.4 + 50, o.w * 0.75 + 20, o.h * 1.3 + 20, 1.6, g => outcrop(g, o.w, o.h, o.s)); S.push({ y: o.y, x: o.x, draw: g => drawSpr(g, sp, o.x, o.y) }); }
+  for (const o of W.rocks || []) { const sp = sprite('rock|' + o.s + '|' + Math.round(o.w), o.w * 1.5 + 40, o.h * 1.4 + 50, o.w * 0.75 + 20, o.h * 1.3 + 20, 1.6, g => outcrop(g, o.w, o.h, o.s)); S.push({ y: o.y, x: o.x, oc: occ(sp, o.x, o.y), draw: g => drawSpr(g, sp, o.x, o.y) }); }
   // горы за краем зоны (там, где они есть)
   const mt = [], ridges = W.Z.ridges || [];
   for (let i = 0; i < W.edge.length; i++) {
@@ -124,6 +124,13 @@ function buildStatics(W) {
   for (const [x, y, v] of mt) { const sp = mountainSpr(v); S.push({ y, draw: g => drawSpr(g, sp, x, y, 1, 1.3) }); }
   return S;
 }
+// рамка картинки в мире: по ней видно, заслоняет ли постройка героя
+function occ(sp, x, y, sc = 1) { const b = sprBox(sp); return b && { x0: x + b.x0 * sc, y0: y + b.y0 * sc, x1: x + b.x1 * sc, y1: y }; }
+// заслоняет ли: кто-то из своих (герой, моб в бою с ним) стоит позади картинки — у её основания выше и внутри рамки
+function hides(o, pts) { const b = o.oc; if (!b) return false;
+  // стена — кусками: прозрачность плавно спадает в стороны от героя, без резких границ
+  if (o.soft != null) { let a = 1; for (const [x, y] of pts) if (y < o.y - 4 && y > b.y0 + 10) a = Math.min(a, 0.42 + 0.58 * Math.max(0, Math.min(1, (Math.abs(x - o.soft) - 50) / 150))); return a; }
+  for (const [x, y] of pts) if (y < o.y - 4 && x > b.x0 + 14 && x < b.x1 - 14 && y > b.y0 + 10) return 0.42; return 1; }
 // городской стражник в полный рост (как герой), чуть дышит
 function guard(g, x, y, view, dir, t) {
   g.fillStyle = 'rgba(0,0,0,.25)'; g.beginPath(); g.ellipse(x, y + 2, 14, 5, 0, 0, 7); g.fill();
@@ -157,6 +164,12 @@ function campfire(g, x, y, t) {
 }
 
 // ---------------------------------------------------------------- земля
+// калитка кладбища: угол на эллипсе ограды к ближайшей точке дорог
+function gateAngle(W, gy) {
+  let best = 1e9, bx = gy.x, by = gy.y - 100;
+  for (const rd of W.roads) for (let i = 0; i < rd.length - 1; i++) for (let k = 0; k <= 20; k++) { const x = rd[i][0] + (rd[i + 1][0] - rd[i][0]) * k / 20, y = rd[i][1] + (rd[i + 1][1] - rd[i][1]) * k / 20, d = Math.hypot(x - gy.x, y - gy.y); if (d < best) { best = d; bx = x; by = y; } }
+  return Math.atan2((by - gy.y) / 104, (bx - gy.x) / 190);
+}
 function chunk(R, i, j) {
   const key = i + ',' + j; let cv = R.chunks.get(key);
   if (cv) { R.chunks.delete(key); R.chunks.set(key, cv); return cv; }
@@ -168,14 +181,16 @@ function chunk(R, i, j) {
   g.save(); g.beginPath(); g.rect(x0 - 2, y0 - 2, CHUNK + 4, CHUNK + 4);
   g.moveTo(W.edge[0][0], W.edge[0][1]); for (const p of W.edge) g.lineTo(p[0], p[1]); g.closePath();
   g.fillStyle = 'rgba(28,40,26,.88)'; g.fill('evenodd'); g.restore();
-  // дороги
-  for (const rd of W.roads) {
-    g.lineJoin = 'round'; g.lineCap = 'round';
-    const path = () => { g.beginPath(); g.moveTo(rd[0][0], rd[0][1]); for (const p of rd.slice(1)) g.lineTo(p[0], p[1]); };
-    path(); g.strokeStyle = 'rgba(90,70,40,.55)'; g.lineWidth = 78; g.stroke();
-    path(); g.strokeStyle = '#b39a6a'; g.lineWidth = 64; g.stroke();
-    path(); g.strokeStyle = 'rgba(210,190,140,.45)'; g.lineWidth = 30; g.stroke();
-  }
+  // дороги: одним путём на все дороги и площадки — слои кладутся разом, стыки без швов
+  g.lineJoin = 'round'; g.lineCap = 'round';
+  const PL = W.Z.plazas || [];
+  const roadPath = () => { g.beginPath(); for (const rd of W.roads) { g.moveTo(rd[0][0], rd[0][1]); for (const p of rd.slice(1)) g.lineTo(p[0], p[1]); } };
+  const plazaPath = (d = 0) => { g.beginPath(); for (const [x, y, r] of PL) { g.moveTo(x + r + d, y); g.ellipse(x, y, r + d, (r + d) * 0.72, 0, 0, 7); } };
+  roadPath(); g.strokeStyle = 'rgba(90,70,40,.55)'; g.lineWidth = 78; g.stroke(); plazaPath(39); g.fillStyle = 'rgba(90,70,40,.55)'; g.fill();
+  // середина: дорога и площадки одним цветом, без наложения
+  g.save(); roadPath(); g.strokeStyle = '#b39a6a'; g.lineWidth = 64; g.stroke(); plazaPath(32); g.fillStyle = '#b39a6a'; g.fill(); g.restore();
+  roadPath(); g.strokeStyle = 'rgba(210,190,140,.45)'; g.lineWidth = 30; g.stroke();
+  if (PL.length) { plazaPath(-14); g.fillStyle = 'rgba(210,190,140,.32)'; g.fill(); }
   const r = rng(i * 7919 + j * 104729 + 5);
   // камушки на дорогах
   for (let k = 0; k < 120; k++) { const x = x0 + r() * CHUNK, y = y0 + r() * CHUNK; if (W.roadD(x, y) < 28) { g.fillStyle = r() < 0.5 ? 'rgba(120,100,70,.55)' : 'rgba(230,215,180,.5)'; g.beginPath(); g.ellipse(x, y, 2 + r() * 2, 1.4 + r(), 0, 0, 7); g.fill(); } }
@@ -204,7 +219,10 @@ function chunk(R, i, j) {
   const gy = W.graveyard;
   if (Math.abs(gy.x - (x0 + CHUNK / 2)) < 500 && Math.abs(gy.y - (y0 + CHUNK / 2)) < 500) {
     g.fillStyle = 'rgba(60,50,35,.45)'; g.beginPath(); g.ellipse(gy.x, gy.y, 200, 110, 0, 0, 7); g.fill();
-    g.strokeStyle = '#4a3a2a'; g.lineWidth = 4; g.setLineDash([10, 8]); g.beginPath(); g.ellipse(gy.x, gy.y, 190, 104, 0, 0, 7); g.stroke(); g.setLineDash([]);
+    // ограда с калиткой — в сторону ближней дороги
+    const ga = gateAngle(W, gy);
+    g.strokeStyle = '#4a3a2a'; g.lineWidth = 4; g.setLineDash([10, 8]); g.beginPath(); g.ellipse(gy.x, gy.y, 190, 104, 0, ga + 0.24, ga - 0.24 + Math.PI * 2); g.stroke(); g.setLineDash([]);
+    for (const d of [-0.24, 0.24]) { const x = gy.x + Math.cos(ga + d) * 190, y = gy.y + Math.sin(ga + d) * 104; g.fillStyle = '#5a4630'; g.strokeStyle = '#24180f'; g.lineWidth = 1.2; g.beginPath(); g.rect(x - 4, y - 6, 8, 9); g.fill(); g.stroke(); }
   }
   // вытоптанная земля в лагерях
   for (const cp of W.camps) if (Math.abs(cp.x - (x0 + CHUNK / 2)) < 700 && Math.abs(cp.y - (y0 + CHUNK / 2)) < 700) {
@@ -258,16 +276,22 @@ export function render(R, G, now) {
   for (const s of R.statics) if (vis(s.lx ?? s.x ?? R.cam.x, s.y, 400)) L.push(s);
   for (const tr of treesIn(W, x0 - 150, y0 - 60, x0 + zw + 150, y0 + zh + 240)) L.push({ y: tr.y, tree: tr });
   for (const k of G.corpses) if (vis(k.x, k.y)) L.push({ y: k.y - 1, corpse: k });
-  for (const v of G.veins || []) if ((!v.at || v.at <= G.t) && vis(v.x, v.y)) L.push({ y: v.y, x: v.x, draw: (g, t) => { const sp = sprite('vein|' + v.metal + '|' + (v.s % 5), 110, 90, 55, 70, 2, gg => vein(gg, v.metal, v.s % 5 + 1)); drawSpr(g, sp, v.x, v.y); g.save(); g.translate(v.x, v.y); glint(g, v.metal, t, v.s % 7); g.restore(); } });
+  for (const v of G.veins || []) if ((!v.at || v.at <= G.t) && vis(v.x, v.y)) { const sp = sprite('vein|' + v.metal + '|' + (v.s % 5), 110, 90, 55, 70, 2, gg => vein(gg, v.metal, v.s % 5 + 1)); L.push({ y: v.y, x: v.x, oc: occ(sp, v.x, v.y), draw: (g, t) => { drawSpr(g, sp, v.x, v.y); g.save(); g.translate(v.x, v.y); glint(g, v.metal, t, v.s % 7); g.restore(); } }); }
   for (const m of G.mobs) if (m.state !== 'dead' && vis(m.x, m.y)) L.push({ y: m.y, mob: m });
   L.push({ y: P.y, hero: true });
   L.sort((a, b) => a.y - b.y);
   const look = lookOf(G.hero);
+  const see = P.dead ? [] : [[P.x, P.y], ...G.mobs.filter(m => m.state === 'chase' && dist(m.x, m.y, P.x, P.y) < 500).map(m => [m.x, m.y])];
+  const fdt = Math.min(0.1, Math.max(0, t - (R.lastT || t))); R.lastT = t;
   for (const o of L) {
     if (o.tree) { const tr = o.tree, sp = treeSpr(tr.kind, tr.v), fade = !P.dead && Math.abs(P.x - tr.x) < 26 * tr.s * TREE_K && P.y < tr.y - 4 && P.y > tr.y - 80 * tr.s * TREE_K ? 0.42 : 1; drawSpr(c, sp, tr.x, tr.y, fade, tr.s); }
     else if (o.mob) drawMob(c, G, o.mob, t);
     else if (o.hero) drawHero(c, G, look, t);
     else if (o.corpse) drawCorpse(c, o.corpse, t);
+    else if (o.oc) { // постройка, стена, скала, шатёр: прозрачнее, если за ней герой
+      const want = hides(o, see); o.fa = o.fa == null ? want : o.fa + (want - o.fa) * Math.min(1, fdt * 8);
+      if (o.fa < 0.99) { c.save(); c.globalAlpha = o.fa; o.draw(c, t); c.restore(); } else o.draw(c, t);
+    }
     else o.draw(c, t);
   }
   // выстрелы
@@ -296,7 +320,7 @@ export function render(R, G, now) {
   const bar = barRect(), z = R.cam.z / R.dpr;
   for (const s of R.statics) if (s.label && vis(s.lx, s.ly, 100)) { const sx = (s.lx - x0) * z, sy = (s.ly - y0) * z; if (bar && sx > bar.left - 90 && sx < bar.right + 90 && sy > bar.top - 14) continue; label(c, s.label, s.lx, s.ly, '#ffe9a8', 15); }
   // название жилы вблизи — цветом по навыку (как в WoW)
-  for (const v of G.veins || []) if ((!v.at || v.at <= G.t) && dist(v.x, v.y, P.x, P.y) < 320) { const col = MINE.colorHex[miningSkill(G.hero) ? veinColor(miningSkill(G.hero), ORES[v.metal].req).c : 'gray']; label(c, ORES[v.metal].vein, v.x, v.y + 22, col, 13); }
+  for (const v of G.veins || []) if ((!v.at || v.at <= G.t) && dist(v.x, v.y, P.x, P.y) < 320 && !(P.mine && P.mine.v === v)) { const col = MINE.colorHex[miningSkill(G.hero) ? veinColor(miningSkill(G.hero), ORES[v.metal].req).c : 'gray']; label(c, ORES[v.metal].vein, v.x, v.y + 22, col, 13); }
   // таблички над мобами
   for (const m of G.mobs) if (m.state !== 'dead' && vis(m.x, m.y) && (m === P.target || m.state === 'chase' || m.hp < m.max || dist(m.x, m.y, P.x, P.y) < 260)) plate(c, G, m);
   // подсказка «E»
@@ -376,9 +400,25 @@ function drawHero(c, G, look, t) {
     c.fillStyle = 'rgba(160,220,255,.7)'; const q = (t * 0.7) % 1; c.globalAlpha = 1 - q; c.font = 'bold 11px Georgia'; c.fillText('z', P.x + 14, P.y - 40 - q * 16); c.globalAlpha = 1;
     return;
   }
+  if (P.mine) look = { ...look, pick: true };
   const sp = personSpr(look, view, mode, f), breathe = mode === 'idle' ? Math.sin(t * 2) * 0.4 : 0;
   drawFrame(c, P.hurt > 0 ? flashOf(sp) : sp, P.x - (P.hurt > 0 && view === 'side' ? dir * 2 : 0), P.y + breathe, dir, 1.15, P.dead ? Math.max(0.35, 1 - P.deadT / 3) : 1);
   if (P.poison) { c.fillStyle = 'rgba(120,220,80,.6)'; for (let i = 0; i < 3; i++) c.fillRect(P.x - 10 + i * 9, P.y - 60 - ((t * 40 + i * 13) % 20), 3, 3); }
+  if (P.mine) mineSparks(c, P);
+}
+
+// искры и каменная крошка в миг удара киркой (каждый удар — своя россыпь)
+function mineSparks(c, P) {
+  const v = P.mine.v, ph = P.mine.t / 0.6, n = Math.floor(ph), q = (ph - n - 0.5) / 0.4; if (q < 0 || q > 1) return;
+  const hx = P.x + (v.x - P.x) * 0.55, hy = Math.min(P.y, v.y) - 22, r = rng((n + 1) * 7919 + (v.s || 0));
+  for (let i = 0; i < 9; i++) { // искры: короткие светлые черты, гаснут
+    const a = -Math.PI / 2 + (r() - 0.5) * 2.6, sp = 30 + r() * 40, d = sp * q, x = hx + Math.cos(a) * d, y = hy + Math.sin(a) * d + 30 * q * q;
+    c.strokeStyle = `rgba(255,${200 + (i % 3) * 20},120,${1 - q})`; c.lineWidth = 1.6; c.beginPath(); c.moveTo(x, y); c.lineTo(x - Math.cos(a) * 5, y - Math.sin(a) * 5); c.stroke();
+  }
+  for (let i = 0; i < 5; i++) { // крошка: серые камушки летят дугой и падают
+    const a = -Math.PI / 2 + (r() - 0.5) * 2.2, sp = 18 + r() * 22, x = hx + Math.cos(a) * sp * q, y = hy + Math.sin(a) * sp * q + 70 * q * q, s = 1.6 + r() * 1.6;
+    c.fillStyle = i % 2 ? '#8c8478' : '#a39b8e'; c.strokeStyle = '#24180f'; c.lineWidth = 0.6; c.beginPath(); c.rect(x - s, y - s, s * 2, s * 1.6); c.fill(); c.stroke();
+  }
 }
 
 // тело моба: лежит на боку; если в нём есть добыча — над ним мерцает искорка цвета лучшей вещи

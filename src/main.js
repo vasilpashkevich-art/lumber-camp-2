@@ -12,13 +12,13 @@ import { createHud } from './ui/hud.js';
 import { openChar, openVendor, openMenu, showDeath, hideTip, openLoot, openAbils, openGuild, openSmelt } from './ui/windows.js';
 import { openMap } from './ui/map.js';
 import { doll } from './art/hero.js';
-import { rollDrop, makeItem, makeTrinket, makeStack } from './systems/items.js';
+import { rollDrop, makeItem, makeTrinket, makeStack, makePick } from './systems/items.js';
 import { LOOT } from '../data/balance.js';
 import { dist } from './engine/util.js';
 import { $, toast, zoneTitle } from './ui/dom.js';
 import { RAR_COL } from '../data/balance.js';
 
-const VERSION = 62;
+const VERSION = 63;
 const WORLDS = {}; const worldOf = id => WORLDS[id] || (WORLDS[id] = buildWorld(ZONES[id] || ZONES.pine));
 let W = null, G = null, R = null, In = null, hud = null, raf = 0, last = 0, saveT = 0, musicT = 0, paused = false;
 
@@ -37,7 +37,7 @@ function boot() {
   };
   $('#btnBag').onclick = () => charWin(); $('#btnMenu').onclick = () => menu(); $('#btnMap').onclick = () => mapWin(); $('#mini').onclick = () => mapWin(); $('#pfRing').onclick = () => { if (G && !document.querySelector('.modal')) openAbils(G); };
   $('#ver').textContent = 'версия ' + VERSION;
-  if (location.hash === '#dev') window.__G = { get G() { return G; }, start, toSelect, R: () => R, rollDrop, makeItem, doll, makeTrinket, makeStack, addStack, refresh: () => { refreshStats(G); hud.update(); } };
+  if (location.hash === '#dev') window.__G = { get G() { return G; }, start, toSelect, R: () => R, rollDrop, makeItem, doll, makeTrinket, makeStack, makePick, addStack, refresh: () => { refreshStats(G); hud.update(); } };
   toSelect();
 }
 

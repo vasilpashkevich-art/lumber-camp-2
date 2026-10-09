@@ -32,7 +32,7 @@ export function person(c, L, view, pose = {}) {
   // a — угол руки от «вниз» (по часовой — вперёд), wa — поворот оружия в руке
   const swing = () => {
     if (A < 0) return null;
-    if (cl === 'warrior' || wt < 0) { const k = A < 0.35 ? A / 0.35 : A < 0.55 ? 1 + (A - 0.35) / 0.2 : 2 - (A - 0.55) / 0.45; // 0 → 1 замах → 2 удар → обратно
+    if (cl === 'warrior' || wt < 0 || L.pick) { const k = A < 0.35 ? A / 0.35 : A < 0.55 ? 1 + (A - 0.35) / 0.2 : 2 - (A - 0.55) / 0.45; // 0 → 1 замах → 2 удар → обратно
       const a = k <= 1 ? 0.3 - k * 2.9 : -2.6 + (k - 1) * 4.1; return { a, wa: k <= 1 ? 0.4 : 0.4 + (k - 1) * 0.6, trail: A > 0.35 && A < 0.6 }; }
     if (cl === 'mage') { const k = A < 0.5 ? A / 0.5 : 1 - (A - 0.5) / 0.5; return { a: 0.3 + k * 1.3, wa: -k * 0.9, glow: k }; }
     const k = A < 0.6 ? A / 0.6 : 1 - (A - 0.6) / 0.4; return { a: 0.3 + Math.min(1, k * 1.6) * 1.25, wa: 1.27, pull: A < 0.6 ? k : 0, bow: true };
@@ -76,7 +76,7 @@ export function person(c, L, view, pose = {}) {
   function arm(sx, a, col, front, sw) {
     const ex = sx + Math.sin(a) * 4.2, ey = -3.5 + Math.cos(a) * 4.2, a2 = a + 0.35, hx = ex + Math.sin(a2) * 3.8, hy = ey + Math.cos(a2) * 3.8;
     limb(sx, -3.5, ex, ey, 3.4, col); limb(ex, ey, hx, hy, 3, col);
-    if (front && wt >= 0) weapon(hx, hy, a2, sw);
+    if (front && (wt >= 0 || L.pick)) weapon(hx, hy, a2, sw);
     hp(() => c.arc(hx, hy, 2.2, 0, 7), SKIN, 0.9);
     if (front && sw && sw.bow) { // натянутая тетива: задняя рука у груди
       const pull = sw.pull || 0; hp(() => c.arc(hx - 4 - pull * 6, hy + 0.5, 2, 0, 7), SKIN, 0.8);
@@ -87,7 +87,8 @@ export function person(c, L, view, pose = {}) {
   // оружие в руке (hx,hy), a2 — направление предплечья
   function weapon(hx, hy, a2, sw) {
     c.save(); c.translate(hx, hy);
-    if (L.torch) { c.rotate(a2 - 0.1); torch(); }
+    if (L.pick) { c.rotate(a2 - 0.1); pickaxe(); }
+    else if (L.torch) { c.rotate(a2 - 0.1); torch(); }
     else if (cl === 'warrior') { c.rotate(a2 - 0.1); axe(); }                       // топор перпендикулярно предплечью
     else if (cl === 'mage') { c.rotate(sw ? sw.glow * 0.8 : 0.04); (L.sickle ? sickle : staff)(sw ? sw.glow : 0); }   // посох почти отвесно, при ударе — вперёд
     else { c.rotate(sw ? 0 : 0.12); bow(sw && sw.bow ? sw.pull : 0, !!(sw && sw.bow)); }      // лук отвесно, тетива к себе
@@ -101,6 +102,13 @@ export function person(c, L, view, pose = {}) {
     hp(() => { c.moveTo(0, top + 1); c.lineTo(w, top - hh / 2); c.quadraticCurveTo(w + 3, top + 2, w, top + hh); c.lineTo(0, top + 4); c.closePath(); }, bc);
     if (wt >= 2) hp(() => { c.moveTo(0, top + 1); c.lineTo(-w * 0.8, top - hh / 2.5); c.quadraticCurveTo(-w - 2, top + 2, -w * 0.8, top + hh * 0.8); c.lineTo(0, top + 4); c.closePath(); }, bc);
     if (wt >= 3) { c.strokeStyle = '#ffffff'; c.lineWidth = 0.8; c.beginPath(); c.moveTo(w - 1, top - 2); c.lineTo(w - 3, top + 2); c.lineTo(w - 1, top + 5); c.stroke(); }
+  }
+  // кирка рудокопа: рукоять от кисти вверх, изогнутый клюв с двумя остриями
+  function pickaxe() {
+    c.strokeStyle = HO; c.lineWidth = 3.6; c.beginPath(); c.moveTo(0, 6); c.lineTo(0, -21); c.stroke(); c.strokeStyle = '#8a5e34'; c.lineWidth = 2.2; c.stroke();
+    hp(() => { c.moveTo(-11, -15); c.quadraticCurveTo(-5, -23.5, 0, -23.5); c.quadraticCurveTo(5, -23.5, 12, -15.5); c.lineTo(11, -14.5); c.quadraticCurveTo(5, -20, 0, -19.5); c.quadraticCurveTo(-5, -20, -10, -14); c.closePath(); }, '#a8b0b6', 1);
+    hp(() => c.rect(-2.2, -24.5, 4.4, 6), '#6a7076', 0.8);
+    c.strokeStyle = '#eef3f6'; c.lineWidth = 0.8; c.beginPath(); c.moveTo(-8, -17.5); c.quadraticCurveTo(-4, -22.3, 0, -22.4); c.stroke();
   }
   // факел поджигателя: палка с огнём
   function torch() {
@@ -187,8 +195,9 @@ export function person(c, L, view, pose = {}) {
     if (back) headBack(); else headFront();
     // оружие: спереди — в правой руке героя (слева на экране), сзади — справа
     const [hx, hy] = back ? R : Lh;
-    if (wt >= 0) { c.save(); c.translate(hx, hy);
-      if (L.torch) { c.rotate(back ? 0.12 : -0.12); torch(); }
+    if (wt >= 0 || L.pick) { c.save(); c.translate(hx, hy);
+      if (L.pick) { c.rotate(SW ? (SW.a < 0 ? -0.6 : 0.5) * (back ? -1 : 1) + (back ? 0.15 : -0.15) : (back ? 0.12 : -0.12)); pickaxe(); }
+      else if (L.torch) { c.rotate(back ? 0.12 : -0.12); torch(); }
       else if (cl === 'warrior') { c.rotate(SW ? (SW.a < 0 ? -0.6 : 0.5) * (back ? -1 : 1) + (back ? 0.15 : -0.15) : (back ? 0.12 : -0.12)); axe(); }
       else if (cl === 'mage') { c.rotate(back ? 0.06 : -0.06); (L.sickle ? sickle : staff)(SW ? SW.glow : 0); }
       else { if (SW && SW.bow) { c.rotate(Math.PI / 2); c.scale(1, back ? -1 : 1); bow(SW.pull, !back); } else { c.rotate(back ? 0.1 : -0.1); c.scale(back ? 1 : -1, 1); bow(0, false); } }

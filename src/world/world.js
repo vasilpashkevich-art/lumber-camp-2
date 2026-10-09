@@ -20,6 +20,7 @@ export function buildWorld(Z) {
   const roadD = (x, y) => {
     let m = 1e9;
     for (const rd of Z.roads) for (let i = 0; i < rd.length - 1; i++) m = Math.min(m, segDist(x, y, rd[i][0], rd[i][1], rd[i + 1][0], rd[i + 1][1]));
+    for (const [px, py, pr] of Z.plazas || []) m = Math.min(m, Math.max(0, Math.hypot(x - px, (y - py) / 0.72) - pr));
     return m;
   };
   // безопасное место зоны: столица со стеной или посёлок без стены (мобы не заходят, отдых быстрее)
@@ -62,9 +63,19 @@ export function buildWorld(Z) {
   const inside = (x, y, pad = 0) => inPoly(x, y, edge) && (pad <= 0 || edgeDist(x, y) > pad);
   // река: вода по ломаной, мосты — проходы
   const R = W.river;
-  if (R) R.bridgeAt = R.bridges.map(bx => { for (let i = 0; i < R.pts.length - 1; i++) { const [ax, ay] = R.pts[i], [cx, cy] = R.pts[i + 1]; if (bx >= ax && bx <= cx) { const k = (bx - ax) / (cx - ax); return { x: bx, y: ay + (cy - ay) * k, a: Math.atan2(cy - ay, cx - ax) }; } } return null; }).filter(Boolean);
+  // мост — там, где дорога пересекает реку (ближе всего к заданной точке); a — угол реки, ra — угол дороги
+  const cross = (p, q, u, v) => { const d = (q[0] - p[0]) * (v[1] - u[1]) - (q[1] - p[1]) * (v[0] - u[0]); if (!d) return null; const t = ((u[0] - p[0]) * (v[1] - u[1]) - (u[1] - p[1]) * (v[0] - u[0])) / d, w = ((u[0] - p[0]) * (q[1] - p[1]) - (u[1] - p[1]) * (q[0] - p[0])) / d; return t >= 0 && t <= 1 && w >= 0 && w <= 1 ? [p[0] + (q[0] - p[0]) * t, p[1] + (q[1] - p[1]) * t] : null; };
+  if (R) R.bridgeAt = R.bridges.map(bx => {
+    let best = null;
+    for (const rd of Z.roads) for (let i = 0; i < rd.length - 1; i++) for (let k = 0; k < R.pts.length - 1; k++) {
+      const P = cross(rd[i], rd[i + 1], R.pts[k], R.pts[k + 1]); if (!P || (best && Math.abs(best.x - bx) < Math.abs(P[0] - bx))) continue;
+      best = { x: P[0], y: P[1], a: Math.atan2(R.pts[k + 1][1] - R.pts[k][1], R.pts[k + 1][0] - R.pts[k][0]), ra: Math.atan2(rd[i + 1][1] - rd[i][1], rd[i + 1][0] - rd[i][0]) };
+    }
+    if (best) best.len = R.w / Math.max(0.5, Math.abs(Math.sin(best.ra - best.a))) + 70;   // настил длиннее, если река наискось
+    return best;
+  }).filter(Boolean);
   W.riverD = (x, y) => { if (!R) return 1e9; let m = 1e9; for (let i = 0; i < R.pts.length - 1; i++) m = Math.min(m, segDist(x, y, R.pts[i][0], R.pts[i][1], R.pts[i + 1][0], R.pts[i + 1][1])); return m; };
-  W.water = (x, y, pad = 0) => R && W.riverD(x, y) < R.w / 2 + pad && !R.bridgeAt.some(b => { const dx = x - b.x, dy = y - b.y, ca = Math.cos(b.a), sa = Math.sin(b.a), u = dx * ca + dy * sa; return Math.abs(u) < 36; });
+  W.water = (x, y, pad = 0) => R && W.riverD(x, y) < R.w / 2 + pad && !R.bridgeAt.some(b => { const dx = x - b.x, dy = y - b.y, u = -dx * Math.sin(b.ra) + dy * Math.cos(b.ra), l = dx * Math.cos(b.ra) + dy * Math.sin(b.ra); return Math.abs(u) < 36 && Math.abs(l) < b.len / 2; });
   W.blocked = (x, y) => W.blocks.some(b => b.rect ? x > b.x0 && x < b.x1 && y > b.y0 && y < b.y1 : Math.abs(x - b.x) < b.rx && ((x - b.x) / b.rx) ** 2 + ((y - b.y) / b.ry) ** 2 < 1);
   /** Можно ли стоять здесь мобу: внутри зоны, не в воде, не в постройке. */
   W.walkable = (x, y) => inside(x, y) && !W.water(x, y) && !W.blocked(x, y);

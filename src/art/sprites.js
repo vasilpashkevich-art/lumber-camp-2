@@ -19,6 +19,17 @@ export function sprite(key, w, h, ox, oy, q, draw) {
   CACHE.set(key, out); return out;
 }
 
+/** Где у картинки непрозрачное (в шагах мира от начала): считается один раз. */
+export function sprBox(s) {
+  if (!s) return null; if (s.box) return s.box;
+  let b = { x0: -s.ox, y0: -s.oy, x1: s.w - s.ox, y1: s.h - s.oy };
+  try {
+    const W = s.cv.width, H = s.cv.height, d = s.cv.getContext('2d').getImageData(0, 0, W, H).data; let x0 = W, y0 = H, x1 = -1, y1 = -1;
+    for (let y = 0; y < H; y += 2) for (let x = 0; x < W; x += 2) if (d[(y * W + x) * 4 + 3] > 60) { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
+    const k = s.w / W; if (x1 >= 0) b = { x0: x0 * k - s.ox, y0: y0 * k - s.oy, x1: x1 * k - s.ox, y1: y1 * k - s.oy };
+  } catch (e) { /* без холста — по размеру картинки */ }
+  return (s.box = b);
+}
 export function drawSpr(c, s, x, y, a = 1, sc = 1) {
   if (!s) return false;
   if (a < 1) c.globalAlpha = a;
@@ -46,7 +57,7 @@ export function heroSpr(L, dir) {
 // mode: idle — стоит, walk — 8 кадров шага, atk — 6 кадров удара, dead — 4 кадра падения
 export const FRAMES = { idle: 1, walk: 8, atk: 6, dead: 4 };
 const poseOf = (mode, f) => mode === 'walk' ? { walk: f / 8 } : mode === 'atk' ? { atk: (f + 0.5) / 6 } : mode === 'dead' ? { dead: (f + 1) / 4 } : { walk: -1 };
-const lookKey = L => [L.cls, L.head, L.chest, L.legs, L.wt, L.rar, L.mask || '', L.band || '', L.patch ? 1 : 0, L.glow ? 1 : 0, L.torch ? 1 : 0, L.hatCol || '', L.strawHat ? 1 : 0, L.sickle ? 1 : 0, L.line ? L.line.chest[1] : ''].join(',');
+const lookKey = L => [L.cls, L.head, L.chest, L.legs, L.wt, L.rar, L.mask || '', L.band || '', L.patch ? 1 : 0, L.glow ? 1 : 0, L.torch ? 1 : 0, L.hatCol || '', L.strawHat ? 1 : 0, L.sickle ? 1 : 0, L.pick ? 1 : 0, L.line ? L.line.chest[1] : ''].join(',');
 /** Кадр человека (герой, разбойники). Начало — как у heroSpr: ступни на +12,6. */
 export function personSpr(L, view, mode, f) {
   return sprite('p|' + lookKey(L) + '|' + view + '|' + mode + '|' + f, 100, 104, 50, 72, 1.7, g => person(g, L, view, poseOf(mode, f)));
