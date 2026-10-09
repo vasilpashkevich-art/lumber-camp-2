@@ -1,0 +1,73 @@
+<title>Горное дело и аксессуары — эскиз</title>
+<style>
+:root{color-scheme:dark;--bg:#14100b;--pan:#221a12;--line:#8a6a3a;--txt:#e9dfc8;--dim:#a89878;--hi:#ffe9a8;--gold:#e7c35a}
+body{background:var(--bg);color:var(--txt);font:15px Georgia,'Times New Roman',serif;margin:0;padding:18px 16px 40px}
+h1{margin:0 0 4px;color:var(--hi);font-size:28px} h2{color:var(--hi);font-size:21px;margin:30px 0 6px} h3{color:var(--hi);font-size:17px;margin:6px 0 8px}
+p{color:var(--dim);max-width:920px;line-height:1.5;margin:4px 0} ul{color:var(--dim);max-width:920px;line-height:1.55;padding-left:20px} ul b{color:var(--txt)}
+canvas.big{width:100%;max-width:1100px;height:auto;border:1px solid #5a4630;border-radius:10px;display:block}
+.box{background:linear-gradient(#2a2016,#16100b);border:2px solid var(--line);border-radius:12px;box-shadow:0 20px 60px rgba(0,0,0,.6),inset 0 0 0 4px rgba(244,199,102,.1);padding:22px 26px;display:inline-block;max-width:100%}
+.box h2{margin:0 0 10px;font-size:26px}
+.charwin{display:flex;gap:22px;flex-wrap:wrap}
+.dollw{display:grid;grid-template-columns:52px 170px 52px;gap:8px;align-items:start}
+.dollw canvas{width:170px;height:236px;background:radial-gradient(#3a2d1c,#120c08 70%);border-radius:10px;border:1px solid #4a3a2a}
+.eq{display:grid;gap:8px}
+.cell{width:52px;height:52px;border:1.5px solid #4a3a2a;border-radius:8px;background:#120c08;display:flex;align-items:center;justify-content:center;position:relative;padding:0}
+.cell .empty{font-size:10px;color:#6a5a40;text-align:center}
+.cell .n{position:absolute;right:3px;bottom:1px;font-size:12px;font-weight:bold;color:#fff;text-shadow:0 1px 2px #000,0 0 2px #000}
+.cell .new{position:absolute;left:-6px;top:-8px;font-size:10px;color:#1a120c;background:var(--gold);border-radius:6px;padding:0 4px;font-weight:bold}
+.stats{display:grid;grid-template-columns:1fr auto;gap:2px 14px;font-size:14px;margin-top:10px;max-width:290px} .stats dt{color:var(--dim)} .stats dd{margin:0;text-align:right}
+.skill{margin-top:10px;max-width:290px} .skill .b{height:10px;background:#120c08;border:1px solid #4a3a2a;border-radius:5px;overflow:hidden} .skill .b i{display:block;height:100%;background:linear-gradient(#e0a060,#a85a28)}
+.bag{display:grid;grid-template-columns:repeat(8,52px);gap:6px}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:10px;max-width:1100px}
+.card svg{flex:0 0 auto} .card{display:flex;gap:12px;background:var(--pan);border:1.5px solid #4a3a2a;border-radius:10px;padding:10px 12px;align-items:flex-start}
+.card b{display:block;font-size:16px} .card small{color:var(--dim)} .card p{margin:3px 0 0;color:var(--txt);font-size:14px}
+.rare b{color:#4a9eff} .epic b{color:#b46aff} .epic{border-color:#5a3a7a;box-shadow:0 0 12px rgba(180,106,255,.18)}
+.tips{display:flex;gap:14px;flex-wrap:wrap;align-items:flex-start}
+.tcard{width:250px;background:rgba(14,10,6,.96);border:1.5px solid var(--line);border-radius:8px;padding:10px 12px}
+.tcard b{display:block;font-size:16px} .tcard small{color:var(--dim)} .tcard p{margin:3px 0;font-size:14px} .tcard .prop{color:#7fe07f} .tcard .ab{color:#ffe9a8} .tcard .gold{color:#ffd34d}
+#actbar{display:flex;gap:6px;padding:7px;background:rgba(18,12,8,.9);border:2px solid #5a4630;border-radius:12px;width:max-content}
+.act{position:relative;width:58px;height:58px;border:2px solid #5a4630;border-radius:8px;background:#1a120c;padding:0;overflow:hidden}
+.act .ico{position:absolute;inset:6px} .act .ico svg{width:100%;height:100%}
+.act .k{position:absolute;right:3px;top:1px;font-size:11px;color:var(--hi);text-shadow:0 1px 2px #000} .act .n{position:absolute;right:4px;bottom:2px;font-size:13px;font-weight:bold;color:#fff;text-shadow:0 1px 2px #000}
+.act.tr{border-color:#4a9eff;box-shadow:0 0 10px rgba(74,158,255,.4)}
+.smelt{display:grid;gap:8px;min-width:420px} .rowb{display:flex;align-items:center;gap:12px;background:#1a120c;border:1.5px solid #4a3a2a;border-radius:8px;padding:8px 10px}
+.rowb .t{flex:1} .rowb .t b{display:block;color:var(--txt)} .rowb .t small{color:var(--dim)} .btn{background:linear-gradient(#4a3420,#24180f);border:2px solid var(--gold);border-radius:8px;color:var(--hi);font:inherit;font-weight:bold;padding:7px 12px}
+.btn.dis{opacity:.45}
+.legend{display:flex;gap:16px;flex-wrap:wrap;color:var(--dim);font-size:13px;margin:6px 0}
+</style>
+<h1>Горное дело, кольцо, шея и аксессуары — эскиз</h1>
+<p>Всё в масштабе игры: 1 рост героя ≈ 42 шага. Жила — выход породы 1–1,2 роста, скала у края — 2,5 роста.</p>
+
+<h2>1. Жилы в мире</h2>
+<p>Слева — Сосновый дол: скалы и пригорки у края зоны, в одной сидит медная жила; ещё одна жила — одна посреди поляны; справа от героя — выкопанная (щебень, появится в другом месте). Справа — Хуторские угодья, оловянная жила. Жилы иногда поблёскивают — так их и находят.</p>
+<canvas id="world" class="big"></canvas>
+<ul>
+<li><b>Добыча:</b> подойти, E — 3 с копать (полоска над героем), удар моба прерывает. С жилы 2–4 руды, жила пропадает и через 5–10 минут появляется в другом месте той же области.</li>
+<li><b>Нужно:</b> выучить горное дело в Гильдии рудокопов (бесплатно) и иметь кирку в сумке. Навык 1–100 растёт с каждой жилой; олово — с 50.</li>
+<li><b>Области жил на карте не видны</b> — найти жилу должно быть сюрпризом (решено раньше).</li>
+</ul>
+
+<h2>2. Окно героя: 7 мест и сумка 8×4</h2>
+<p>Слева — голова, шея, тело, ноги; справа — оружие, кольцо, аксессуар. Руда и слитки лежат стопками до 20. Внизу — навык горного дела.</p>
+<div class="box"><h2>Мирослав</h2><div class="charwin">
+  <div><div class="dollw"><div class="eq" id="eqL"></div><canvas id="doll" width="340" height="472"></canvas><div class="eq" id="eqR"></div></div>
+  <dl class="stats" id="stats"></dl>
+  <div class="skill"><div class="legend" style="margin:0 0 3px;justify-content:space-between"><span>Горное дело</span><span>37 / 100</span></div><div class="b"><i style="width:37%"></i></div></div></div>
+  <div><h3>Сумка <span style="color:var(--dim)">14 / 32</span></h3><div class="bag" id="bag"></div><p style="font-size:13px;margin-top:8px">Стопки руды и слитков — до 20 в ячейке.</p></div>
+</div></div>
+
+<h2>3. Панель умений: аксессуар на клавише 1</h2>
+<div id="actbar"></div>
+
+<h2>4. Аксессуары</h2>
+<p>Только синие и фиолетовые. Фиолетовый — не «усиленный синий», а другая вещь с необычной способностью. Выпадают редко: с вожаков (Атаман, Мельник) — 10%, если 8 раз подряд не выпал — на 9-й точно; фиолетовые — позже, с 3-й зоны и из подземелий.</p>
+<h3 style="color:#4a9eff">Синие</h3><div class="cards" id="blue"></div>
+<h3 style="color:#b46aff;margin-top:14px">Фиолетовые</h3><div class="cards" id="epic"></div>
+
+<h2>5. Подсказки: кольцо, шея, аксессуар</h2>
+<p>Кольцо и шея — без брони и урона: главный параметр класса, выносливость и свойства по цвету (зелёное — 1, синее — 2). Аксессуар — способность, параметров нет.</p>
+<div class="tips" id="tips"></div>
+
+<h2>6. Плавильня (кузница Столицы и Хутора Подгорного)</h2>
+<div class="box"><h2>Плавильня</h2><div class="smelt" id="smelt"></div><p style="font-size:13px">Слиток стоит дороже двух руд — переплавлять выгодно. Позже из слитков будет ковать кузнец.</p></div>
+<!--SCRIPT-->

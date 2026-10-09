@@ -55,3 +55,33 @@ export function moneyHtml(v) {
   out.push(`<b>${c}</b><i class="coin cc" title="медь"></i>`);
   return `<span class="money">${out.join('')}</span>`;
 }
+
+// ---------------------------------------------------------------- v61: кольцо, шея, аксессуары, руда, слитки, кирка
+const box = (body, rc, size) => `<svg viewBox="0 0 32 32" width="${size}" height="${size}" style="background:radial-gradient(circle at 50% 40%, ${rc}33, #1a120c 70%);border:2px solid ${rc};border-radius:6px">${body}</svg>`;
+const gem = (cx, cy, r, c) => `<path d="M${cx} ${cy - r}l${r} ${r}-${r} ${r}-${r}-${r}z" fill="${c}" stroke="${O}" stroke-width=".9"/><path d="M${cx - r * 0.4} ${cy - r * 0.2}l${r * 0.35} -${r * 0.4}" stroke="#fff" stroke-width="1" opacity=".7"/>`;
+export const ACC_ICON = {
+  ring: c => `<ellipse cx="16" cy="19" rx="9" ry="8" fill="none" stroke="${O}" stroke-width="5"/><ellipse cx="16" cy="19" rx="9" ry="8" fill="none" stroke="#e7c35a" stroke-width="2.8"/><ellipse cx="13" cy="15" rx="3" ry="1.4" fill="#fff6c0" opacity=".7"/>${gem(16, 10, 4.5, c)}`,
+  neck: c => `<path d="M6 4 Q16 22 26 4" fill="none" stroke="${O}" stroke-width="3.2"/><path d="M6 4 Q16 22 26 4" fill="none" stroke="#cfd6dc" stroke-width="1.6" stroke-dasharray="2 1.4"/><path d="M16 15l6 6-6 8-6-8z" fill="#e7c35a" stroke="${O}"/>${gem(16, 22, 3.6, c)}`,
+  stoneheart: `<path d="M16 28 L4 15 A6.5 6.5 0 0 1 16 8 A6.5 6.5 0 0 1 28 15z" fill="#8d8a82" stroke="${O}" stroke-width="1.4"/><path d="M8 14l5 3 3-4 4 5 5-3" fill="none" stroke="#5c5a54" stroke-width="1.4"/><path d="M10 12 Q12 9 15 10" stroke="#c4c0b6" stroke-width="1.6" fill="none"/>`,
+  rage: `<path d="M5 24 Q10 8 27 5 Q22 12 22 18 Q14 18 9 27z" fill="#c9a06a" stroke="${O}" stroke-width="1.3"/><path d="M8 24 Q12 14 22 9" stroke="#8a5a2a" stroke-width="1.3" fill="none"/><path d="M24 4l4-2-1 5" fill="#c43a2c" stroke="${O}" stroke-width=".8"/><circle cx="8" cy="25" r="3" fill="#e7c35a" stroke="${O}"/>`,
+  breath: `<rect x="13" y="3" width="6" height="5" fill="#c9a06a" stroke="${O}"/><path d="M12 8h8v4l5 6v7a4 4 0 0 1-4 4H11a4 4 0 0 1-4-4v-7l5-6z" fill="#e8e0cc" stroke="${O}"/><path d="M8 18h16v7a4 4 0 0 1-4 4H12a4 4 0 0 1-4-4z" fill="#5fd38a"/><circle cx="13" cy="22" r="1.4" fill="#fff"/><circle cx="18" cy="25" r="1" fill="#fff"/>`,
+  windfeather: `<path d="M6 28 Q8 12 26 4 Q22 16 10 24z" fill="#e8f4ff" stroke="${O}" stroke-width="1.3"/><path d="M8 26 L24 7" stroke="#8ab0d0" stroke-width="1.2"/><g stroke="#9ad0ff" stroke-width="1.4"><path d="M18 18h8M20 22h7M16 14h6"/></g>`,
+  stormeye: `<circle cx="16" cy="16" r="11" fill="#2f4f8a" stroke="${O}" stroke-width="1.4"/><ellipse cx="16" cy="16" rx="8" ry="5" fill="#e8f4ff" stroke="${O}"/><circle cx="16" cy="16" r="3.4" fill="#4a9eff"/><path d="M17 3l-4 7h4l-3 7" fill="none" stroke="#ffe066" stroke-width="1.8"/>`,
+  thorns: `<rect x="12" y="6" width="8" height="22" rx="2" fill="#6b4a2c" stroke="${O}"/><g fill="#d8c8a0" stroke="${O}" stroke-width=".8"><path d="M12 9l-6-2 6 5z"/><path d="M20 12l6-3-6 6z"/><path d="M12 17l-7 1 7 3z"/><path d="M20 21l6 0-6 3z"/></g><circle cx="16" cy="6" r="3" fill="#7fb88a" stroke="${O}"/>`,
+  phoenix: `<path d="M16 27 Q6 22 5 12 Q11 16 13 14 Q10 8 16 3 Q22 8 19 14 Q21 16 27 12 Q26 22 16 27z" fill="#ff8a2a" stroke="${O}" stroke-width="1.3"/><path d="M16 23 Q11 19 12 15 Q15 17 16 12 Q17 17 20 15 Q21 19 16 23z" fill="#ffe066"/>`,
+  mirror: `<ellipse cx="16" cy="13" rx="9" ry="10" fill="#c9a24a" stroke="${O}" stroke-width="1.4"/><ellipse cx="16" cy="13" rx="6.5" ry="7.5" fill="#3a2a5a"/><path d="M13 10a3 3 0 1 1 6 0v8h-6z" fill="#8a7ab8" opacity=".85"/><rect x="14" y="23" width="4" height="6" fill="#c9a24a" stroke="${O}"/>`,
+  pack: `<path d="M5 22 Q10 6 27 6 Q21 12 21 18 Q14 18 9 27z" fill="#b8c4d4" stroke="${O}" stroke-width="1.3"/><path d="M15 21l2-5 2 3 2-4 1 6z" fill="#e8f4ff" stroke="${O}" stroke-width=".8"/><circle cx="8" cy="25" r="3" fill="#7ec8ff" stroke="${O}"/>`,
+  shadowcloak: `<path d="M16 3 Q6 8 6 20 L4 29 Q16 25 28 29 L26 20 Q26 8 16 3z" fill="#2a2234" stroke="${O}" stroke-width="1.4"/><path d="M11 12 Q16 8 21 12 Q19 18 16 18 Q13 18 11 12z" fill="#0e0a14"/><circle cx="14" cy="13" r="1.1" fill="#b46aff"/><circle cx="18" cy="13" r="1.1" fill="#b46aff"/>`,
+  hourglass: `<rect x="7" y="3" width="18" height="3" fill="#c9a24a" stroke="${O}"/><rect x="7" y="26" width="18" height="3" fill="#c9a24a" stroke="${O}"/><path d="M9 6h14Q23 13 17 16Q23 19 23 26H9Q9 19 15 16Q9 13 9 6z" fill="#cfeaff" stroke="${O}" stroke-width="1.2"/><path d="M12 22 Q16 18 20 22 L21 25 H11z" fill="#e7c35a"/>`,
+  gravity: `<circle cx="16" cy="17" r="9" fill="#4a3a5a" stroke="${O}" stroke-width="1.4"/><circle cx="16" cy="17" r="4" fill="#b46aff"/><g fill="none" stroke="#c8a0ff" stroke-width="1.3"><path d="M3 9 Q8 12 9 16"/><path d="M29 9 Q24 12 23 16"/><path d="M5 28 Q9 25 11 23"/><path d="M27 28 Q23 25 21 23"/></g>`,
+  ore_copper: `<path d="M5 24l4-10 8-5 9 4 2 10-8 4-10-1z" fill="#8c8478" stroke="${O}" stroke-width="1.3"/><path d="M9 16l6 3 6-4 4 6" fill="none" stroke="${O}" stroke-width="3"/><path d="M9 16l6 3 6-4 4 6" fill="none" stroke="#c8703a" stroke-width="1.8"/><path d="M12 22l3-2 2 3-3 1z" fill="#7fb88a" stroke="${O}" stroke-width=".7"/>`,
+  ore_tin: `<path d="M5 24l4-10 8-5 9 4 2 10-8 4-10-1z" fill="#867f74" stroke="${O}" stroke-width="1.3"/><path d="M9 16l6 3 6-4 4 6" fill="none" stroke="${O}" stroke-width="3"/><path d="M9 16l6 3 6-4 4 6" fill="none" stroke="#dde3e8" stroke-width="1.8"/><path d="M12 22l3-2 2 3-3 1z" fill="#9aa6b2" stroke="${O}" stroke-width=".7"/>`,
+  bar_copper: `<path d="M4 21l6-8h18l-6 8z" fill="#f0a060" stroke="${O}" stroke-width="1.3"/><path d="M4 21h18v5H4z" fill="#c8703a" stroke="${O}" stroke-width="1.3"/><path d="M22 21l6-8v5l-6 8z" fill="#9a5028" stroke="${O}" stroke-width="1.3"/><path d="M11 15h10" stroke="#ffd0a0" stroke-width="1.2"/>`,
+  bar_tin: `<path d="M4 21l6-8h18l-6 8z" fill="#f0f4f8" stroke="${O}" stroke-width="1.3"/><path d="M4 21h18v5H4z" fill="#c9ced4" stroke="${O}" stroke-width="1.3"/><path d="M22 21l6-8v5l-6 8z" fill="#9aa2aa" stroke="${O}" stroke-width="1.3"/><path d="M11 15h10" stroke="#fff" stroke-width="1.2"/>`,
+  pickaxe: `<path d="M8 28 L20 10" stroke="${O}" stroke-width="4"/><path d="M8 28 L20 10" stroke="#8a5a32" stroke-width="2.2"/><path d="M6 9 Q16 2 28 9 Q20 8 17 11 Q13 8 6 9z" fill="#a8b0b6" stroke="${O}" stroke-width="1.3"/>`,
+};
+/** Значок: кольцо/шея (gem — цвет камня), аксессуар по id, руда/слиток/кирка. */
+export function accIcon(kind, rar = 'common', size = 40, gemCol = '#4a9eff') {
+  const b = ACC_ICON[kind]; const body = typeof b === 'function' ? b(gemCol) : b || '';
+  return box(body, RAR_COL[rar] || '#888', size);
+}

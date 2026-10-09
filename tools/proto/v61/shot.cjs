@@ -1,0 +1,10 @@
+const { chromium } = require('playwright'); const path = require('path');
+(async () => { const b = await chromium.launch(); const p = await b.newPage({ viewport: { width: 1200, height: 900 } }); const errs = [];
+  p.on('pageerror', e => errs.push(e.message)); p.on('console', m => { if (m.type() === 'error') errs.push(m.text()); });
+  await p.goto('file://' + path.resolve(__dirname, 'mining.html')); await p.waitForTimeout(1600);
+  const out = n => path.resolve(__dirname, '../../../tests/browser/out/' + n);
+  await (await p.$('#world')).screenshot({ path: out('v61-world.png') });
+  await (await p.$$('.box'))[0].screenshot({ path: out('v61-char.png') });
+  await (await p.$('#actbar')).screenshot({ path: out('v61-bar.png') });
+  await p.screenshot({ path: out('v61-full.png'), fullPage: true });
+  console.log(errs.length ? errs.join('\n') : 'ошибок нет'); await b.close(); })();
