@@ -17,7 +17,7 @@ import { dist } from './engine/util.js';
 import { $, toast, zoneTitle } from './ui/dom.js';
 import { RAR_COL } from '../data/balance.js';
 
-const VERSION = 59;
+const VERSION = 60;
 const WORLDS = {}; const worldOf = id => WORLDS[id] || (WORLDS[id] = buildWorld(ZONES[id] || ZONES.pine));
 let W = null, G = null, R = null, In = null, hud = null, raf = 0, last = 0, saveT = 0, musicT = 0, paused = false;
 

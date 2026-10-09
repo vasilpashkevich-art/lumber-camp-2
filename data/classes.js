@@ -31,8 +31,8 @@ export const CLASSES = {
     hpMul: 1.0, armor: 4,
     attack: { kind: 'arrow', reach: 420, cd: 0.9, mul: 0.95, speed: 900, sfx: 'bow' },
     abils: [
-      { id: 'triple', name: 'Тройной выстрел', key: 'C', lvl: 1, cd: 6, mul: 0.9,
-        d: 'Три стрелы разом в цель и в тех, кто рядом', icon: 'volley', sfx: 'arrowVolley' },
+      { id: 'bleed', name: 'Кровоточащая стрела', key: 'C', lvl: 1, cd: 6, mul: 1.0, bleed: { t: 5, mul: 0.35 },
+        d: 'Стрела ранит цель: 5 с кровотечения, урон каждую секунду', icon: 'bleed', sfx: 'bow' },
       { id: 'net', name: 'Сеть', key: 'V', lvl: 5, cd: 12, root: 3,
         d: 'Набрасывает сеть: враг 3 с не может сойти с места', icon: 'net', sfx: 'bow' },
     ],

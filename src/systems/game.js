@@ -38,7 +38,7 @@ function spawnMob(G, s, camp) {
     x: s.x, y: s.y, hx: s.x, hy: s.y, r: D.r,
     hp: max, max, dmg: MOBL.dmg(s.lvl) * D.dmg, armor: MOBL.armor(s.lvl),
     state: 'idle', cd: 0, face: G.rand() < 0.5 ? -1 : 1, hurt: 0,
-    wander: { t: G.rand() * 4, x: s.x, y: s.y }, burn: null, fled: false, flee: 0,
+    wander: { t: G.rand() * 4, x: s.x, y: s.y }, burn: null, bleed: null, fled: false, flee: 0,
     stun: 0, root: 0, chill: 0, atkT: 0, atkDur: 0.35, walkPh: G.rand(), mdx: 0, mdy: 1, moving: false,
     charge: { cd: 2, t: 0 }, smash: { t: D.smash ? D.smash.every : 0, wind: 0, x: 0, y: 0 }, anim: G.rand() * 10,
   };
@@ -155,6 +155,12 @@ function fire(G, t, dmg, kind, spread = 0) {
   G.shots.push({ from: 'hero', kind, x: P.x, y: P.y - 18, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, t: (A.reach + 80) / sp, dmg, target: t, burn: kind === 'fire' });
 }
 
+/** Повесить кровотечение: повторный выстрел обновляет время, не складывается. */
+function setBleed(G, m, b) {
+  m.bleed = { n: Math.round(b.t), tick: 1, dmg: b.dmg };
+  emit(G, { k: 'txt', x: m.x, y: m.y - m.r - 26, s: 'кровоточит', col: '#ff6a6a' });
+}
+
 /** Удар по мобу: промах, крит, броня, слабость. */
 function strike(G, m, base, src, opt = {}) {
   if (m.state === 'dead') return;
@@ -186,7 +192,7 @@ function aggro(G, m) {
 function killMob(G, m) {
   const H = G.hero, P = G.P;
   if (m.summon) { m.state = 'dead'; m.gone = true; m.hp = 0; if (P.target === m) P.target = null; sfx(G, 'kill'); const xp = Math.round(xpKill(m.lvl, H.lvl) * 0.3); if (xp) { addXp(H, xp); emit(G, { k: 'txt', x: m.x, y: m.y - 46, s: `+${xp} опыта`, col: '#c8a0ff' }); } return; }
-  m.state = 'dead'; m.hp = 0; m.respawnAt = G.t + (m.D.rare ? RESPAWN.rare : RESPAWN.normal);
+  m.state = 'dead'; m.hp = 0; m.bleed = null; m.burn = null; m.respawnAt = G.t + (m.D.rare ? RESPAWN.rare : RESPAWN.normal);
   H.dead[m.key] = m.respawnAt; H.stats.kills++;
   if (P.target === m) P.target = null;
   sfx(G, 'kill');
@@ -258,7 +264,7 @@ function useAbility(G, i) {
     if (A.id === 'fireball') shot('fire', G.st.hit * A.mul, 0, { burn: true, big: true, chillBonus: 1.5 });
     if (A.id === 'frost') shot('frost', G.st.hit * A.mul, 0, { chill: A.chill });
     if (A.id === 'net') shot('net', G.st.hit * 0.3, 0, { root: A.root, sure: true });
-    if (A.id === 'triple') for (const sp of [-0.13, 0, 0.13]) shot('arrow', G.st.hit * A.mul, sp);
+    if (A.id === 'bleed') shot('arrow', G.st.hit * A.mul, 0, { bleed: { t: A.bleed.t, dmg: G.st.hit * A.bleed.mul }, red: true });
   }
   P.acd[A.id] = A.cd * (1 - ((G.st.p && G.st.p.cdr) || 0) / 100); P.lastCombat = G.t; P.sit = false; sfx(G, A.sfx);
 }
@@ -359,6 +365,16 @@ function mobTick(G, m, dt) {
   }
   if (m.summon) { m.life -= dt; if (m.life <= 0 || m.owner.state === 'dead') { m.state = 'dead'; m.gone = true; return; } }
   if (m.burn) { m.burn.t -= dt; m.hp -= m.burn.dps * dt; if (m.burn.t <= 0) m.burn = null; if (m.hp <= 0) { killMob(G, m); return; } }
+  // кровотечение (стрела Лучника): урон раз в секунду, без крита и брони; моб, ушедший к логову, рану залечивает
+  if (m.bleed) {
+    if (m.state === 'return') m.bleed = null;
+    else if ((m.bleed.tick -= dt) <= 0) {
+      m.bleed.tick += 1; m.bleed.n--; m.hp -= m.bleed.dmg; m.hurt = 0.1;
+      emit(G, { k: 'dmg', x: m.x, y: m.y - m.r * 2, v: m.bleed.dmg, bleed: true });
+      if (m.bleed.n <= 0) m.bleed = null;
+      if (m.hp <= 0) { killMob(G, m); return; }
+    }
+  }
   m.stun = Math.max(0, m.stun - dt); m.root = Math.max(0, m.root - dt); m.chill = Math.max(0, m.chill - dt);
   if (m.stun > 0) return;   // оглушён — стоит
   const dH = dist(m.x, m.y, P.x, P.y), dHome = dist(m.x, m.y, m.hx, m.hy), slowK = m.chill > 0 ? 0.5 : 1;
@@ -453,7 +469,7 @@ function shotsTick(G, dt) {
         if (m.state === 'dead') continue;
         if (dist(s.x, s.y, m.x, m.y - m.r * 0.8 - (m.D.flying ? 22 : 0)) < m.r + (s.big ? 16 : 10) + (m.D.flying ? 6 : 0)) {
           s.t = 0; strike(G, m, s.dmg * (s.chillBonus && m.chill > 0 ? s.chillBonus : 1), 'ranged', { burn: s.burn, sure: s.sure });
-          if (m.state !== 'dead') { if (s.chill) setStatus(G, m, 'chill', s.chill); if (s.root) setStatus(G, m, 'root', s.root); }
+          if (m.state !== 'dead') { if (s.chill) setStatus(G, m, 'chill', s.chill); if (s.root) setStatus(G, m, 'root', s.root); if (s.bleed) setBleed(G, m, s.bleed); }
           if (s.kind === 'fire') G.fx.push({ k: 'boom', x: s.x, y: s.y, t: 0.35, max: 0.35, big: s.big });
           break;
         }
