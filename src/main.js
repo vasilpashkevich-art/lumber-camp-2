@@ -4,13 +4,13 @@ import { buildWorld, inCity } from './world/world.js';
 import { createGame, update, abilsOf, refreshStats } from './systems/game.js';
 import { addStack } from './systems/mining.js';
 import { loadHero, saveHero, migrate } from './engine/save.js';
-import { createRenderer, render } from './engine/render.js';
+import { createRenderer, render, ZOOM } from './engine/render.js';
 import { createInput } from './engine/input.js';
 import { soundInit, sfx, music, setSound, soundState } from './engine/audio.js';
 import { showSelect } from './ui/select.js';
 import { createHud } from './ui/hud.js';
 import { openChar, openVendor, openMenu, showDeath, hideTip, openLoot, openAbils, openGuild, openSmelt } from './ui/windows.js';
-import { openMap } from './ui/map.js';
+import { openMap, miniZoom, miniZoomLevel, MINI_Z } from './ui/map.js';
 import { doll } from './art/body.js';
 import { rollDrop, makeItem, makeTrinket, makeStack, makePick } from './systems/items.js';
 import { LOOT } from '../data/balance.js';
@@ -18,7 +18,14 @@ import { dist } from './engine/util.js';
 import { $, toast, zoneTitle } from './ui/dom.js';
 import { RAR_COL } from '../data/balance.js';
 
-const VERSION = 66;
+const VERSION = 67;
+/** Приближение камеры на шаг: +1 ближе, −1 дальше. */
+let zoomT = 0;
+function zoomBy(d) {
+  if (!R) return; const ok = R.zoom(d > 0 ? ZOOM.step : 1 / ZOOM.step), e = $('#zoomInd');
+  e.textContent = ok ? `Приближение ${Math.round(R.uz / ZOOM.def * 100)}%` : d > 0 ? 'Ближе нельзя' : 'Дальше нельзя';
+  e.classList.add('on'); clearTimeout(zoomT); zoomT = setTimeout(() => e.classList.remove('on'), 900);
+}
 const WORLDS = {}; const worldOf = id => WORLDS[id] || (WORLDS[id] = buildWorld(ZONES[id] || ZONES.pine));
 let W = null, G = null, R = null, In = null, hud = null, raf = 0, last = 0, saveT = 0, musicT = 0, paused = false;
 
@@ -33,8 +40,15 @@ function boot() {
     if (code === 'Escape') { menu(); return false; }
     if (code === 'KeyI' || code === 'KeyB') { charWin(); return false; }
     if (code === 'KeyK') { mapWin(); return false; }
+    if (code === 'Equal' || code === 'NumpadAdd') { zoomBy(1); return false; }
+    if (code === 'Minus' || code === 'NumpadSubtract') { zoomBy(-1); return false; }
     if (code === 'KeyM') { setSound(!soundState().on); toast(soundState().on ? 'Звук включён' : 'Звук выключен', '', 'snd'); return false; }
   };
+  // приближение: колесо мыши над игрой, +/−; у мини-карты — свои кнопки
+  cv.addEventListener('wheel', e => { if (!G || document.querySelector('.modal')) return; e.preventDefault(); zoomBy(e.deltaY < 0 ? 1 : -1); }, { passive: false });
+  const miniBtns = () => { const z = miniZoomLevel(); for (const b of document.querySelectorAll('#miniZ button')) b.disabled = +b.dataset.z > 0 ? z >= MINI_Z.length - 1 : z <= 0; };
+  for (const b of document.querySelectorAll('#miniZ button')) b.onclick = e => { e.stopPropagation(); miniZoom(+b.dataset.z); miniBtns(); };
+  miniBtns();
   $('#btnBag').onclick = () => charWin(); $('#btnMenu').onclick = () => menu(); $('#btnMap').onclick = () => mapWin(); $('#mini').onclick = () => mapWin(); $('#pfRing').onclick = () => { if (G && !document.querySelector('.modal')) openAbils(G); };
   $('#ver').textContent = 'версия ' + VERSION;
   if (location.hash === '#dev') window.__G = { get G() { return G; }, start, toSelect, R: () => R, rollDrop, makeItem, doll, makeTrinket, makeStack, makePick, addStack, refresh: () => { refreshStats(G); hud.update(); } };

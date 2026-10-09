@@ -21,7 +21,7 @@ export function createHud(In) {
   In.button($('#actPot'), 'KeyQ');
   In.button($('#actTrinket'), 'Digit1');
   H.bind = G => {
-    H.G = G; H.portraitKey = ''; H.mini = null; H.goldK = null;
+    H.G = G; H.portraitKey = ''; H.mini = null; H.miniKey = null; H.goldK = null;
     const C = CLASSES[cls()];
     $('#actAttack .ico').innerHTML = ABIL_ICON.attack[cls()];
     C.abils.forEach((A, i) => { const b = $(i ? '#actAbil2' : '#actAbil'); b.querySelector('.ico').innerHTML = ABIL_ICON[A.icon]; b.title = `${A.name} — ${A.key}. ${A.d}`; });

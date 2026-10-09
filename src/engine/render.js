@@ -19,7 +19,8 @@ import { interactTarget } from '../systems/game.js';
 import { lvlColor, RAR_COL, RAR_IDX, LOOT } from '../../data/balance.js';
 import { rng, dist, inPoly, money, segDist } from './util.js';
 
-const CHUNK = 512;
+export const ZOOM = { def: 1.25, min: 0.8, max: 2, step: 1.12 };
+const CHUNK = 512, CQ = 1.5;   // кусок земли рисуется в 1,5 раза подробнее — не мылится при приближении
 
 export function createRenderer(cv) {
   const ctx = cv.getContext('2d');
@@ -28,9 +29,12 @@ export function createRenderer(cv) {
     const d = Math.min(2, window.devicePixelRatio || 1); R.dpr = d;
     cv.width = Math.round(innerWidth * d); cv.height = Math.round(innerHeight * d);
     cv.style.width = innerWidth + 'px'; cv.style.height = innerHeight + 'px';
-    // сколько мира видно: около 1150 единиц по ширине на компьютере, меньше — на телефоне
-    R.cam.z = Math.max(0.62, Math.min(1.5, innerWidth / 1150)) * d;
+    // сколько мира видно: от ширины окна (около 1150 единиц) × выбранное игроком приближение
+    R.cam.z = Math.max(0.62, Math.min(1.5, innerWidth / 1150)) * d * R.uz;
   };
+  // приближение (v67): по умолчанию 1,25 — герой ближе; колесо мыши и +/− меняют, выбор запоминается
+  R.uz = ZOOM.def; try { const v = parseFloat(localStorage.getItem('lumber-camp2-zoom')); if (v >= ZOOM.min && v <= ZOOM.max) R.uz = v; } catch (_) { }
+  R.zoom = f => { const v = Math.round(Math.max(ZOOM.min, Math.min(ZOOM.max, R.uz * f)) * 100) / 100; if (v === R.uz) return false; R.uz = v; R.resize(); try { localStorage.setItem('lumber-camp2-zoom', String(v)); } catch (_) { } return true; };
   R.resize();
   return R;
 }
@@ -187,8 +191,8 @@ function chunk(R, i, j) {
   const key = i + ',' + j; let cv = R.chunks.get(key);
   if (cv) { R.chunks.delete(key); R.chunks.set(key, cv); return cv; }
   const W = R.W, x0 = i * CHUNK, y0 = j * CHUNK;
-  cv = document.createElement('canvas'); cv.width = CHUNK; cv.height = CHUNK;
-  const g = cv.getContext('2d'); g.translate(-x0, -y0); LOOK.use(g);
+  cv = document.createElement('canvas'); cv.width = cv.height = CHUNK * CQ;
+  const g = cv.getContext('2d'); g.scale(CQ, CQ); g.translate(-x0, -y0); LOOK.use(g);
   LOOK.ground(x0, y0, CHUNK, CHUNK, W.Z.ground, W.Z.seed, 3);
   if (W.Z.moss) { FOR.ground(g, x0, y0, CHUNK, CHUNK, W.Z.seed, false); LOOK.use(g); }
   if (W.creek) { FOR.creek(g, W.creek.pts, W.creek.w); LOOK.use(g); }
@@ -251,7 +255,7 @@ function chunk(R, i, j) {
     if (!inPoly(x, y, W.edge) || W.roadD(x, y) < 44 || (W.town && !W.cap && dist(x, y, W.town.x, W.town.y) < W.town.R + 20) || (W.cap && (W.onPave(x, y) || W.blocked(x, y) || Math.abs(dist(x, y, W.cap.x, W.cap.y) - W.cap.R) < 30)) || (W.ponds && W.ponds.length && W.water(x, y, 6)) || (W.river && W.riverD(x, y) < W.river.w / 2 + 16) || W.inField(x, y, 4)) continue;
     LOOK.tuft(x, y, 0.9 + r() * 0.6, W.Z.ground, r());
   }
-  R.chunks.set(key, cv); if (R.chunks.size > 48) R.chunks.delete(R.chunks.keys().next().value);
+  R.chunks.set(key, cv); if (R.chunks.size > 30) R.chunks.delete(R.chunks.keys().next().value);
   return cv;
 }
 
@@ -268,7 +272,7 @@ export function render(R, G, now) {
     if (e.k === 'hdmg') { R.floats.push({ x: P.x + (Math.random() - 0.5) * 20, y: P.y - 50, s: '−' + Math.round(e.v), col: '#ff6a5a', t: 0.9 }); R.shake = Math.max(R.shake, 0.12); }
     if (e.k === 'lvl') { for (let i = 0; i < 40; i++) R.parts.push(part(P.x, P.y - 20, ['#ffd34d', '#fff2a0', '#c8a0ff'])); R.floats.push({ x: P.x, y: P.y - 80, s: `Уровень ${e.L}!`, col: '#ffd34d', big: true, t: 2.4 }); }
   }
-  const zw = cv.width / R.cam.z, zh = cv.height / R.cam.z;
+  const zw = cv.width / R.cam.z, zh = cv.height / R.cam.z; G.view = R.view = { w: zw, h: zh }; UIK = ZOOM.def / R.uz;   // мини-карта рисует рамку видимого
   R.cam.x += (P.x - R.cam.x) * 0.18; R.cam.y += (P.y - 30 - R.cam.y) * 0.18;
   if (Math.abs(P.x - R.cam.x) > 600) { R.cam.x = P.x; R.cam.y = P.y - 30; }
   const sh = R.shake > 0 ? (R.shake -= 1 / 60, 3) : 0;
@@ -345,6 +349,14 @@ export function render(R, G, now) {
   for (const v of G.veins || []) if ((!v.at || v.at <= G.t) && dist(v.x, v.y, P.x, P.y) < 320 && !(P.mine && P.mine.v === v)) { const col = MINE.colorHex[miningSkill(G.hero) ? veinColor(miningSkill(G.hero), ORES[v.metal].req).c : 'gray']; label(c, ORES[v.metal].vein, v.x, v.y + 22, col, 13); }
   // таблички над мобами
   for (const m of G.mobs) if (m.state !== 'dead' && vis(m.x, m.y) && (m === P.target || m.state === 'chase' || m.hp < m.max || dist(m.x, m.y, P.x, P.y) < 260)) plate(c, G, m);
+  // кто гонится за героем из-за края экрана — красный уголок у края (v67: при сильном приближении стрелков не видно)
+  { const zs = R.cam.z / R.dpr, pad = 34 / zs, cx = x0 + zw / 2, cy = y0 + zh / 2;
+    for (const m of G.mobs) if (m.state === 'chase' && !vis(m.x, m.y, -10)) {
+      const a = Math.atan2(m.y - 20 - cy, m.x - cx), hx = zw / 2 - pad, hy = zh / 2 - pad, t = Math.min(hx / Math.abs(Math.cos(a) || 1e-6), hy / Math.abs(Math.sin(a) || 1e-6));
+      const ex = cx + Math.cos(a) * t, ey = cy + Math.sin(a) * t, s = 16 / zs;
+      c.save(); c.translate(ex, ey); c.rotate(a); c.globalAlpha = 0.85 + 0.15 * Math.sin(now / 160);
+      c.fillStyle = '#e2453a'; c.strokeStyle = '#2a0c08'; c.lineWidth = 2 / zs; c.beginPath(); c.moveTo(s, 0); c.lineTo(-s * 0.8, -s * 0.8); c.lineTo(-s * 0.4, 0); c.lineTo(-s * 0.8, s * 0.8); c.closePath(); c.fill(); c.stroke(); c.restore();
+    } }
   // подсказка «E»
   const it = !P.dead && interactTarget(G);
   if (it && !P.mine) label(c, it.k === 'b' ? `E — ${it.b.name}` : it.k === 'exit' ? 'E — дорога' : it.k === 'vein' ? 'E — копать' : 'E — обыскать', P.x, P.y - 78, '#fff2a0', 14);
@@ -360,12 +372,18 @@ function barRect() { const n = performance.now(); if (n - BAR_T > 1000) { BAR_T 
 
 function part(x, y, cols) { const a = Math.random() * 6.28, s = 60 + Math.random() * 160; return { x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s - 120, t: 0.5 + Math.random() * 0.5, col: cols[Math.floor(Math.random() * cols.length)], s: 2.5 }; }
 
+// надписи и полоски держат свой размер на экране при любом приближении (v67)
+let UIK = 1;
+function around(c, x, y) { c.save(); c.translate(x, y); c.scale(UIK, UIK); c.translate(-x, -y); }
 function label(c, s, x, y, col, size, bold) {
+  if (UIK !== 1) { around(c, x, y); UIK0(() => label(c, s, x, y, col, size, bold)); c.restore(); return; }
   c.font = `${bold ? 'bold ' : ''}${size}px Georgia, 'Times New Roman', serif`; c.textAlign = 'center';
   c.lineWidth = 4; c.strokeStyle = 'rgba(20,14,8,.9)'; c.strokeText(s, x, y); c.fillStyle = col; c.fillText(s, x, y);
 }
 
+const UIK0 = f => { const k = UIK; UIK = 1; f(); UIK = k; };
 function plate(c, G, m) {
+  if (UIK !== 1) { const ay = m.y - (m.D.humanoid ? 62 * (MOB_SCALE[m.kind] || 1) : BAR_H[m.kind] || 44); around(c, m.x, ay); UIK0(() => plate(c, G, m)); c.restore(); return; }
   const y = m.y - (m.D.humanoid ? 62 * (MOB_SCALE[m.kind] || 1) : BAR_H[m.kind] || 44) - (m.D.rare ? 14 : 0), w = m.D.rare ? 64 : 46;
   const col = lvlColor(m.lvl, G.hero.lvl);
   c.font = 'bold 12px Georgia, serif'; c.textAlign = 'center'; c.lineWidth = 3; c.strokeStyle = 'rgba(20,14,8,.9)';

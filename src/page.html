@@ -69,7 +69,11 @@ dl{display:grid;grid-template-columns:1fr auto;gap:8px 16px;margin:0} dt{color:v
 #mini{width:200px;height:125px;border:2px solid var(--line);border-radius:8px;background:#1c2a1a}
 #zoneName{color:var(--hi);font-size:15px;text-shadow:0 1px 3px #000}
 #goldBox{font-weight:bold;text-shadow:0 1px 3px #000;background:var(--panel);border:1px solid #4a3a2a;border-radius:8px;padding:2px 8px}
-#mini{cursor:pointer}
+#mini{cursor:pointer;display:block}
+#miniBox{position:relative}
+#zoomInd{position:fixed;left:50%;top:22%;transform:translateX(-50%);padding:5px 14px;border-radius:8px;background:rgba(14,10,6,.8);border:1px solid #4a3a2a;color:#ffe9a8;font-size:15px;opacity:0;transition:opacity .25s;pointer-events:none;z-index:40} #zoomInd.on{opacity:1} #miniZ{position:absolute;right:6px;bottom:6px;display:flex;gap:3px}
+#miniZ button{width:22px;height:22px;padding:0;border:1px solid #8a7458;border-radius:5px;background:rgba(20,14,8,.85);color:#ffe9a8;font:bold 15px/1 Georgia,serif;cursor:pointer}
+#miniZ button:hover{border-color:#ffd34d;color:#ffd34d} #miniZ button:disabled{opacity:.35;cursor:default}
 .money{display:inline-flex;align-items:center;gap:3px;white-space:nowrap} .money b{color:var(--txt);font-weight:bold}
 .coin{display:inline-block;width:11px;height:11px;border-radius:50%;margin-right:4px;border:1px solid rgba(0,0,0,.6);box-shadow:inset -2px -2px 0 rgba(0,0,0,.25),inset 1px 1px 0 rgba(255,255,255,.5)}
 .cg{background:#f2c037} .cs{background:#cfd6dc} .cc{background:#c4703a}
@@ -180,7 +184,7 @@ table.ores{width:100%;border-collapse:collapse;margin:6px 0;font-size:14px} tabl
       <span class="status" id="pfWeak" hidden></span><span class="status" id="pfPoison" hidden>отравлен</span><span class="status" id="pfFist" hidden>Без оружия — бьёт кулаками</span></div>
   </div>
   <div id="target" hidden><div class="top"><span id="tgLvl"></span><span id="tgName"></span></div><div class="bar" id="tgHp"><i></i><span></span></div><span id="tgNote"></span></div>
-  <div id="topRight"><canvas id="mini" width="400" height="250" title="Карта — K"></canvas><div id="zoneName"></div><div id="goldBox" title="Деньги: 100 меди = 1 серебро, 100 серебра = 1 золото"><span id="gold"></span></div></div>
+  <div id="topRight"><div id="zoomInd"></div><div id="miniBox"><canvas id="mini" width="400" height="250" title="Карта — K"></canvas><div id="miniZ"><button data-z="1" title="Ближе">+</button><button data-z="-1" title="Дальше">−</button></div></div><div id="zoneName"></div><div id="goldBox" title="Деньги: 100 меди = 1 серебро, 100 серебра = 1 золото"><span id="gold"></span></div></div>
   <div id="actbar">
     <button class="act" id="actAttack"><span class="ico"></span><span class="k">Пробел</span><span class="cd"></span><span class="cdt"></span></button>
     <button class="act" id="actAbil"><span class="ico"></span><span class="k">C</span><span class="cd"></span><span class="cdt"></span></button>

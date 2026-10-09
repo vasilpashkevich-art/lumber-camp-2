@@ -80,20 +80,32 @@ function heroMark(g, P, k, s) {
   g.beginPath(); g.moveTo(7, 0); g.lineTo(-5, -5); g.lineTo(-2.5, 0); g.lineTo(-5, 5); g.closePath(); g.fill(); g.stroke(); g.restore();
 }
 
-/** Мини-карта: вся зона, области логов, рядом с героем — название ближайшего логова. */
+/** Мини-карта (v67 — с приближением): вся зона или ближе к герою; области логов, рядом — название ближайшего логова. */
+export const MINI_Z = [1, 1.8, 3, 4.5];
+let miniZ = 0; try { const v = +localStorage.getItem('lumber-camp2-minizoom'); if (v >= 0 && v < MINI_Z.length) miniZ = v; } catch (_) { }
+/** Шаг приближения мини-карты: +1 ближе, −1 дальше. Возвращает новый шаг. */
+export function miniZoom(d) { miniZ = Math.max(0, Math.min(MINI_Z.length - 1, miniZ + d)); try { localStorage.setItem('lumber-camp2-minizoom', String(miniZ)); } catch (_) { } return miniZ; }
+export const miniZoomLevel = () => miniZ;
 export function drawMini(cv, G, cache) {
-  const c = cv.getContext('2d'), W = G.W, w = cv.width, h = cv.height, k = Math.min(w / W.W, h / W.H), q = w / 200;
-  if (!cache.mini) {
-    const b = document.createElement('canvas'); b.width = w; b.height = h; const g = b.getContext('2d');
-    base(g, W, k, false, q); lairs(g, W, k, false, q); cache.mini = b;
+  const c = cv.getContext('2d'), W = G.W, w = cv.width, h = cv.height, mz = MINI_Z[miniZ], k = Math.min(w / W.W, h / W.H) * mz, q = w / 200;
+  const key = W.Z.id + ':' + miniZ;
+  if (cache.miniKey !== key) {   // подложка — один раз на край и шаг приближения
+    const b = document.createElement('canvas'); b.width = Math.ceil(W.W * k); b.height = Math.ceil(W.H * k); const g = b.getContext('2d');
+    base(g, W, k, false, q); lairs(g, W, k, false, q * Math.min(1.6, Math.sqrt(mz))); cache.mini = b; cache.miniKey = key;
   }
-  c.drawImage(cache.mini, 0, 0);
-  const P = G.P;
+  const P = G.P, B = cache.mini;
+  // сдвиг: герой в середине, но край зоны не уходит внутрь рамки
+  const ox = B.width <= w ? (w - B.width) / 2 : Math.max(w - B.width, Math.min(0, w / 2 - P.x * k));
+  const oy = B.height <= h ? (h - B.height) / 2 : Math.max(h - B.height, Math.min(0, h / 2 - P.y * k));
+  c.fillStyle = '#1c2a1a'; c.fillRect(0, 0, w, h); c.drawImage(B, ox, oy);
+  c.save(); c.translate(ox, oy);
   // ближайшее логово — подпись
   let near = null, nd = 900; for (const cp of W.camps) { const d = Math.hypot(cp.x - P.x, cp.y - P.y) - cp.r; if (d < nd) { nd = d; near = cp; } }
-  if (near) { const tx = Math.max(40 * q, Math.min(w - 40 * q, near.x * k)), ty = Math.max(11 * q, near.y * k - 8 * q); text(c, near.name, tx, ty, lvlColor(near.lvl[1], G.hero.lvl), 10 * q); }
+  if (near) { const tx = Math.max(40 * q - ox, Math.min(w - 40 * q - ox, near.x * k)), ty = Math.max(11 * q - oy, near.y * k - 8 * q * Math.min(2, mz)); text(c, near.name, tx, ty, lvlColor(near.lvl[1], G.hero.lvl), 10 * q); }
   heroMark(c, P, k, 0.7 * q);
-  c.strokeStyle = 'rgba(255,255,255,.5)'; c.lineWidth = q; const vw = 1150 * k, vh = vw * innerHeight / innerWidth; c.strokeRect(P.x * k - vw / 2, P.y * k - vh / 2, vw, vh);
+  const V = G.view || { w: 1150, h: 1150 * innerHeight / innerWidth };
+  c.strokeStyle = 'rgba(255,255,255,.5)'; c.lineWidth = q; c.strokeRect(P.x * k - V.w * k / 2, P.y * k - V.h * k / 2, V.w * k, V.h * k);
+  c.restore();
 }
 
 /** Большая карта зоны поверх игры. Закрывается по K, Esc или кнопке. */
