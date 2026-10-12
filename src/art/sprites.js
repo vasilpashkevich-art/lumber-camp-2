@@ -89,6 +89,10 @@ export function drawFrame(c, s, x, y, dir = 1, sc = 1, a = 1) {
 }
 /** Куда смотрит по направлению движения: вниз — лицом, вверх — спиной, иначе боком. */
 export function viewOf(dx, dy) { return Math.abs(dy) > Math.abs(dx) * 0.9 ? (dy > 0 ? 'front' : 'back') : 'side'; }
+/** Люди (v74): 8 сторон — лицом, вполоборота лицом (fs), боком, вполоборота спиной (bs), спиной; влево — зеркально. */
+export function viewOf8(dx, dy) { const ax = Math.abs(dx), ay = Math.abs(dy); if (ax <= ay * 0.414) return dy > 0 ? 'front' : 'back'; if (ay <= ax * 0.414) return 'side'; return dy > 0 ? 'fs' : 'bs'; }
+/** Смотрит ли вид вбок (зеркалится влево). */
+export const sideways = v => v === 'side' || v === 'fs' || v === 'bs';
 
 // люди мира (v64): то же тело, что у героя, вещи — моделями из gear.js
 const NP = (rar, seed, over = {}) => ({ ...palette(rar, seed), ...over });

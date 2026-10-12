@@ -31,9 +31,13 @@ export function person(c, L, view, pose = {}) {
   const longHair = L.hairStyle === 'long', tail = L.hairStyle === 'tail';
   const hideHair = hm && hm.hair === 'all', hideFace = hm && hm.face, hairTop = hm && hm.hair === 'top';
 
+  // v74: пропорции реалистичнее — ноги длиннее, вся фигура уменьшена так, что рост прежний (только у фигуры целиком, не у значков вещей)
+  const P8 = !L.part, UP = P8 ? 3.6 : 0, FY = 12.4 + UP, LEGK = (FY - 1.6) / 10.8;
+  // v74: 8 сторон — fs (вполоборота лицом, вправо-вниз) и bs (вполоборота спиной, вправо-вверх); влево — зеркально
+  const turn = view === 'fs' || view === 'bs', TQ = 0.84;
   const bob = W ? -Math.abs(co) * 0.9 : Math.sin(t * 2.2) * 0.25;
   c.save(); c.lineJoin = 'round'; c.lineCap = 'round';
-  if (dead > 0) { const q = Math.min(1, dead * 1.6); c.translate(0, 12 - 5 * q); c.rotate((view === 'back' ? -1 : 1) * q * Math.PI / 2 * (view === 'side' ? -1 : 1)); c.translate(0, -12); }
+  if (dead > 0) { const q = Math.min(1, dead * 1.6); c.translate(0, 12 - 5 * q); c.rotate((view === 'back' || view === 'bs' ? -1 : 1) * q * Math.PI / 2 * (view === 'side' ? -1 : 1)); c.translate(0, -12); }
   c.translate(view === 'side' ? -hit * 2 : 0, bob - (view !== 'side' ? hit * 1.2 : 0));
   if (view === 'side' && hit) c.rotate(-hit * 0.16);
   if (view === 'side' && W) c.rotate(0.04);
@@ -52,16 +56,17 @@ export function person(c, L, view, pose = {}) {
   const two = wp && wp.hands === 2 && style === 'chop';
   const wOpt = { t, glow: SW && SW.glow || 0, pull: SW && SW.pull || 0, arrow: !!(SW && SW.style === 'bow') };
 
-  if (view === 'side') side(); else frontBack(view === 'back');
+  if (P8) { c.translate(0, 12.6); c.scale(0.93, 0.93); c.translate(0, -12.6 - UP); }
+  if (view === 'side') side(); else frontBack(view === 'back' || view === 'bs');
   c.restore();
 
   // ================================================================ части
   function capeCol() { return ch && ch.cape === 'leaf' ? chP.leaf : chP.cloth[0]; }
   function cape(back, sideV) {
     if (!ch || !ch.cape) return; const col = capeCol();
-    if (sideV) { F(() => { c.moveTo(-1.6, -12); c.quadraticCurveTo(-4.6, -2, -6.4 - (W ? Math.abs(s) * 1.4 : 0), 11.6); c.lineTo(-1.6, 11.8); c.lineTo(-0.6, -11); c.closePath(); }, sh(col, -0.15)); return; }
-    if (back) { F(() => { c.moveTo(-5.6 * bw, -12.4); c.lineTo(5.6 * bw, -12.4); c.lineTo(7.2 + s * 0.6, 11.8); c.quadraticCurveTo(0, 13, -7.2 + s * 0.6, 11.8); c.closePath(); }, col); c.strokeStyle = chP.acc; c.lineWidth = 0.6; c.beginPath(); c.moveTo(-7, 11.4); c.quadraticCurveTo(0, 12.6, 7, 11.4); c.stroke(); c.strokeStyle = 'rgba(0,0,0,.18)'; c.lineWidth = 0.4; for (const x of [-3, 0.5, 3.6]) { c.beginPath(); c.moveTo(x * 0.6, -11); c.lineTo(x, 11); c.stroke(); } }
-    else F(() => { c.moveTo(-6 * bw, -11); c.lineTo(-7.6, 11.6); c.lineTo(7.6, 11.6); c.lineTo(6 * bw, -11); c.closePath(); }, sh(col, -0.25));
+    const D = UP * 0.9; if (sideV) { F(() => { c.moveTo(-1.6, -12); c.quadraticCurveTo(-4.6, -2, -6.4 - (W ? Math.abs(s) * 1.4 : 0), 11.6 + D); c.lineTo(-1.6, 11.8 + D); c.lineTo(-0.6, -11); c.closePath(); }, sh(col, -0.15)); return; }
+    if (back) { F(() => { c.moveTo(-5.6 * bw, -12.4); c.lineTo(5.6 * bw, -12.4); c.lineTo(7.2 + s * 0.6, 11.8 + D); c.quadraticCurveTo(0, 13 + D, -7.2 + s * 0.6, 11.8 + D); c.closePath(); }, col); c.strokeStyle = chP.acc; c.lineWidth = 0.6; c.beginPath(); c.moveTo(-7, 11.4 + D); c.quadraticCurveTo(0, 12.6 + D, 7, 11.4 + D); c.stroke(); c.strokeStyle = 'rgba(0,0,0,.18)'; c.lineWidth = 0.4; for (const x of [-3, 0.5, 3.6]) { c.beginPath(); c.moveTo(x * 0.6, -11); c.lineTo(x, 11 + D); c.stroke(); } }
+    else F(() => { c.moveTo(-6 * bw, -11); c.lineTo(-7.6, 11.6 + D); c.lineTo(7.6, 11.6 + D); c.lineTo(6 * bw, -11); c.closePath(); }, sh(col, -0.25));
   }
   // колчан за спиной у лучника
   function quiver(where) {
@@ -82,13 +87,14 @@ export function person(c, L, view, pose = {}) {
   // подол мантии: от пояса до щиколоток, качается на шаге
   function robeSkirt(back, sideV) {
     if (!robe) return; const col = chP.cloth[0], sw = W ? s * 0.9 : 0;
-    const fn = sideV ? () => { c.moveTo(-3.1, -0.8); c.quadraticCurveTo(-4.4, 6, -5 - sw * 0.6, 11.6); c.quadraticCurveTo(0, 12.6, 4.8 + sw * 0.6, 11.4); c.quadraticCurveTo(4, 6, 2.9, -0.8); c.closePath(); }
-      : () => { c.moveTo(-4.5, -0.8); c.quadraticCurveTo(-5.6, 6, -7 + sw * 0.5, 11.6); c.quadraticCurveTo(0, 12.8, 7 + sw * 0.5, 11.6); c.quadraticCurveTo(5.6, 6, 4.5, -0.8); c.closePath(); };
+    const D = UP;
+    const fn = sideV ? () => { c.moveTo(-3.1, -0.8); c.quadraticCurveTo(-4.4, 6 + D / 2, -5 - sw * 0.6, 11.6 + D); c.quadraticCurveTo(0, 12.6 + D, 4.8 + sw * 0.6, 11.4 + D); c.quadraticCurveTo(4, 6 + D / 2, 2.9, -0.8); c.closePath(); }
+      : () => { c.moveTo(-4.5, -0.8); c.quadraticCurveTo(-5.6, 6 + D / 2, -7 + sw * 0.5, 11.6 + D); c.quadraticCurveTo(0, 12.8 + D, 7 + sw * 0.5, 11.6 + D); c.quadraticCurveTo(5.6, 6 + D / 2, 4.5, -0.8); c.closePath(); };
     fillMat(c, fn, 'robe', chP, col);
     c.save(); c.beginPath(); fn(); c.clip();
-    if (ch.panel && !back) { c.fillStyle = chP.cloth[1]; c.fillRect(sideV ? 1.6 : -1.6, -2, sideV ? 3.4 : 3.2, 16); c.strokeStyle = chP.acc; c.lineWidth = 0.4; c.strokeRect(sideV ? 1.6 : -1.6, -2, sideV ? 3.4 : 3.2, 16); }
+    if (ch.panel && !back) { c.fillStyle = chP.cloth[1]; c.fillRect(sideV ? 1.6 : -1.6, -2, sideV ? 3.4 : 3.2, 16 + D); c.strokeStyle = chP.acc; c.lineWidth = 0.4; c.strokeRect(sideV ? 1.6 : -1.6, -2, sideV ? 3.4 : 3.2, 16 + D); }
     if (ch.stars) starsIn(sideV);
-    if (ch.trim) { c.strokeStyle = chP.acc; c.lineWidth = 0.8; c.beginPath(); sideV ? (c.moveTo(-5.4, 11), c.quadraticCurveTo(0, 12, 5.2, 10.9)) : (c.moveTo(-7.4, 11), c.quadraticCurveTo(0, 12.2, 7.4, 11)); c.stroke(); }
+    if (ch.trim) { c.strokeStyle = chP.acc; c.lineWidth = 0.8; c.beginPath(); sideV ? (c.moveTo(-5.4, 11 + D), c.quadraticCurveTo(0, 12 + D, 5.2, 10.9 + D)) : (c.moveTo(-7.4, 11 + D), c.quadraticCurveTo(0, 12.2 + D, 7.4, 11 + D)); c.stroke(); }
     c.restore();
   }
   function starsIn(sideV) { c.fillStyle = chP.rar === 'epic' ? '#e8d8ff' : '#f4e8a0'; const pts = sideV ? [[-1.6, 3], [1.4, 7], [-2.6, 9], [2, -6], [-1, -9]] : [[-3.4, 3], [3, 6.4], [-1, 8.6], [4.2, 10], [-4.6, 9.4], [2.6, -8], [-3, -5], [0.6, -10.4]]; for (const [x, y] of pts) { c.beginPath(); for (let i = 0; i < 8; i++) { const r = i % 2 ? 0.22 : 0.6, a = i * Math.PI / 4; c.lineTo(x + Math.cos(a) * r, y + Math.sin(a) * r); } c.fill(); } }
@@ -132,10 +138,12 @@ export function person(c, L, view, pose = {}) {
   }
   // ноги спереди/сзади
   function legsFB(back) {
-    for (const [lx, k] of [[-2.3, 1], [2.3, -1]]) {
-      const lift = W ? Math.max(0, s * k) * 2 : 0, fy = 12.4 - lift, kx = lx * 1.05, ky = 7.2 - lift * 0.5;
-      if (!robe) { limb(lx * 1.08, 1.6, kx * 1.08, ky, 3.9, legCol); limb(kx * 1.08, ky, lx * 1.12, fy - 1.2, 3.4, legCol); }
-      boot(lx * 1.12, fy, back, ky);
+    // вполоборота: ступни шагают вбок, носки повёрнуты в сторону движения
+    const order = turn ? (back ? [[-2.3, 1], [2.3, -1]] : [[2.3, -1], [-2.3, 1]]) : [[-2.3, 1], [2.3, -1]];
+    for (const [lx, k] of order) {
+      const near = turn ? (back ? lx > 0 : lx < 0) : false, lift = W ? Math.max(0, s * k) * 2 : 0, st = turn && W ? s * k * 1.9 : 0, fy = FY - lift + (turn ? (near ? 0.7 : -0.7) : 0), kx = lx * 1.05 + st * 0.5, ky = 1.6 + 5.6 * LEGK - lift * 0.6, fx = lx * 1.12 + st;
+      if (!robe) { limb(lx * 1.08, 1.6, kx * 1.08, ky, 3.9, legCol); limb(kx * 1.08, ky, fx, fy - 1.2, 3.4, legCol); }
+      boot(fx, fy, back, ky, turn ? 0.7 : 0);
       if (!robe && lg && lg.knee) F(() => c.ellipse(kx * 1.08, ky, 1.5, 1.2, 0, 0, 7), lg.base === 'plate' ? lgP.metal : lg.col ? lgP[lg.col] : lgP.leather, 0.45);
     }
     if (robe) { robeSkirt(back, false); return; }
@@ -143,34 +151,36 @@ export function person(c, L, view, pose = {}) {
     if (ch && (ch.base === 'leather' || ch.base === 'gambeson' || ch.base === 'mail' || ch.base === 'fur')) F(() => { c.moveTo(-4.8, 1.8); c.lineTo(-5.2, 4.4); c.quadraticCurveTo(0, 5.2, 5.2, 4.4); c.lineTo(4.8, 1.8); c.closePath(); }, ch.base === 'mail' ? sh(chP.metal, -0.05) : ch.base === 'leather' ? chP.leather : ch.base === 'fur' ? '#7a5a3a' : chP.cloth[1], 0.55);
     if (!lg) F(() => { c.moveTo(-4.6, 1.4); c.lineTo(4.6, 1.4); c.lineTo(4.4, 4.6); c.lineTo(0.6, 4.4); c.lineTo(0, 3.4); c.lineTo(-0.6, 4.4); c.lineTo(-4.4, 4.6); c.closePath(); }, '#ece6da', 0.55);
   }
-  function boot(x, fy, back, ky) {
-    if (!lg) { F(() => c.ellipse(x, fy - 0.2, 1.6, 0.9, 0, 0, 7), bootCol, 0.5); return; }
-    if (lg.boots === 'shoe' || lg.boots === 'slipper' || robe) { F(() => c.ellipse(x, fy - 0.3, 1.9, 1.1, 0, 0, 7), bootCol, 0.5); return; }
-    const top = lg.boots === 'boot' || lg.boots === 'fur' ? fy - 4.6 : ky + 0.6;
+  function boot(x, fy, back, ky, toe = 0) {
+    if (!lg) { F(() => c.ellipse(x + toe, fy - 0.2, 1.6 + toe * 0.4, 0.9, 0, 0, 7), bootCol, 0.5); return; }
+    if (lg.boots === 'shoe' || lg.boots === 'slipper' || robe) { F(() => c.ellipse(x + toe, fy - 0.3, 1.9 + toe * 0.4, 1.1, 0, 0, 7), bootCol, 0.5); return; }
+    const top = lg.boots === 'boot' || lg.boots === 'fur' ? fy - 5.4 : ky + 0.6;
     F(() => c.roundRect(x - 1.95, top, 3.9, fy - top, 0.8), bootCol, 0.5);
-    F(() => c.ellipse(x, fy - 0.2, 2.2, 1.2, 0, 0, 7), bootCol, 0.5);
+    F(() => c.ellipse(x + toe, fy - 0.2, 2.2 + toe * 0.4, 1.2, 0, 0, 7), bootCol, 0.5);
     if (lg.boots === 'sabaton') { c.strokeStyle = sh(lgP.metal, -0.35); c.lineWidth = 0.3; for (let y = top + 1.4; y < fy - 1; y += 1.2) { c.beginPath(); c.moveTo(x - 1.6, y); c.lineTo(x + 1.6, y); c.stroke(); } }
     else if (lg.boots === 'fur') F(() => c.roundRect(x - 2.2, top - 0.6, 4.4, 1.8, 0.8), '#c8b090', 0.4);
     else F(() => c.rect(x - 1.85, top - 0.2, 3.7, 0.9), sh(bootCol, -0.25), 0.4);
   }
   // ---------------------------------------------------------------- голова (на 8% крупнее, вместе со шлемом)
-  function withHead(fn) { c.save(); c.translate(0, -15); c.scale(1.08, 1.08); c.translate(0, 15); fn(); c.restore(); }
+  function withHead(fn) { c.save(); if (turn) { c.translate(0.7, 0); c.scale(1 / TQ, 1); } c.translate(0, -15); c.scale(1.04, 1.04); c.translate(0, 15); fn(); c.restore(); }
   function hood() { return L.hood ? { cloth: [L.hood, sh(L.hood, -0.2)], metal: L.hood, acc: L.hood, leather: L.hood, leaf: L.hood } : null; }
   function headF() { withHead(() => {
     if (!hideHair) F(() => c.ellipse(0, -18.6, 3.9, 4.3, 0, 0, 7), hair, 0.6);
     if (longHair && !hideHair) F(() => { c.moveTo(-3.8, -18); c.quadraticCurveTo(-4.6, -13, -3.6, -10.6); c.lineTo(3.6, -10.6); c.quadraticCurveTo(4.6, -13, 3.8, -18); c.closePath(); }, hair, 0.55);
-    for (const x of [-3.45, 3.45]) F(() => c.ellipse(x, -17.9, 0.7, 1.1, 0, 0, 7), skin, 0.5);
+    for (const x of turn ? [-3.25] : [-3.45, 3.45]) F(() => c.ellipse(x, -17.9, 0.7, 1.1, 0, 0, 7), skin, 0.5);
     F(() => c.rect(-1.5, -15, 3, 2.4), sh(skin, -0.1), 0.5);
     const face = () => { c.moveTo(-3.4, -18.6); c.bezierCurveTo(-3.4, -23.4, 3.4, -23.4, 3.4, -18.6); c.quadraticCurveTo(3.3, -15.6, 1.2, -14.2); c.quadraticCurveTo(0, -13.8, -1.2, -14.2); c.quadraticCurveTo(-3.3, -15.6, -3.4, -18.6); c.closePath(); };
-    F(face, skin, 0.6); c.save(); c.beginPath(); face(); c.clip(); c.fillStyle = 'rgba(150,80,40,.16)'; c.fillRect(1.2, -24, 4, 12); c.restore();
+    F(face, skin, 0.6); c.save(); c.beginPath(); face(); c.clip(); c.fillStyle = 'rgba(150,80,40,.16)'; c.fillRect(1.2, -24, 4, 12); if (turn) { c.fillStyle = 'rgba(150,80,40,.14)'; c.fillRect(-4, -24, 2.2, 12); } c.restore();
+    if (turn) { c.save(); c.translate(0.95, 0); }
     if (!hideFace) {
-      for (const x of [-1.35, 1.35]) { F(() => c.ellipse(x, -18.3, 0.62, 0.38, 0, 0, 7), '#f6efe4', 0.3); c.fillStyle = L.eyes || '#3a2a1a'; c.beginPath(); c.arc(x + 0.08, -18.3, 0.26, 0, 7); c.fill(); }
+      for (const x of [-1.35, 1.35]) { const nar = turn && x > 0 ? 0.7 : 1; F(() => c.ellipse(x - (turn && x > 0 ? 0.15 : 0), -18.3, 0.62 * nar, 0.38, 0, 0, 7), '#f6efe4', 0.3); c.fillStyle = L.eyes || '#3a2a1a'; c.beginPath(); c.arc(x + 0.08, -18.3, 0.26, 0, 7); c.fill(); }
       if (L.patch) { F(() => c.ellipse(1.35, -18.3, 0.95, 0.85, 0, 0, 7), O, 0); c.strokeStyle = O; c.lineWidth = 0.35; c.beginPath(); c.moveTo(-3.4, -20); c.lineTo(3.4, -17.4); c.stroke(); }
       c.strokeStyle = sh(L.beard === 'grey' ? '#c8c2b8' : hair, -0.3); c.lineWidth = 0.42; for (const sx of [-1, 1]) { c.beginPath(); c.moveTo(sx * 0.5, -19.15); c.quadraticCurveTo(sx * 1.4, -19.6, sx * 2.25, -19.2); c.stroke(); }
       c.strokeStyle = 'rgba(120,60,30,.55)'; c.lineWidth = 0.35; c.beginPath(); c.moveTo(0.15, -18.2); c.lineTo(0.45, -16.6); c.lineTo(-0.25, -16.45); c.stroke();
       if (L.beard) beardF(); else { c.strokeStyle = '#8a4a3a'; c.lineWidth = 0.4; c.beginPath(); c.moveTo(-0.8, -15.4); c.quadraticCurveTo(0, -15.1, 0.8, -15.4); c.stroke(); }
       if (L.mask) F(() => { c.moveTo(-3.4, -17); c.quadraticCurveTo(0, -16.2, 3.4, -17); c.quadraticCurveTo(3.2, -14.6, 0, -13.4); c.quadraticCurveTo(-3.2, -14.6, -3.4, -17); c.closePath(); }, L.mask, 0.5);
     }
+    if (turn) c.restore();
     if (!hideHair && !L.hood && !hairTop) F(() => { c.moveTo(-3.6, -18); c.bezierCurveTo(-3.9, -23.6, 3.9, -23.6, 3.6, -18); c.lineTo(3.2, -19.4); c.quadraticCurveTo(1.6, -21.2, -0.4, -20.5); c.quadraticCurveTo(-2.6, -21, -3.2, -19.4); c.closePath(); }, hair, 0.55);
     if (hairTop && !L.hood) F(() => { c.moveTo(-3.6, -18); c.quadraticCurveTo(-3.8, -20.6, -2.6, -20.8); c.lineTo(2.6, -20.8); c.quadraticCurveTo(3.8, -20.6, 3.6, -18); c.lineTo(3.2, -19.4); c.quadraticCurveTo(0, -20.2, -3.2, -19.4); c.closePath(); }, hair, 0.5);
     if (L.hood) drawHelm(c, 'mhood', hood(), 'front');
@@ -182,7 +192,7 @@ export function person(c, L, view, pose = {}) {
     c.strokeStyle = '#7a3a2a'; c.lineWidth = 0.35; c.beginPath(); c.moveTo(-0.6, -15.2); c.lineTo(0.6, -15.2); c.stroke();
     c.strokeStyle = sh(b, -0.3); c.lineWidth = 0.25; for (const x of [-2, -0.8, 0.6, 1.8]) { c.beginPath(); c.moveTo(x, -14.6); c.lineTo(x * 0.85, -13 + lng * 0.6); c.stroke(); } }
   function headB() { withHead(() => {
-    for (const x of [-3.45, 3.45]) F(() => c.ellipse(x, -17.9, 0.7, 1.1, 0, 0, 7), skin, 0.5);
+    for (const x of turn ? [3.25] : [-3.45, 3.45]) F(() => c.ellipse(x, -17.9, 0.7, 1.1, 0, 0, 7), skin, 0.5);
     F(() => c.rect(-1.5, -15, 3, 2.4), sh(skin, -0.15), 0.5);
     F(() => c.ellipse(0, -18.5, 3.5, 4.3, 0, 0, 7), skin, 0.6);
     if (!hideHair && !L.hood) { F(() => { c.moveTo(-3.6, longHair ? -10.6 : -16.4); c.bezierCurveTo(-4.2, -24, 4.2, -24, 3.6, longHair ? -10.6 : -16.4); c.quadraticCurveTo(0, longHair ? -9.8 : -15, -3.6, longHair ? -10.6 : -16.4); c.closePath(); }, hair, 0.55); c.strokeStyle = sh(hair, -0.25); c.lineWidth = 0.3; for (const x of [-1.6, 0, 1.6]) { c.beginPath(); c.moveTo(x * 0.6, -21.6); c.quadraticCurveTo(x, -19, x * 1.1, longHair ? -11 : -16.2); c.stroke(); } }
@@ -224,7 +234,7 @@ export function person(c, L, view, pose = {}) {
   function side() {
     cape(false, true); quiver('side');
     const legS = (hx, ph, col, bc) => { const sn = Math.sin(ph * TAU), cs = Math.cos(ph * TAU), a1 = W ? sn * 0.5 : 0, bend = W ? Math.max(0, cs) * 0.85 : 0, a2 = a1 - bend;
-      const kx = hx + Math.sin(a1) * 5.4, ky = 1.8 + Math.cos(a1) * 5.4, fx = kx + Math.sin(a2) * 5, fy = ky + Math.cos(a2) * 5;
+      const kx = hx + Math.sin(a1) * 5.4 * LEGK, ky = 1.8 + Math.cos(a1) * 5.4 * LEGK, fx = kx + Math.sin(a2) * 5 * LEGK, fy = ky + Math.cos(a2) * 5 * LEGK;
       if (!robe) { limb(hx, 1.8, kx, ky, 3.8, col); limb(kx, ky, fx, fy, 3.3, col); }
       if (!robe && lg && lg.boots !== 'shoe' && lg.boots !== 'slipper') limb(kx + Math.sin(a2) * (lg.boots === 'sabaton' ? 0.6 : 2), ky + Math.cos(a2) * (lg.boots === 'sabaton' ? 0.6 : 2), fx, fy, 3.3, bc, false);
       F(() => c.ellipse(fx + 1.2, fy + 0.2, 2.3, 1.1, a2 * 0.3, 0, 7), bc, 0.5);
@@ -255,15 +265,9 @@ export function person(c, L, view, pose = {}) {
   }
 
   // ================================================================ спереди и сзади
-  function frontBack(back) {
+  function frontBack(back) { if (turn) { c.save(); c.scale(TQ, 1); } fb(back); if (turn) c.restore(); }
+  function fb(back) {
     if (L.part === 'legs') { legsFB(back); F(() => c.roundRect(-5.2, 0.2, 10.4, 2, 0.6), lg && lg.base === 'plate' ? lgP.metal : sh(lgP.leather || '#5a3a1c', -0.3), 0.5); F(() => c.rect(-0.8, 0.1, 1.6, 2.2), lgP.acc || '#c9a050', 0.4); return; }
-    if (!back && L.part !== 'chest') { cape(false, false); quiver('front'); }
-    if (back && L.part !== 'chest' && ch && ch.cape) {} // плащ сзади — в конце
-    if (L.part !== 'chest') legsFB(back);
-    else if (robe) robeSkirt(back, false);
-    else if (ch && (ch.base === 'leather' || ch.base === 'gambeson' || ch.base === 'mail' || ch.base === 'fur')) F(() => { c.moveTo(-4.8, 1.8); c.lineTo(-5.2, 4.4); c.quadraticCurveTo(0, 5.2, 5.2, 4.4); c.lineTo(4.8, 1.8); c.closePath(); }, ch.base === 'mail' ? sh(chP.metal, -0.05) : ch.base === 'leather' ? chP.leather : ch.base === 'fur' ? '#7a5a3a' : chP.cloth[1], 0.55);
-    chest(back, false);
-    if (L.part === 'chest') { const armP = sx => { limb(sx * 6.1 * bw, -10.6, sx * 6.9 * bw, -5.2, 3.1, sleeve); limb(sx * 6.9 * bw, -5.2, sx * 7.1 * bw, 0.2, 2.8, sleeve); sleeveEnd(sx * 6.9 * bw, -5.2, sx * 7.1 * bw, 0.2); }; armP(-1); armP(1); for (const sx of [-1, 1]) pauldron(sx * 6.1 * bw, -10.9, sx, false); return; }
     // руки: оружие — в правой руке (слева на экране, если лицом к нам)
     const wx = back ? 1 : -1;
     const arm = (sx) => {
@@ -274,19 +278,29 @@ export function person(c, L, view, pose = {}) {
         else if (SW.style === 'bow') { const k = Math.min(1, SW.k * 1.6); hx = sx * (7.1 - k * 5.6); hy = 0.4 - k * 7.4; ex = sx * (7 - k * 2.4); ey = -5.4 - k * 3.4; rot = Math.PI / 2 * (back ? -1 : 1); }
         else if (q <= 0.3) { const lift = Math.min(1, (0.3 - q) / 2.9); hx = sx * (7.1 - lift * 4.4); hy = 0.4 - lift * 21; ex = sx * (7.6 - lift * 1.2); ey = -5.2 - lift * 9.6; rot = sx * (0.28 - lift * 1.2); }
         else { const d = Math.min(1, (q - 0.3) / 1.2); hx = sx * (7.1 - d * 3.6); hy = 0.4 - d * 4.6; ex = sx * 7.2; ey = -5.6; rot = sx * (0.28 + d * 2.3); } }
-      if (SW && SW.style === 'bow' && sx !== wx) { const k = Math.min(1, SW.k * 1.6); hx = sx * (7.1 - k * 4.8); hy = 0.4 - k * 6.6 + SW.pull * (back ? -1 : 1) * 0; ex = sx * 6.8; ey = -5.4 - k * 2; }
+      if (SW && SW.style === 'bow' && sx !== wx) { const k = Math.min(1, SW.k * 1.6); hx = sx * (7.1 - k * 4.8); hy = 0.4 - k * 6.6; ex = sx * 6.8; ey = -5.4 - k * 2; }
+      // вполоборота: дальняя рука (левая) уходит за корпус
+      if (turn && sx !== wx) { hx *= 0.8; ex *= 0.82; }
       return { hx, hy, ex, ey, rot };
     };
+    const drawArm = (a, sx) => { limb(sx * 6.1 * bw * (turn && sx !== wx ? 0.85 : 1), -10.6, a.ex, a.ey, 3.1, turn && sx !== wx ? sh(sleeve, -0.15) : sleeve); limb(a.ex, a.ey, a.hx, a.hy, 2.8, turn && sx !== wx ? sh(sleeve, -0.15) : sleeve); sleeveEnd(a.ex, a.ey, a.hx, a.hy); };
     const R = arm(wx), Lh = arm(-wx);
+    if (!back && L.part !== 'chest') { cape(false, false); quiver('front'); }
+    // вполоборота: дальняя рука и наплечник — до корпуса
+    if (turn) { drawArm(Lh, -wx); pauldron(-wx * 6.1 * bw * 0.85, -10.9, -wx, false); hand(Lh.hx, Lh.hy); }
+    if (L.part !== 'chest') legsFB(back);
+    else if (robe) robeSkirt(back, false);
+    else if (ch && (ch.base === 'leather' || ch.base === 'gambeson' || ch.base === 'mail' || ch.base === 'fur')) F(() => { c.moveTo(-4.8, 1.8); c.lineTo(-5.2, 4.4); c.quadraticCurveTo(0, 5.2, 5.2, 4.4); c.lineTo(4.8, 1.8); c.closePath(); }, ch.base === 'mail' ? sh(chP.metal, -0.05) : ch.base === 'leather' ? chP.leather : ch.base === 'fur' ? '#7a5a3a' : chP.cloth[1], 0.55);
+    chest(back, false);
+    if (L.part === 'chest') { const armP = sx => { limb(sx * 6.1 * bw, -10.6, sx * 6.9 * bw, -5.2, 3.1, sleeve); limb(sx * 6.9 * bw, -5.2, sx * 7.1 * bw, 0.2, 2.8, sleeve); sleeveEnd(sx * 6.9 * bw, -5.2, sx * 7.1 * bw, 0.2); }; armP(-1); armP(1); for (const sx of [-1, 1]) pauldron(sx * 6.1 * bw, -10.9, sx, false); return; }
     const lifted = SW && SW.style === 'chop' && SW.a < -0.6;
-    const drawArm = (a, sx) => { limb(sx * 6.1 * bw, -10.6, a.ex, a.ey, 3.1, sleeve); limb(a.ex, a.ey, a.hx, a.hy, 2.8, sleeve); sleeveEnd(a.ex, a.ey, a.hx, a.hy); };
     if (lifted && !back) weapon(R.hx, R.hy, R.rot);
     if (back) quiver('back');
-    drawArm(R, wx); drawArm(Lh, -wx);
-    for (const sx of [-1, 1]) pauldron(sx * 6.1 * bw, -10.9, sx, false);
+    drawArm(R, wx); if (!turn) drawArm(Lh, -wx);
+    for (const sx of [-1, 1]) if (!turn || sx === wx) pauldron(sx * 6.1 * bw, -10.9, sx, false);
     if (back) headB(); else headF();
     if (!lifted || back) { weapon(R.hx, R.hy, R.rot); if (two && !back) hand(R.hx + Math.sin(R.rot) * 3.2, R.hy + Math.cos(R.rot) * 3.2); }
-    hand(R.hx, R.hy); hand(Lh.hx, Lh.hy);
+    hand(R.hx, R.hy); if (!turn) hand(Lh.hx, Lh.hy);
     if (back) cape(true, false);
   }
 }

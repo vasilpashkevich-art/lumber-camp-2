@@ -16,7 +16,7 @@ import { GIANT, giantBase, giantUpper, giantCrown, giantShade } from '../art/gia
 import { LH } from '../world/relief.js';
 import { ORES, veinColor, MINE } from '../../data/mining.js';
 import { miningSkill } from '../systems/mining.js';
-import { sprite, drawSpr, flashOf, heroSpr, mobSpr, MOB_SCALE, MOB_LOOK, personSpr, beastSpr, drawFrame, GUARD_LOOK, MERCH_LOOK, viewOf, sprBox, FRAMES, treeSpr, TREE_K, bldSpr, mountainSpr } from '../art/sprites.js';
+import { sprite, drawSpr, flashOf, heroSpr, mobSpr, MOB_SCALE, MOB_LOOK, personSpr, beastSpr, drawFrame, GUARD_LOOK, MERCH_LOOK, viewOf, viewOf8, sideways, sprBox, FRAMES, treeSpr, TREE_K, bldSpr, mountainSpr } from '../art/sprites.js';
 import { treesIn, GATE_W } from '../world/world.js';
 import { lookOf } from '../systems/items.js';
 import { interactTarget, abilsOf } from '../systems/game.js';
@@ -623,7 +623,7 @@ function drawMob(c, G, m, t) {
   const hum = !!MOB_LOOK[m.kind], sc = MOB_SCALE[m.kind] || 1;
   let dx = m.mdx, dy = m.mdy;
   if (!m.moving && (m.state === 'chase' || m.atkT > 0)) { dx = G.P.x - m.x; dy = G.P.y - m.y; }
-  const view = viewOf(dx, dy), dir = view === 'side' ? (dx < 0 ? -1 : 1) : 1;
+  const view = hum ? viewOf8(dx, dy) : viewOf(dx, dy), dir = sideways(view) ? (dx < 0 ? -1 : 1) : 1;
   const mode = m.atkT > 0 ? 'atk' : m.moving ? 'walk' : 'idle';
   const f = mode === 'atk' ? frameOf('atk', 1 - m.atkT / (m.atkDur || 0.35)) : mode === 'walk' ? frameOf('walk', m.walkPh) : 0;
   const sp = mobFrame(m.kind, view, mode, f);
@@ -650,7 +650,7 @@ function drawHero(c, G, look, t) {
   const P = G.P;
   // куда смотрит: при ударе и рывке — на цель, иначе — куда шёл
   const aim = P.atkT > 0 || P.dash || P.mine, dx = aim ? Math.cos(P.face) : P.mvx, dy = aim ? Math.sin(P.face) : P.mvy;
-  const view = viewOf(dx, dy), dir = view === 'side' ? (Math.abs(dx) > 0.05 ? (dx < 0 ? -1 : 1) : P.dir) : 1;
+  const view = viewOf8(dx, dy), dir = sideways(view) ? (Math.abs(dx) > 0.05 ? (dx < 0 ? -1 : 1) : P.dir) : 1;
   const mode = P.dead ? 'dead' : (P.atkT > 0 || P.mine) ? 'atk' : (P.moving || P.dash) ? 'walk' : 'idle';
   const f = mode === 'dead' ? frameOf('dead', P.deadT / 0.7) : mode === 'atk' ? frameOf('atk', P.mine ? (P.mine.t / 0.6) % 1 : 1 - P.atkT / P.atkDur) : mode === 'walk' ? frameOf('walk', (P.step / 3) % 1) : 0;
   c.fillStyle = 'rgba(0,0,0,.28)'; c.beginPath(); c.ellipse(P.x, P.y + 2, 15, 5, 0, 0, 7); c.fill();
@@ -663,7 +663,7 @@ function drawHero(c, G, look, t) {
   if (P.weak > 0) { c.strokeStyle = 'rgba(160,160,255,.5)'; c.lineWidth = 2; c.beginPath(); c.ellipse(P.x, P.y + 2, 20, 8, 0, 0, 7); c.stroke(); }
   if (P.sit) { // сидит: ноги поджаты, тело ниже
     const sp = personSpr(look, 'side', 'idle', 0), lc = legColor(look);
-    c.save(); c.beginPath(); c.rect(P.x - 60, P.y - 120, 120, 120 + 5); c.clip(); drawFrame(c, sp, P.x, P.y + 7, P.dir, 1.15); c.restore();
+    c.save(); c.beginPath(); c.rect(P.x - 60, P.y - 120, 120, 120 + 5); c.clip(); drawFrame(c, sp, P.x, P.y + 10, P.dir, 1.15); c.restore();
     c.fillStyle = lc; c.strokeStyle = '#24180f'; c.lineWidth = 1.2; for (const ox of [-7, 7]) { c.beginPath(); c.ellipse(P.x + ox * P.dir, P.y + 7, 8, 4, 0, 0, 7); c.fill(); c.stroke(); }
     c.fillStyle = 'rgba(160,220,255,.7)'; const q = (t * 0.7) % 1; c.globalAlpha = 1 - q; c.font = 'bold 11px Georgia'; c.fillText('z', P.x + 14, P.y - 40 - q * 16); c.globalAlpha = 1;
     return;
@@ -695,7 +695,7 @@ function drawCorpse(c, k, t) {
   const a = Math.min(1, k.t / 1.5);
   if (!k.kind) drawBag(c, k.x, k.y, t);
   else {
-    const sc = MOB_SCALE[k.kind] || 1, view = viewOf(k.vx || 0, k.vy || 1), dir = view === 'side' ? (k.vx < 0 ? -1 : 1) : 1;
+    const sc = MOB_SCALE[k.kind] || 1, view = MOB_LOOK[k.kind] ? viewOf8(k.vx || 0, k.vy || 1) : viewOf(k.vx || 0, k.vy || 1), dir = sideways(view) ? (k.vx < 0 ? -1 : 1) : 1;
     const sp = mobFrame(k.kind, view, 'dead', frameOf('dead', (LOOT.corpseT - k.t) / 0.7));
     drawFrame(c, sp, k.x, k.y, dir, sc, a * 0.95);
     c.save(); c.globalAlpha = a * 0.5; c.fillStyle = 'rgba(30,20,12,.5)'; c.beginPath(); c.ellipse(k.x, k.y + 2, 20 * sc, 6 * sc, 0, 0, 7); c.fill(); c.restore();
