@@ -8,6 +8,9 @@ import { createGame, update, respawnHero, equip, buyPotion, sellItem, POTION_PRI
 import { LOOT } from '../data/balance.js';
 import { lvlColor } from '../data/balance.js';
 import { makeItem } from '../src/systems/items.js';
+import { talentRows, chooseTalent } from '../src/systems/talents.js';
+// v73: новые умения (R, F) и таланты — по умолчанию включены; SIM_OLD=1 — как до v73 (для сравнения)
+const NEW = !process.env.SIM_OLD;
 import { rng, dist } from '../src/engine/util.js';
 
 // путь: из столицы — через ближайшие к цели ворота; снаружи — в обход стены; внутрь — через ворота
@@ -62,6 +65,8 @@ export function runBot(cls, minutes, seed = 1, log = false, zone = 'pine', lvl =
     const P = G.P, I = {};
     if (P.dead) { if ((deadT += dt) > 3) { respawnHero(G); deadT = 0; goal = null; } }
     else {
+      // таланты: бот берёт первый в каждом открытом ряду
+      if (NEW) for (const r of talentRows(H)) if (H.lvl >= r.lvl && !(H.talents || {})[r.lvl]) chooseTalent(H, r.lvl, r.opts[+(process.env.SIM_TAL || 0)].id);
       // снаряжение
       for (const it of H.bag.slice()) { const c = compareItem(H, it); if (c && c.score > 0) equip(G, it); }
       if (H.potions === 0 && H.gold >= POTION_PRICE(H.lvl)) shopping = true;
@@ -97,6 +102,8 @@ export function runBot(cls, minutes, seed = 1, log = false, zone = 'pine', lvl =
           if (P.hp > G.st.maxHp * 0.25 || H.potions > 0) I.attack = true;
           if (d < 300 && R() < 0.05) I.ability = true;
           if (H.lvl >= 5 && d < 150 && R() < 0.04) I.ability2 = true;
+          if (NEW && H.lvl >= 10 && d < (cls === 'warrior' ? 70 : 300) && R() < 0.05) I.ability3 = true;
+          if (NEW && H.lvl >= 20 && d < 200 && R() < 0.03) I.ability4 = true;
         } else { const cp = W.camps[Math.floor(G.t / 90) % W.camps.length]; const [x, y] = via(W, P, cp.x, cp.y); if (dist(P.x, P.y, cp.x, cp.y) > 150) toward(I, P, x, y); }   // никого рядом — к другому логову
       }
     }

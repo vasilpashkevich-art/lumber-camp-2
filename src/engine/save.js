@@ -55,6 +55,8 @@ export function migrate(h) {
   if (h.v < 4) { if (h.zone === 'shroom' && h.pos) h.pos = { x: Math.round(h.pos.x * 1.3), y: Math.round(h.pos.y * 1.3) }; if (h.veins) delete h.veins.shroom; }
   // v72: личный банк
   h.bank = fixSlots((h.bank || []).filter(Boolean), LOOT.bank);
+  // v73: таланты — уровень ряда -> id выбранного
+  h.talents = h.talents && typeof h.talents === 'object' ? h.talents : {};
   if (h.v < HERO_V) h.v = HERO_V;
   return h;
 }

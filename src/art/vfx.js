@@ -357,22 +357,24 @@ export function netWrap(g, x, y, w, h, t) {
   g.fillStyle = '#7a6a5a'; g.strokeStyle = '#24180f'; g.lineWidth = 1; for (const sd of [-1, 1]) { g.beginPath(); g.arc(x + sd * (w / 2 + 6), y + 3, 3, 0, TAU); g.fill(); g.stroke(); }
 }
 /** Залп: стрелы уходят в небо, потом дождь стрел по кругу с тенями, пыль, воткнутые стрелы. e.x,e.y — середина, e.hx,e.hy — лучник, e.r, e.dur. */
-export function volley(g, e, a) {
-  const { x, y } = e, R = e.r || 105, D = e.dur || 3, r = rng(e.seed), f = clamp((D + 0.4 - a) / 0.4);
+export function volley(g, e, a, part = null) {
+  const { x, y } = e, R = e.r || 105, D = e.dur || 3, r = rng(e.seed), f = clamp((D + 0.4 - a) / 0.4), air = part !== 'ground', grd = part !== 'air';
   // круг цели на земле
-  g.strokeStyle = `rgba(255,220,150,${0.35 * f * clamp(a / 0.3)})`; g.lineWidth = 1.5; g.setLineDash([6, 6]); g.beginPath(); g.ellipse(x, y, R, R * 0.45, 0, 0, TAU); g.stroke(); g.setLineDash([]);
+  if (grd) { g.strokeStyle = `rgba(255,220,150,${0.35 * f * clamp(a / 0.3)})`; g.lineWidth = 1.5; g.setLineDash([6, 6]); g.beginPath(); g.ellipse(x, y, R, R * 0.45, 0, 0, TAU); g.stroke(); g.setLineDash([]); }
   // вверх
-  if (a < 0.45 && e.hx != null) for (let i = 0; i < 5; i++) { const q = a / 0.45, px = e.hx + (i - 2) * 6 + q * 20 * (i - 2), py = e.hy - 30 - q * 260; arrow(g, { x: px, y: py, vx: (i - 2) * 30, vy: -800 }, a); }
+  if (air && a < 0.45 && e.hx != null) for (let i = 0; i < 5; i++) { const q = a / 0.45, px = e.hx + (i - 2) * 6 + q * 20 * (i - 2), py = e.hy - 30 - q * 260; arrow(g, { x: px, y: py, vx: (i - 2) * 30, vy: -800 }, a); }
   // вниз — 46 стрел
   const N = 46;
   for (let i = 0; i < N; i++) {
     const t0 = 0.35 + r() * (D - 0.6), an = r() * TAU, d = Math.sqrt(r()) * R, gx = x + Math.cos(an) * d, gy = y + Math.sin(an) * d * 0.45, fall = 0.26, b = a - t0, tilt = (r() - 0.5) * 0.5;
     if (b < 0) continue;
     if (b < fall) {
+      if (!air) continue;
       const q = b / fall, h = (1 - q) * 280; g.fillStyle = `rgba(0,0,0,${0.3 * q})`; g.beginPath(); g.ellipse(gx, gy, 4 + q * 3, 2, 0, 0, TAU); g.fill();
       const ax = gx + tilt * h * 0.3, ay = gy - h - 8; g.strokeStyle = 'rgba(255,250,230,.45)'; g.lineWidth = 1.4; g.beginPath(); g.moveTo(ax - tilt * 12, ay - 40); g.lineTo(ax, ay - 6); g.stroke();
       g.save(); g.translate(ax, ay); g.scale(1.35, 1.35); arrow(g, { x: 0, y: 0, vx: -tilt * 300, vy: 1000 }, a); g.restore();
     } else {
+      if (!grd) continue;
       const k = clamp(1 - (b - fall) / 0.9) * f; if (b - fall < 0.4) dust(g, gx, gy, b - fall, i + 3, 2, 0.4);
       if (k > 0) { g.save(); g.globalAlpha = k; g.translate(gx, gy); g.rotate(tilt); g.strokeStyle = '#24180f'; g.lineWidth = 2.6; g.beginPath(); g.moveTo(0, 0); g.lineTo(0, -14); g.stroke(); g.strokeStyle = '#c9a06a'; g.lineWidth = 1.2; g.stroke(); g.fillStyle = '#e8e0cc'; g.beginPath(); g.moveTo(0, -14); g.lineTo(-3, -18); g.lineTo(0, -16); g.lineTo(3, -18); g.closePath(); g.fill(); g.restore(); g.globalAlpha = 1; }
     }

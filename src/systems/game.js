@@ -4,6 +4,8 @@ import { CLASSES } from '../../data/classes.js';
 import { MOBS } from '../../data/mobs.js';
 import { HERO, MOBL, RESPAWN, LEASH, AGGRO, LOOT, ITEM, TRINKET_DROP, SHOP, armorCut, xpKill, lvlColor, xpNeed } from '../../data/balance.js';
 import { TRINKETS } from '../../data/trinkets.js';
+import { NEW_ABILS } from '../../data/talents.js';
+import { hasTal } from './talents.js';
 import { heroStats, addXp, attackOf } from '../entities/hero.js';
 import { rollDrop, makeTrinket, makeItem } from './items.js';
 import { MINE } from '../../data/mining.js';
@@ -21,9 +23,9 @@ export function createGame(hero, W, opts = {}) {
       x: start.x, y: start.y, hp: hero.hp == null ? st.maxHp : Math.min(hero.hp, st.maxHp), face: 0, dir: 1,
       cd: 0, acd: {}, potCd: 0, target: null, sit: false, dash: null, atkT: 0, atkDur: 0.35, mvx: 0, mvy: 1, deadT: 0, lastCombat: -99, weak: 0, poison: null, slow: 0,
       whirl: 0, whirlT: 0, volley: 0, swing: 0, shot: 0, dead: false, moving: false, hurt: 0, step: 0,
-      mine: null, auto: null, goal: null, tcd: 0, buf: { stone: 0, rage: 0, wind: 0, thorns: 0 },
+      mine: null, auto: null, goal: null, tcd: 0, buf: { stone: 0, rage: 0, wind: 0, thorns: 0, berserk: 0 }, berExt: 0, whirlR: 92, whirlMax: 1.2,
     },
-    mobs: [], shots: [], ev: [], fx: [], corpses: [], corpseSeq: 0,
+    mobs: [], shots: [], ev: [], fx: [], corpses: [], corpseSeq: 0, areas: [], traps: [], fxSeq: 1,
   };
   if (G.P.hp <= 0) G.P.hp = Math.round(st.maxHp * 0.5);
   initVeins(G);
@@ -45,7 +47,7 @@ function spawnMob(G, s, camp) {
     hp: max, max, dmg: MOBL.dmg(s.lvl) * D.dmg, armor: MOBL.armor(s.lvl),
     state: 'idle', cd: 0, face: G.rand() < 0.5 ? -1 : 1, hurt: 0,
     wander: { t: G.rand() * 4, x: s.x, y: s.y }, burn: null, bleed: null, fled: false, flee: 0,
-    stun: 0, root: 0, chill: 0, atkT: 0, atkDur: 0.35, walkPh: G.rand(), mdx: 0, mdy: 1, moving: false,
+    stun: 0, root: 0, chill: 0, frozen: 0, venom: null, trapT: 0, atkT: 0, atkDur: 0.35, walkPh: G.rand(), mdx: 0, mdy: 1, moving: false,
     charge: { cd: 2, t: 0 }, smash: { t: D.smash ? D.smash.every : 0, wind: 0, x: 0, y: 0 }, anim: G.rand() * 10,
   };
 }
@@ -91,11 +93,11 @@ export function update(G, dt, I) {
     const m = Math.hypot(mx, my);
     if (m > 1) { mx /= m; my /= m; }
     P.moving = m > 0.05 && !P.dash;
-    if (P.moving || I.attack || I.attackTap || I.ability || I.ability2) { P.sit = false; if (P.mine) stopMine(G); }
+    if (P.moving || I.attack || I.attackTap || I.ability || I.ability2 || I.ability3 || I.ability4) { P.sit = false; if (P.mine) stopMine(G); }
     if (I.sit) { if (P.sit) P.sit = false; else if (G.t - P.lastCombat < 1.5) emit(G, { k: 'toast', s: 'В бою не присесть', id: 'sit' }); else P.sit = true; }
     if (P.dash) dashTick(G, dt);
     else if (P.moving) {
-      const sp = HERO.speed * (P.slow > 0 ? 0.6 : 1) * (P.whirl > 0 ? 0.8 : 1) * (P.buf.wind > 0 ? 1.5 : 1);
+      const sp = HERO.speed * (P.slow > 0 && !(P.buf.berserk > 0) ? 0.6 : 1) * (P.whirl > 0 ? 0.8 : 1) * (P.buf.wind > 0 ? 1.5 : 1);
       [P.x, P.y] = moveTo(G.W, P.x, P.y, P.x + mx * sp * dt, P.y + my * sp * dt);
       if (Math.abs(mx) > 0.1) P.dir = mx < 0 ? -1 : 1;
       P.step += dt * sp / 40; P.mvx = mx; P.mvy = my;
@@ -118,6 +120,8 @@ export function update(G, dt, I) {
     if (P.cd <= 0 && !P.dash && !P.sit) { if (P.auto) autoSwing(G); else if (I.attack) heroAttack(G, false); }
     if (I.ability) useAbility(G, 0);
     if (I.ability2) useAbility(G, 1);
+    if (I.ability3) useAbility(G, 2);
+    if (I.ability4) useAbility(G, 4);
     if (I.potion) drinkPotion(G);
     if (I.interact) interact(G);
     if (I.trinket) useTrinket(G);
@@ -130,6 +134,7 @@ export function update(G, dt, I) {
   shotsTick(G, dt);
   for (const c of G.corpses) c.t -= dt;
   if (G.corpses.some(c => c.t <= 0)) G.corpses = G.corpses.filter(c => c.t > 0);
+  trapsTick(G, dt);
   for (const f of G.fx) f.t -= dt;
   G.fx = G.fx.filter(f => f.t > 0);
   H.worldT = G.t;
@@ -173,7 +178,7 @@ function heroAttack(G, tap, force = null) {
     else { if (tap && t) emit(G, { k: 'toast', s: 'Слишком далеко', id: 'far' }); return; }
   }
   P.target = t; P.face = Math.atan2(t.y - P.y, t.x - P.x); P.dir = Math.cos(P.face) < 0 ? -1 : 1;
-  P.cd = G.st.cd / (P.buf.rage > 0 ? 1.3 : 1); P.lastCombat = G.t; sfx(G, A.sfx);
+  P.cd = G.st.cd / (P.buf.rage > 0 ? 1.3 : 1) / (P.buf.berserk > 0 ? 1 + ABX(G, 'berserk').haste : 1); P.lastCombat = G.t; sfx(G, A.sfx);
   startAtk(P, A.kind === 'melee' ? 0.32 : 0.42);
   if (A.kind === 'melee') { P.swing = 0.22; strike(G, t, G.st.hit, 'melee'); }
   else {
@@ -207,13 +212,20 @@ function strike(G, m, base, src, opt = {}) {
   if (!opt.sure && G.rand() < clamp(0.04 + 0.05 * d, 0.02, 0.4)) { emit(G, { k: 'txt', x: m.x, y: m.y - m.r - 20, s: 'мимо', col: '#cfd8de' }); aggro(G, m); return; }
   const st = G.st, pen = (st.p ? st.p.pen : 0) / 100;
   let v = opt.flat ? base : base * (0.9 + G.rand() * 0.2) * (G.P.weak > 0 ? HERO.deathWeakMul : 1) * (1 - armorCut(m.armor * (1 - pen), H.lvl) * 0.5);
-  const crit = !opt.noCrit && G.rand() < (st.crit ?? ITEM.baseCrit) / 100; if (crit) v *= ITEM.critMul;
+  if (!opt.flat) v *= heroDmgMul(G, m, opt);
+  let cc = st.crit ?? ITEM.baseCrit;
+  if (passive(G, 'execute') && m.hp < m.max * (hasTal(H, 'aim') ? 0.5 : ABX(G, 'execute').below)) cc += ABX(G, 'execute').crit;   // Добивание
+  const crit = !opt.noCrit && G.rand() < cc / 100; if (crit) { v *= ITEM.critMul; G.fx.push(fx(G, 'critBurst', m.x, m.y, 0.35)); }
   v = Math.max(1, v);
+  // Ярость: Неистовство — каждый удар продлевает её
+  if (G.P.buf.berserk > 0 && hasTal(H, 'frenzy') && G.P.berExt < 6 && src !== 'dot') { G.P.buf.berserk += 0.5; G.P.berExt += 0.5; }
   // вампиризм: часть нанесённого урона возвращается здоровьем
   if (st.p && st.p.vamp > 0 && !G.P.dead) G.P.hp = Math.min(st.maxHp, G.P.hp + v * st.p.vamp / 100);
   m.hp -= v; m.hurt = 0.15;
   emit(G, { k: 'dmg', x: m.x, y: m.y - m.r * 2, v, crit });
-  if (opt.burn) m.burn = { t: 3, dps: base * 0.3 };
+  if (opt.burn) { const lb = opt.big && hasTal(H, 'longBurn'); m.burn = { t: lb ? 6 : 3, dps: base * (lb ? 0.4 : 0.3) }; }
+  // Возгорание (маг, пассивное): крит огнём поджигает
+  if (crit && opt.fire && passive(G, 'ignite')) { const b = ABX(G, 'ignite').burn; m.burn = { t: 4, dps: Math.max(m.burn ? m.burn.dps : 0, v * b) }; G.fx.push(fx(G, 'igniteFlash', m.x, m.y, 0.5)); emit(G, { k: 'txt', x: m.x, y: m.y - m.r - 34, s: 'возгорание', col: '#ffb347' }); }
   if (m.hp <= 0) { killMob(G, m); return; }
   aggro(G, m);
   if (m.D.trait === 'flee' && !m.fled && m.hp < m.max * 0.25) { m.fled = true; m.flee = 2.2; emit(G, { k: 'txt', x: m.x, y: m.y - m.r - 26, s: 'убегает!', col: '#f5e05a' }); }
@@ -230,8 +242,11 @@ function aggro(G, m) {
 
 function killMob(G, m) {
   const H = G.hero, P = G.P;
+  // Жажда битвы (воин, пассивное): каждый сражённый враг лечит
+  if (passive(G, 'thirst') && !P.dead) { const v = G.st.maxHp * (hasTal(H, 'bloodlust') ? 0.08 : ABX(G, 'thirst').heal); P.hp = Math.min(G.st.maxHp, P.hp + v); G.fx.push(Object.assign(fx(G, 'thirst', m.x, m.y, 1.2), { tx: P.x, ty: P.y })); emit(G, { k: 'txt', x: P.x, y: P.y - 56, s: `+${Math.round(v)}`, col: '#7cff7c' }); }
+  m.trapT = 0;
   if (m.summon) { m.state = 'dead'; m.gone = true; m.hp = 0; if (P.target === m) P.target = null; sfx(G, 'kill'); const xp = Math.round(xpKill(m.lvl, H.lvl) * 0.3); if (xp) { addXp(H, xp); emit(G, { k: 'txt', x: m.x, y: m.y - 46, s: `+${xp} опыта`, col: '#c8a0ff' }); } return; }
-  m.state = 'dead'; m.hp = 0; m.bleed = null; m.burn = null; m.respawnAt = G.t + (m.D.rare ? RESPAWN.rare : RESPAWN.normal);
+  m.state = 'dead'; m.hp = 0; m.bleed = null; m.burn = null; m.venom = null; m.frozen = 0; m.respawnAt = G.t + (m.D.rare ? RESPAWN.rare : RESPAWN.normal);
   H.dead[m.key] = m.respawnAt; H.stats.kills++;
   if (P.target === m) P.target = null;
   sfx(G, 'kill');
@@ -278,8 +293,23 @@ export function giveItem(G, it, x, y) {
 }
 
 // ---------------------------------------------------------------- умения и зелья
-/** Умения класса: 0 — с 1 уровня (C), 1 — с 5-го (V). */
-export const abilsOf = h => CLASSES[h.cls].abils;
+/** Умения класса: 0 — C (1 ур.), 1 — V (5), 2 — R (10), 3 — пассивное (15), 4 — F (20). */
+const ABC = {};
+export const abilsOf = h => ABC[h.cls] || (ABC[h.cls] = [...CLASSES[h.cls].abils, ...(NEW_ABILS[h.cls] || [])]);
+/** Умение героя по id (данные). */
+const ABX = (G, id) => abilsOf(G.hero).find(a => a.id === id);
+/** Открыто ли пассивное умение. */
+const passive = (G, id) => { const A = ABX(G, id); return !!A && G.hero.lvl >= A.lvl; };
+/** Новый эффект для рисования: тип, место, длительность; seed — свой узор. */
+const fx = (G, k, x, y, dur) => ({ k, x, y, t: dur, max: dur, seed: (G.fxSeq = (G.fxSeq || 1) + 7) });
+/** Множитель урона героя: Ярость, Охотничий азарт (враг в капкане). */
+function heroDmgMul(G, m, opt) {
+  let k = 1; const P = G.P, H = G.hero;
+  if (P.buf.berserk > 0) k *= 1 + ABX(G, 'berserk').dmg;
+  if (m.trapT > 0 && hasTal(H, 'thrill')) k *= 1.25;
+  if (opt.fire && hasTal(H, 'frostfire') && (m.chill > 0 || m.frozen > 0)) k *= 2;
+  return k;
+}
 export const abilOpen = (h, i) => h.lvl >= abilsOf(h)[i].lvl;
 
 function abilTarget(G, range) {
@@ -288,26 +318,71 @@ function abilTarget(G, range) {
 }
 
 function useAbility(G, i) {
-  const P = G.P, H = G.hero, A = abilsOf(H)[i]; if (!A) return;
+  const P = G.P, H = G.hero, A = abilsOf(H)[i]; if (!A || A.key === 'passive') return;
   if (!abilOpen(H, i)) { emit(G, { k: 'toast', s: `${A.name} откроется на ${A.lvl}-м уровне`, id: 'ablock' }); return; }
   if ((P.acd[A.id] || 0) > 0) { emit(G, { k: 'toast', s: `${A.name}: ещё ${Math.ceil(P.acd[A.id])} с`, id: 'abcd' }); return; }
   if (P.dash) return;
   const reach = attackOf(H).reach + 40;
-  if (A.id === 'whirl') { P.whirl = 1.2; P.whirlT = 0; startAtk(P, 0.4); }
-  else if (A.id === 'charge') {
+  let cd = A.cd;
+  const face = t => { P.target = t; P.face = Math.atan2(t.y - P.y, t.x - P.x); P.dir = Math.cos(P.face) < 0 ? -1 : 1; };
+  if (A.id === 'whirl') {
+    const wide = hasTal(H, 'wideWhirl'); P.whirlMax = P.whirl = 1.2 + (wide ? 0.8 : 0); P.whirlR = 92 * (wide ? 1.2 : 1); P.whirlT = 0; startAtk(P, 0.4);
+    if (P.buf.berserk > 0 && hasTal(H, 'redWhirl')) cd *= 0.5;
+  } else if (A.id === 'charge') {
     const t = abilTarget(G, A.range); if (!t) { emit(G, { k: 'toast', s: 'Рядом нет врага для рывка', id: 'abnt' }); return; }
     P.dash = { m: t, t: 0.6, A }; P.target = t; P.dir = t.x < P.x ? -1 : 1;
+    if (hasTal(H, 'swift')) cd -= 3;
+  } else if (A.id === 'crush') {
+    const t = abilTarget(G, attackOf(H).reach + 20);
+    if (!t || !tier(G, P, t)) { emit(G, { k: 'toast', s: 'Сокрушающий удар — только вплотную', id: 'abnt' }); return; }
+    face(t); P.swing = 0.3; startAtk(P, 0.5); P.cd = Math.max(P.cd, 0.5);
+    crushHit(G, t, A);
+    if (hasTal(H, 'cleave')) { const o = G.mobs.filter(x => x !== t && hostile(x) && dist(x.x, x.y, t.x, t.y) < 90 && tier(G, P, x)).sort((a, b) => dist(a.x, a.y, t.x, t.y) - dist(b.x, b.y, t.x, t.y))[0]; if (o) crushHit(G, o, A); }
+  } else if (A.id === 'berserk') {
+    P.buf.berserk = A.t; P.berExt = 0; P.slow = 0; startAtk(P, 0.4);
+    G.fx.push(fx(G, 'berserkCast', P.x, P.y, 0.9)); emit(G, { k: 'txt', x: P.x, y: P.y - 76, s: 'ЯРОСТЬ!', col: '#ff5a3a' });
+  } else if (A.id === 'pillar' || A.id === 'volley') {
+    const t = abilTarget(G, 440); if (!t) { emit(G, { k: 'toast', s: 'Нет цели рядом', id: 'abnt' }); return; }
+    face(t); startAtk(P, 0.5); P.shot = 0.25;
+    const dur = A.id === 'pillar' ? (hasTal(H, 'inferno') ? 8 : A.t) : (hasTal(H, 'hail') ? 4.5 : A.t);
+    const r = A.r * (A.id === 'pillar' && hasTal(H, 'widePillar') ? 1.4 : 1);
+    G.areas.push(Object.assign(fx(G, A.id, t.x, t.y, dur + (A.id === 'volley' ? 0.4 : 0.35)), { r, dur, tick: A.id === 'volley' ? 0.35 : 0.35, hx: P.x, hy: P.y }));
+    if (A.id === 'volley') emit(G, { k: 'txt', x: P.x, y: P.y - 70, s: 'Залп!', col: '#ffe9a8' });
+  } else if (A.id === 'nova') {
+    startAtk(P, 0.45); const fr = hasTal(H, 'prison') ? 5 : A.freeze, mul = A.mul * (hasTal(H, 'shards') ? 1.5 : 1);
+    G.fx.push(Object.assign(fx(G, 'nova', P.x, P.y, 1.5), { r: A.r }));
+    let n = 0;
+    for (const m of G.mobs) if (hostile(m) && dist(m.x, m.y, P.x, P.y) < A.r + m.r) { n++; strike(G, m, G.st.hit * mul, 'spell', { sure: true, frost: true }); if (m.state !== 'dead') { m.frozen = Math.max(m.frozen || 0, m.D.rare ? fr / 2 : fr); m.frozenMax = m.frozen; emit(G, { k: 'txt', x: m.x, y: m.y - m.r - 34, s: 'вмёрз', col: '#bfe6ff' }); } }
+    if (hasTal(H, 'coldMind')) P.acd.fireball = 0;
+    if (!n) emit(G, { k: 'toast', s: 'Рядом никого — холод ушёл впустую', id: 'abnt' });
+  } else if (A.id === 'trap') {
+    const max = hasTal(H, 'twoTraps') ? 2 : 1;
+    while (G.traps.filter(x => !x.sprung).length >= max) G.traps.splice(G.traps.findIndex(x => !x.sprung), 1);
+    G.traps.push({ x: P.x + P.dir * 22, y: P.y + 6, t: 60, sprung: 0, seed: (G.fxSeq += 7) });
+    startAtk(P, 0.35); emit(G, { k: 'txt', x: P.x, y: P.y - 60, s: 'капкан поставлен', col: '#e8e0cc' });
   } else {
     const t = abilTarget(G, Math.max(reach, 420)); if (!t) { emit(G, { k: 'toast', s: 'Нет цели рядом', id: 'abnt' }); return; }
-    P.target = t; P.face = Math.atan2(t.y - P.y, t.x - P.x); P.dir = Math.cos(P.face) < 0 ? -1 : 1; P.shot = 0.2; startAtk(P, 0.42);
-    const shot = (kind, dmg, spread, x) => { const a = Math.atan2(t.y - t.r * 0.6 - P.y + 18, t.x - P.x) + spread, sp = kind === 'arrow' ? 900 : kind === 'net' ? 600 : 520;
-      G.shots.push(Object.assign({ from: 'hero', kind, x: P.x, y: P.y - 18, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, t: 560 / sp + 0.3, dmg, target: t }, x)); };
-    if (A.id === 'fireball') shot('fire', G.st.hit * A.mul, 0, { burn: true, big: true, chillBonus: 1.5 });
-    if (A.id === 'frost') shot('frost', G.st.hit * A.mul, 0, { chill: A.chill });
-    if (A.id === 'net') shot('net', G.st.hit * 0.3, 0, { root: A.root, sure: true });
-    if (A.id === 'bleed') shot('arrow', G.st.hit * A.mul, 0, { bleed: { t: A.bleed.t, dmg: G.st.hit * A.bleed.mul }, red: true });
+    face(t); P.shot = 0.2; startAtk(P, 0.42);
+    const shot = (kind, dmg, x) => heroShot(G, t, kind, dmg, x);
+    if (A.id === 'fireball') shot('fire', G.st.hit * A.mul, { burn: true, big: true, chillBonus: 1.5, fire: true, split: hasTal(H, 'split') ? 2 : 0 });
+    if (A.id === 'frost') shot('frost', G.st.hit * A.mul, { chill: A.chill, chain: hasTal(H, 'chainFrost') ? 2 : 0, hit: [] });
+    if (A.id === 'net') shot('net', G.st.hit * 0.3, { root: A.root, sure: true, wide: hasTal(H, 'wideNet') });
+    if (A.id === 'bleed') shot('arrow', G.st.hit * A.mul, { bleed: bleedOf(G, A), red: true, rico: hasTal(H, 'ricochet') ? 2 : 0 });
   }
-  P.acd[A.id] = A.cd * (1 - ((G.st.p && G.st.p.cdr) || 0) / 100); P.lastCombat = G.t; P.sit = false; sfx(G, A.sfx);
+  P.acd[A.id] = Math.max(0.5, cd) * (1 - ((G.st.p && G.st.p.cdr) || 0) / 100); P.lastCombat = G.t; P.sit = false; sfx(G, A.sfx);
+}
+const bleedOf = (G, A) => ({ t: A.bleed.t, dmg: G.st.hit * A.bleed.mul * (hasTal(G.hero, 'barbs') ? 1.5 : 1) });
+/** Выстрел умения героя из точки (x0,y0) — по умолчанию от героя — в цель t. */
+function heroShot(G, t, kind, dmg, x, x0 = G.P.x, y0 = G.P.y - 18) {
+  const a = Math.atan2(t.y - t.r * 0.6 - y0, t.x - x0), sp = kind === 'arrow' ? 900 : kind === 'net' ? 600 : 520;
+  G.shots.push(Object.assign({ from: 'hero', kind, x: x0, y: y0, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, t: 560 / sp + 0.3, dmg, target: t, age: 0 }, x));
+}
+/** Сокрушающий удар по одному врагу: урон и глубокая рана. */
+function crushHit(G, t, A) {
+  const H = G.hero, deep = hasTal(H, 'deepWound');
+  G.fx.push(Object.assign(fx(G, 'crush', t.x, t.y, 1.4), { dir: Math.atan2(t.y - G.P.y, t.x - G.P.x) }));
+  strike(G, t, G.st.hit * A.mul, 'melee', { sure: true });
+  if (t.state !== 'dead') { t.bleed = { n: deep ? 9 : A.wound.t, tick: 1, dmg: G.st.hit * A.wound.mul * (deep ? 1.3 : 1), wound: true }; emit(G, { k: 'txt', x: t.x, y: t.y - t.r - 26, s: 'глубокая рана', col: '#ff6a6a' }); }
 }
 
 // рывок: летим к цели, на месте — удар сильнее обычного и оглушение
@@ -317,11 +392,12 @@ function dashTick(G, dt) {
   if (m.state === 'dead' || D.t <= 0) { P.dash = null; return; }
   const d = dist(P.x, P.y, m.x, m.y), stop = m.r + 26;
   if (d > stop) { const k = Math.min(1, 900 * dt / d); const [nx, ny] = moveTo(G.W, P.x, P.y, P.x + (m.x - P.x) * k, P.y + (m.y - P.y) * k); P.moving = true; P.step += dt * 20;
-    if (Math.hypot(nx - P.x, ny - P.y) < 0.5) { P.dash = null; return; } P.x = nx; P.y = ny; G.fx.push({ k: 'trail', x: P.x, y: P.y, t: 0.25, max: 0.25 }); return; }
+    if (Math.hypot(nx - P.x, ny - P.y) < 0.5) { P.dash = null; return; } P.x = nx; P.y = ny; G.fx.push(fx(G, 'dashDust', P.x, P.y, 0.6)); return; }
   P.dash = null; P.swing = 0.22; startAtk(P, 0.32); P.cd = Math.max(P.cd, 0.4); P.face = Math.atan2(m.y - P.y, m.x - P.x);
   strike(G, m, G.st.hit * D.A.mul, 'melee', { sure: true });
   if (m.state !== 'dead') { setStatus(G, m, 'stun', D.A.stun); }
-  G.fx.push({ k: 'ring', x: m.x, y: m.y, r: 6, max: 46, t: 0.35, col: '#ffe9a8' });
+  if (hasTal(G.hero, 'quake')) for (const o of G.mobs) if (o !== m && hostile(o) && dist(o.x, o.y, m.x, m.y) < 90 + o.r) setStatus(G, o, 'stun', 1.5);   // Сотрясение
+  G.fx.push(fx(G, 'impact', m.x, m.y, 0.6));
 }
 
 /** Оглушение, сеть, холод. У редкого моба вдвое короче. */
@@ -337,9 +413,39 @@ function abilityTick(G, dt) {
     P.whirl -= dt; P.whirlT -= dt;
     if (P.whirlT <= 0) {
       P.whirlT = 0.3;
-      for (const m of G.mobs) if (hostile(m) && dist(m.x, m.y, P.x, P.y) < 92 + m.r) strike(G, m, G.st.hit * 0.6, 'melee', { noCrit: true });
+      for (const m of G.mobs) if (hostile(m) && dist(m.x, m.y, P.x, P.y) < P.whirlR + m.r) strike(G, m, G.st.hit * 0.6, 'melee', { noCrit: true });
     }
   }
+  if (P.buf.berserk <= 0) P.berExt = 0;
+  // круги на земле: Огненный столп и Залп — бьют всех внутри раз в tick
+  for (const ar of G.areas) {
+    ar.t -= dt; const age = ar.max - ar.t; if (age < 0.35 || age > ar.dur + 0.35) continue;
+    if ((ar.tick -= dt) > 0) continue;
+    const pil = ar.k === 'pillar', A = ABX(G, ar.k); ar.tick += pil ? 0.5 : 0.4;
+    for (const m of G.mobs) {
+      if (!hostile(m) || dist(m.x, m.y, ar.x, ar.y) > ar.r + m.r * 0.6) continue;
+      if (pil) strike(G, m, G.st.hit * A.dps * 0.5, 'spell', { sure: true, fire: true });
+      else { strike(G, m, G.st.hit * A.mul, 'ranged', { sure: true }); if (m.state !== 'dead' && hasTal(G.hero, 'frostTips')) { if (!(m.chill > 0)) emit(G, { k: 'txt', x: m.x, y: m.y - m.r - 34, s: 'замедлен', col: '#9ad0ff' }); m.chill = Math.max(m.chill, 1.2); } }
+    }
+  }
+  if (G.areas.length && G.areas.some(a => a.t <= 0)) G.areas = G.areas.filter(a => a.t > 0);
+}
+
+/** Капканы Лучника: ждут на земле минуту, первый наступивший враг попадает. */
+function trapsTick(G, dt) {
+  if (!G.traps.length) return;
+  const H = G.hero, A = ABX(G, 'trap');
+  for (const tr of G.traps) {
+    tr.t -= dt; if (tr.sprung) { tr.sprung += dt; continue; }
+    const m = G.mobs.find(o => o.state === 'chase' && !o.D.flying && dist(o.x, o.y, tr.x, tr.y) < 22 + o.r * 0.6); if (!m) continue;
+    tr.sprung = 0.001; tr.t = Math.min(tr.t, 3);
+    const hold = m.D.rare ? A.hold / 2 : A.hold; m.root = Math.max(m.root, hold); m.trapT = hold; m.x = tr.x; m.y = tr.y - 2;
+    G.fx.push(fx(G, 'trapSnap', tr.x, tr.y, 0.9)); sfx(G, 'hammer');
+    emit(G, { k: 'txt', x: m.x, y: m.y - m.r - 34, s: 'в капкане', col: '#e8e0cc' });
+    strike(G, m, G.st.hit * A.mul, 'ranged', { sure: true, noCrit: true });
+    if (m.state !== 'dead') { m.bleed = { n: Math.round(hold), tick: 1, dmg: G.st.hit * A.mul * 0.5 }; if (hasTal(H, 'venom')) m.venom = { t: 6, dps: G.st.hit * 0.22 }; }
+  }
+  G.traps = G.traps.filter(t => t.t > 0);
 }
 
 // ---------------------------------------------------------------- аксессуар (клавиша 1)
@@ -441,7 +547,7 @@ function interact(G) { const t = interactTarget(G); if (t) doInteract(G, t); }
 function doInteract(G, t) {
   if (t.k === 'corpse') { G.P.auto = null; emit(G, { k: 'lootOpen', c: t.c }); return; }
   if (t.k === 'vein') { if (G.P.mine) stopMine(G); else startMine(G, t.v); return; }
-  if (t.k === 'b') { if (t.b.vendor) emit(G, { k: 'vendor', b: t.b }); else if (t.b.bank) emit(G, { k: 'bank', b: t.b }); else if (t.b.guild) emit(G, { k: 'guild', b: t.b }); else if (t.b.smelt) emit(G, { k: 'smelt', b: t.b }); else emit(G, { k: 'toast', s: `${t.b.name}. ${t.b.note}`, id: 'bld' }); }
+  if (t.k === 'b') { if (t.b.vendor) emit(G, { k: 'vendor', b: t.b }); else if (t.b.bank) emit(G, { k: 'bank', b: t.b }); else if (t.b.mentor) emit(G, { k: 'mentor', b: t.b }); else if (t.b.guild) emit(G, { k: 'guild', b: t.b }); else if (t.b.smelt) emit(G, { k: 'smelt', b: t.b }); else emit(G, { k: 'toast', s: `${t.b.name}. ${t.b.note}`, id: 'bld' }); }
   if (t.k === 'exit') { if (t.e.zone) emit(G, { k: 'zone', e: t.e }); else emit(G, { k: 'toast', s: `Дорога в ${t.e.to} (ур. ${t.e.lvl}) откроется в следующих версиях`, id: 'exit' }); }
 }
 
@@ -453,6 +559,7 @@ function hurtHero(G, v, m, dot) {
     if (p.dodge > 0 && G.rand() < p.dodge / 100) { emit(G, { k: 'txt', x: P.x, y: P.y - 60, s: 'уклонение', col: '#cfeaff' }); P.lastCombat = G.t; return; }
     if (p.block > 0 && G.rand() < p.block / 100) { emit(G, { k: 'txt', x: P.x, y: P.y - 60, s: 'блок', col: '#e8e0cc' }); P.lastCombat = G.t; sfx(G, 'hammer'); return; }
     if (P.buf.stone > 0) v *= 0.5;   // Каменное сердце
+    if (P.buf.berserk > 0) v *= hasTal(G.hero, 'iron') ? 0.9 : 1 + ABX(G, 'berserk').taken;   // Ярость: открыт для ударов (Несокрушимость — наоборот)
     v *= (1 - armorCut(G.st.armor, G.hero.lvl)); P.hurt = 0.18; emit(G, { k: 'hdmg', v }); sfx(G, 'hurt');
     if (P.buf.thorns > 0 && m && m.state !== 'dead') strike(G, m, v * 0.3, 'thorns', { sure: true, noCrit: true, flat: true });   // Тотем шипов
     if (P.mine) stopMine(G, 'Копать помешали');
@@ -462,7 +569,7 @@ function hurtHero(G, v, m, dot) {
 }
 
 function heroDie(G) {
-  const P = G.P; P.hp = 0; P.dead = true; P.deadT = 0; P.target = null; P.auto = null; P.goal = null; P.poison = null; P.whirl = 0; P.volley = 0; P.dash = null; P.sit = false;
+  const P = G.P; P.hp = 0; P.dead = true; P.deadT = 0; P.target = null; P.auto = null; P.goal = null; P.poison = null; P.whirl = 0; P.volley = 0; P.dash = null; P.sit = false; P.buf.berserk = 0; G.areas = []; G.traps = [];
   G.hero.stats.deaths++;
   for (const m of G.mobs) if (m.state === 'chase') m.state = 'return';
   emit(G, { k: 'die' });
@@ -495,8 +602,9 @@ function mobTick(G, m, dt) {
       if (m.hp <= 0) { killMob(G, m); return; }
     }
   }
-  m.stun = Math.max(0, m.stun - dt); m.root = Math.max(0, m.root - dt); m.chill = Math.max(0, m.chill - dt);
-  if (m.stun > 0) return;   // оглушён — стоит
+  if (m.venom) { m.venom.t -= dt; m.hp -= m.venom.dps * dt; if (m.venom.t <= 0 || m.state === 'return') m.venom = null; if (m.hp <= 0) { killMob(G, m); return; } }
+  m.stun = Math.max(0, m.stun - dt); m.root = Math.max(0, m.root - dt); m.chill = Math.max(0, m.chill - dt); m.frozen = Math.max(0, (m.frozen || 0) - dt); m.trapT = Math.max(0, (m.trapT || 0) - dt);
+  if (m.stun > 0 || m.frozen > 0) return;   // оглушён или вмёрз в лёд — стоит
   const dH = dist(m.x, m.y, P.x, P.y), dHome = dist(m.x, m.y, m.hx, m.hy), slowK = m.chill > 0 ? 0.5 : 1;
   const go = (tx, ty, sp) => { if (m.state !== 'idle' && G.W.relief && m.root <= 0) { const w = steer(G, m, tx, ty, dt); if (w) { tx = w[0]; ty = w[1]; } } const d = dist(m.x, m.y, tx, ty); if (d < 1 || m.root > 0) { if (Math.abs(tx - m.x) > 2) m.face = tx < m.x ? -1 : 1; return; } sp *= slowK; const k = Math.min(1, sp * dt / d); let nx = m.x + (tx - m.x) * k, ny = m.y + (ty - m.y) * k; let ok = (a, b) => G.W.walkable(a, b) && !inCity(G.W, a, b) && G.W.stepOk(m.x, m.y, a, b); let ax = nx, ay = ny; if (!ok(ax, ay)) { if (ok(nx, m.y)) ay = m.y; else if (ok(m.x, ny)) ax = m.x; } if (ok(ax, ay)) { const nx2 = ax, ny2 = ay; nx = nx2; ny = ny2; const mv = Math.hypot(nx - m.x, ny - m.y); if (mv > 0.05) { m.mdx = nx - m.x; m.mdy = ny - m.y; m.moving = true; m.walkPh = (m.walkPh + mv / (m.D.humanoid ? 56 : 44)) % 1; } m.x = nx; m.y = ny; } if (Math.abs(tx - m.x) > 2) m.face = tx < m.x ? -1 : 1; };
 
@@ -581,17 +689,31 @@ function mobTick(G, m, dt) {
   if (m.bite) m.bite = Math.max(0, m.bite - dt);
 }
 
+/** Попадание выстрела умения: эффекты и таланты (искры, отскок льда, рикошет, широкая сеть). */
+function shotHit(G, s, m) {
+  const H = G.hero, near = (n, r, skip) => G.mobs.filter(o => o !== m && hostile(o) && !(skip && skip.includes(o)) && dist(o.x, o.y, m.x, m.y) < r).sort((a, b) => dist(a.x, a.y, m.x, m.y) - dist(b.x, b.y, m.x, m.y)).slice(0, n);
+  const at = (k, d) => G.fx.push(Object.assign(fx(G, k, m.x, m.y, d), { dir: Math.atan2(s.vy, s.vx), big: s.big }));
+  if (s.kind === 'fire') at('explosion', s.big ? 1.4 : 0.9);
+  if (s.kind === 'frost') at('frostHit', 0.8);
+  if (s.kind === 'arrow' && s.red) at('bloodHit', 1.2);
+  if (s.split) for (const o of near(s.split, 260)) heroShot(G, o, 'fire', s.dmg * 0.4, { fire: true, skip: [m] }, m.x, m.y - m.r);
+  if (s.chain) { const hit = [...(s.hit || []), m], o = near(1, 260, hit)[0]; if (o) heroShot(G, o, 'frost', s.dmg, { chill: s.chill, chain: s.chain - 1, hit, skip: hit }, m.x, m.y - m.r); }
+  if (s.rico) for (const o of near(s.rico, 220)) heroShot(G, o, 'arrow', s.dmg * 0.4, { red: true, skip: [m] }, m.x, m.y - m.r);
+  if (s.wide) for (const o of near(9, 90)) if (o.state !== 'dead') { setStatus(G, o, 'root', s.root); aggro(G, o); }
+}
+
 function shotsTick(G, dt) {
   const P = G.P;
   for (const s of G.shots) {
-    s.t -= dt; s.x += s.vx * dt; s.y += s.vy * dt;
+    s.t -= dt; s.x += s.vx * dt; s.y += s.vy * dt; s.age = (s.age || 0) + dt;
     if (s.from === 'hero') {
       for (const m of G.mobs) {
-        if (m.state === 'dead') continue;
+        if (m.state === 'dead' || (s.skip && s.skip.includes(m))) continue;
         if (dist(s.x, s.y, m.x, m.y - m.r * 0.8 - (m.D.flying ? 22 : 0)) < m.r + (s.big ? 16 : 10) + (m.D.flying ? 6 : 0)) {
-          s.t = 0; strike(G, m, s.dmg * (s.chillBonus && m.chill > 0 ? s.chillBonus : 1), 'ranged', { burn: s.burn, sure: s.sure });
+          s.t = 0; const cold = m.chill > 0 || m.frozen > 0;
+          strike(G, m, s.dmg * (s.chillBonus && cold && !hasTal(G.hero, 'frostfire') ? s.chillBonus : 1), 'ranged', { burn: s.burn, sure: s.sure, fire: s.fire, big: s.big });
           if (m.state !== 'dead') { if (s.chill) setStatus(G, m, 'chill', s.chill); if (s.root) setStatus(G, m, 'root', s.root); if (s.bleed) setBleed(G, m, s.bleed); }
-          if (s.kind === 'fire') G.fx.push({ k: 'boom', x: s.x, y: s.y, t: 0.35, max: 0.35, big: s.big });
+          shotHit(G, s, m);
           break;
         }
       }

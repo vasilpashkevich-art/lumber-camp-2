@@ -20,7 +20,7 @@ export const CLASSES = {
     attack: { kind: 'bolt', reach: 380, cd: 1.25, mul: 1.4, speed: 520, sfx: 'staff' },
     abils: [
       { id: 'fireball', name: 'Огненный шар', key: 'C', lvl: 1, cd: 6, mul: 2.4,
-        d: 'Большой огненный шар: сильный удар и поджог. По замёрзшему врагу — урон в полтора раза больше', icon: 'fire', sfx: 'fireVolley' },
+        d: 'Большой огненный шар: сильный удар и поджог. По замёрзшему врагу — урон в полтора раза больше', icon: 'fireball', sfx: 'fireVolley' },
       { id: 'frost', name: 'Ледяная стрела', key: 'V', lvl: 5, cd: 8, mul: 1.1, chill: 5,
         d: 'Замораживает врага: 5 с он вдвое медленнее ходит и бьёт', icon: 'frost', sfx: 'staff' },
     ],

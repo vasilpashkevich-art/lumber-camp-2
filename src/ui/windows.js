@@ -9,8 +9,11 @@ import { compareItem } from '../entities/hero.js';
 import { stashPut, stashTake, stashMove, stashSwap, stashMaterials, store } from '../systems/bank.js';
 import { equip, unequip, sellItem, buyPotion, shopStock, buyShop, POTION_PRICE, respawnHero, lootTake, hasLoot, bagMove, abilsOf } from '../systems/game.js';
 import { ABIL_ICON } from './icons.js';
+import { iconUrl } from '../art/abicons.js';
+import { playPreview, hasPreview, SW, SH } from './abilpreview.js';
+import { talentRows, talentFree, chooseTalent, resetTalents, resetPrice } from '../systems/talents.js';
 import { doll } from '../art/body.js';
-import { $, el, modal, TOUCH, T } from './dom.js';
+import { $, el, modal, toast, TOUCH, T } from './dom.js';
 import { soundState, setSound, setVol } from '../engine/audio.js';
 import { fmt1 } from '../engine/util.js';
 import { statRows } from './stathelp.js';
@@ -257,12 +260,53 @@ export function openSmelt(G, onChange) {
 
 const moneyIcon = () => `<svg viewBox="0 0 32 32" width="34" height="34"><ellipse cx="16" cy="24" rx="11" ry="4" fill="#c4703a" stroke="#24180f"/><ellipse cx="14" cy="19" rx="11" ry="4" fill="#cfd6dc" stroke="#24180f"/><ellipse cx="17" cy="13" rx="11" ry="4" fill="#f2c037" stroke="#24180f"/><ellipse cx="15" cy="12" rx="4" ry="1.2" fill="#fff6c0"/></svg>`;
 
-/** Умения класса: что открыто и что откроется на каком уровне. */
-export function openAbils(G) {
-  const h = G.hero, C = CLASSES[h.cls];
-  const rows = abilsOf(h).map(A => { const open = h.lvl >= A.lvl; return `<div class="abl${open ? '' : ' locked'}"><span class="ic">${ABIL_ICON[A.icon]}</span><div><b>${A.name}</b><span class="kk">${T(A.key, 'кнопка')}</span>${open ? '' : ` <span class="lv">Доступно с ${A.lvl}-го уровня</span>`}<p>${A.d}</p><small>Перезарядка ${A.cd} с</small></div></div>`; }).join('');
-  const m = modal(`<h2>Умения: ${C.name.toLowerCase()}</h2><div class="abl"><span class="ic">${ABIL_ICON.attack[h.cls]}</span><div><b>Обычный удар</b><span class="kk">${T('Пробел', 'кнопка')}</span><p>${h.eq.weapon ? T('Нажмите пробел один раз — герой сам бьёт выбранную цель, пока она жива. Держите — бьёт ближайших.', 'Коснитесь врага или кнопки удара — герой сам бьёт цель, пока она жива.') : 'Оружие снято — герой бьёт кулаками, слабо и только вплотную.'}</p></div></div>${rows}<p class="hint">${T('X — сесть и перевести дух: здоровье восстанавливается быстрее, любое движение или удар поднимает. Q — зелье.', 'Кнопка «Сесть» — перевести дух: здоровье восстанавливается быстрее, любое движение или удар поднимает.')}</p><div class="row"><button class="btn main" data-x="ok">Закрыть</button></div>`, 'abils');
-  m.querySelector('[data-x=ok]').onclick = () => m.close();
+/** Развитие героя (v73): умения (с живым образцом ▶), таланты на 10/15/20 уровне, сброс у наставника. opts.mentor — окно открыто у наставника. */
+export function openAbils(G, opts = {}) {
+  const h = G.hero, C = CLASSES[h.cls], L = lookOf(h);
+  let ask = null, stop = null, pop = null, pinned = null;
+  const AB = abilsOf(h), byId = id => AB.find(a => a.id === id);
+  const img = (A, cls = '') => `<img class="aic ${cls}" src="${iconUrl(A.icon, A.key === 'passive')}" alt="">`;
+  const keyTag = A => A.key === 'passive' ? '<span class="kk p">пассивное</span>' : `<span class="kk">${T(A.key, 'кнопка')}</span>`;
+  const play = id => `<button class="play" data-p="${id}" title="Показать">▶</button>`;
+  const m = modal('', 'dev');
+  const draw = () => {
+    const rows = talentRows(h), free = talentFree(h), got = Object.keys(h.talents || {}).length, open = rows.filter(r => h.lvl >= r.lvl).length;
+    const abil = A => { const on = h.lvl >= A.lvl; return `<div class="dab${on ? '' : ' locked'}"><span class="ic" data-p="${A.id}">${img(A)}${on ? '' : `<i class="lk">${A.lvl}</i>`}</span><div><b>${A.name}</b>${keyTag(A)}${on ? '' : ` <span class="lv">с ${A.lvl}-го уровня</span>`}<p>${A.d}</p>${A.cd ? `<small>Перезарядка ${A.cd} с</small>` : ''}</div>${play(A.id)}</div>`; };
+    const atk = `<div class="dab"><span class="ic">${`<img class="aic" src="${iconUrl('atk_' + h.cls)}" alt="">`}</span><div><b>Обычный удар</b><span class="kk">${T('Пробел', 'кнопка')}</span><p>${h.eq.weapon ? T('Пробел один раз — герой сам бьёт выбранную цель, пока она жива. Держите — бьёт ближайших.', 'Коснитесь врага или кнопки удара — герой сам бьёт цель, пока она жива.') : 'Оружие снято — герой бьёт кулаками, слабо и только вплотную.'}</p></div></div>`;
+    const tal = r => { const rowOn = h.lvl >= r.lvl, pick = (h.talents || {})[r.lvl];
+      return `<div class="trow${rowOn ? '' : ' locked'}"><div class="tl">${r.lvl}<small>ур.</small></div>${r.opts.map(o => { const A = byId(o.ab), on = pick === o.id, off = pick && !on;
+        return `<div class="tal${on ? ' on' : ''}${off ? ' off' : ''}${rowOn && !pick ? ' can' : ''}" data-r="${r.lvl}" data-o="${o.id}"><span class="ic" data-p="${A.id}">${img(A)}</span><div><b>${o.name}</b><p>${o.d}</p></div>${play(A.id)}</div>`; }).join('')}</div>${ask && ask.r === r.lvl ? `<div class="ask">Взять «${r.opts.find(o => o.id === ask.o).name}»? Сменить потом можно только у наставника в Столице за деньги. <button class="btn main" data-a="yes">Взять</button><button class="btn" data-a="no">Отмена</button></div>` : ''}`; };
+    const price = resetPrice(h);
+    const reset = opts.mentor ? `<div class="mentor"><b>Наставник Ратибор:</b> «Передумал? Забудем выученное — за ${moneyHtml(price)}.» ${got ? `<button class="btn" data-x="reset">Сбросить таланты</button>` : '<span class="dim">Сбрасывать пока нечего.</span>'}</div>` : `<p class="hint">Сбросить таланты можно у наставника в Столице (дом у западной стены) — сейчас это стоит ${moneyHtml(price)}.</p>`;
+    m.innerHTML = `<h2>Развитие героя</h2><p class="sub">${h.name} · ${C.name.toLowerCase()} · ${h.lvl} уровень${open ? ` · таланты: ${got} из ${open}` : ''}${free ? ` <span class="free">можно выбрать: ${free}</span>` : ''}</p>
+      <div class="devgrid"><section><h3>Умения</h3>${atk}${AB.map(abil).join('')}</section>
+      <section><h3>Таланты</h3><p class="hint">На 10, 15 и 20 уровне — ряд из трёх, берётся один. ▶ — посмотреть умение, которое талант усиливает.</p>${rows.map(tal).join('')}${reset}</section></div>
+      <div class="row"><button class="btn main" data-x="ok">Закрыть</button></div>`;
+    m.prepend(xbtn);
+    m.querySelector('[data-x=ok]').onclick = () => m.close();
+    const rb = m.querySelector('[data-x=reset]'); if (rb) rb.onclick = () => { const r = resetTalents(h); if (r === 'gold') toast('Не хватает денег', '', 'gold'); else if (r === 'ok') { toast('Таланты сброшены — выберите заново', 'good'); opts.onChange && opts.onChange(); } ask = null; draw(); };
+    m.querySelectorAll('.tal.can').forEach(b => b.onclick = e => { if (e.target.closest('.play') || e.target.closest('.ic')) return; ask = { r: +b.dataset.r, o: b.dataset.o }; draw(); });
+    const yes = m.querySelector('[data-a=yes]'); if (yes) yes.onclick = () => { if (chooseTalent(h, ask.r, ask.o)) { toast('Новый талант!', 'good'); opts.onChange && opts.onChange(); } ask = null; draw(); };
+    const no = m.querySelector('[data-a=no]'); if (no) no.onclick = () => { ask = null; draw(); };
+    // образец умения: наведение мыши — показать; касание — показать/спрятать
+    m.querySelectorAll('[data-p]').forEach(b => { const id = b.dataset.p; if (!hasPreview(id)) { if (b.classList.contains('play')) b.remove(); return; }
+      if (!TOUCH) { b.onmouseenter = () => show(id, b); b.onmouseleave = () => { if (pinned !== b) hide(); }; b.onclick = e => { e.stopPropagation(); if (pinned === b) { pinned = null; hide(); } else { pinned = b; show(id, b); } }; }
+      else b.onclick = e => { e.stopPropagation(); if (pinned === b) { pinned = null; hide(); } else { pinned = b; show(id, b); } }; });
+  };
+  const xbtn = m.querySelector('.xclose');
+  function show(id, anchor) {
+    hide(); const A = byId(id);
+    pop = el('div', 'abpop', `<b>${A.name}</b><canvas width="${SW * 2}" height="${SH * 2}"></canvas><small>${A.key === 'passive' ? 'Пассивное — работает само' : T('Клавиша ' + A.key, 'Кнопка справа')}</small>`);
+    document.body.append(pop); stop = playPreview(pop.querySelector('canvas'), id, L);
+    const r = anchor.getBoundingClientRect(), w = pop.offsetWidth, hh = pop.offsetHeight;
+    let x = r.right + 10, y = r.top + r.height / 2 - hh / 2; if (x + w > innerWidth - 6) x = r.left - w - 10; if (x < 6) x = Math.max(6, (innerWidth - w) / 2);
+    pop.style.left = x + 'px'; pop.style.top = Math.max(6, Math.min(innerHeight - hh - 6, y)) + 'px';
+    if (TOUCH) pop.onclick = () => { pinned = null; hide(); };
+  }
+  function hide() { if (stop) stop(); stop = null; if (pop) pop.remove(); pop = null; }
+  const oc = m.onclose; m.onclose = () => { hide(); oc && oc(); };
+  m.addEventListener('scroll', () => { pinned = null; hide(); }, { passive: true });
+  draw();
   return m;
 }
 
@@ -272,7 +316,7 @@ export function openMenu({ onExit, inGame }) {
   const m = modal(`<h2>Меню</h2>
     <label class="tgl"><input type="checkbox" ${s.on ? 'checked' : ''}> Звук</label>
     ${[['m', 'Музыка'], ['a', 'Шум города'], ['f', 'Звуки']].map(([k, n]) => `<label class="vol">${n}<input type="range" min="0" max="1" step="0.05" value="${s.vol[k]}" data-k="${k}"></label>`).join('')}
-    <div class="keys"><h3>Управление</h3>${TOUCH ? '<p>Ведите пальцем в левой части экрана — идти · коснитесь земли — идти туда · коснитесь врага — бить его · коснитесь тела, жилы, торговца или дороги — герой подойдёт и сделает сам · кнопки справа — удар, умения, зелье, отдых · два пальца — ближе и дальше</p>' : `<p><b>WASD</b> или стрелки — ходить · <b>Пробел</b> — автоатака (держать — бить ближайших) · <b>C</b> и <b>V</b> — умения (второе — с 5-го уровня) · <b>X</b> — сесть отдохнуть · <b>Q</b> — зелье · <b>E</b> — обыскать тело, говорить, торговать · <b>K</b> — карта · <b>Tab</b> — ближайшая цель · <b>I</b> или <b>B</b> — персонаж и сумка · клик по врагу — выбрать цель · клик по телу, жиле, торговцу — подойти и сделать · колесо мыши, + и − — ближе и дальше</p>`}</div>
+    <div class="keys"><h3>Управление</h3>${TOUCH ? '<p>Ведите пальцем в левой части экрана — идти · коснитесь земли — идти туда · коснитесь врага — бить его · коснитесь тела, жилы, торговца или дороги — герой подойдёт и сделает сам · кнопки справа — удар, умения, зелье, отдых · портрет героя — развитие и таланты · два пальца — ближе и дальше</p>' : `<p><b>WASD</b> или стрелки — ходить · <b>Пробел</b> — автоатака (держать — бить ближайших) · <b>C</b>, <b>V</b>, <b>R</b>, <b>F</b> — умения (открываются на 1, 5, 10 и 20 уровне) · щелчок по портрету — развитие героя и таланты · <b>X</b> — сесть отдохнуть · <b>Q</b> — зелье · <b>E</b> — обыскать тело, говорить, торговать · <b>K</b> — карта · <b>Tab</b> — ближайшая цель · <b>I</b> или <b>B</b> — персонаж и сумка · клик по врагу — выбрать цель · клик по телу, жиле, торговцу — подойти и сделать · колесо мыши, + и − — ближе и дальше</p>`}</div>
     ${installHtml()}
     <div class="row">${inGame ? '<button class="btn" data-x="exit">Выйти к выбору героя</button>' : ''}<button class="btn main" data-x="ok">Продолжить</button></div>`);
   m.querySelector('.tgl input').onchange = e => setSound(e.target.checked);

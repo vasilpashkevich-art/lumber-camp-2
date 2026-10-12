@@ -37,7 +37,7 @@ export const PINE = {
       { id: 'tavern', name: 'Таверна', dx: -430, dy: 470, col: 92, art: 'tavern', note: 'Отдых: в столице здоровье восстанавливается быстро' },
       { id: 'miners', name: 'Гильдия рудокопов', dx: 420, dy: 480, col: 92, art: 'miners', guild: true, smelt: true, note: 'Горное дело' },
       { id: 'enchant', name: 'Мастерская чар', dx: -560, dy: -280, col: 76, art: 'enchant', note: 'Зачарование — скоро' },
-      { id: 'bank', name: 'Банк', dx: 640, dy: 190, col: 92, art: 'bank', bank: true, note: 'Банкир Евстафий' }, { id: 'h2', dx: -640, dy: 230, col: 68, art: 'house', v: 0 },
+      { id: 'bank', name: 'Банк', dx: 640, dy: 190, col: 92, art: 'bank', bank: true, note: 'Банкир Евстафий' }, { id: 'h2', name: 'Наставник', dx: -640, dy: 230, col: 68, art: 'house', v: 0, mentor: true, note: 'Наставник Ратибор: сброс талантов' },
       { id: 'h3', dx: 230, dy: 660, col: 68, art: 'house', v: 1 }, { id: 'h4', dx: -230, dy: 660, col: 68, art: 'house', v: 2 },
     ],
     // убранство: деревья, клумбы, фонари (смещения от центра)

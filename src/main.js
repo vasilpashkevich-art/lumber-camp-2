@@ -10,6 +10,7 @@ import { createInput } from './engine/input.js';
 import { soundInit, sfx, music, setSound, soundState } from './engine/audio.js';
 import { showSelect } from './ui/select.js';
 import { createHud } from './ui/hud.js';
+import { talentRows, talentFree } from './systems/talents.js';
 import { openChar, openVendor, openMenu, showDeath, hideTip, openLoot, openAbils, openGuild, openSmelt, openBank } from './ui/windows.js';
 import { openMap, miniZoom, miniZoomLevel, MINI_Z } from './ui/map.js';
 import { doll } from './art/body.js';
@@ -21,7 +22,7 @@ import { dist } from './engine/util.js';
 import { $, toast, zoneTitle, TOUCH, T } from './ui/dom.js';
 import { RAR_COL } from '../data/balance.js';
 
-const VERSION = 72;
+const VERSION = 73;
 /** Приближение камеры на шаг: +1 ближе, −1 дальше. */
 let zoomT = 0;
 function zoomBy(d) {
@@ -63,7 +64,7 @@ function boot() {
   const miniBtns = () => { const z = miniZoomLevel(); for (const b of document.querySelectorAll('#miniZ button')) b.disabled = +b.dataset.z > 0 ? z >= MINI_Z.length - 1 : z <= 0; };
   for (const b of document.querySelectorAll('#miniZ button')) b.onclick = e => { e.stopPropagation(); miniZoom(+b.dataset.z); miniBtns(); };
   miniBtns();
-  $('#btnBag').onclick = () => charWin(); $('#btnMenu').onclick = () => menu(); $('#btnMap').onclick = () => mapWin(); $('#mini').onclick = () => mapWin(); $('#pfRing').onclick = () => { if (G && !document.querySelector('.modal')) openAbils(G); };
+  $('#btnBag').onclick = () => charWin(); $('#btnMenu').onclick = () => menu(); $('#btnMap').onclick = () => mapWin(); $('#mini').onclick = () => mapWin(); $('#pfRing').onclick = () => { if (G && !document.querySelector('.modal')) devWin(); };
   $('#ver').textContent = 'версия ' + VERSION;
   if (location.hash === '#dev') window.__G = { get G() { return G; }, start, toSelect, R: () => R, rollDrop, makeItem, doll, makeTrinket, makeStack, makePick, addStack, refresh: () => { refreshStats(G); hud.update(); }, spriteStats };
   toSelect();
@@ -102,6 +103,8 @@ function goZone(e) {
   zoneTitle(W.Z.name, `уровни ${W.Z.lvl[0]}–${W.Z.lvl[1]}`);
 }
 
+/** Окно развития героя (умения и таланты); у наставника — со сбросом. */
+function devWin(mentor = false) { const m = openAbils(G, { mentor, onChange: () => { persist(); hud.update(); } }); return m; }
 function persist() { if (!G) return; const h = G.hero; h.pos = { x: Math.round(G.P.x), y: Math.round(G.P.y) }; h.hp = Math.round(G.P.hp); saveHero(h); keepShared(); }
 /** Общий сундук всех героев — свой ключ; пишется, когда в нём что-то поменялось. */
 function keepShared() { if (G && G.sharedDirty && G.shared) { saveShared(G.shared); G.sharedDirty = false; } }
@@ -124,9 +127,10 @@ function frame(now) {
     if (e.k === 'sfx') sfx(e.n);
     if (e.k === 'toast') toast(e.s, e.kind || '', e.id);
     if (e.k === 'loot') { toast(`Добыча: <b style="color:${RAR_COL[e.it.rar]}">${e.it.name}</b>`, '', null); sfx('loot'); }
-    if (e.k === 'lvl') { toast(`Новый уровень: ${e.L}! Здоровье восстановлено.`, 'good'); const A = abilsOf(G.hero).find(a => a.lvl === e.L); if (A) toast(`Новое умение: <b>${A.name}</b> — ${T('клавиша ' + A.key, 'новая кнопка справа')}. ${A.d}`, 'good'); }
+    if (e.k === 'lvl') { toast(`Новый уровень: ${e.L}! Здоровье восстановлено.`, 'good'); const A = abilsOf(G.hero).find(a => a.lvl === e.L); if (A) toast(A.key === 'passive' ? `Новое умение: <b>${A.name}</b> — работает само. ${A.d}` : `Новое умение: <b>${A.name}</b> — ${T('клавиша ' + A.key, 'новая кнопка справа')}. ${A.d}`, 'good'); if (talentRows(G.hero).some(r => r.lvl === e.L)) toast(`Открыт ряд талантов! ${T('Щёлкните', 'Коснитесь')} портрет героя и выберите один.`, 'good'); }
     if (e.k === 'vendor' && !document.querySelector('.modal')) openVendor(G, () => hud.update(), e.b);
     if (e.k === 'guild' && !document.querySelector('.modal')) openGuild(G, () => hud.update());
+    if (e.k === 'mentor' && !document.querySelector('.modal')) devWin(true);
     if (e.k === 'bank' && !document.querySelector('.modal')) { const bm = openBank(G, () => hud.update()), oc = bm.onclose; bm.onclose = () => { oc && oc(); persist(); }; }
     if (e.k === 'smelt' && !document.querySelector('.modal')) openSmelt(G, () => hud.update());
     if (e.k === 'skill') toast(e.s, 'good', 'skill');
