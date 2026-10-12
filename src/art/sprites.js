@@ -136,7 +136,7 @@ const GP = NP('good', 8, { cloth: ['#2f5d9a', '#24497a'], acc: '#e7c35a' });
 export const MERCH_LOOK = { key: 'npc-merchant', hair: '#5a3a22', beard: 'full', head: { m: 'ranger', P: { ...palette('rare', 3), leather: '#5a2a4a', gem: '#e7c35a' } }, chest: { m: 'robe_emb', P: { ...palette('rare', 5), cloth: ['#6a2a4a', '#4a1a34'], acc: '#e7c35a' } }, legs: { m: 'leggings', P: palette('common', 2) } };
 export const GUARD_LOOK = { key: 'npc-guard', hair: '#6a4a2a', beard: 'full', chest: { m: 'brig', P: GP }, legs: { m: 'chausses', P: GP }, head: { m: 'kettle', P: GP }, weapon: { m: 'spear', P: GP } };
 // люди-мобы — в том же масштабе, что герой (1,15), вожаки крупнее
-export const MOB_SCALE = { boss_bulk: 1.65, boss_priestess: 1.35, boss_king: 1.8, boss_aspid: 1.1, boss_toad: 1.5, ataman: 1.45, bandit: 1.15, bandit_archer: 1.15, robber: 1.2, firestarter: 1.12, miller: 1.32 };
+export const MOB_SCALE = { kvak_guard: 1.15, kvak_priest: 1.05, temple_frog: 1.2, boss_bulk: 1.65, boss_priestess: 1.35, boss_king: 1.8, boss_aspid: 1.1, boss_toad: 1.5, ataman: 1.45, bandit: 1.15, bandit_archer: 1.15, robber: 1.2, firestarter: 1.12, miller: 1.32 };
 
 /** Моб: звери с кадрами шага, люди — облик героя. */
 export function mobSpr(kind, dir, frame, bite) {

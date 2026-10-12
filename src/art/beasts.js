@@ -289,6 +289,9 @@ function scarecrow(view, p, W, bite, t) {
 export const KVAK = {
   kvakun: { skin: '#5a9a4a', dark: '#2e5a28', belly: '#e0d89a', spot: '#2a4a24', fin: '#c8642a', weapon: 'spear', cloth: '#8a6a3a' },
   kvak_shaman: { skin: '#4a8a8a', dark: '#245050', belly: '#d8e0b0', spot: '#1e4040', fin: '#8a4ac8', weapon: 'staff', cloth: '#5a3a6a', mask: true },
+  // мобы Храма квакунов (v76, эскиз)
+  kvak_guard: { skin: '#3e6e3a', dark: '#1e3a1c', belly: '#cfd08a', spot: '#182e16', fin: '#8a3a2a', weapon: 'club', cloth: '#4a3a2a', shield: '#5a6a4a', armor: '#7a6a4a' },
+  kvak_priest: { skin: '#5a8a7a', dark: '#2a4a40', belly: '#d8dcc0', spot: '#1e3a30', fin: '#c8a040', weapon: 'skull', cloth: '#3a4a6a', beads: '#c8a040', cape: '#2a3a5a', trim: '#c8a040' },
   // боссы Храма квакунов (v76, эскиз): рисуются в MOB_SCALE крупнее
   boss_bulk: { skin: '#4a7a3a', dark: '#243e1c', belly: '#d8cc8a', spot: '#1e3418', fin: '#b0502a', weapon: 'trident', cloth: '#5a4a2a', armor: '#b07a30', shield: '#6a5a3a' },
   boss_priestess: { skin: '#6a8a70', dark: '#34483a', belly: '#d8dcc0', spot: '#2a3a2e', fin: '#8a4ac8', weapon: 'skull', cloth: '#3a2a4a', mask: true, maskCol: '#8a6a4a', beads: '#e8e0cc', cape: '#4a3a5a', trim: '#8a6a4a' },
@@ -329,6 +332,7 @@ function kvakun(K, view, p, W, bite, t) {
   if (!back) for (const x of side ? [3] : [-3.6, 0, 3.6]) F(() => { c.moveTo(x - 0.9, -10.8); c.quadraticCurveTo(x, -12.4, x + 0.9, -10.8); c.lineTo(x, -9.8); c.closePath(); }, '#f0e2d0', 0.35);
   // руки и оружие
   const wpn = (hx, hy, rot) => { c.save(); c.translate(hx, hy); c.rotate(rot); if (K.weapon === 'spear') { limb(0, 8, 0, -20, 1.2, 1.2, '#8a6a42'); F(() => { c.moveTo(-0.9, -20); c.lineTo(0, -25); c.lineTo(0.9, -20); c.closePath(); }, '#e8e0cc', 0.5); for (const s of [-1, 1]) F(() => { c.moveTo(s * 0.4, -20); c.lineTo(s * 2.2, -22.6); c.lineTo(s * 1.2, -20); c.closePath(); }, '#e8e0cc', 0.4); F(() => c.rect(-1, -19.6, 2, 1.4), '#c8642a', 0.3); }
+    else if (K.weapon === 'club') { limb(0, 8, 0, -12, 1.6, 2.4, '#5a4a3a'); F(() => { c.moveTo(-2.6, -12); c.quadraticCurveTo(-3.4, -20, 0, -21); c.quadraticCurveTo(3.4, -20, 2.6, -12); c.closePath(); }, grad(-21, -12, '#8a7a6a', '#4a3e34'), 0.5); c.fillStyle = '#2a2420'; for (const [x, y] of [[-1.4, -18], [1.2, -16], [-0.4, -14]]) { c.beginPath(); c.arc(x, y, 0.5, 0, TAU); c.fill(); } }
     else if (K.weapon === 'trident') { limb(0, 10, 0, -22, 1.5, 1.5, '#5a4a3a'); F(() => c.rect(-3.6, -23.4, 7.2, 1.6), '#c8a040', 0.4); for (const x of [-3, 0, 3]) F(() => { c.moveTo(x - 0.8, -23); c.lineTo(x, -29 - (x ? 0 : 2)); c.lineTo(x + 0.8, -23); c.closePath(); }, '#e8e0cc', 0.4); }
     else if (K.weapon === 'sceptre') { limb(0, 8, 0, -16, 1.6, 1.4, '#c8a040'); F(() => c.ellipse(0, -18.6, 3, 3.2, 0, 0, TAU), '#d8b040', 0.5); F(() => c.arc(0, -18.6, 1.6, 0, TAU), '#3aa06a', 0.3); for (let i = 0; i < 4; i++) F(() => { const a = -2.2 + i * 0.5; c.moveTo(Math.cos(a) * 3, -18.6 + Math.sin(a) * 3); c.lineTo(Math.cos(a + 0.25) * 5.2, -18.6 + Math.sin(a + 0.25) * 5.2); c.lineTo(Math.cos(a + 0.5) * 3, -18.6 + Math.sin(a + 0.5) * 3); c.closePath(); }, '#d8b040', 0.3); }
     else if (K.weapon === 'skull') { limb(0, 10, 0.6, -18, 1.3, 1.1, '#5a4a3a'); F(() => { c.moveTo(-2.6, -19); c.quadraticCurveTo(-3, -24.6, 0.6, -24.8); c.quadraticCurveTo(4.2, -24.6, 3.8, -19); c.lineTo(2.6, -17.4); c.lineTo(-1.4, -17.4); c.closePath(); }, '#e8e0cc', 0.4); c.fillStyle = '#2a2018'; c.beginPath(); c.ellipse(-0.9, -21.4, 0.9, 1, 0, 0, TAU); c.ellipse(2.1, -21.4, 0.9, 1, 0, 0, TAU); c.fill(); for (let i = 0; i < 3; i++) { c.strokeStyle = ['#c84a4a', '#e8c040', '#4a8ac8'][i]; c.lineWidth = 0.5; c.beginPath(); c.moveTo(-2.4, -18.6); c.quadraticCurveTo(-4 - i, -16 - i, -3 - i * 0.6, -12 - i * 2); c.stroke(); } const g = c.createRadialGradient(0.6, -21, 0.3, 0.6, -21, 3 + bite * 5); g.addColorStop(0, 'rgba(160,240,220,.7)'); g.addColorStop(1, 'rgba(160,240,220,0)'); c.fillStyle = g; c.beginPath(); c.arc(0.6, -21, 3 + bite * 5, 0, TAU); c.fill(); }
@@ -441,6 +445,35 @@ function snake(S, view, p, W, bite, t) {
   c.restore();
 }
 
+// ======================================================== храмовая лягушка (зверь подземелья): прыгает, бьёт языком
+const FROG = { skin: '#4a7a3a', dark: '#243e1c', belly: '#d8d890', spot: '#1a3014', eye: '#e8b030' };
+function frog(view, p, W, bite, t) {
+  const S = FROG, side = view === 'side', back = view === 'back', hop = W ? Math.max(0, Math.sin(p * TAU)) * 6 : 0, stretch = W ? Math.max(0, Math.sin(p * TAU)) : 0;
+  shadow(side ? 13 : 11, side ? 4 : 5);
+  c.save(); c.translate(0, -hop);
+  const leg = (x, y, kx, ky, fx, fy, col, far) => { limb(x, y, kx, ky, 3.4, 2.4, col); limb(kx, ky, fx, fy, 2.4, 1.6, col); F(() => { c.moveTo(fx - 1, fy - 0.6); for (let i = 0; i < 3; i++) { c.lineTo(fx + (far ? -1 : 1) * (1.2 + i * 1.6), fy + 0.5); c.lineTo(fx + (far ? -1 : 1) * (2 + i * 1.6), fy - 0.4); } c.lineTo(fx + (far ? -1 : 1) * 6, fy - 0.6); c.closePath(); }, col, 0.4); };
+  if (side) {
+    leg(-6, -7, -11 + stretch * 3, -4, -8 - stretch * 6, -0.4, sh(S.skin, -0.25), true);
+    const body = () => { c.moveTo(-12, -4); c.bezierCurveTo(-14, -14, -4, -19, 4, -18); c.bezierCurveTo(12, -17, 16, -12, 15, -7); c.quadraticCurveTo(14, -2, 6, -1.6); c.lineTo(-8, -1.6); c.quadraticCurveTo(-12, -1.6, -12, -4); c.closePath(); };
+    F(body, grad(-19, -2, sh(S.skin, 0.12), S.dark), 0.7);
+    c.save(); c.beginPath(); body(); c.clip(); F(() => c.ellipse(4, -4, 9, 4, 0, 0, TAU), S.belly, 0); const r = rng(5); c.fillStyle = S.spot; for (let i = 0; i < 9; i++) { c.beginPath(); c.ellipse(-10 + r() * 22, -17 + r() * 9, 0.9 + r(), 0.7 + r() * 0.6, r() * 3, 0, TAU); c.fill(); } c.restore();
+    leg(-4, -5, -9 + stretch * 3, -2.4, -6 - stretch * 6, -0.2, S.skin, false); leg(8, -5, 10, -2.4, 9, -0.2, S.skin, false);
+    const hy = -13; F(() => c.arc(11, hy - 3, 2.8, 0, TAU), S.skin, 0.6); eye(11.4, hy - 3, 1.9, S.eye, true);
+    c.strokeStyle = O; c.lineWidth = 0.5; c.beginPath(); c.moveTo(16, -8); c.quadraticCurveTo(8, -6.5 + bite, 2, -7.5); c.stroke();
+    if (bite > 0.2) { F(() => { c.moveTo(13, -9); c.lineTo(16, -8); c.lineTo(13, -5 - bite * 2); c.lineTo(8, -5.5); c.closePath(); }, '#7a2a30', 0.3); const L = bite * 22; c.strokeStyle = '#d85a6a'; c.lineWidth = 2.2; c.lineCap = 'round'; c.beginPath(); c.moveTo(14, -7.5); c.quadraticCurveTo(20 + L * 0.5, -9 - bite * 2, 16 + L, -6); c.stroke(); F(() => c.ellipse(16 + L, -6, 1.6, 1.2, 0, 0, TAU), '#e88090', 0.3); }
+  } else {
+    for (const sx of [-1, 1]) leg(sx * 7, -5, sx * (11 + stretch * 2), -2.6, sx * 10, -0.2, sh(S.skin, -0.2), sx < 0);
+    const body = () => { c.moveTo(-12, -3); c.bezierCurveTo(-14, -14, -6, -19, 0, -19); c.bezierCurveTo(6, -19, 14, -14, 12, -3); c.quadraticCurveTo(0, -0.4, -12, -3); c.closePath(); };
+    F(body, grad(-19, -1, sh(S.skin, 0.12), S.dark), 0.7);
+    c.save(); c.beginPath(); body(); c.clip(); if (!back) F(() => c.ellipse(0, -6, 8, 5, 0, 0, TAU), S.belly, 0); const r = rng(5); c.fillStyle = S.spot; for (let i = 0; i < 9; i++) { const x = (r() - 0.5) * 22, y = -18 + r() * 12; if (!back && Math.abs(x) < 7 && y > -11) continue; c.beginPath(); c.ellipse(x, y, 0.9 + r(), 0.7 + r() * 0.6, r() * 3, 0, TAU); c.fill(); } c.restore();
+    for (const sx of [-1, 1]) leg(sx * 5, -4, sx * (9 + stretch * 2), -2, sx * 8, -0.2, S.skin, sx < 0);
+    const hy = -16; F(() => { c.moveTo(-9, hy + 2); c.bezierCurveTo(-10, hy - 5, 10, hy - 5, 9, hy + 2); c.quadraticCurveTo(0, hy + 5, -9, hy + 2); c.closePath(); }, grad(hy - 5, hy + 4, sh(S.skin, 0.15), S.skin), 0.6);
+    for (const sx of [-1, 1]) { F(() => c.arc(sx * 5, hy - 2.4, 2.6, 0, TAU), S.skin, 0.6); if (!back) eye(sx * 5, hy - 2.6, 1.8, S.eye, true); }
+    if (!back) { c.strokeStyle = O; c.lineWidth = 0.5; c.beginPath(); c.moveTo(-8, hy + 2); c.quadraticCurveTo(0, hy + 3.6 + bite * 2, 8, hy + 2); c.stroke(); if (bite > 0.2) { F(() => c.ellipse(0, hy + 4, 6, 1.5 + bite * 3, 0, 0, TAU), '#7a2a30', 0.4); c.strokeStyle = '#d85a6a'; c.lineWidth = 2.2; c.beginPath(); c.moveTo(0, hy + 4); c.lineTo(0, hy + 6 + bite * 14); c.stroke(); } }
+  }
+  c.restore();
+}
+
 // ======================================================== Король-жаба (третья фаза Короля квакунов): огромная жаба без короны
 const TOAD = { skin: '#3a6a4a', dark: '#1c3a28', belly: '#dcd49a', spot: '#163020', eye: '#e8b030' };
 function toad(view, p, W, bite, t) {
@@ -484,7 +517,7 @@ export const KINDS = ['fox', 'wolf', 'dog', 'boar', 'bull', 'spider', 'crow', 's
 export function beast(ctx, kind, view, pose = {}) {
   c = ctx; const W = pose.walk >= 0, p = W ? pose.walk : 0, bite = pose.atk >= 0 ? Math.sin(Math.min(1, pose.atk) * Math.PI) : 0, hit = pose.hit || 0, dead = pose.dead || 0, t = pose.t || 0;
   c.save(); c.lineJoin = 'round'; c.lineCap = 'round'; DEAD = dead > 0;
-  if (dead > 0) { const R = QUAD[kind] ? QUAD[kind].len * 0.5 : SPIDER[kind] ? 14 * SPIDER[kind].s : SNAKES[kind] ? 40 : kind === 'boss_toad' ? 30 : 9; gshade(0, 0.6, R, R * 0.3, 0.24); }
+  if (dead > 0) { const R = QUAD[kind] ? QUAD[kind].len * 0.5 : SPIDER[kind] ? 14 * SPIDER[kind].s : SNAKES[kind] ? 40 : kind === 'boss_toad' ? 30 : kind === 'temple_frog' ? 13 : 9; gshade(0, 0.6, R, R * 0.3, 0.24); }
   if (dead > 0) { const k = Math.min(1, dead * 1.6); if (QUAD[kind] || SPIDER[kind]) { c.translate(0, -12); c.rotate(k * Math.PI * (view === 'back' ? -1 : 1)); c.translate(0, 12 - 9 * k); } else if (!SNAKES[kind]) { c.rotate(k * Math.PI / 2 * (view === 'side' ? -1 : 1)); } else { c.translate(0, 0); c.scale(1, 1 - 0.5 * k); } }
   if (hit) c.translate(view === 'side' ? -hit * 3 : 0, view === 'front' ? -hit * 2 : view === 'back' ? hit * 2 : 0);
   if (QUAD[kind]) view === 'side' ? quadSide(QUAD[kind], p, W, bite, t) : quadFB(QUAD[kind], p, W, bite, t, view === 'back');
@@ -495,12 +528,13 @@ export function beast(ctx, kind, view, pose = {}) {
   else if (SHROOM[kind]) shroom(SHROOM[kind], view, p, W, bite, t);
   else if (SNAKES[kind]) snake(SNAKES[kind], view, p, W, bite, t);
   else if (kind === 'boss_toad') toad(view, p, W, bite, t);
+  else if (kind === 'temple_frog') frog(view, p, W, bite, t);
   c.restore();
 }
 export const NAMES = { fox: 'Лиса', wolf: 'Волк', dog: 'Дикий пёс', boar: 'Кабан', bull: 'Бешеный бык', spider: 'Лесной паук', crow: 'Ворона', scarecrow: 'Пугало', kvakun: 'Квакун-копейщик', kvak_shaman: 'Квакун-шаман', gribo: 'Грибоед', sporo: 'Споровик', weaver: 'Тенепряд', broodmother: 'Паучиха-мать', snake: 'Великий Полоз' };
 
 // высота полоски здоровья над землёй и размер готового кадра [w, h, ox, oy] для каждого существа
-export const BAR_H = { boss_bulk: 60, boss_priestess: 42, boss_aspid: 84, boss_king: 56, boss_toad: 96, fox: 26, wolf: 36, dog: 32, boar: 40, bull: 56, spider: 24, crow: 40, scarecrow: 48, kvakun: 38, kvak_shaman: 44, gribo: 36, sporo: 30, weaver: 30, broodmother: 42, snake: 80 };
+export const BAR_H = { kvak_guard: 40, kvak_priest: 40, temple_frog: 26, boss_bulk: 60, boss_priestess: 42, boss_aspid: 84, boss_king: 56, boss_toad: 96, fox: 26, wolf: 36, dog: 32, boar: 40, bull: 56, spider: 24, crow: 40, scarecrow: 48, kvakun: 38, kvak_shaman: 44, gribo: 36, sporo: 30, weaver: 30, broodmother: 42, snake: 80 };
 export const BOX = { boss_toad: [220, 150, 110, 130], boss_aspid: [250, 130, 150, 110], boss_bulk: [150, 130, 75, 110], boss_priestess: [120, 90, 60, 72], boss_king: [150, 120, 75, 100], bull: [170, 110, 85, 92], snake: [250, 130, 150, 110], broodmother: [150, 90, 75, 72], weaver: [120, 70, 60, 56], boar: [130, 80, 65, 66] };
 /** Совместимость: старый вызов «зверь сбоку» (фаза шага, укус). */
 export const BEASTS = Object.fromEntries(KINDS.map(k => [k, (g, a, bite) => beast(g, k, 'side', bite ? { atk: 0.5 } : { walk: a })]));
