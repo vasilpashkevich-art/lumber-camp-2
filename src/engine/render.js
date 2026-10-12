@@ -21,7 +21,7 @@ import { lvlColor, RAR_COL, RAR_IDX, LOOT } from '../../data/balance.js';
 import { rng, dist, inPoly, money, segDist } from './util.js';
 
 export const ZOOM = { def: 1.25, min: 0.8, max: 2, step: 1.12 };
-const CHUNK = 512, CQ = 1.5;   // кусок земли рисуется в 1,5 раза подробнее — не мылится при приближении
+const CHUNK = 512, CQ = 1.5;   // кусок земли рисуется в 1,5 раза подробнее — не мылится при приближении; в запасе 30 кусков (телефон — 16, ≈ 38 МБ)
 
 export function createRenderer(cv) {
   const ctx = cv.getContext('2d');
@@ -256,7 +256,7 @@ function chunk(R, i, j) {
     if (!inPoly(x, y, W.edge) || W.roadD(x, y) < 44 || (W.town && !W.cap && dist(x, y, W.town.x, W.town.y) < W.town.R + 20) || (W.cap && (W.onPave(x, y) || W.blocked(x, y) || Math.abs(dist(x, y, W.cap.x, W.cap.y) - W.cap.R) < 30)) || (W.ponds && W.ponds.length && W.water(x, y, 6)) || (W.river && W.riverD(x, y) < W.river.w / 2 + 16) || W.inField(x, y, 4)) continue;
     LOOK.tuft(x, y, 0.9 + r() * 0.6, W.Z.ground, r());
   }
-  R.chunks.set(key, cv); if (R.chunks.size > 30) R.chunks.delete(R.chunks.keys().next().value);
+  R.chunks.set(key, cv); if (R.chunks.size > (TOUCH ? 16 : 30)) R.chunks.delete(R.chunks.keys().next().value);
   return cv;
 }
 

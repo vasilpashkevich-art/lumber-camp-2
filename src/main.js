@@ -12,13 +12,15 @@ import { createHud } from './ui/hud.js';
 import { openChar, openVendor, openMenu, showDeath, hideTip, openLoot, openAbils, openGuild, openSmelt } from './ui/windows.js';
 import { openMap, miniZoom, miniZoomLevel, MINI_Z } from './ui/map.js';
 import { doll } from './art/body.js';
+import { spriteClear, spriteStats } from './art/sprites.js';
+import { initInstall } from './ui/install.js';
 import { rollDrop, makeItem, makeTrinket, makeStack, makePick } from './systems/items.js';
 import { LOOT } from '../data/balance.js';
 import { dist } from './engine/util.js';
 import { $, toast, zoneTitle, TOUCH, T } from './ui/dom.js';
 import { RAR_COL } from '../data/balance.js';
 
-const VERSION = 69;
+const VERSION = 70;
 /** Приближение камеры на шаг: +1 ближе, −1 дальше. */
 let zoomT = 0;
 function zoomBy(d) {
@@ -26,12 +28,19 @@ function zoomBy(d) {
   e.textContent = ok ? `Приближение ${Math.round(R.uz / ZOOM.def * 100)}%` : d > 0 ? 'Ближе нельзя' : 'Дальше нельзя';
   e.classList.add('on'); clearTimeout(zoomT); zoomT = setTimeout(() => e.classList.remove('on'), 900);
 }
-const WORLDS = {}; const worldOf = id => WORLDS[id] || (WORLDS[id] = buildWorld(ZONES[id] || ZONES.pine));
+// v70: в памяти только текущий край — прошлый выгружается вместе с его готовыми картинками (на телефоне память ограничена)
+const WORLDS = {}; const worldOf = id => {
+  if (WORLDS[id]) return WORLDS[id];
+  for (const k in WORLDS) delete WORLDS[k];
+  spriteClear();
+  return (WORLDS[id] = buildWorld(ZONES[id] || ZONES.pine));
+};
 let W = null, G = null, R = null, In = null, hud = null, raf = 0, last = 0, saveT = 0, musicT = 0, paused = false;
 
 function boot() {
   const cv = $('#game');
   if (TOUCH) document.documentElement.classList.add('touch');
+  initInstall();
   R = createRenderer(cv); In = createInput(cv); hud = createHud(In);
   In.onPinch = k => { if (G && !document.querySelector('.modal')) zoomBy(k > 1 ? 1 : -1); };
   addEventListener('resize', () => R.resize());
@@ -53,7 +62,7 @@ function boot() {
   miniBtns();
   $('#btnBag').onclick = () => charWin(); $('#btnMenu').onclick = () => menu(); $('#btnMap').onclick = () => mapWin(); $('#mini').onclick = () => mapWin(); $('#pfRing').onclick = () => { if (G && !document.querySelector('.modal')) openAbils(G); };
   $('#ver').textContent = 'версия ' + VERSION;
-  if (location.hash === '#dev') window.__G = { get G() { return G; }, start, toSelect, R: () => R, rollDrop, makeItem, doll, makeTrinket, makeStack, makePick, addStack, refresh: () => { refreshStats(G); hud.update(); } };
+  if (location.hash === '#dev') window.__G = { get G() { return G; }, start, toSelect, R: () => R, rollDrop, makeItem, doll, makeTrinket, makeStack, makePick, addStack, refresh: () => { refreshStats(G); hud.update(); }, spriteStats };
   toSelect();
 }
 

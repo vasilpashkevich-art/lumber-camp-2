@@ -27,7 +27,8 @@ export function gearIconUrl(it) {
     else if (it.slot === 'ring') url = renderFit(g => drawRing(g, lk.m, lk.P));
     else if (it.slot === 'neck') url = renderFit(g => drawNeck(g, lk.m, lk.P));
   } catch (e) { console.warn('значок', e); }
-  GI.set(lk.key, url); return url;
+  GI.set(lk.key, url); if (GI.size > 300) GI.delete(GI.keys().next().value);   // v70: значков в запасе не больше 300
+  return url;
 }
 export function itemIcon(it, size = 40) {
   const rc = RAR_COL[it.rar] || '#888', glow = it.rar === 'epic' ? `;box-shadow:0 0 6px ${rc}88` : '';

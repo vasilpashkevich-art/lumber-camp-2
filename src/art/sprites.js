@@ -6,18 +6,31 @@ import { person, doll } from './body.js';
 import { palette } from './gear.js';
 import { mossTree, giantShroom } from './forest.js';
 
+// v70: готовые картинки держатся в пределах бюджета памяти: давно не нужные выбрасываются (нарисуются заново, если понадобятся).
+// Телефон — меньше: у браузера на нём жёсткий предел памяти, при переполнении вкладка перезагружается сама.
 const CACHE = new Map();
+const COARSE = typeof matchMedia !== 'undefined' && matchMedia('(pointer:coarse)').matches;
+export const SPRITE_BUDGET = (COARSE ? 24 : 48) * 1e6;   // точек холста (×4 байта): телефон ≈ 96 МБ, компьютер ≈ 192 МБ
+let used = 0;
+const area = s => s && s.cv ? s.cv.width * s.cv.height : 0;
+/** Сколько занято готовыми картинками: { n, px }. */
+export const spriteStats = () => ({ n: CACHE.size, px: used });
+/** Выбросить всё (например, при переходе в другой край). */
+export function spriteClear() { CACHE.clear(); used = 0; }
 
 /** Нарисовать в отдельный холст размера w×h (мировые единицы) с началом в (ox,oy) и чёткостью q. */
 export function sprite(key, w, h, ox, oy, q, draw) {
-  if (CACHE.has(key)) return CACHE.get(key);
+  const got = CACHE.get(key);
+  if (got !== undefined) { CACHE.delete(key); CACHE.set(key, got); return got; }   // недавно нужная — в конец очереди
   const cv = document.createElement('canvas'); cv.width = Math.ceil(w * q); cv.height = Math.ceil(h * q);
   const g = cv.getContext('2d'); let out = null;
   if (g && g.setTransform) {
     g.setTransform(q, 0, 0, q, 0, 0); g.translate(ox, oy); g.lineJoin = 'round'; g.lineCap = 'round';
     try { draw(g); out = { cv, w, h, ox, oy }; } catch (e) { console.warn('sprite', key, e); }
   }
-  CACHE.set(key, out); return out;
+  CACHE.set(key, out); used += area(out);
+  while (used > SPRITE_BUDGET && CACHE.size > 64) { const [k, v] = CACHE.entries().next().value; CACHE.delete(k); used -= area(v); }   // сам холст не трогаем: если он ещё нужен постройкам края, он у них и останется
+  return out;
 }
 
 /** Где у картинки непрозрачное (в шагах мира от начала): считается один раз. */

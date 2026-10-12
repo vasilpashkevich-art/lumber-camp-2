@@ -1,0 +1,23 @@
+<canvas id=c width=512 height=512></canvas><script>
+const g=c.getContext('2d'),O='#24180f';
+// фон: ночь, круглое свечение
+let gr=g.createRadialGradient(256,330,20,256,300,360);gr.addColorStop(0,'#7a3c14');gr.addColorStop(.35,'#2c1a0e');gr.addColorStop(1,'#0e0b08');g.fillStyle=gr;g.fillRect(0,0,512,512);
+// луна
+g.fillStyle='#f4e8c0';g.beginPath();g.arc(370,120,46,0,7);g.fill();
+// ели силуэтом
+function pine(x,y,h,col){g.fillStyle=col;for(let i=0;i<4;i++){const w=h*(.42-i*.07),t=y-h*(.25+i*.22);g.beginPath();g.moveTo(x,t-h*.22);g.lineTo(x+w,t+h*.12);g.lineTo(x-w,t+h*.12);g.closePath();g.fill();}g.fillRect(x-6,y-h*.12,12,h*.14);}
+pine(110,420,300,'#16201a');pine(410,430,260,'#141d17');pine(60,450,200,'#101812');pine(470,460,190,'#0f1711');
+// земля
+g.fillStyle='#1b140c';g.beginPath();g.ellipse(256,470,300,80,0,0,7);g.fill();
+// костёр: брёвна
+g.lineCap='round';
+for(const [a,b,cc,d] of [[176,410,336,370],[176,370,336,410]]){g.strokeStyle=O;g.lineWidth=30;g.beginPath();g.moveTo(a,b);g.lineTo(cc,d);g.stroke();g.strokeStyle='#8a5a32';g.lineWidth=22;g.stroke();}
+// пламя
+function flame(s,col){g.fillStyle=col;g.beginPath();g.moveTo(256,390);g.bezierCurveTo(256-90*s,380,256-60*s,290-60*s,256-10*s,170+ (1-s)*120);g.bezierCurveTo(256+5*s,250,256+40*s,250,256+30*s,230+(1-s)*80);g.bezierCurveTo(256+90*s,300,256+80*s,385,256,390);g.fill();}
+flame(1,'#e2452a');flame(.72,'#f59a2c');flame(.45,'#ffe27a');
+// топор в бревне
+g.save();g.translate(330,300);g.rotate(.5);g.strokeStyle=O;g.lineWidth=14;g.beginPath();g.moveTo(0,0);g.lineTo(0,-120);g.stroke();g.strokeStyle='#a87444';g.lineWidth=9;g.stroke();
+g.fillStyle='#c9ced4';g.strokeStyle=O;g.lineWidth=5;g.beginPath();g.moveTo(-3,-122);g.lineTo(-30,-130);g.quadraticCurveTo(-58,-108,-50,-78);g.lineTo(-24,-90);g.lineTo(-3,-96);g.closePath();g.fill();g.stroke();g.restore();
+// искры
+g.fillStyle='#ffd34d';for(const [x,y,r] of [[230,150,5],[290,120,4],[265,90,3],[205,190,3]]){g.beginPath();g.arc(x,y,r,0,7);g.fill();}
+</script>

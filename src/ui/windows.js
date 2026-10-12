@@ -13,6 +13,7 @@ import { $, el, modal, TOUCH, T } from './dom.js';
 import { soundState, setSound, setVol } from '../engine/audio.js';
 import { fmt1 } from '../engine/util.js';
 import { statRows } from './stathelp.js';
+import { installHtml, bindInstall } from './install.js';
 
 const PNAME = { crit: 'Крит', haste: 'Скорость удара', regen: 'Восстановление', pen: 'Пробивание брони', dodge: 'Уклонение', vamp: 'Вампиризм', block: 'Блок', cdr: 'Перезарядка' };
 let tipEl = null;
@@ -232,11 +233,13 @@ export function openMenu({ onExit, inGame }) {
     <label class="tgl"><input type="checkbox" ${s.on ? 'checked' : ''}> Звук</label>
     ${[['m', 'Музыка'], ['a', 'Шум города'], ['f', 'Звуки']].map(([k, n]) => `<label class="vol">${n}<input type="range" min="0" max="1" step="0.05" value="${s.vol[k]}" data-k="${k}"></label>`).join('')}
     <div class="keys"><h3>Управление</h3>${TOUCH ? '<p>Ведите пальцем в левой части экрана — идти · коснитесь земли — идти туда · коснитесь врага — бить его · коснитесь тела, жилы, торговца или дороги — герой подойдёт и сделает сам · кнопки справа — удар, умения, зелье, отдых · два пальца — ближе и дальше</p>' : `<p><b>WASD</b> или стрелки — ходить · <b>Пробел</b> — автоатака (держать — бить ближайших) · <b>C</b> и <b>V</b> — умения (второе — с 5-го уровня) · <b>X</b> — сесть отдохнуть · <b>Q</b> — зелье · <b>E</b> — обыскать тело, говорить, торговать · <b>K</b> — карта · <b>Tab</b> — ближайшая цель · <b>I</b> или <b>B</b> — персонаж и сумка · клик по врагу — выбрать цель · клик по телу, жиле, торговцу — подойти и сделать · колесо мыши, + и − — ближе и дальше</p>`}</div>
+    ${installHtml()}
     <div class="row">${inGame ? '<button class="btn" data-x="exit">Выйти к выбору героя</button>' : ''}<button class="btn main" data-x="ok">Продолжить</button></div>`);
   m.querySelector('.tgl input').onchange = e => setSound(e.target.checked);
   m.querySelectorAll('.vol input').forEach(r => r.oninput = () => setVol(r.dataset.k, +r.value));
   m.querySelector('[data-x=ok]').onclick = () => m.close();
   const ex = m.querySelector('[data-x=exit]'); if (ex) ex.onclick = () => { m.close(); onExit(); };
+  bindInstall(m);
   return m;
 }
 
