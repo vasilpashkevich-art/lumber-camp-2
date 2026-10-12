@@ -2,3 +2,4 @@ node_modules/
 tests/browser/out/
 tools/bots/out/
 tools/proto/v71/out/
+tools/proto/v73/out/
