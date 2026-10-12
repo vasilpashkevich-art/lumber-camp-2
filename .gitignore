@@ -1,3 +1,4 @@
 node_modules/
-tools/bots/out/
 tests/browser/out/
+tools/bots/out/
+tools/proto/v71/out/

@@ -1,0 +1,62 @@
+<title>Рельеф и великаны</title>
+<style>
+:root{color-scheme:dark;--bg:#12160f;--pan:#1e2418;--line:#4a5a3a;--txt:#e6e8d4;--dim:#a8b090;--hi:#f0e0a0;--acc:#e7c35a}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--txt);font:15px Georgia,'Times New Roman',serif;margin:0;padding:18px 16px 60px}
+#main{max-width:1180px;margin:0 auto}
+h1{margin:0 0 4px;color:var(--hi);font-size:28px;text-wrap:balance} h2{color:var(--hi);font-size:21px;margin:28px 0 6px}
+p,li{color:var(--dim);line-height:1.5} p{max-width:880px;margin:4px 0 10px}
+canvas{display:block;border-radius:8px;max-width:100%;touch-action:none}
+.bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:10px 0}
+button{font:inherit;color:var(--txt);background:var(--pan);border:1px solid var(--line);border-radius:8px;padding:6px 12px;cursor:pointer} button:hover{border-color:var(--acc);color:var(--hi)}
+input[type=range]{width:180px} label{color:var(--dim)}
+#zv{min-width:48px;color:var(--hi);font-variant-numeric:tabular-nums}
+.wrap{position:relative} #msg{position:absolute;left:50%;top:14px;transform:translateX(-50%);background:rgba(14,10,6,.86);border:1px solid #6a4a2a;border-radius:8px;padding:6px 14px;color:#ffd0a0;opacity:0;transition:opacity .25s;pointer-events:none} #msg.on{opacity:1}
+#hud{position:absolute;left:10px;bottom:10px;background:rgba(14,10,6,.75);border-radius:6px;padding:4px 10px;font-size:13px;color:var(--hi)}
+table{border-collapse:collapse;font-size:14px;margin-top:6px;width:100%} td,th{border-bottom:1px solid var(--line);padding:6px 12px 6px 0;text-align:left;vertical-align:top} th{color:var(--hi);font-weight:normal} td:first-child{color:var(--txt);white-space:nowrap}
+.scroll{overflow-x:auto}
+.go{font-size:13px;padding:4px 9px}
+</style>
+<div id="main">
+<h1>Рельеф ярусами и древние великаны — эскиз</h1>
+<p>Поляна-образец, где собраны все формы рельефа, обычные деревья и четыре великана. Это не картинка, а живая проба: ходите героем (WASD, стрелки или щелчок по земле), поднимайтесь по склонам и лестницам, упирайтесь в обрывы, приближайте колесом мыши — и смотрите, как кроны расходятся над головой.</p>
+<div class="bar">
+  <button data-z="0.5">Вдали</button><button data-z="1">Как в игре</button><button data-z="1.6">Вблизи</button>
+  <input id="zoom" type="range" min="0.5" max="2.6" step="0.01"><span id="zv"></span>
+  <label><input id="lab" type="checkbox" checked> подписи</label>
+</div>
+<div class="bar">Перенести героя: 
+  <button class="go" data-go="560,780">к склону</button><button class="go" data-go="700,470">под дуб на возвышенности</button><button class="go" data-go="950,300">в ущелье</button><button class="go" data-go="1600,700">к уступу утёса</button><button class="go" data-go="985,1010">к спуску в низину</button><button class="go" data-go="1400,800">к оврагу</button><button class="go" data-go="600,1180">под вековую сосну</button>
+</div>
+<div class="wrap"><canvas id="view"></canvas><div id="msg"></div><div id="hud"></div></div>
+
+<h2>Вся поляна сверху</h2>
+<p>Так край будет выглядеть, если отдалить камеру до конца: ярусы видны по обрывам и цвету земли, великаны — по кронам. Щелчок по этой карте переносит героя.</p>
+<canvas id="over"></canvas>
+
+<h2>Что здесь показано</h2>
+<div class="scroll"><table>
+<tr><th>Форма</th><th>Как выглядит</th><th>Что даёт</th></tr>
+<tr><td>Возвышенность</td><td>Поднятая на рост героя площадка, у края — каменный обрыв с тенью у подножия</td><td>Попасть — только по склону или лестнице</td></tr>
+<tr><td>Вершина-курган</td><td>Второй ярус на возвышенности, земля суше, камни проступают</td><td>Место для логова вожака или жилы</td></tr>
+<tr><td>Утёс в 2 яруса</td><td>Высокая стена в два роста</td><td>Наверх — только серпантином</td></tr>
+<tr><td>Склон</td><td>Утоптанная полоса земли, поднимается к кромке</td><td>Вверх медленнее (−22%), вниз быстрее (+15%)</td></tr>
+<tr><td>Лестница</td><td>Каменные ступени</td><td>Узкий проход: удобно отбиваться</td></tr>
+<tr><td>Уступ (серпантин)</td><td>Узкая полка вдоль стены утёса: склон на полку, по ней — к лестнице наверх</td><td>Долгий путь наверх, мобы ждут на поворотах</td></tr>
+<tr><td>Ущелье</td><td>Узкий проход между двумя возвышенностями</td><td>Единственная дорога между частями края</td></tr>
+<tr><td>Низина</td><td>Опущена на ярус, земля темнее и сырее, пруд, туман</td><td>Видно хуже, вход — по спуску</td></tr>
+<tr><td>Овраг</td><td>Длинная узкая низина с ручьём по дну</td><td>Путь в обход, засады</td></tr>
+<tr><td>Пригорок</td><td>Мягкий бугор светом и тенью, без обрыва</td><td>Только красота — ходить везде</td></tr>
+<tr><td>Древний дуб, вековая сосна</td><td>8–11 ростов героя; низ ствола с корнями стоит в мире, крона — отдельным слоем сверху</td><td>Ориентир. Вблизи крона над героем раскрывается окном, сквозь листву — пятна солнца на земле</td></tr>
+</table></div>
+
+<h2>Что проверить глазами</h2>
+<ul>
+<li>Читается ли, где верх и где низ — по обрывам, тени и цвету земли.</li>
+<li>Как герой и мобы выглядят на возвышенности и в низине; как прячутся за краем яруса, если стоят позади.</li>
+<li>Кнопка «Вдали» — видно ли лес сверху; «Вблизи» под дубом — ощущение, что ты под кроной.</li>
+<li>Не слишком ли тесно: обрывы и стволы великанов перегораживают путь.</li>
+</ul>
+<p>Великаны рисуются отдельно от мира: низ ствола вместе с героем, верх ствола и крона — поверх всего, со сдвигом от середины экрана. Поэтому, когда ходишь, кроны чуть «плывут» — так глаз видит высоту. Числа (высота яруса, скорость на склоне, размер великанов) — для обсуждения, их легко поменять.</p>
+</div>
+<!--SCRIPT-->
