@@ -4,8 +4,8 @@
 // Координаты — мира (земля под эффектом); рост героя ≈ 48 на экране. Свет слева сверху, огонь и лёд светятся («lighter»).
 const TAU = Math.PI * 2;
 export const rng = s => { s = (s | 0) || 1; return () => { s = (s * 16807) % 2147483647; return s / 2147483647; }; };
-const clamp = (v, a = 0, b = 1) => v < a ? a : v > b ? b : v;
-const easeOut = t => 1 - (1 - clamp(t)) ** 3;
+export const clamp = (v, a = 0, b = 1) => v < a ? a : v > b ? b : v;
+export const easeOut = t => 1 - (1 - clamp(t)) ** 3;
 const fadeIO = (a, d, i = 0.08, o = 0.3) => clamp(a / i) * clamp((d - a) / o);
 
 // ---------------------------------------------------------------- готовые пятна (один раз)
@@ -18,9 +18,9 @@ function blob(rgb, soft = 0.5) {
   gr.addColorStop(0, `rgba(${rgb},1)`); gr.addColorStop(soft, `rgba(${rgb},.45)`); gr.addColorStop(1, `rgba(${rgb},0)`); q.fillStyle = gr; q.fillRect(0, 0, 64, 64);
   return (BLOB[k] = c);
 }
-function glow(g, x, y, r, rgb, a = 1, soft = 0.5) { const b = blob(rgb, soft); if (!b || a <= 0.01 || r <= 0.5) return; g.globalAlpha = a; g.drawImage(b, x - r, y - r, r * 2, r * 2); g.globalAlpha = 1; }
-function glowE(g, x, y, rx, ry, rgb, a = 1) { const b = blob(rgb, 0.4); if (!b || a <= 0.01) return; g.globalAlpha = a; g.drawImage(b, x - rx, y - ry, rx * 2, ry * 2); g.globalAlpha = 1; }
-const add = (g, fn) => { const o = g.globalCompositeOperation; g.globalCompositeOperation = 'lighter'; fn(); g.globalCompositeOperation = o; };
+export function glow(g, x, y, r, rgb, a = 1, soft = 0.5) { const b = blob(rgb, soft); if (!b || a <= 0.01 || r <= 0.5) return; g.globalAlpha = a; g.drawImage(b, x - r, y - r, r * 2, r * 2); g.globalAlpha = 1; }
+export function glowE(g, x, y, rx, ry, rgb, a = 1) { const b = blob(rgb, 0.4); if (!b || a <= 0.01) return; g.globalAlpha = a; g.drawImage(b, x - rx, y - ry, rx * 2, ry * 2); g.globalAlpha = 1; }
+export const add = (g, fn) => { const o = g.globalCompositeOperation; g.globalCompositeOperation = 'lighter'; fn(); g.globalCompositeOperation = o; };
 
 // ---------------------------------------------------------------- общие части
 /** Пыль: клубы у земли, расходятся и тают. */
@@ -44,7 +44,7 @@ export function sparks(g, x, y, a, seed, n = 12, sp = 160, rgb = '255,220,140', 
   });
 }
 /** Ударная волна: эллипс по земле. */
-function ring(g, x, y, r, w, rgb, a) { if (a <= 0.01) return; g.strokeStyle = `rgba(${rgb},${a.toFixed(3)})`; g.lineWidth = w; g.beginPath(); g.ellipse(x, y, r, r * 0.45, 0, 0, TAU); g.stroke(); }
+export function ring(g, x, y, r, w, rgb, a) { if (a <= 0.01) return; g.strokeStyle = `rgba(${rgb},${a.toFixed(3)})`; g.lineWidth = w; g.beginPath(); g.ellipse(x, y, r, r * 0.45, 0, 0, TAU); g.stroke(); }
 /** Язык пламени: от (x,y) вверх на h, ширина w, колышется по фазе. */
 export function flame(g, x, y, h, w, ph, a = 1, hot = 0) {
   const s1 = Math.sin(ph * 1.7) * w * 0.35, s2 = Math.sin(ph * 2.9 + 1) * w * 0.5, o = g.globalCompositeOperation; g.globalCompositeOperation = 'source-over';
@@ -60,7 +60,7 @@ export function embers(g, x, y, t, seed, n = 8, w = 30, h = 70, rgb = '255,170,7
   add(g, () => { for (let i = 0; i < n; i++) { const off = r(), sp = 0.7 + r() * 0.6, q = (t * sp / 1.4 + off) % 1, dx = (r() - 0.5) * w + Math.sin(t * 3 + i) * 6 * q, px = x + dx, py = y - q * h; glow(g, px, py, 3 + (1 - q) * 2, rgb, (1 - q) * 0.9, 0.3); } });
 }
 /** Дым: тёмные клубы поднимаются. */
-function smoke(g, x, y, a, seed, n = 5, rgb = '70,64,60', rise = 60, life = 1.2) {
+export function smoke(g, x, y, a, seed, n = 5, rgb = '70,64,60', rise = 60, life = 1.2) {
   const r = rng(seed);
   for (let i = 0; i < n; i++) { const d = r() * 0.25, q = clamp((a - d) / life); if (q <= 0 || q >= 1) { r(); r(); continue; } const px = x + (r() - 0.5) * 30 + q * 14, py = y - q * rise, R = 10 + q * 26; glow(g, px, py, R, rgb, 0.35 * Math.sin(q * Math.PI), 0.3); }
 }
@@ -75,7 +75,7 @@ export function blood(g, x, y, a, seed, n = 12, dir = 0, spread = 1.4, power = 1
   }
 }
 /** Обломки: камешки взлетают и падают, у земли — тень. */
-function debris(g, x, y, a, seed, n = 8, col = ['#8a8070', '#6a5a48', '#a89a84']) {
+export function debris(g, x, y, a, seed, n = 8, col = ['#8a8070', '#6a5a48', '#a89a84']) {
   const r = rng(seed);
   for (let i = 0; i < n; i++) {
     const an = r() * TAU, v = 50 + r() * 90, vz = 90 + r() * 120, tl = vz / 380 * 2, t = Math.min(a, tl), s = 2 + r() * 3, c = col[i % col.length], rot = r() * 6 + a * 10;
@@ -86,7 +86,7 @@ function debris(g, x, y, a, seed, n = 8, col = ['#8a8070', '#6a5a48', '#a89a84']
   }
 }
 /** Трещины в земле: ломаные лучи из точки. */
-function cracks(g, x, y, a, seed, n = 6, len = 70, life = 1.4) {
+export function cracks(g, x, y, a, seed, n = 6, len = 70, life = 1.4) {
   const r = rng(seed), grow = easeOut(a / 0.12), f = clamp((life - a) / 0.5);
   if (f <= 0) return;
   for (let i = 0; i < n; i++) {

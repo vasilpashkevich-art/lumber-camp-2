@@ -1,9 +1,9 @@
 // Готовые картинки: сложное рисуется один раз и потом только копируется (как в ветке I, v50).
 import { LOOK } from './look.js';
 import { BLD } from './bld.js';
-import { BEASTS, beast, BOX } from './beasts.js';
+import { BEASTS, beast, BOX, setBeastInk, captureShadows } from './beasts.js';
 import { person, doll } from './body.js';
-import { palette } from './gear.js';
+import { palette, setInk, INK, INK_HARD } from './gear.js';
 import { mossTree, giantShroom } from './forest.js';
 
 // v70: готовые картинки держатся в пределах бюджета памяти: давно не нужные выбрасываются (нарисуются заново, если понадобятся).
@@ -71,14 +71,39 @@ export function heroSpr(L, dir) {
 export const FRAMES = { idle: 1, walk: 8, atk: 6, dead: 4 };
 const poseOf = (mode, f) => mode === 'walk' ? { walk: f / 8 } : mode === 'atk' ? { atk: (f + 0.5) / 6 } : mode === 'dead' ? { dead: (f + 1) / 4 } : { walk: -1 };
 const lookKey = L => L.key || JSON.stringify([L.cls, L.head && L.head.m, L.chest && L.chest.m, L.legs && L.legs.m, L.weapon && L.weapon.m]);
+// v75: мягкий облик людей и зверей — внутренние линии полупрозрачные (тёмный тон своего цвета), снаружи —
+// тонкий контур тоном самой картинки (её затемнённая копия со сдвигом), лёгкий свет сверху слева и тень снизу справа.
+export const STYLE = { soft: true };
+function soft(g, draw) {
+  const shades = []; setInk(INK); setBeastInk(INK); captureShadows(shades);
+  try { draw(g); } finally { setInk(INK_HARD); setBeastInk(INK_HARD); captureShadows(null); }
+  const cv = g.canvas, W = cv.width, H = cv.height, q = g.getTransform ? g.getTransform().a : 2;
+  // объём: свет слева сверху, тень справа снизу — только по нарисованному
+  g.save(); g.setTransform(1, 0, 0, 1, 0, 0); g.globalCompositeOperation = 'source-atop';
+  const lg = g.createLinearGradient(W * 0.3, H * 0.25, W * 0.7, H * 0.85); lg.addColorStop(0, 'rgba(255,236,200,.10)'); lg.addColorStop(0.5, 'rgba(0,0,0,0)'); lg.addColorStop(1, 'rgba(10,6,20,.16)');
+  g.fillStyle = lg; g.fillRect(0, 0, W, H); g.restore();
+  // контур: затемнённая копия под картинкой, сдвинутая на полшага во все стороны
+  const src = document.createElement('canvas'); src.width = W; src.height = H; const s2 = src.getContext('2d'); s2.drawImage(cv, 0, 0);
+  const dk = document.createElement('canvas'); dk.width = W; dk.height = H; const d2 = dk.getContext('2d'); d2.drawImage(cv, 0, 0);
+  d2.globalCompositeOperation = 'source-atop'; d2.fillStyle = 'rgba(16,8,2,.62)'; d2.fillRect(0, 0, W, H);
+  g.save(); g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, W, H);
+  const d = Math.max(1, q * 0.42);
+  for (let i = 0; i < 8; i++) { const a = i * Math.PI / 4; g.drawImage(dk, Math.cos(a) * d, Math.sin(a) * d); }
+  g.drawImage(src, 0, 0);
+  g.globalCompositeOperation = 'destination-over';   // тень — под всем
+  for (const h of shades) { g.setTransform(h.m); g.fillStyle = `rgba(0,0,0,${h.a})`; g.beginPath(); g.ellipse(h.x, h.y, h.rx, h.ry, 0, 0, 7); g.fill(); }
+  g.restore();
+}
+const styled = draw => STYLE.soft ? g => soft(g, draw) : draw;
+const SK = () => STYLE.soft ? '' : '|o';
 /** Кадр человека (герой, разбойники). Начало — как у heroSpr: ступни на +12,6. */
 export function personSpr(L, view, mode, f) {
-  return sprite('p|' + lookKey(L) + '|' + view + '|' + mode + '|' + f, 100, 104, 50, 72, 2.2, g => person(g, L, view, poseOf(mode, f)));
+  return sprite('p|' + lookKey(L) + '|' + view + '|' + mode + '|' + f + SK(), 100, 104, 50, 72, 2.2, styled(g => person(g, L, view, poseOf(mode, f))));
 }
 /** Кадр зверя. Начало — земля под ним. */
 export function beastSpr(kind, view, mode, f) {
   const B = BOX[kind] || [130, 84, 65, 68];
-  return sprite('bz|' + kind + '|' + view + '|' + mode + '|' + f, B[0], B[1], B[2], B[3], 2, g => beast(g, kind, view, { ...poseOf(mode, f), t: 1 }));
+  return sprite('bz|' + kind + '|' + view + '|' + mode + '|' + f + SK(), B[0], B[1], B[2], B[3], 2, styled(g => beast(g, kind, view, { ...poseOf(mode, f), t: 1 })));
 }
 /** Нарисовать кадр; dir = −1 — зеркально (вид сбоку влево). */
 export function drawFrame(c, s, x, y, dir = 1, sc = 1, a = 1) {

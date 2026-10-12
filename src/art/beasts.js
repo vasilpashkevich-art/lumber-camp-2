@@ -1,7 +1,8 @@
 // v65: звери и существа в новом подробном стиле — тот же, что у героев v64 (обводка, свет слева сверху, мех и чешуя).
 // beast(c, kind, view, pose): ступни/лапы на земле в (0,0); view — side (вправо) / front / back; pose = { walk, atk, hit, dead, t }.
 // Масштаб — единицы мира: рост героя ≈ 41. Собака/волк 0,4–0,6 в холке, кабан/бык 0,6–0,9, ворон 0,2–0,3, квакун 0,7–0,8.
-export const O = '#24180f';
+export let O = '#24180f';
+export function setBeastInk(v) { O = v; }
 const TAU = Math.PI * 2;
 export const sh = (hex, k) => { const n = parseInt(hex.slice(1), 16), f = v => Math.max(0, Math.min(255, Math.round(k > 0 ? v + (255 - v) * k : v * (1 + k)))); return '#' + [(n >> 16) & 255, (n >> 8) & 255, n & 255].map(v => f(v).toString(16).padStart(2, '0')).join(''); };
 const rng = s => () => { s = (s * 16807) % 2147483647; return s / 2147483647; };
@@ -16,7 +17,10 @@ function limb(x1, y1, x2, y2, w1, w2, col) { // сужающийся отрез�
 }
 function eye(x, y, r, iris, slit = false) { F(() => c.ellipse(x, y, r, r * 0.8, 0, 0, TAU), iris, 0.4); c.fillStyle = '#140c06'; c.beginPath(); slit ? c.ellipse(x + r * 0.1, y, r * 0.18, r * 0.7, 0, 0, TAU) : c.arc(x + r * 0.15, y, r * 0.48, 0, TAU); c.fill(); c.fillStyle = 'rgba(255,255,255,.85)'; c.beginPath(); c.arc(x - r * 0.25, y - r * 0.3, r * 0.25, 0, TAU); c.fill(); }
 let DEAD = false;
-function shadow(rx, ry = rx * 0.3) { if (DEAD) return; c.fillStyle = 'rgba(0,0,0,.26)'; c.beginPath(); c.ellipse(0, 0.6, rx, ry, 0, 0, TAU); c.fill(); }
+// v75: тени на земле можно собрать отдельно (мягкий облик рисует их после контура, чтобы тень не темнела)
+let SH = null; export function captureShadows(a) { SH = a; }
+function gshade(x, y, rx, ry, a) { if (SH) { SH.push({ m: c.getTransform(), x, y, rx, ry, a }); return; } c.fillStyle = `rgba(0,0,0,${a})`; c.beginPath(); c.ellipse(x, y, rx, ry, 0, 0, TAU); c.fill(); }
+function shadow(rx, ry = rx * 0.3) { if (DEAD) return; gshade(0, 0.6, rx, ry, 0.26); }
 function furIn(path, col, n, len, ang, seed, w = 0.35) { c.save(); c.beginPath(); path(); c.clip(); const r = rng(seed); c.strokeStyle = col; c.lineWidth = w; c.beginPath(); for (let i = 0; i < n; i++) { const x = (r() - 0.5) * 80, y = -r() * 50, a = ang + (r() - 0.5) * 0.5; c.moveTo(x, y); c.lineTo(x + Math.cos(a) * len, y + Math.sin(a) * len); } c.stroke(); c.restore(); }
 function shadeR(path, k = 0.22, x0 = 0) { c.save(); c.beginPath(); path(); c.clip(); c.fillStyle = `rgba(20,10,4,${k})`; c.fillRect(x0, -80, 80, 100); c.restore(); }
 
@@ -36,10 +40,10 @@ function quadSide(S, p, W, bite, t) {
   // ноги: перед и зад, дальние темнее; диагональная походка
   const legF = (x, ph, col, far) => { const a1 = W ? Math.sin(ph * TAU) * 0.42 : 0, bend = W ? Math.max(0, Math.cos(ph * TAU)) * 0.9 : 0, u = (H - B * 0.4);
     const y0 = top + B * 0.62, ex = x + Math.sin(a1) * u * 0.48, ey = y0 + Math.cos(a1) * u * 0.48, a2 = a1 - bend * 0.8, wx = ex + Math.sin(a2) * u * 0.42, wy = ey + Math.cos(a2) * u * 0.42, a3 = a2 + bend * 0.9, px = wx + Math.sin(a3) * u * 0.12, py = Math.min(-0.2, wy + Math.cos(a3) * u * 0.12);
-    limb(x, y0, ex, ey, S.legW * 1.5, S.legW * 1.05, col); limb(ex, ey, wx, wy, S.legW * 1.05, S.legW * 0.85, col); paw(wx, wy, px, py, col, far); };
+    limb(x, y0, ex, ey, S.legW * 2.1, S.legW * 1.1, col); limb(ex, ey, wx, wy, S.legW * 1.05, S.legW * 0.8, col); paw(wx, wy, px, py, col, far); };
   const legB = (x, ph, col, far) => { const a1 = W ? Math.sin(ph * TAU) * 0.4 : 0, bend = W ? Math.max(0, Math.cos(ph * TAU)) * 0.7 : 0, u = H - B * 0.3;
     const y0 = top + B * 0.5, kx = x + Math.sin(a1 + 0.35) * u * 0.42, ky = y0 + Math.cos(a1 + 0.35) * u * 0.42, a2 = a1 - 0.6 - bend * 0.4, hx = kx + Math.sin(a2) * u * 0.36, hy = ky + Math.cos(a2) * u * 0.36, a3 = a1 + 0.1 - bend * 0.3, px = hx + Math.sin(a3) * u * 0.26, py = Math.min(-0.2, hy + Math.cos(a3) * u * 0.26);
-    limb(x, y0, kx, ky, S.legW * 2.1, S.legW * 1.2, col); limb(kx, ky, hx, hy, S.legW * 1.15, S.legW * 0.8, col); paw(hx, hy, px, py, col, far); };
+    limb(x, y0, kx, ky, S.legW * 2.9, S.legW * 1.25, col); limb(kx, ky, hx, hy, S.legW * 1.1, S.legW * 0.75, col); paw(hx, hy, px, py, col, far); };
   const paw = (x1, y1, x2, y2, col, far) => { limb(x1, y1, x2, y2, S.legW * 0.8, S.legW * 0.75, S.socks && !far ? S.socks : col);
     if (S.hoof) F(() => { c.moveTo(x2 - S.legW * 0.55, y2 - S.legW * 0.5); c.lineTo(x2 + S.legW * 0.6, y2 - S.legW * 0.5); c.lineTo(x2 + S.legW * 0.75, y2 + 0.3); c.lineTo(x2 - S.legW * 0.6, y2 + 0.3); c.closePath(); }, '#1e140c', 0.5);
     else F(() => c.ellipse(x2 + S.legW * 0.35, y2 - 0.1, S.legW * 0.75, S.legW * 0.45, 0, 0, TAU), S.socks && !far ? S.socks : sh(col, -0.15), 0.5); };
@@ -232,7 +236,7 @@ function spiderFB(S, p, W, bite, t, back) {
 // ======================================================== ворон (летает)
 function crow(view, p, W, bite, t) {
   const fl = Math.sin(t * 9 + p * TAU), body = '#1e1e28', dark = '#0e0e16', sheen = '#4a5a9a';
-  c.fillStyle = 'rgba(0,0,0,.22)'; c.beginPath(); c.ellipse(0, 0.5, 6, 1.8, 0, 0, TAU); c.fill(); // тень на земле (сам — выше)
+  gshade(0, 0.5, 6, 1.8, 0.22); // тень на земле (сам — выше)
   c.save(); c.translate(0, -16 + Math.sin(t * 2) * 1.2);
   if (view === 'side') {
     const wing = (far) => F(() => { c.moveTo(-1, -2); c.quadraticCurveTo(-6, -10 * fl - 2, -12, -9 * fl - 3); c.lineTo(-9, -6 * fl); c.lineTo(-11, -5 * fl + 1); c.quadraticCurveTo(-6, -1, -1, 1.4); c.closePath(); }, far ? dark : body, 0.6);
@@ -410,7 +414,7 @@ export const KINDS = ['fox', 'wolf', 'dog', 'boar', 'bull', 'spider', 'crow', 's
 export function beast(ctx, kind, view, pose = {}) {
   c = ctx; const W = pose.walk >= 0, p = W ? pose.walk : 0, bite = pose.atk >= 0 ? Math.sin(Math.min(1, pose.atk) * Math.PI) : 0, hit = pose.hit || 0, dead = pose.dead || 0, t = pose.t || 0;
   c.save(); c.lineJoin = 'round'; c.lineCap = 'round'; DEAD = dead > 0;
-  if (dead > 0) { const R = QUAD[kind] ? QUAD[kind].len * 0.5 : SPIDER[kind] ? 14 * SPIDER[kind].s : kind === 'snake' ? 40 : 9; c.fillStyle = 'rgba(0,0,0,.24)'; c.beginPath(); c.ellipse(0, 0.6, R, R * 0.3, 0, 0, TAU); c.fill(); }
+  if (dead > 0) { const R = QUAD[kind] ? QUAD[kind].len * 0.5 : SPIDER[kind] ? 14 * SPIDER[kind].s : kind === 'snake' ? 40 : 9; gshade(0, 0.6, R, R * 0.3, 0.24); }
   if (dead > 0) { const k = Math.min(1, dead * 1.6); if (QUAD[kind] || SPIDER[kind]) { c.translate(0, -12); c.rotate(k * Math.PI * (view === 'back' ? -1 : 1)); c.translate(0, 12 - 9 * k); } else if (kind !== 'snake') { c.rotate(k * Math.PI / 2 * (view === 'side' ? -1 : 1)); } else { c.translate(0, 0); c.scale(1, 1 - 0.5 * k); } }
   if (hit) c.translate(view === 'side' ? -hit * 3 : 0, view === 'front' ? -hit * 2 : view === 'back' ? hit * 2 : 0);
   if (QUAD[kind]) view === 'side' ? quadSide(QUAD[kind], p, W, bite, t) : quadFB(QUAD[kind], p, W, bite, t, view === 'back');

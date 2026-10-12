@@ -1,7 +1,10 @@
 // v64: снаряжение моделями (как в WoW) — оружие, шлемы, нагрудники, штаны, кольца, шеи.
 // Один рисунок на всё: в руке, на теле, значок в сумке. Расцветка — от цвета вещи и её случайного «зерна».
 // Единицы — как у тела героя: рост ≈ 36, хват оружия в точке (0,0), оружие смотрит вверх (−y).
-export const O = '#24180f';
+export let O = '#24180f';
+/** v75: мягкая обводка — полупрозрачная тёмная линия даёт тёмный тон своего цвета, а не чёрный контур. */
+export const INK = 'rgba(34,18,6,.16)', INK_HARD = '#24180f';
+export function setInk(v) { O = v; }
 export const rng = s => { let a = (s * 2654435761) >>> 0 || 1; return () => { a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; };
 export const sh = (hex, k) => { const n = parseInt(hex.slice(1), 16), f = v => Math.max(0, Math.min(255, Math.round(k > 0 ? v + (255 - v) * k : v * (1 + k)))); return '#' + [(n >> 16) & 255, (n >> 8) & 255, n & 255].map(v => f(v).toString(16).padStart(2, '0')).join(''); };
 const pick = (r, a) => a[Math.floor(r() * a.length)];

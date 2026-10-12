@@ -6,3 +6,6 @@ tools/proto/v73/out/
 tools/proto/v74/out/
 tools/proto/v74b/*.png
 tools/proto/v74b/*.html
+tools/proto/v75/out/
+tools/proto/v75/cmp.html
+tools/proto/v75/fx.html
