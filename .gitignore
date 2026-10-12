@@ -4,3 +4,5 @@ tools/bots/out/
 tools/proto/v71/out/
 tools/proto/v73/out/
 tools/proto/v74/out/
+tools/proto/v74b/*.png
+tools/proto/v74b/*.html
