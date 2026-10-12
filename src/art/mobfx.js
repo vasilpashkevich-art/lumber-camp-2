@@ -108,8 +108,8 @@ export function sporeShot(g, s, t) {
 /** Облако спор там, куда попало: расходится и оседает. */
 export function sporeBurst(g, e, a) {
   const { x, y } = e, r = rng(e.seed);
-  for (let i = 0; i < 9; i++) { const an = r() * TAU, d = 6 + r() * 26 * easeOut(clamp(a / 0.8)), q = clamp(a / (0.9 + r() * 0.4)), s = 8 + r() * 8 + q * 10;
-    glow(g, x + Math.cos(an) * d, y - 18 + Math.sin(an) * d * 0.6 + q * 10, s, '196,214,120', 0.36 * (1 - q), 0.3); }
+  for (let i = 0; i < 9; i++) { const an = r() * TAU, d = 6 + r() * 26 * easeOut(clamp(a / 0.8)), q = clamp(a / (0.9 + r() * 0.4)), s = 10 + r() * 10 + q * 12;
+    glow(g, x + Math.cos(an) * d, y - 18 + Math.sin(an) * d * 0.6 + q * 10, s, '196,214,120', 0.5 * (1 - q), 0.3); }
   for (let i = 0; i < 12; i++) { const an = r() * TAU, d = r() * 30 * easeOut(clamp(a / 0.6)), q = clamp(a / 1.2); g.fillStyle = `rgba(236,240,170,${0.8 * (1 - q)})`; g.beginPath(); g.arc(x + Math.cos(an) * d, y - 20 + Math.sin(an) * d * 0.6 + q * 16, 1, 0, TAU); g.fill(); }
 }
 
@@ -153,8 +153,8 @@ export function curseShot(g, s, t) {
 export function curseHit(g, e, a) {
   const { x, y } = e;
   add(g, () => { if (a < 0.15) glow(g, x, y - 20, 24, '140,255,180', 0.7 * (1 - a / 0.15)); });
-  for (let i = 0; i < 3; i++) { const q = clamp((a - i * 0.12) / 0.6); if (q <= 0 || q >= 1) continue; const rr = 22 * (1 - q * 0.6);
-    g.strokeStyle = `rgba(140,240,170,${0.7 * (1 - q)})`; g.lineWidth = 1.4; g.beginPath(); g.ellipse(x, y - 4 - q * 10 - i * 5, rr, rr * 0.4, 0, 0, TAU); g.stroke(); }
+  for (let i = 0; i < 3; i++) { const q = clamp((a - i * 0.12) / 0.6); if (q <= 0 || q >= 1) continue; const rr = 26 * (1 - q * 0.6);
+    g.strokeStyle = `rgba(140,240,170,${0.85 * (1 - q)})`; g.lineWidth = 2; g.beginPath(); g.ellipse(x, y - 4 - q * 10 - i * 5, rr, rr * 0.4, 0, 0, TAU); g.stroke(); }
 }
 
 /** Призыв: появление помощника. e.kind — crow (перья и тень), kvakun (брызги тины), weaver/иное (земля и паутинки). */

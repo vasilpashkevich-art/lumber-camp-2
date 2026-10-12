@@ -117,6 +117,6 @@ export const MOBS = {
     name: 'Великий Полоз', art: 'snake', r: 26, rare: true,
     hp: 6, dmg: 1.5, speed: 140, reach: 50, cd: 1.7,
     trait: 'poison', gold: 8,
-    smash: { every: 7, wind: 1.0, r: 120, mul: 2.4, say: 'готовит бросок!' },
+    smash: { every: 7, wind: 1.0, r: 120, mul: 2.4, say: 'готовит бросок!', style: 'coil' },
   },
 };

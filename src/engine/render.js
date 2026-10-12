@@ -10,6 +10,7 @@ import { castle, stairs, brazierFire, paving, roundPlaza, ringPath, fountain, la
 import { house, inn, tavern, enchant, barn, miners, forge, farmstead, bank } from '../art/houses.js';
 import { vein, glint, outcrop } from '../art/ore.js';
 import { BAR_H } from '../art/beasts.js';
+import * as MF from '../art/mobfx.js';
 import * as FOR from '../art/forest.js';
 import { drawFace, drawRim, drawRampWhole, softGlow, footShadow, TINT, poly as rpoly } from '../art/relief.js';
 import { GIANT, giantBase, giantUpper, giantCrown, giantShade } from '../art/giants.js';
@@ -445,7 +446,7 @@ function canopy(Rd, c, G, x0, y0, zw, zh, t) {
 // ---------------------------------------------------------------- кадр
 let R_PARTS = null, EXEC = 0;
 /** Эффекты над фигурами (v73): взрывы, удары, вспышки. thirst — от тела к герою (в мировых координатах). */
-const OVER = { impact: V.impact, explosion: V.explosion, frostHit: V.frostHit, bloodHit: V.bloodHit, critBurst: V.critBurst, igniteFlash: V.igniteFlash, trapSnap: V.trapSnap, thirst: V.thirst };
+const OVER = { venom: MF.venom, sporeBurst: MF.sporeBurst, curseHit: MF.curseHit, impact: V.impact, explosion: V.explosion, frostHit: V.frostHit, bloodHit: V.bloodHit, critBurst: V.critBurst, igniteFlash: V.igniteFlash, trapSnap: V.trapSnap, thirst: V.thirst };
 export function render(R, G, now) {
   const { ctx: c, cv } = R, W = G.W, P = G.P; R_PARTS = R.parts;
   if (R.W !== W) { R.W = W; R.chunks.clear(); R.statics = buildStatics(W); }
@@ -486,9 +487,9 @@ export function render(R, G, now) {
   // кольцо под целью
   if (P.target && P.target.state !== 'dead') { const m = P.target; c.strokeStyle = lvlColor(m.lvl, G.hero.lvl); c.lineWidth = 2.5; c.globalAlpha = 0.85; c.beginPath(); c.ellipse(m.x, m.y + 2 - lift(m.x, m.y), m.r + 10, (m.r + 10) * 0.42, 0, 0, 7); c.stroke(); c.globalAlpha = 1; }
   // предупреждения об ударах по площади
-  for (const f of G.fx) if (f.k === 'tele') { const q = 1 - f.t / f.max; c.save(); c.translate(0, -lift(f.x, f.y)); c.fillStyle = `rgba(255,80,40,${0.12 + q * 0.18})`; c.strokeStyle = 'rgba(255,120,60,.8)'; c.lineWidth = 2; c.beginPath(); c.ellipse(f.x, f.y, f.r, f.r * 0.5, 0, 0, 7); c.fill(); c.stroke(); c.fillStyle = 'rgba(255,80,40,.25)'; c.beginPath(); c.ellipse(f.x, f.y, f.r * q, f.r * q * 0.5, 0, 0, 7); c.fill(); c.restore(); }
+  for (const f of G.fx) if (f.k === 'tele' && vis(f.x, f.y, 300)) { const h = lift(f.x, f.y); c.save(); c.translate(0, -h); MF.telegraph(c, f, 1 - f.t / f.max, f.max - f.t); MF.gather(c, f, 1 - f.t / f.max); c.restore(); }
   // эффекты умений на земле (v73): под фигурами — руны и задние языки столпа, круг залпа, капканы, кольцо льда, трещины, пыль рывка, рёв ярости
-  const UNDER = { crush: V.crush, dashDust: V.dashDust, nova: V.nova, berserkCast: V.berserkCast };
+  const UNDER = { crush: V.crush, dashDust: V.dashDust, nova: V.nova, berserkCast: V.berserkCast, slam: MF.slam, ram: MF.ram, hoof: (g, f, a) => MF.hoofDust(g, f.x, f.y, a, f.seed), summon: MF.summonFx, fireSplash: MF.fireSplash };
   for (const f of G.fx) { const fn = UNDER[f.k]; if (!fn || !vis(f.x, f.y, 260)) continue; const h = lift(f.x, f.y); if (h) { c.save(); c.translate(0, -h); } fn(c, f, f.max - f.t); if (h) c.restore(); }
   for (const tr of G.traps || []) if (vis(tr.x, tr.y)) { const h = lift(tr.x, tr.y); c.save(); c.translate(0, -h); c.globalAlpha = Math.min(1, tr.t / 0.5); V.trap(c, tr.x, tr.y, tr.sprung ? Math.max(0, 1 - tr.sprung / 0.06) : 1, t); c.restore(); }
   for (const ar of G.areas || []) if (vis(ar.x, ar.y, 300)) { const h = lift(ar.x, ar.y), a = ar.max - ar.t; c.save(); c.translate(0, -h);
@@ -530,9 +531,9 @@ export function render(R, G, now) {
   for (const s0 of G.shots) {
     const sh = lift(s0.x, s0.y), s = sh ? { ...s0, y: s0.y - sh } : s0;
     if (s.kind === 'net') { V.netFly(c, s, s.age || 0); continue; }
-    if (s.kind === 'bottle') { const a = performance.now() / 90; c.save(); c.translate(s.x, s.y); c.rotate(a); c.fillStyle = '#6a8a6a'; c.strokeStyle = '#24180f'; c.lineWidth = 1; c.beginPath(); c.ellipse(0, 0, 4, 6, 0, 0, 7); c.fill(); c.stroke(); c.fillStyle = '#ffb347'; c.beginPath(); c.moveTo(-2, -6); c.quadraticCurveTo(0, -14, 2, -6); c.fill(); c.restore(); if (Math.random() < 0.6) R.parts.push({ x: s.x, y: s.y, vx: (Math.random() - 0.5) * 20, vy: -20, t: 0.4, col: Math.random() < 0.5 ? '#ff7a2a' : '#ffd34d', s: 2.5 }); continue; }
-    if (s.kind === 'spore') { for (let i = 0; i < 5; i++) { const a = performance.now() / 200 + i * 1.26; c.fillStyle = `rgba(210,232,140,${0.75 - i * 0.1})`; c.beginPath(); c.arc(s.x + Math.cos(a) * 5, s.y + Math.sin(a) * 4, 4.5 - i * 0.4, 0, 7); c.fill(); } if (Math.random() < 0.5) R.parts.push({ x: s.x, y: s.y, vx: (Math.random() - 0.5) * 30, vy: -20, t: 0.5, col: '#c8e070', s: 2.4 }); continue; }
-    if (s.kind === 'curse') { const g2 = c.createRadialGradient(s.x, s.y, 1, s.x, s.y, 14); g2.addColorStop(0, 'rgba(200,255,220,1)'); g2.addColorStop(0.5, 'rgba(120,255,170,.85)'); g2.addColorStop(1, 'rgba(60,200,120,0)'); c.fillStyle = g2; c.beginPath(); c.arc(s.x, s.y, 14, 0, 7); c.fill(); if (Math.random() < 0.6) R.parts.push({ x: s.x, y: s.y, vx: (Math.random() - 0.5) * 30, vy: (Math.random() - 0.5) * 30, t: 0.4, col: '#9affc8', s: 2.2 }); continue; }
+    if (s.kind === 'bottle') { MF.bottleShot(c, s, t); continue; }
+    if (s.kind === 'spore') { MF.sporeShot(c, s, t); continue; }
+    if (s.kind === 'curse') { MF.curseShot(c, s, t); continue; }
     if (s.kind === 'frost') { V.frostBolt(c, s, t); continue; }
     if (s.kind === 'arrow') { V.arrow(c, s, t, !!s.red); continue; }
     if (s.kind === 'fire') { V.fireball(c, s, t); continue; }
