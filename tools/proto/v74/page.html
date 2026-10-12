@@ -1,0 +1,37 @@
+<title>Воин: новый облик</title>
+<style>
+:root{color-scheme:dark;--bg:#120e0b;--pan:#1e1712;--line:#4a3a2a;--txt:#efe4cc;--dim:#b8a888;--hi:#ffe9a8;--acc:#e7c35a}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--txt);font:15px Georgia,'Times New Roman',serif;margin:0;padding:18px 16px 60px}
+#main{max-width:1180px;margin:0 auto}
+h1{margin:0 0 4px;color:var(--hi);font-size:28px;text-wrap:balance} h2{color:var(--hi);font-size:21px;margin:28px 0 6px}
+p{color:var(--dim);line-height:1.5;max-width:880px;margin:4px 0 10px}
+.bar{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0}
+.bar button,select{font:inherit;font-size:14px;color:var(--dim);background:var(--pan);border:1.5px solid var(--line);border-radius:8px;padding:5px 11px;cursor:pointer}
+.bar button.on{color:var(--hi);border-color:var(--acc);background:#2a2014}
+canvas{display:block;width:100%;border-radius:12px;border:1px solid var(--line)}
+#big{height:560px} #turn{height:240px} #setsCv{height:330px} #game{height:260px}
+.row{display:grid;grid-template-columns:1fr;gap:10px}
+.lbl{color:var(--dim);font-size:13px}
+@media (max-width:700px){#big{height:420px}#turn{height:170px}#setsCv{height:240px}}
+</style>
+<div id="main">
+<h1>Воин: новый облик</h1>
+<p>Объём и свет как у иконок умений, пропорции крупнее (≈ 5,5 головы), поворот на 8 сторон и плавно между ними. Тело, борода, плащ и вещи нарисованы заново. Нажимайте движения, комплект и сторону.</p>
+<h2>Движения</h2>
+<div class="bar" id="anims"></div>
+<div class="bar" id="sets"></div>
+<div class="bar" id="dirs"></div>
+<canvas id="big"></canvas>
+<h2>8 сторон</h2>
+<div class="bar"><span class="lbl">движение:</span> <select id="turnAnim"><option value="idle">стоит</option><option value="walk" selected>шаг</option><option value="run">бег</option><option value="chop">удар</option></select></div>
+<canvas id="turn"></canvas>
+<h2>Комплекты вещей по ярусам</h2>
+<p>Новобранец → кожа → кольчуга с накидкой → латы с плащом → фиолетовые со свечением. В игре облик собирается из надетых вещей, как сейчас.</p>
+<canvas id="setsCv"></canvas>
+<h2>В размере игры: сейчас и новый</h2>
+<p>Так герой выглядит на экране компьютера при обычном приближении.</p>
+<canvas id="game"></canvas>
+</div>
+<div id="main"><h2>Что это за эскиз</h2><p>Первая проба стиля на Воине: тело собрано из объёмных частей, поэтому любая сторона, шаг, бег и удары считаются сами, а не рисуются кадрами. По этой пробе решаем манеру. Если она подходит — дорисую все модели вещей Воина (15 оружий, 9 шлемов, 8 нагрудников, 4 штанов, кольца, шеи), потом Мага и Лучника, и переведу игру.</p></div>
+<!--SCRIPT-->
