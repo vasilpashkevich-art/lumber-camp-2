@@ -11,6 +11,9 @@ import { house, inn, tavern, enchant, barn, miners, forge, farmstead } from '../
 import { vein, glint, outcrop } from '../art/ore.js';
 import { BAR_H } from '../art/beasts.js';
 import * as FOR from '../art/forest.js';
+import { drawFace, drawRim, drawRampWhole, softGlow, footShadow, TINT, poly as rpoly } from '../art/relief.js';
+import { GIANT, giantBase, giantUpper, giantCrown, giantShade } from '../art/giants.js';
+import { LH } from '../world/relief.js';
 import { ORES, veinColor, MINE } from '../../data/mining.js';
 import { miningSkill } from '../systems/mining.js';
 import { sprite, drawSpr, flashOf, heroSpr, mobSpr, MOB_SCALE, MOB_LOOK, personSpr, beastSpr, drawFrame, GUARD_LOOK, MERCH_LOOK, viewOf, sprBox, FRAMES, treeSpr, TREE_K, bldSpr, mountainSpr } from '../art/sprites.js';
@@ -193,12 +196,20 @@ function chunk(R, i, j) {
   if (cv) { R.chunks.delete(key); R.chunks.set(key, cv); return cv; }
   const W = R.W, x0 = i * CHUNK, y0 = j * CHUNK;
   cv = document.createElement('canvas'); cv.width = cv.height = CHUNK * CQ;
-  const g = cv.getContext('2d'); g.scale(CQ, CQ); g.translate(-x0, -y0); LOOK.use(g);
-  LOOK.ground(x0, y0, CHUNK, CHUNK, W.Z.ground, W.Z.seed, 3);
-  if (W.Z.moss) { FOR.ground(g, x0, y0, CHUNK, CHUNK, W.Z.seed, false); LOOK.use(g); }
+  const g = cv.getContext('2d');
+  if (W.relief) reliefChunk(R, g, i, j);
+  else { g.scale(CQ, CQ); g.translate(-x0, -y0); paintGround(g, W, x0, y0, CHUNK, CHUNK, i, j); }
+  R.chunks.set(key, cv); R.built = (R.built || 0) + 1; if (R.chunks.size > (TOUCH ? 16 : 30)) R.chunks.delete(R.chunks.keys().next().value);
+  return cv;
+}
+// земля зоны в прямоугольнике мира (x0, y0, w, h): трава, дороги, ручей, пруды, лагеря; g уже в координатах мира
+function paintGround(g, W, x0, y0, CW, CH, i, j) {
+  LOOK.use(g);
+  LOOK.ground(x0, y0, CW, CH, W.Z.ground, W.Z.seed, 3);
+  if (W.Z.moss) { FOR.ground(g, x0, y0, CW, CH, W.Z.seed, false); LOOK.use(g); }
   if (W.creek) { FOR.creek(g, W.creek.pts, W.creek.w); LOOK.use(g); }
   // за краем зоны — тёмный лес и скалы
-  g.save(); g.beginPath(); g.rect(x0 - 2, y0 - 2, CHUNK + 4, CHUNK + 4);
+  g.save(); g.beginPath(); g.rect(x0 - 2, y0 - 2, CW + 4, CH + 4);
   g.moveTo(W.edge[0][0], W.edge[0][1]); for (const p of W.edge) g.lineTo(p[0], p[1]); g.closePath();
   g.fillStyle = 'rgba(28,40,26,.88)'; g.fill('evenodd'); g.restore();
   // дороги: одним путём на все дороги и площадки — слои кладутся разом, стыки без швов
@@ -211,15 +222,15 @@ function chunk(R, i, j) {
   g.save(); roadPath(); g.strokeStyle = '#b39a6a'; g.lineWidth = 64; g.stroke(); plazaPath(32); g.fillStyle = '#b39a6a'; g.fill(); g.restore();
   roadPath(); g.strokeStyle = 'rgba(210,190,140,.45)'; g.lineWidth = 30; g.stroke();
   if (PL.length) { plazaPath(-14); g.fillStyle = 'rgba(210,190,140,.32)'; g.fill(); }
-  for (const [px, py, rx, ry] of W.ponds || []) if (Math.abs(px - (x0 + CHUNK / 2)) < rx + CHUNK && Math.abs(py - (y0 + CHUNK / 2)) < ry + CHUNK) { g.save(); g.translate(px, py); FOR.pond(g, rx, ry, Math.round(px) % 97, 0); g.restore(); LOOK.use(g); }
+  for (const [px, py, rx, ry] of W.ponds || []) if (Math.abs(px - (x0 + CW / 2)) < rx + CW && Math.abs(py - (y0 + CH / 2)) < ry + CH) { g.save(); g.translate(px, py); FOR.pond(g, rx, ry, Math.round(px) % 97, 0); g.restore(); LOOK.use(g); }
   const r = rng(i * 7919 + j * 104729 + 5);
   // камушки на дорогах
-  for (let k = 0; k < 120; k++) { const x = x0 + r() * CHUNK, y = y0 + r() * CHUNK; if (W.roadD(x, y) < 28) { g.fillStyle = r() < 0.5 ? 'rgba(120,100,70,.55)' : 'rgba(230,215,180,.5)'; g.beginPath(); g.ellipse(x, y, 2 + r() * 2, 1.4 + r(), 0, 0, 7); g.fill(); } }
+  for (let k = 0; k < 120 * CH / CHUNK; k++) { const x = x0 + r() * CW, y = y0 + r() * CH; if (W.roadD(x, y) < 28) { g.fillStyle = r() < 0.5 ? 'rgba(120,100,70,.55)' : 'rgba(230,215,180,.5)'; g.beginPath(); g.ellipse(x, y, 2 + r() * 2, 1.4 + r(), 0, 0, 7); g.fill(); } }
   // столица: газоны, плиточные дорожки, площадь у фонтана, терраса дворца, клумбы
   const c = W.cap;
-  if (c && Math.abs(c.x - (x0 + CHUNK / 2)) < c.R + CHUNK && Math.abs(c.y - (y0 + CHUNK / 2)) < c.R + CHUNK) {
+  if (c && Math.abs(c.x - (x0 + CW / 2)) < c.R + CW && Math.abs(c.y - (y0 + CH / 2)) < c.R + CH) {
     g.save(); g.beginPath(); g.arc(c.x, c.y, c.R - 4, 0, 7); g.clip();
-    g.fillStyle = 'rgba(110,160,60,.16)'; g.fillRect(x0, y0, CHUNK, CHUNK);
+    g.fillStyle = 'rgba(110,160,60,.16)'; g.fillRect(x0, y0, CW, CH);
     for (const p of c.paths || []) { g.save(); g.translate(c.x, c.y); g.rotate(p.a); paving(g, 0, -p.w / 2, p.to + 40, p.w, 11 + Math.abs(Math.round(p.a * 10)) + (p.a < 0 ? 40 : 0)); g.restore(); }
     if (c.ring) ringPath(g, c.x, c.y, c.ring.r - c.ring.w / 2, c.ring.r + c.ring.w / 2, 5);
     if (c.fountain) roundPlaza(g, c.x, c.y, c.fountain.plaza, 9);
@@ -229,16 +240,16 @@ function chunk(R, i, j) {
   }
   // посёлок: утоптанная земля
   const v = W.village;
-  if (v && Math.abs(v.x - (x0 + CHUNK / 2)) < v.R + CHUNK && Math.abs(v.y - (y0 + CHUNK / 2)) < v.R + CHUNK) {
+  if (v && Math.abs(v.x - (x0 + CW / 2)) < v.R + CW && Math.abs(v.y - (y0 + CH / 2)) < v.R + CH) {
     const gr = g.createRadialGradient(v.x, v.y, 20, v.x, v.y, v.R); gr.addColorStop(0, 'rgba(150,120,80,.55)'); gr.addColorStop(0.8, 'rgba(150,120,80,.35)'); gr.addColorStop(1, 'rgba(150,120,80,0)');
     g.fillStyle = gr; g.beginPath(); g.arc(v.x, v.y, v.R, 0, 7); g.fill();
   }
   // поля и река (в землю)
-  for (const F of W.fields) if (Math.abs(F.x - (x0 + CHUNK / 2)) < (F.w + F.h) / 2 + CHUNK && Math.abs(F.y - (y0 + CHUNK / 2)) < (F.w + F.h) / 2 + CHUNK) field(g, F);
-  if (W.river) { const R = W.river, near = R.pts.some(([x, y], i) => i < R.pts.length - 1 && segDist(x0 + CHUNK / 2, y0 + CHUNK / 2, x, y, R.pts[i + 1][0], R.pts[i + 1][1]) < CHUNK); if (near) riverArt(g, R, 0); }
+  for (const F of W.fields) if (Math.abs(F.x - (x0 + CW / 2)) < (F.w + F.h) / 2 + Math.max(CW, CH) && Math.abs(F.y - (y0 + CH / 2)) < (F.w + F.h) / 2 + Math.max(CW, CH)) field(g, F);
+  if (W.river) { const R = W.river, near = R.pts.some(([x, y], i) => i < R.pts.length - 1 && segDist(x0 + CW / 2, y0 + CH / 2, x, y, R.pts[i + 1][0], R.pts[i + 1][1]) < Math.max(CW, CH)); if (near) riverArt(g, R, 0); }
   // кладбище: тёмная земля
   const gy = W.graveyard;
-  if (!gy.hidden && Math.abs(gy.x - (x0 + CHUNK / 2)) < 500 && Math.abs(gy.y - (y0 + CHUNK / 2)) < 500) {
+  if (!gy.hidden && Math.abs(gy.x - (x0 + CW / 2)) < 500 && Math.abs(gy.y - (y0 + CH / 2)) < 500) {
     g.fillStyle = 'rgba(60,50,35,.45)'; g.beginPath(); g.ellipse(gy.x, gy.y, 200, 110, 0, 0, 7); g.fill();
     // ограда с калиткой — в сторону ближней дороги
     const ga = gateAngle(W, gy);
@@ -246,18 +257,187 @@ function chunk(R, i, j) {
     for (const d of [-0.24, 0.24]) { const x = gy.x + Math.cos(ga + d) * 190, y = gy.y + Math.sin(ga + d) * 104; g.fillStyle = '#5a4630'; g.strokeStyle = '#24180f'; g.lineWidth = 1.2; g.beginPath(); g.rect(x - 4, y - 6, 8, 9); g.fill(); g.stroke(); }
   }
   // вытоптанная земля в лагерях
-  for (const cp of W.camps) if (Math.abs(cp.x - (x0 + CHUNK / 2)) < 700 && Math.abs(cp.y - (y0 + CHUNK / 2)) < 700) {
+  for (const cp of W.camps) if (Math.abs(cp.x - (x0 + CW / 2)) < 700 && Math.abs(cp.y - (y0 + CH / 2)) < 700) {
     const gr = g.createRadialGradient(cp.x, cp.y, 10, cp.x, cp.y, cp.r * 0.9); gr.addColorStop(0, 'rgba(120,95,60,.35)'); gr.addColorStop(1, 'rgba(120,95,60,0)');
     g.fillStyle = gr; g.beginPath(); g.arc(cp.x, cp.y, cp.r * 0.9, 0, 7); g.fill();
   }
   // трава и цветы
-  for (let k = 0; k < 70; k++) {
-    const x = x0 + r() * CHUNK, y = y0 + r() * CHUNK;
+  for (let k = 0; k < 70 * CH / CHUNK; k++) {
+    const x = x0 + r() * CW, y = y0 + r() * CH;
     if (!inPoly(x, y, W.edge) || W.roadD(x, y) < 44 || (W.town && !W.cap && dist(x, y, W.town.x, W.town.y) < W.town.R + 20) || (W.cap && (W.onPave(x, y) || W.blocked(x, y) || Math.abs(dist(x, y, W.cap.x, W.cap.y) - W.cap.R) < 30)) || (W.ponds && W.ponds.length && W.water(x, y, 6)) || (W.river && W.riverD(x, y) < W.river.w / 2 + 16) || W.inField(x, y, 4)) continue;
     LOOK.tuft(x, y, 0.9 + r() * 0.6, W.Z.ground, r());
   }
-  R.chunks.set(key, cv); if (R.chunks.size > (TOUCH ? 16 : 30)) R.chunks.delete(R.chunks.keys().next().value);
-  return cv;
+}
+
+
+// ---------------------------------------------------------------- рельеф (v71): земля ярусами
+// Кусок экрана (в координатах «мир минус высота»): для каждого яруса снизу вверх — стенки его краёв, верх яруса
+// (земля зоны, сдвинутая на высоту, по маске «здесь ярус ≥ L»), склоны и кромки. Земля зоны рисуется один раз
+// на кусок с запасом по высоте и кладётся на каждый ярус со сдвигом.
+let SCR = null;   // общие черновые холсты: земля, маска
+function scratch(k, w, h) { SCR = SCR || {}; let c = SCR[k]; if (!c) c = SCR[k] = document.createElement('canvas'); if (c.width < w || c.height < h) { c.width = Math.max(c.width, w); c.height = Math.max(c.height, h); } const g = c.getContext('2d'); g.setTransform(1, 0, 0, 1, 0, 0); g.globalCompositeOperation = 'source-over'; g.globalAlpha = 1; g.clearRect(0, 0, c.width, c.height); return [c, g]; }
+const bbHit = (b, x0, y0, x1, y1) => b[2] >= x0 && b[0] <= x1 && b[3] >= y0 && b[1] <= y1;
+/** Маска «ярус ≥ L» (сдвинутая на −L·LH) в холсте g, уже переведённом в координаты экрана-мира. Возвращает, есть ли что-то в прямоугольнике. */
+function levelMask(g, RF, L, x0, y0, x1, y1, exact = false) {
+  const dy = -L * LH; let any = false;
+  if (exact ? L === 0 : L <= 0) { g.fillStyle = '#fff'; g.fillRect(x0 - 2, y0 - 2, x1 - x0 + 4, y1 - y0 + 4); any = true; }
+  for (const q of RF.regions) {
+    if (!bbHit(q.bb, x0, y0 - dy, x1, y1 - dy)) continue;
+    const up = exact ? q.lvl === L : q.lvl >= L; if (!up && !any) continue;
+    g.globalCompositeOperation = up ? 'source-over' : 'destination-out'; g.fillStyle = '#fff';
+    g.beginPath(); rpoly(g, q.poly, dy); g.fill(); if (up) any = true;
+  }
+  g.globalCompositeOperation = 'source-over';
+  return any;
+}
+function rampTop(rp) { return Math.max(...rp.pts.map(p => p[2])); }
+function rampBox(rp) { const lo = Math.min(...rp.pts.map(p => p[2])), hi = rampTop(rp), b = rp.bb; return [b[0] - 20, b[1] - hi * LH - 30, b[2] + 20, b[3] - lo * LH + 30]; }
+function edgeBox(e, L) { return [Math.min(e.x0, e.x1) - 16, Math.min(e.y0, e.y1) - L * LH - 8, Math.max(e.x0, e.x1) + 16, e.ym - e.bot * LH + 16]; }
+function reliefChunk(Rd, g, i, j) {
+  const W = Rd.W, RF = W.relief, x0 = i * CHUNK, y0 = j * CHUNK, x1 = x0 + CHUNK, y1 = y0 + CHUNK;
+  const near = (q, m = 80) => bbHit(q.bb, x0 - m, y0 + q.lvl * LH - m, x1 + m, y1 + q.lvl * LH + m);
+  // земля зоны с запасом сверху и снизу — на те ярусы, что есть рядом (на равнине — без запаса)
+  let lo = 0, hi = 0; for (const q of RF.regions) if (near(q, 140)) { lo = Math.min(lo, q.lvl); hi = Math.max(hi, q.lvl); }
+  for (const rp of RF.ramps) if (bbHit(rampBox(rp), x0 - 60, y0 - 60, x1 + 60, y1 + 60)) for (const p of rp.pts) { lo = Math.min(lo, p[2]); hi = Math.max(hi, p[2]); }
+  const gy0 = y0 + lo * LH - 8, gh = CHUNK + (hi - lo) * LH + 16;
+  if (lo === 0 && hi === 0) { g.setTransform(CQ, 0, 0, CQ, -x0 * CQ, -y0 * CQ); paintGround(g, W, x0, y0, CHUNK, CHUNK, i, j); return; }   // рельефа рядом нет
+  const [base, bg] = scratch('base', Math.ceil(CHUNK * CQ), Math.ceil(gh * CQ)); bg.scale(CQ, CQ); bg.translate(-x0, -gy0); paintGround(bg, W, x0, gy0, CHUNK, gh, i, j);
+  g.setTransform(CQ, 0, 0, CQ, -x0 * CQ, -y0 * CQ); g.lineJoin = 'round';
+  // подложка — равнина везде; ярусы — только свои места, снизу вверх
+  g.drawImage(base, 0, 0, CHUNK * CQ, gh * CQ, x0, gy0, CHUNK, gh);
+  const extras = (m, L, dy) => {
+    const tint = TINT(L); if (tint) { m.fillStyle = tint; m.fillRect(x0, y0, CHUNK, CHUNK); }
+    if (L <= -1) { const r = rng(i * 31 + j * 17 + 7); for (let k = 0; k < 40; k++) { const x = x0 + r() * CHUNK, y = y0 + r() * CHUNK; m.fillStyle = r() < 0.5 ? 'rgba(60,50,30,.16)' : 'rgba(90,120,60,.14)'; m.beginPath(); m.ellipse(x, y, 6 + r() * 14, 2 + r() * 5, 0, 0, 7); m.fill(); } }
+    for (const q of RF.regions) if (q.soft && q.lvl === L && q.kind === 'blob' && near(q, 0)) softGlow(m, q, L, dy);
+    for (const [Lk, E] of Object.entries(RF.edges)) { if (+Lk <= L) continue; for (const e of E) if (!e.soft && e.bot === L && e.ny > 0.25 && bbHit(edgeBox(e, +Lk), x0, y0 - 40, x1, y1 + 40)) footShadow(m, e, dy); }
+    for (const gi of W.giants) if (Math.abs(W.hAt(gi.x, gi.y) - L * LH) < 2 && Math.abs(gi.x - (x0 + CHUNK / 2)) < 500 && Math.abs(gi.y + dy - (y0 + CHUNK / 2)) < 500) giantShade(m, gi.kind, gi.x, gi.y + dy, gi.s);
+  };
+  extras(g, 0, 0);
+  const lower = RF.regions.some(q => q.lvl < 0 && near(q));
+  for (const L of RF.levels) {
+    const dy = -L * LH;
+    // стенки краёв этого яруса
+    if (L > RF.min) {
+      const soft = [];
+      for (const e of RF.edges[L] || []) if (bbHit(edgeBox(e, L), x0, y0, x1, y1)) { if (e.soft) { if (e.ny > -0.05) soft.push(e); } else drawFace(g, e, L, e.seed); }
+      if (soft.length) softBank(g, soft, L, base, x0, gy0, gh);
+    }
+    // верх яруса — только где земля этого яруса (равнина — заново, если её могли закрыть низины)
+    if (L === 0 ? lower : RF.regions.some(q => q.lvl === L && near(q))) {
+      const [mc, m] = scratch('mask', Math.ceil(CHUNK * CQ), Math.ceil(CHUNK * CQ)); m.setTransform(CQ, 0, 0, CQ, -x0 * CQ, -y0 * CQ);
+      if (levelMask(m, RF, L, x0, y0, x1, y1, true)) {
+        m.globalCompositeOperation = 'source-in'; m.drawImage(base, 0, 0, CHUNK * CQ, gh * CQ, x0, gy0 + dy, CHUNK, gh);
+        m.globalCompositeOperation = 'source-atop'; extras(m, L, dy);
+        m.setTransform(1, 0, 0, 1, 0, 0); m.globalCompositeOperation = 'source-over';
+        g.drawImage(mc, 0, 0, CHUNK * CQ, CHUNK * CQ, x0, y0, CHUNK, CHUNK);
+      }
+    }
+    // склоны и лестницы этого яруса, кромки
+    for (const rp of RF.ramps) if (rampTop(rp) === L && bbHit(rampBox(rp), x0, y0, x1, y1)) { const sp = rampSpr(rp), b = rampBox(rp); g.drawImage(sp, b[0], b[1], b[2] - b[0], b[3] - b[1]); }
+    if (L > RF.min) for (const e of RF.edges[L] || []) if (bbHit(edgeBox(e, L), x0, y0, x1, y1)) drawRim(g, e, L);
+  }
+}
+/** Травяной откос в пол яруса: та же земля, что сверху, плавно уходит вниз; тень у подножия, свет на кромке. */
+function softBank(g, E, L, base, x0, gy0, gh) {
+  const top = L * LH;
+  g.save(); g.beginPath();
+  for (const e of E) { const bot = e.bot * LH; g.moveTo(e.x0, e.y0 - top - 1); g.lineTo(e.x1, e.y1 - top - 1); g.lineTo(e.x1, e.y1 - bot + 1.5); g.lineTo(e.x0, e.y0 - bot + 1.5); g.closePath(); }
+  g.clip();
+  g.drawImage(base, 0, 0, base.width, Math.ceil(gh * CQ), x0, gy0 - top, CHUNK, gh);   // земля верхнего яруса продолжается вниз по откосу
+  for (const e of E) {
+    const bot = e.bot * LH, lit = Math.max(-1, Math.min(1, -e.nx * 0.8 - e.ny * 0.2));
+    const gr = g.createLinearGradient(0, Math.min(e.y0, e.y1) - top, 0, Math.max(e.y0, e.y1) - bot);
+    gr.addColorStop(0, lit > 0 ? `rgba(255,250,200,${0.10 * lit})` : 'rgba(0,0,0,0)'); gr.addColorStop(1, `rgba(16,26,8,${0.30 - 0.08 * lit})`);
+    g.fillStyle = gr; g.beginPath(); g.moveTo(e.x0, e.y0 - top - 1); g.lineTo(e.x1, e.y1 - top - 1); g.lineTo(e.x1, e.y1 - bot + 1.5); g.lineTo(e.x0, e.y0 - bot + 1.5); g.closePath(); g.fill();
+  }
+  g.restore();
+  g.lineCap = 'round'; g.strokeStyle = 'rgba(18,28,10,.22)'; g.lineWidth = 3; g.beginPath(); for (const e of E) { const bot = e.bot * LH; g.moveTo(e.x0, e.y0 - bot + 1); g.lineTo(e.x1, e.y1 - bot + 1); } g.stroke();
+}
+/** Склон или лестница — готовой картинкой; концы плавно уходят в землю (без прямого среза). */
+function rampSpr(rp) {
+  if (rp.spr) return rp.spr;
+  const b = rampBox(rp), q = CQ, cv = document.createElement('canvas'); cv.width = Math.ceil((b[2] - b[0]) * q); cv.height = Math.ceil((b[3] - b[1]) * q);
+  const g = cv.getContext('2d'); g.setTransform(q, 0, 0, q, -b[0] * q, -b[1] * q); g.lineJoin = 'round';
+  drawRampWhole(g, rp, rp.k + 3);
+  const P = rp.pts, lo = P[0][2] <= P[P.length - 1][2] ? P[0] : P[P.length - 1], hi = lo === P[0] ? P[P.length - 1] : P[0];
+  const ax = lo[0], ay = lo[1] - lo[2] * LH, bx = hi[0], by = hi[1] - hi[2] * LH;
+  g.globalCompositeOperation = 'destination-out';
+  for (const [sx, sy, ex, ey, k, a] of rp.kind === 'road' ? [[ax, ay, bx, by, 0.2, 0.7], [bx, by, ax, ay, 0.2, 0.7]] : [[ax, ay, bx, by, 0.32, 1], [bx, by, ax, ay, 0.16, 0.85]]) {
+    const gr = g.createLinearGradient(sx, sy, sx + (ex - sx) * k, sy + (ey - sy) * k); gr.addColorStop(0, `rgba(0,0,0,${a})`); gr.addColorStop(1, 'rgba(0,0,0,0)');
+    g.fillStyle = gr; g.fillRect(b[0], b[1], b[2] - b[0], b[3] - b[1]);
+  }
+  return (rp.spr = cv);
+}
+/** Края ярусов по клеткам экрана — для быстрой проверки заслона. */
+function edgeCells(RF) {
+  if (RF.cellsE) return RF.cellsE; const M = new Map();
+  for (const L of RF.levels) for (const e of RF.edges[L] || []) { const b = edgeBox(e, L); for (let x = Math.floor(b[0] / 256); x <= Math.floor(b[2] / 256); x++) for (let y = Math.floor(b[1] / 256); y <= Math.floor(b[3] / 256); y++) { const k = x + ',' + y; let a = M.get(k); if (!a) M.set(k, a = []); a.push([L, e]); } }
+  return (RF.cellsE = M);
+}
+/**
+ * Заслон: кто стоит ниже яруса, что лежит перед ним (южнее), — того ярус прячет. Фигура рисуется в отдельный
+ * холст, из неё вырезается всё, что перед ней (верх яруса, стенки, склоны), и холст кладётся в кадр.
+ * (x, y) — земля под ногами, h — высота, bw/bh — полуширина и высота фигуры. null — заслона нет, рисовать как обычно.
+ */
+const FEET = 10;   // ноги фигуры нарисованы чуть ниже её точки на земле
+function occInfo(W, x, y0, h, bw, bh) {
+  const RF = W.relief, lv = h / LH, y = y0 + FEET, sy = y0 - h, B = [x - bw, sy - bh, x + bw, sy + 20];
+  const ups = RF.levels.filter(L => L > lv + 0.04); if (!ups.length) return null;
+  let tops = false;
+  for (const L of ups) { for (let a = 0; a <= 4 && !tops; a++) for (let b = 0; b <= 4; b++) { const px = B[0] + (B[2] - B[0]) * a / 4, ys = B[1] + (B[3] - B[1]) * b / 4, gy = ys + L * LH; if (gy > y + 1 && RF.levelAt(px, gy) === L) { tops = true; break; } } if (tops) break; }
+  const faces = [], cells = edgeCells(RF), seen = new Set();
+  for (let cx = Math.floor(B[0] / 256); cx <= Math.floor(B[2] / 256); cx++) for (let cy = Math.floor(B[1] / 256); cy <= Math.floor(B[3] / 256); cy++) for (const f of cells.get(cx + ',' + cy) || []) { const [L, e] = f; if (L <= lv + 0.04 || e.ym <= y + 1 || seen.has(e) || e.ny < -0.05 || !bbHit(edgeBox(e, L), B[0], B[1], B[2], B[3])) continue; seen.add(e); faces.push(f); }
+  const here = RF.onRamp(x, y), ramps = RF.ramps.filter(rp => rampTop(rp) > lv + 0.04 && (!here || here.s.rp !== rp) && rp.bb[3] > y + 1 && bbHit(rampBox(rp), B[0], B[1], B[2], B[3]));
+  if (!tops && !faces.length && !ramps.length) return null;
+  return { B, ups, tops, faces, ramps, y: y0 };
+}
+function drawOccluded(Rd, c, W, O, h, draw, ghost) {
+  const RF = W.relief, B = O.B, z = Rd.cam.z, w = Math.ceil((B[2] - B[0]) * z), hh = Math.ceil((B[3] - B[1]) * z), y = O.y + FEET;
+  const [ec, e] = scratch('occE', w, hh), [mc, m] = scratch('occM', w, hh);
+  e.setTransform(z, 0, 0, z, -B[0] * z, -B[1] * z); e.translate(0, -h); draw(e);
+  if (ghost) { c.globalAlpha = 0.3; c.drawImage(ec, 0, 0, w, hh, B[0], B[1], w / z, hh / z); c.globalAlpha = 1; }   // герой и кто с ним бьётся — тенью сквозь холм
+  // маска того, что перед фигурой
+  if (O.tops) { const [tc, t] = scratch('occT', w, hh);
+    for (const L of O.ups) {
+      t.setTransform(1, 0, 0, 1, 0, 0); t.clearRect(0, 0, w, hh); t.setTransform(z, 0, 0, z, -B[0] * z, -B[1] * z);
+      if (!levelMask(t, RF, L, B[0], B[1], B[2], B[3], true)) continue;
+      const cut = y - L * LH; if (cut > B[1]) t.clearRect(B[0] - 2, B[1] - 2, B[2] - B[0] + 4, cut - B[1] + 2);   // только то, что лежит южнее ног
+      t.setTransform(1, 0, 0, 1, 0, 0); m.drawImage(tc, 0, 0);
+    } }
+  m.setTransform(z, 0, 0, z, -B[0] * z, -B[1] * z); m.lineJoin = 'round';
+  for (const [L, ed] of O.faces) { drawFace(m, ed, L, ed.seed); drawRim(m, ed, L); }
+  for (const rp of O.ramps) { const sp = rampSpr(rp), b = rampBox(rp); m.drawImage(sp, b[0], b[1], b[2] - b[0], b[3] - b[1]); }
+  m.setTransform(1, 0, 0, 1, 0, 0);
+  e.setTransform(1, 0, 0, 1, 0, 0); e.globalCompositeOperation = 'destination-out'; e.drawImage(mc, 0, 0); e.globalCompositeOperation = 'source-over';
+  c.drawImage(ec, 0, 0, w, hh, B[0], B[1], w / z, hh / z);
+}
+/** Кроны великанов — над всем миром, со сдвигом от середины экрана (кажутся высокими); у героя — «окно» в листве. */
+function canopy(Rd, c, G, x0, y0, zw, zh, t) {
+  const W = G.W, P = G.P, list = W.giants.filter(gi => Math.abs(gi.x - (x0 + zw / 2)) < zw / 2 + 700 && gi.y > y0 - 200 && gi.y < y0 + zh + 900);
+  if (!list.length) return;
+  const cv = Rd.cv, z = Rd.cam.z, zoomRel = Rd.uz / ZOOM.def, PAR = 0.0006 * zoomRel, cx0 = x0 + zw / 2, cy0 = y0 + zh / 2;
+  let cc = Rd.canopyCv; if (!cc || cc.width !== cv.width || cc.height !== cv.height) { cc = Rd.canopyCv = document.createElement('canvas'); cc.width = cv.width; cc.height = cv.height; }
+  const q = cc.getContext('2d'); q.setTransform(1, 0, 0, 1, 0, 0); q.clearRect(0, 0, cc.width, cc.height); q.setTransform(z, 0, 0, z, -x0 * z, -y0 * z); q.lineJoin = q.lineCap = 'round';
+  const hh = W.hAt(P.x, P.y), hx = P.x, hy = P.y - hh - 30;
+  let under = false;
+  for (const gi of list.sort((a, b) => a.y - b.y)) {
+    const Gd = GIANT[gi.kind], h = W.hAt(gi.x, gi.y), bx = gi.x, by = gi.y - h - Gd.low;
+    let cx = gi.x, cy = gi.y - h - Gd.high; const k = Gd.high * PAR; cx += (cx - cx0) * k; cy += (cy - cy0) * k;
+    const sp = sprite('gcrown|' + gi.kind + '|' + gi.s, Gd.crownR * 2.6, Gd.crownR * 2.4, Gd.crownR * 1.3, Gd.crownR * 1.25, 1.2, g => giantCrown(g, gi.kind, gi.s));
+    giantUpper(q, gi.kind, bx, by, cx, cy + Gd.crownR * 0.25); drawSpr(q, sp, cx, cy);
+    if (Math.hypot(hx - cx, (hy - cy) * 0.8) < Gd.crownR * 1.1) under = true;
+  }
+  if (!P.dead && (under || zoomRel > 1.3)) {   // ныряешь под листву
+    const Rr = zoomRel > 1.3 ? 175 : 150, a = zoomRel > 1.3 ? Math.min(0.85, 0.55 + (zoomRel - 1.3) * 0.6) : 0.55;
+    q.globalCompositeOperation = 'destination-out';
+    const gr = q.createRadialGradient(hx, hy, Rr * 0.25, hx, hy, Rr); gr.addColorStop(0, `rgba(0,0,0,${a})`); gr.addColorStop(1, 'rgba(0,0,0,0)');
+    q.fillStyle = gr; q.fillRect(hx - Rr, hy - Rr, Rr * 2, Rr * 2); q.globalCompositeOperation = 'source-over';
+  }
+  c.save(); c.setTransform(1, 0, 0, 1, 0, 0); c.drawImage(cc, 0, 0); c.restore();
+  // лучи света сквозь листву вблизи
+  if (zoomRel > 1.3) for (const gi of list) { const h = W.hAt(gi.x, gi.y); if (Math.hypot(P.x - gi.x, P.y - gi.y) > 420) continue; c.globalCompositeOperation = 'lighter';
+    for (let i = 0; i < 4; i++) { const x = gi.x - 120 + i * 80 + Math.sin(t * 0.4 + i) * 10, gr = c.createLinearGradient(x, gi.y - h - 400, x + 60, gi.y - h + 40); gr.addColorStop(0, 'rgba(255,240,170,.10)'); gr.addColorStop(1, 'rgba(255,240,170,0)'); c.fillStyle = gr; c.beginPath(); c.moveTo(x, gi.y - h - 400); c.lineTo(x + 30, gi.y - h - 400); c.lineTo(x + 110, gi.y - h + 40); c.lineTo(x + 60, gi.y - h + 40); c.fill(); }
+    c.globalCompositeOperation = 'source-over'; }
 }
 
 // ---------------------------------------------------------------- кадр
@@ -274,29 +454,41 @@ export function render(R, G, now) {
     if (e.k === 'lvl') { for (let i = 0; i < 40; i++) R.parts.push(part(P.x, P.y - 20, ['#ffd34d', '#fff2a0', '#c8a0ff'])); R.floats.push({ x: P.x, y: P.y - 80, s: `Уровень ${e.L}!`, col: '#ffd34d', big: true, t: 2.4 }); }
   }
   const zw = cv.width / R.cam.z, zh = cv.height / R.cam.z; G.view = R.view = { w: zw, h: zh }; UIK = ZOOM.def / R.uz;   // мини-карта рисует рамку видимого
-  R.cam.x += (P.x - R.cam.x) * 0.18; R.cam.y += (P.y - 30 - R.cam.y) * 0.18;
-  if (Math.abs(P.x - R.cam.x) > 600) { R.cam.x = P.x; R.cam.y = P.y - 30; }
+  // рельеф (v71): всё на высоте h рисуется выше на h; числа и искры, что родились в мире, — тоже
+  const RF = W.relief, lift = RF ? (x, y) => W.hAt(x, y) : () => 0;
+  if (RF) { for (const f of R.floats) if (!f.lf) { f.lf = 1; f.y -= lift(f.x, f.y + 60); } }
+  const hP = lift(P.x, P.y);
+  R.cam.x += (P.x - R.cam.x) * 0.18; R.cam.y += (P.y - 30 - hP - R.cam.y) * 0.18;
+  if (Math.abs(P.x - R.cam.x) > 600 || Math.abs(P.y - hP - 30 - R.cam.y) > 600) { R.cam.x = P.x; R.cam.y = P.y - 30 - hP; }
   const sh = R.shake > 0 ? (R.shake -= 1 / 60, 3) : 0;
   const x0 = R.cam.x - zw / 2 + (Math.random() - 0.5) * sh, y0 = R.cam.y - zh / 2 + (Math.random() - 0.5) * sh;
   c.setTransform(R.cam.z, 0, 0, R.cam.z, -x0 * R.cam.z, -y0 * R.cam.z);
   c.imageSmoothingEnabled = true;
   c.fillStyle = '#1c2a1a'; c.fillRect(x0, y0, zw, zh);
   // земля
+  const nC = R.built || 0;
   for (let i = Math.floor(x0 / CHUNK); i <= Math.floor((x0 + zw) / CHUNK); i++)
     for (let j = Math.floor(y0 / CHUNK); j <= Math.floor((y0 + zh) / CHUNK); j++) {
       if (i < -1 || j < -1 || i * CHUNK > W.W + CHUNK || j * CHUNK > W.H + CHUNK) continue;
       c.drawImage(chunk(R, i, j), i * CHUNK, j * CHUNK, CHUNK + 1, CHUNK + 1);
     }
+  // заранее — по одному куску вокруг экрана (сначала туда, куда идёт герой), чтобы на ходу земля не дорисовывалась рывком
+  if ((R.built || 0) === nC && R.chunks.size < (TOUCH ? 16 : 30) - 1) {
+    const i0 = Math.floor(x0 / CHUNK) - 1, i1 = Math.floor((x0 + zw) / CHUNK) + 1, j0 = Math.floor(y0 / CHUNK) - 1, j1 = Math.floor((y0 + zh) / CHUNK) + 1, cand = [];
+    for (let i = i0; i <= i1; i++) for (let j = j0; j <= j1; j++) if ((i === i0 || i === i1 || j === j0 || j === j1) && i >= -1 && j >= -1 && i * CHUNK <= W.W + CHUNK && j * CHUNK <= W.H + CHUNK && !R.chunks.has(i + ',' + j)) cand.push([i, j, ((i + 0.5) * CHUNK - P.x) * (P.mvx || 0) + ((j + 0.5) * CHUNK - P.y) * (P.mvy || 0)]);
+    if (cand.length) { cand.sort((a, b) => b[2] - a[2]); chunk(R, cand[0][0], cand[0][1]); }
+  }
   const t = now / 1000, vis = (x, y, m = 200) => x > x0 - m && x < x0 + zw + m && y > y0 - m && y < y0 + zh + m * 1.5;
   // кольцо под целью
-  if (P.target && P.target.state !== 'dead') { const m = P.target; c.strokeStyle = lvlColor(m.lvl, G.hero.lvl); c.lineWidth = 2.5; c.globalAlpha = 0.85; c.beginPath(); c.ellipse(m.x, m.y + 2, m.r + 10, (m.r + 10) * 0.42, 0, 0, 7); c.stroke(); c.globalAlpha = 1; }
+  if (P.target && P.target.state !== 'dead') { const m = P.target; c.strokeStyle = lvlColor(m.lvl, G.hero.lvl); c.lineWidth = 2.5; c.globalAlpha = 0.85; c.beginPath(); c.ellipse(m.x, m.y + 2 - lift(m.x, m.y), m.r + 10, (m.r + 10) * 0.42, 0, 0, 7); c.stroke(); c.globalAlpha = 1; }
   // предупреждения об ударах по площади
-  for (const f of G.fx) if (f.k === 'tele') { const q = 1 - f.t / f.max; c.fillStyle = `rgba(255,80,40,${0.12 + q * 0.18})`; c.strokeStyle = 'rgba(255,120,60,.8)'; c.lineWidth = 2; c.beginPath(); c.ellipse(f.x, f.y, f.r, f.r * 0.5, 0, 0, 7); c.fill(); c.stroke(); c.fillStyle = 'rgba(255,80,40,.25)'; c.beginPath(); c.ellipse(f.x, f.y, f.r * q, f.r * q * 0.5, 0, 0, 7); c.fill(); }
+  for (const f of G.fx) if (f.k === 'tele') { const q = 1 - f.t / f.max; c.save(); c.translate(0, -lift(f.x, f.y)); c.fillStyle = `rgba(255,80,40,${0.12 + q * 0.18})`; c.strokeStyle = 'rgba(255,120,60,.8)'; c.lineWidth = 2; c.beginPath(); c.ellipse(f.x, f.y, f.r, f.r * 0.5, 0, 0, 7); c.fill(); c.stroke(); c.fillStyle = 'rgba(255,80,40,.25)'; c.beginPath(); c.ellipse(f.x, f.y, f.r * q, f.r * q * 0.5, 0, 0, 7); c.fill(); c.restore(); }
   // предметы по глубине
   const L = [];
   for (const s of R.statics) if (vis(s.lx ?? s.x ?? R.cam.x, s.y, 400)) L.push(s);
   for (const tr of treesIn(W, x0 - 150, y0 - 60, x0 + zw + 150, y0 + zh + 240)) L.push({ y: tr.y, tree: tr });
   for (const k of G.corpses) if (vis(k.x, k.y)) L.push({ y: k.y - 1, corpse: k });
+  for (const gi of W.giants || []) if (vis(gi.x, gi.y, 300)) { const Gd = GIANT[gi.kind], sp = sprite('gbase|' + gi.kind + '|' + gi.s, Gd.trunkW * 4, Gd.low + 40, Gd.trunkW * 2, Gd.low + 20, 1.6, g => giantBase(g, gi.kind, gi.s)); L.push({ y: gi.y, x: gi.x, draw: g => drawSpr(g, sp, gi.x, gi.y) }); }
   for (const v of G.veins || []) if ((!v.at || v.at <= G.t) && vis(v.x, v.y)) { const sp = sprite('vein|' + v.metal + '|' + (v.s % 5), 110, 90, 55, 70, 2, gg => vein(gg, v.metal, v.s % 5 + 1)); L.push({ y: v.y, x: v.x, oc: occ(sp, v.x, v.y), draw: (g, t) => { drawSpr(g, sp, v.x, v.y); g.save(); g.translate(v.x, v.y); glint(g, v.metal, t, v.s % 7); g.restore(); } }); }
   for (const m of G.mobs) if (m.state !== 'dead' && vis(m.x, m.y)) L.push({ y: m.y, mob: m });
   L.push({ y: P.y, hero: true });
@@ -305,6 +497,11 @@ export function render(R, G, now) {
   const see = P.dead ? [] : [[P.x, P.y], ...G.mobs.filter(m => m.state === 'chase' && dist(m.x, m.y, P.x, P.y) < 500).map(m => [m.x, m.y])];
   const fdt = Math.min(0.1, Math.max(0, t - (R.lastT || t))); R.lastT = t;
   for (const o of L) {
+    const ox = o.tree ? o.tree.x : o.mob ? o.mob.x : o.hero ? P.x : o.corpse ? o.corpse.x : (o.x ?? o.lx), hh = RF && ox != null ? lift(ox, o.y) : 0;
+    // заслон рельефом: фигура ниже яруса, что лежит перед ней, — рисуется отдельно и обрезается
+    if (RF && (o.mob || o.hero || o.corpse)) { const sc = o.mob ? (MOB_SCALE[o.mob.kind] || 1) * (o.mob.D.rare ? 1.4 : 1) : 1, O = occInfo(W, ox, o.y, hh, 62 * sc, 118 * sc);
+      if (O) { drawOccluded(R, c, W, O, hh, g => o.mob ? drawMob(g, G, o.mob, t) : o.hero ? drawHero(g, G, look, t) : drawCorpse(g, o.corpse, t), o.hero || (o.mob && (o.mob === P.target || o.mob.state === 'chase'))); continue; } }
+    if (hh) { c.save(); c.translate(0, -hh); }
     if (o.tree) { const tr = o.tree, sp = treeSpr(tr.kind, tr.v), fade = !P.dead && Math.abs(P.x - tr.x) < 26 * tr.s * TREE_K && P.y < tr.y - 4 && P.y > tr.y - 80 * tr.s * TREE_K ? 0.42 : 1; drawSpr(c, sp, tr.x, tr.y, fade, tr.s); }
     else if (o.mob) drawMob(c, G, o.mob, t);
     else if (o.hero) drawHero(c, G, look, t);
@@ -314,9 +511,12 @@ export function render(R, G, now) {
       if (o.fa < 0.99) { c.save(); c.globalAlpha = o.fa; o.draw(c, t); c.restore(); } else o.draw(c, t);
     }
     else o.draw(c, t);
+    if (hh) c.restore();
   }
   // выстрелы
-  for (const s of G.shots) {
+  const nP = R.parts.length;
+  for (const s0 of G.shots) {
+    const sh = lift(s0.x, s0.y), s = sh ? { ...s0, y: s0.y - sh } : s0;
     if (s.kind === 'net') { const a = (performance.now() / 120) % 6.28; c.save(); c.translate(s.x, s.y); c.rotate(a); c.strokeStyle = '#e8dcc0'; c.lineWidth = 1.4; for (let i = -1; i <= 1; i++) { c.beginPath(); c.moveTo(-10, i * 6); c.lineTo(10, i * 6); c.moveTo(i * 6, -10); c.lineTo(i * 6, 10); c.stroke(); } c.fillStyle = '#a8845a'; for (const [x, y] of [[-10, -10], [10, -10], [-10, 10], [10, 10]]) { c.beginPath(); c.arc(x, y, 2.4, 0, 7); c.fill(); } c.restore(); continue; }
     if (s.kind === 'bottle') { const a = performance.now() / 90; c.save(); c.translate(s.x, s.y); c.rotate(a); c.fillStyle = '#6a8a6a'; c.strokeStyle = '#24180f'; c.lineWidth = 1; c.beginPath(); c.ellipse(0, 0, 4, 6, 0, 0, 7); c.fill(); c.stroke(); c.fillStyle = '#ffb347'; c.beginPath(); c.moveTo(-2, -6); c.quadraticCurveTo(0, -14, 2, -6); c.fill(); c.restore(); if (Math.random() < 0.6) R.parts.push({ x: s.x, y: s.y, vx: (Math.random() - 0.5) * 20, vy: -20, t: 0.4, col: Math.random() < 0.5 ? '#ff7a2a' : '#ffd34d', s: 2.5 }); continue; }
     if (s.kind === 'spore') { for (let i = 0; i < 5; i++) { const a = performance.now() / 200 + i * 1.26; c.fillStyle = `rgba(210,232,140,${0.75 - i * 0.1})`; c.beginPath(); c.arc(s.x + Math.cos(a) * 5, s.y + Math.sin(a) * 4, 4.5 - i * 0.4, 0, 7); c.fill(); } if (Math.random() < 0.5) R.parts.push({ x: s.x, y: s.y, vx: (Math.random() - 0.5) * 30, vy: -20, t: 0.5, col: '#c8e070', s: 2.4 }); continue; }
@@ -326,45 +526,48 @@ export function render(R, G, now) {
     else { const big = s.kind === 'fire', rr = s.big ? 22 : big ? 15 : 10, g = c.createRadialGradient(s.x, s.y, 1, s.x, s.y, rr); g.addColorStop(0, big ? 'rgba(255,240,160,1)' : 'rgba(220,240,255,1)'); g.addColorStop(0.45, big ? 'rgba(255,140,40,.9)' : 'rgba(120,180,255,.85)'); g.addColorStop(1, 'rgba(255,60,20,0)'); c.fillStyle = g; c.beginPath(); c.arc(s.x, s.y, rr, 0, 7); c.fill(); if (Math.random() < 0.5) R.parts.push({ x: s.x, y: s.y, vx: (Math.random() - 0.5) * 30, vy: (Math.random() - 0.5) * 30, t: 0.35, col: big ? '#ffb347' : '#9ad0ff', s: 2.5 }); }
   }
   // эффекты
-  for (const f of G.fx) {
+  for (const f0 of G.fx) {
+    const fh = lift(f0.x, f0.y), f = fh ? { ...f0, y: f0.y - fh, y2: f0.y2 != null ? f0.y2 - lift(f0.x2, f0.y2) : f0.y2 } : f0;
     if (f.k === 'ring') { const q = 1 - f.t / 0.35; c.strokeStyle = f.col; c.globalAlpha = 1 - q; c.lineWidth = 6; c.beginPath(); c.ellipse(f.x, f.y, f.r + (f.max - f.r) * q, (f.r + (f.max - f.r) * q) * 0.5, 0, 0, 7); c.stroke(); c.globalAlpha = 1; }
     if (f.k === 'boom' && f.t > 0.3) for (let i = 0; i < (f.big ? 30 : 14); i++) R.parts.push(part(f.x, f.y, ['#ffd34d', '#ff7a2a', '#cf4b3f']));
     if (f.k === 'bolt') { const q = f.t / f.max; c.strokeStyle = `rgba(255,240,140,${q})`; c.lineWidth = 3; c.beginPath(); c.moveTo(f.x, f.y); const n = 6; for (let i = 1; i <= n; i++) { const k = i / n; c.lineTo(f.x + (f.x2 - f.x) * k + (i < n ? (Math.random() - 0.5) * 22 : 0), f.y + (f.y2 - f.y) * k + (i < n ? (Math.random() - 0.5) * 22 : 0)); } c.stroke(); c.strokeStyle = `rgba(255,255,255,${q})`; c.lineWidth = 1.2; c.stroke(); }
     if (f.k === 'trail') { c.fillStyle = `rgba(255,240,200,${f.t * 1.4})`; c.beginPath(); c.ellipse(f.x, f.y - 14, 12, 18, 0, 0, 7); c.fill(); }
     if (f.k === 'spawn') { c.fillStyle = `rgba(255,255,255,${f.t})`; c.beginPath(); c.ellipse(f.x, f.y, 26 * (1.4 - f.t), 10, 0, 0, 7); c.fill(); }
   }
-  if (P.whirl > 0) for (let k = 0; k < 3; k++) { c.strokeStyle = `rgba(255,240,200,${0.45 - k * 0.12})`; c.lineWidth = 9 - k * 3; const a0 = now / 90 + k * 0.8; c.beginPath(); c.ellipse(P.x, P.y - 14, 70 + k * 7, (70 + k * 7) * 0.6, 0, a0, a0 + 3.2); c.stroke(); }
-  // частицы
+  if (P.whirl > 0) for (let k = 0; k < 3; k++) { c.strokeStyle = `rgba(255,240,200,${0.45 - k * 0.12})`; c.lineWidth = 9 - k * 3; const a0 = now / 90 + k * 0.8; c.beginPath(); c.ellipse(P.x, P.y - 14 - hP, 70 + k * 7, (70 + k * 7) * 0.6, 0, a0, a0 + 3.2); c.stroke(); }
+  // частицы (искры от выстрелов уже в координатах экрана-мира)
+  if (RF) for (let i = 0; i < R.parts.length; i++) { const p = R.parts[i]; if (!p.lf) { p.lf = 1; if (i < nP || p.world) p.y -= lift(p.x, p.y + 20); } }
   for (const p of R.parts) { p.t -= 1 / 60; p.x += p.vx / 60; p.y += p.vy / 60; p.vy += 300 / 60; c.globalAlpha = Math.max(0, p.t * 2); c.fillStyle = p.col; c.fillRect(p.x, p.y, p.s, p.s); }
   c.globalAlpha = 1; R.parts = R.parts.filter(p => p.t > 0);
   // туман Грибного леса: лёгкий везде, густые клочья в низинах (полоски здоровья и уровни рисуются поверх)
-  if (W.Z.fog) { const dense = W.Z.fog.filter(([x, y, R]) => x + R > x0 - 100 && x - R < x0 + zw + 100 && y + R > y0 - 100 && y - R < y0 + zh + 100); // рисуется в холст в 4 раза меньше и растягивается — туман мягкий, а кадр дешевле
+  if (W.Z.fog) { const dense = W.Z.fog.map(([x, y, r]) => [x, y - lift(x, y), r]).filter(([x, y, R]) => x + R > x0 - 100 && x - R < x0 + zw + 100 && y + R > y0 - 100 && y - R < y0 + zh + 100); // рисуется в холст в 4 раза меньше и растягивается — туман мягкий, а кадр дешевле
     const k = 0.25, fw = Math.ceil(zw * k) + 2, fh = Math.ceil(zh * k) + 2; let fc = R.fogCv; if (!fc || fc.width !== fw || fc.height !== fh) { fc = R.fogCv = document.createElement('canvas'); fc.width = fw; fc.height = fh; }
     const q = fc.getContext('2d'); q.setTransform(1, 0, 0, 1, 0, 0); q.clearRect(0, 0, fw, fh); q.setTransform(k, 0, 0, k, -x0 * k, -y0 * k); FOR.fog(q, x0, y0, zw, zh, t * 8, dense);
     c.drawImage(fc, x0, y0, fw / k, fh / k); }
+  if (RF && W.giants.length) canopy(R, c, G, x0, y0, zw, zh, t);
   // подписи построек
   c.textAlign = 'center';
   const bar = barRect(), z = R.cam.z / R.dpr;
-  for (const s of R.statics) if (s.label && vis(s.lx, s.ly, 100)) { const sx = (s.lx - x0) * z, sy = (s.ly - y0) * z; if (bar && sx > bar.left - 90 && sx < bar.right + 90 && sy > bar.top - 14) continue; label(c, s.label, s.lx, s.ly, '#ffe9a8', 15); }
+  for (const s of R.statics) if (s.label && vis(s.lx, s.ly, 100)) { const sx = (s.lx - x0) * z, sy = (s.ly - y0) * z; if (bar && sx > bar.left - 90 && sx < bar.right + 90 && sy > bar.top - 14) continue; label(c, s.label, s.lx, s.ly - lift(s.lx, s.y), '#ffe9a8', 15); }
   // название жилы вблизи — цветом по навыку (как в WoW)
-  for (const v of G.veins || []) if ((!v.at || v.at <= G.t) && dist(v.x, v.y, P.x, P.y) < 320 && !(P.mine && P.mine.v === v)) { const col = MINE.colorHex[miningSkill(G.hero) ? veinColor(miningSkill(G.hero), ORES[v.metal].req).c : 'gray']; label(c, ORES[v.metal].vein, v.x, v.y + 22, col, 13); }
+  for (const v of G.veins || []) if ((!v.at || v.at <= G.t) && dist(v.x, v.y, P.x, P.y) < 320 && !(P.mine && P.mine.v === v)) { const col = MINE.colorHex[miningSkill(G.hero) ? veinColor(miningSkill(G.hero), ORES[v.metal].req).c : 'gray']; label(c, ORES[v.metal].vein, v.x, v.y + 22 - lift(v.x, v.y), col, 13); }
   // таблички над мобами
-  for (const m of G.mobs) if (m.state !== 'dead' && vis(m.x, m.y) && (m === P.target || m.state === 'chase' || m.hp < m.max || dist(m.x, m.y, P.x, P.y) < 260)) plate(c, G, m);
+  for (const m of G.mobs) if (m.state !== 'dead' && vis(m.x, m.y) && (m === P.target || m.state === 'chase' || m.hp < m.max || dist(m.x, m.y, P.x, P.y) < 260)) { const mh = lift(m.x, m.y); if (mh) { c.save(); c.translate(0, -mh); plate(c, G, m); c.restore(); } else plate(c, G, m); }
   // кто гонится за героем из-за края экрана — красный уголок у края (v67: при сильном приближении стрелков не видно)
   { const zs = R.cam.z / R.dpr, pad = 34 / zs, cx = x0 + zw / 2, cy = y0 + zh / 2;
     for (const m of G.mobs) if (m.state === 'chase' && !vis(m.x, m.y, -10)) {
-      const a = Math.atan2(m.y - 20 - cy, m.x - cx), hx = zw / 2 - pad, hy = zh / 2 - pad, t = Math.min(hx / Math.abs(Math.cos(a) || 1e-6), hy / Math.abs(Math.sin(a) || 1e-6));
+      const a = Math.atan2(m.y - 20 - lift(m.x, m.y) - cy, m.x - cx), hx = zw / 2 - pad, hy = zh / 2 - pad, t = Math.min(hx / Math.abs(Math.cos(a) || 1e-6), hy / Math.abs(Math.sin(a) || 1e-6));
       const ex = cx + Math.cos(a) * t, ey = cy + Math.sin(a) * t, s = 16 / zs;
       c.save(); c.translate(ex, ey); c.rotate(a); c.globalAlpha = 0.85 + 0.15 * Math.sin(now / 160);
       c.fillStyle = '#e2453a'; c.strokeStyle = '#2a0c08'; c.lineWidth = 2 / zs; c.beginPath(); c.moveTo(s, 0); c.lineTo(-s * 0.8, -s * 0.8); c.lineTo(-s * 0.4, 0); c.lineTo(-s * 0.8, s * 0.8); c.closePath(); c.fill(); c.stroke(); c.restore();
     } }
   // куда идёт герой по касанию — кольцо на земле
-  if (P.goal && P.goal.k === 'ground') { c.strokeStyle = 'rgba(255,233,168,.8)'; c.lineWidth = 2; c.beginPath(); c.ellipse(P.goal.x, P.goal.y, 14 + 3 * Math.sin(now / 150), 6, 0, 0, 7); c.stroke(); }
+  if (P.goal && P.goal.k === 'ground') { c.strokeStyle = 'rgba(255,233,168,.8)'; c.lineWidth = 2; c.beginPath(); c.ellipse(P.goal.x, P.goal.y - lift(P.goal.x, P.goal.y), 14 + 3 * Math.sin(now / 150), 6, 0, 0, 7); c.stroke(); }
   // подсказка «E»
   const it = !P.dead && interactTarget(G);
-  if (it && !P.mine && !TOUCH) label(c, it.k === 'b' ? `E — ${it.b.name}` : it.k === 'exit' ? 'E — дорога' : it.k === 'vein' ? 'E — копать' : 'E — обыскать', P.x, P.y - 78, '#fff2a0', 14);   // на телефоне вместо надписи — кнопка действия
+  if (it && !P.mine && !TOUCH) label(c, it.k === 'b' ? `E — ${it.b.name}` : it.k === 'exit' ? 'E — дорога' : it.k === 'vein' ? 'E — копать' : 'E — обыскать', P.x, P.y - 78 - hP, '#fff2a0', 14);   // на телефоне вместо надписи — кнопка действия
   // полоска копания
-  if (P.mine) { const q = Math.min(1, P.mine.t / P.mine.max), x = P.x - 40, y = P.y - 86; c.fillStyle = 'rgba(20,14,8,.9)'; c.fillRect(x - 1, y - 1, 82, 10); c.fillStyle = '#e0a060'; c.fillRect(x, y, 80 * q, 8); label(c, ORES[P.mine.v.metal].ore, P.x, y - 5, '#ffe9a8', 13); }
+  if (P.mine) { const q = Math.min(1, P.mine.t / P.mine.max), x = P.x - 40, y = P.y - 86 - hP; c.fillStyle = 'rgba(20,14,8,.9)'; c.fillRect(x - 1, y - 1, 82, 10); c.fillStyle = '#e0a060'; c.fillRect(x, y, 80 * q, 8); label(c, ORES[P.mine.v.metal].ore, P.x, y - 5, '#ffe9a8', 13); }
   // всплывающие числа
   for (const f of R.floats) { f.t -= 1 / 60; f.y -= 32 / 60; c.globalAlpha = Math.min(1, f.t * 2); label(c, f.s, f.x, f.y, f.col, f.big ? 22 : 15, true); }
   c.globalAlpha = 1; R.floats = R.floats.filter(f => f.t > 0);

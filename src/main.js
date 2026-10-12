@@ -1,5 +1,6 @@
 // Запуск игры: экран выбора героя → мир. Связывает ход игры, рисование, интерфейс и звук.
 import { ZONES } from '../data/zones.js';
+import { buildNav } from './world/relief.js';
 import { buildWorld, inCity } from './world/world.js';
 import { createGame, update, abilsOf, refreshStats } from './systems/game.js';
 import { addStack } from './systems/mining.js';
@@ -20,7 +21,7 @@ import { dist } from './engine/util.js';
 import { $, toast, zoneTitle, TOUCH, T } from './ui/dom.js';
 import { RAR_COL } from '../data/balance.js';
 
-const VERSION = 70;
+const VERSION = 71;
 /** Приближение камеры на шаг: +1 ближе, −1 дальше. */
 let zoomT = 0;
 function zoomBy(d) {
@@ -33,7 +34,9 @@ const WORLDS = {}; const worldOf = id => {
   if (WORLDS[id]) return WORLDS[id];
   for (const k in WORLDS) delete WORLDS[k];
   spriteClear();
-  return (WORLDS[id] = buildWorld(ZONES[id] || ZONES.pine));
+  const w = WORLDS[id] = buildWorld(ZONES[id] || ZONES.pine);
+  if (w.relief) w.nav = buildNav(w);   // сетка пути по рельефу — сразу при входе, а не рывком посреди игры
+  return w;
 };
 let W = null, G = null, R = null, In = null, hud = null, raf = 0, last = 0, saveT = 0, musicT = 0, paused = false;
 
@@ -81,7 +84,7 @@ function start(id) {
   if (!ZONES[hero.zone]) hero.zone = 'pine';
   W = worldOf(hero.zone);
   G = createGame(hero, W);
-  R.cam.x = G.P.x; R.cam.y = G.P.y;
+  R.cam.x = G.P.x; R.cam.y = G.P.y - G.W.hAt(G.P.x, G.P.y);
   $('#hud').hidden = false; $('#game').hidden = false;
   hud.bind(G); In.clear();
   last = performance.now(); raf = requestAnimationFrame(frame);
@@ -95,7 +98,7 @@ function stop() { cancelAnimationFrame(raf); if (G) { persist(); G = null; } }
 function goZone(e) {
   const h = G.hero; h.zone = e.zone; h.pos = { x: e.at.x, y: e.at.y }; h.hp = Math.round(G.P.hp);
   saveHero(h); W = worldOf(e.zone);
-  G = createGame(h, W); R.cam.x = G.P.x; R.cam.y = G.P.y; hud.bind(G); In.clear();
+  G = createGame(h, W); R.cam.x = G.P.x; R.cam.y = G.P.y - G.W.hAt(G.P.x, G.P.y); hud.bind(G); In.clear();
   zoneTitle(W.Z.name, `уровни ${W.Z.lvl[0]}–${W.Z.lvl[1]}`);
 }
 
@@ -110,7 +113,7 @@ function frame(now) {
   if (!G) return;
   const dt = Math.min(0.05, (now - last) / 1000); last = now;
   const modalOpen = !!document.querySelector('.modal');
-  const toWorld = (sx, sy) => ({ x: R.cam.x + (sx * R.dpr - R.cv.width / 2) / R.cam.z, y: R.cam.y + (sy * R.dpr - R.cv.height / 2) / R.cam.z });
+  const toWorld = (sx, sy) => { const x = R.cam.x + (sx * R.dpr - R.cv.width / 2) / R.cam.z, ys = R.cam.y + (sy * R.dpr - R.cv.height / 2) / R.cam.z; return { x, y: G.W.ground(x, ys) }; };   // рельеф: точка экрана → земля
   const I = modalOpen ? (In.read(), {}) : In.read(toWorld);
   if (!paused && !G.P.dead) update(G, dt, I);
   else if (!paused) update(G, dt, {});

@@ -9,6 +9,7 @@ import { rollDrop, makeTrinket, makeItem } from './items.js';
 import { MINE } from '../../data/mining.js';
 import { initVeins, veinNear, startMine, stopMine, mineTick, addStack } from './mining.js';
 import { moveTo, inCity } from '../world/world.js';
+import { LH, nextWaypoint } from '../world/relief.js';
 import { dist, clamp, money } from '../engine/util.js';
 
 export function createGame(hero, W, opts = {}) {
@@ -50,6 +51,22 @@ function spawnMob(G, s, camp) {
 }
 
 const emit = (G, e) => G.ev.push(e);
+/** Рельеф (v71): на одном ли ярусе (ближний бой через обрыв не достаёт). */
+const tier = (G, a, b) => !G.W.relief || Math.abs(G.W.hAt(a.x, a.y) - G.W.hAt(b.x, b.y)) < LH * 0.55;
+/** Обход обрывов: если прямо не пройти — путь по сетке (пересчёт раз в 0,6 с или когда цель ушла). Возвращает точку, куда идти сейчас, или null — идти прямо. */
+export function steer(G, o, tx, ty, dt) {
+  const W = G.W; if (!W.relief) return null;
+  const S = o.nav || (o.nav = { t: 0, path: null, tx: 1e9, ty: 1e9 });
+  S.t -= dt;
+  if (S.t <= 0 || Math.hypot(S.tx - tx, S.ty - ty) > 70) {
+    S.t = 0.6 + Math.random() * 0.3; S.tx = tx; S.ty = ty;
+    S.path = W.stepOk(o.x, o.y, tx, ty) ? null : W.path(o.x, o.y, tx, ty, 14000);
+  }
+  if (!S.path || !S.path.length) return null;
+  const w = nextWaypoint(W, o.x, o.y, S.path);
+  if (!W.stepOk(o.x, o.y, w[0], w[1])) S.t = 0;   // сбились с пути — пересчитать
+  return w;
+}
 const sfx = (G, n) => G.ev.push({ k: 'sfx', n });
 /** Начать анимацию удара героя (для рисования: доля = 1 − atkT/atkDur). */
 const startAtk = (P, dur) => { P.atkT = dur; P.atkDur = dur; };
@@ -129,8 +146,8 @@ function tabTarget(G) {
 }
 
 function nearest(G, reach) {
-  const P = G.P; let best = null, bd = reach;
-  for (const m of G.mobs) { if (!hostile(m)) continue; const d = dist(P.x, P.y, m.x, m.y) - m.r; if (d < bd) { bd = d; best = m; } }
+  const P = G.P, melee = attackOf(G.hero).kind === 'melee'; let best = null, bd = reach;
+  for (const m of G.mobs) { if (!hostile(m) || (melee && !tier(G, P, m))) continue; const d = dist(P.x, P.y, m.x, m.y) - m.r; if (d < bd) { bd = d; best = m; } }
   return best;
 }
 
@@ -143,13 +160,13 @@ function startAuto(G) {
 }
 function autoSwing(G) {
   const P = G.P, A = attackOf(G.hero), t = P.auto;
-  if (dist(P.x, P.y, t.x, t.y) - t.r > A.reach) { if (!P.autoFar) emit(G, { k: 'toast', s: 'Слишком далеко', id: 'far' }); P.autoFar = true; return; }   // ждём, пока цель подойдёт
+  if (dist(P.x, P.y, t.x, t.y) - t.r > A.reach || (A.kind === 'melee' && !tier(G, P, t))) { if (!P.autoFar) emit(G, { k: 'toast', s: 'Слишком далеко', id: 'far' }); P.autoFar = true; return; }   // ждём, пока цель подойдёт
   P.autoFar = false; heroAttack(G, false, t);
 }
 function heroAttack(G, tap, force = null) {
   const P = G.P, A = attackOf(G.hero);
   let t = force || (P.target && hostile(P.target) ? P.target : null);
-  const inReach = m => dist(P.x, P.y, m.x, m.y) - m.r <= A.reach;
+  const inReach = m => dist(P.x, P.y, m.x, m.y) - m.r <= A.reach && (A.kind !== 'melee' || tier(G, P, m));
   if (!force && (!t || !inReach(t))) {
     const n = nearest(G, A.reach);
     if (n) t = n;
@@ -371,7 +388,7 @@ export function whatAt(G, x, y, touch = false) {
 }
 /** Щелчок мышью: моб — цель; тело, жила, постройка, дорога — подойти и сделать. Касание пальцем: ещё и автоатака, и ходьба по земле. */
 export function clickAt(G, x, y, touch) {
-  const P = G.P; if (P.dead) return; const t = whatAt(G, x, y, touch);
+  const P = G.P; if (P.dead) return; const t = whatAt(G, x, y, touch); P.nav = null;
   if (t.k === 'mob') {
     P.target = t.m;
     if (touch && t.m.state !== 'return') { P.auto = null; startAuto(G); P.goal = { k: 'mob', m: t.m, st: 0 }; }
@@ -383,7 +400,7 @@ export function clickAt(G, x, y, touch) {
 /** Куда идти к цели (единичный шаг) или null, если уже на месте. */
 function goalDest(G, g) {
   const P = G.P;
-  if (g.k === 'mob') { const m = g.m; if (m.state === 'dead' || m.state === 'return') return null; return [m.x, m.y, Math.max(20, attackOf(G.hero).reach + m.r - 10)]; }
+  if (g.k === 'mob') { const m = g.m; if (m.state === 'dead' || m.state === 'return') return null; return [m.x, m.y, tier(G, P, m) ? Math.max(20, attackOf(G.hero).reach + m.r - 10) : 16]; }
   if (g.k === 'corpse') return hasLoot(g.c) ? [g.c.x, g.c.y, LOOT.lootR - 14] : null;
   if (g.k === 'vein') return [g.v.x, g.v.y, MINE.reach - 8];
   if (g.k === 'b') return [g.b.x, g.b.y + 40, 60];
@@ -397,6 +414,7 @@ function goalStep(G, dt) {
   // застрял (упёрся в ствол, пруд, стену) — бросить поход
   if (g.lx != null && dist(P.x, P.y, g.lx, g.ly) < 40 * dt) { g.st += dt; if (g.st > 0.6) { P.goal = null; emit(G, { k: 'toast', s: 'Не пройти — обойдите', id: 'stuck' }); return null; } } else g.st = 0;
   g.lx = P.x; g.ly = P.y;
+  const w = steer(G, P, D[0], D[1], dt); if (w) { const dw = Math.max(1, dist(P.x, P.y, w[0], w[1])); return [(w[0] - P.x) / dw, (w[1] - P.y) / dw]; }   // рельеф: в обход обрыва
   return [(D[0] - P.x) / d, (D[1] - P.y) / d];
 }
 function goalArrive(G) {
@@ -480,7 +498,7 @@ function mobTick(G, m, dt) {
   m.stun = Math.max(0, m.stun - dt); m.root = Math.max(0, m.root - dt); m.chill = Math.max(0, m.chill - dt);
   if (m.stun > 0) return;   // оглушён — стоит
   const dH = dist(m.x, m.y, P.x, P.y), dHome = dist(m.x, m.y, m.hx, m.hy), slowK = m.chill > 0 ? 0.5 : 1;
-  const go = (tx, ty, sp) => { const d = dist(m.x, m.y, tx, ty); if (d < 1 || m.root > 0) { if (Math.abs(tx - m.x) > 2) m.face = tx < m.x ? -1 : 1; return; } sp *= slowK; const k = Math.min(1, sp * dt / d); let nx = m.x + (tx - m.x) * k, ny = m.y + (ty - m.y) * k; let ok = (a, b) => G.W.walkable(a, b) && !inCity(G.W, a, b); let ax = nx, ay = ny; if (!ok(ax, ay)) { if (ok(nx, m.y)) ay = m.y; else if (ok(m.x, ny)) ax = m.x; } if (ok(ax, ay)) { const nx2 = ax, ny2 = ay; nx = nx2; ny = ny2; const mv = Math.hypot(nx - m.x, ny - m.y); if (mv > 0.05) { m.mdx = nx - m.x; m.mdy = ny - m.y; m.moving = true; m.walkPh = (m.walkPh + mv / (m.D.humanoid ? 56 : 44)) % 1; } m.x = nx; m.y = ny; } if (Math.abs(tx - m.x) > 2) m.face = tx < m.x ? -1 : 1; };
+  const go = (tx, ty, sp) => { if (m.state !== 'idle' && G.W.relief && m.root <= 0) { const w = steer(G, m, tx, ty, dt); if (w) { tx = w[0]; ty = w[1]; } } const d = dist(m.x, m.y, tx, ty); if (d < 1 || m.root > 0) { if (Math.abs(tx - m.x) > 2) m.face = tx < m.x ? -1 : 1; return; } sp *= slowK; const k = Math.min(1, sp * dt / d); let nx = m.x + (tx - m.x) * k, ny = m.y + (ty - m.y) * k; let ok = (a, b) => G.W.walkable(a, b) && !inCity(G.W, a, b) && G.W.stepOk(m.x, m.y, a, b); let ax = nx, ay = ny; if (!ok(ax, ay)) { if (ok(nx, m.y)) ay = m.y; else if (ok(m.x, ny)) ax = m.x; } if (ok(ax, ay)) { const nx2 = ax, ny2 = ay; nx = nx2; ny = ny2; const mv = Math.hypot(nx - m.x, ny - m.y); if (mv > 0.05) { m.mdx = nx - m.x; m.mdy = ny - m.y; m.moving = true; m.walkPh = (m.walkPh + mv / (m.D.humanoid ? 56 : 44)) % 1; } m.x = nx; m.y = ny; } if (Math.abs(tx - m.x) > 2) m.face = tx < m.x ? -1 : 1; };
 
   if (m.state === 'idle') {
     m.wander.t -= dt;
@@ -529,7 +547,7 @@ function mobTick(G, m, dt) {
     const Ch = m.charge; Ch.cd -= dt;
     if (Ch.t > 0) {
       Ch.t -= dt; go(P.x, P.y, D.speed * 2.6);
-      if (dist(m.x, m.y, P.x, P.y) < reach) { Ch.t = 0; Ch.cd = 6; m.cd = 1.2; hurtHero(G, m.dmg * 1.6, m); emit(G, { k: 'txt', x: P.x, y: P.y - 60, s: 'таран!', col: '#ff8a2a' }); G.fx.push({ k: 'ring', x: P.x, y: P.y, r: 6, max: 40, t: 0.25, col: '#e8d7a8' }); }
+      if (dist(m.x, m.y, P.x, P.y) < reach && tier(G, m, P)) { Ch.t = 0; Ch.cd = 6; m.cd = 1.2; hurtHero(G, m.dmg * 1.6, m); emit(G, { k: 'txt', x: P.x, y: P.y - 60, s: 'таран!', col: '#ff8a2a' }); G.fx.push({ k: 'ring', x: P.x, y: P.y, r: 6, max: 40, t: 0.25, col: '#e8d7a8' }); }
       return;
     }
     if (Ch.cd <= 0 && dH > 130 && dH < 330) { Ch.t = 1.0; emit(G, { k: 'txt', x: m.x, y: m.y - 40, s: 'разбег', col: '#e8d7a8' }); return; }
@@ -554,7 +572,7 @@ function mobTick(G, m, dt) {
     }
     return;
   }
-  if (dH > reach) go(P.x, P.y, D.speed);
+  if (dH > reach || !tier(G, m, P)) go(P.x, P.y, D.speed);
   else if (m.cd <= 0) {
     m.cd = D.cd; m.face = P.x < m.x ? -1 : 1; m.bite = 0.2; m.atkT = m.atkDur = 0.35;
     hurtHero(G, m.dmg * (0.9 + G.rand() * 0.2), m);

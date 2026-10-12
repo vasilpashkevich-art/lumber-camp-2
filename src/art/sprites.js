@@ -121,8 +121,8 @@ export function mobSpr(kind, dir, frame, bite) {
 export const TREE_K = 1.5;
 export function treeSpr(kind, v) {
   const vb = Math.floor(v * 4) % 4, k = TREE_K;
-  if (kind === 'moss') return sprite('t|moss|' + vb, 160, 160, 80, 140, 1.6, g => mossTree(g, 118 + vb * 6, vb * 7 + 3));
-  if (kind === 'gshroom') return sprite('t|gshroom|' + vb, 110, 120, 55, 112, 1.6, g => giantShroom(g, 88 + vb * 6, vb === 3 ? 2 : vb % 2));
+  if (kind === 'moss') return sprite('t|moss|' + vb, 200, 230, 100, 210, 1.6, g => mossTree(g, 118 + vb * 6, vb * 7 + 3));
+  if (kind === 'gshroom') return sprite('t|gshroom|' + vb, 140, 170, 70, 160, 1.6, g => giantShroom(g, 88 + vb * 6, vb === 3 ? 2 : vb % 2));
   return sprite('t|' + kind + '|' + vb, 90 * k, 116 * k, 45 * k, 94 * k, 1.6, g => { g.scale(k, k); LOOK.use(g); LOOK.tree(kind, 0, 0, 1, (vb + 0.5) / 4, 1.2); });
 }
 

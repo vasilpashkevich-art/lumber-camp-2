@@ -2,6 +2,7 @@
 // Запуск: node tools/sim.mjs [класс] [минут]   — печатает, за сколько минут берётся каждый уровень.
 import { PINE, ZONES } from '../data/zones.js';
 import { buildWorld } from '../src/world/world.js';
+import { nextWaypoint } from '../src/world/relief.js';
 import { newHero, compareItem } from '../src/entities/hero.js';
 import { createGame, update, respawnHero, equip, buyPotion, sellItem, POTION_PRICE, lootAll, hasLoot } from '../src/systems/game.js';
 import { LOOT } from '../data/balance.js';
@@ -11,6 +12,13 @@ import { rng, dist } from '../src/engine/util.js';
 
 // путь: из столицы — через ближайшие к цели ворота; снаружи — в обход стены; внутрь — через ворота
 function via(W, P, tx, ty) {
+  // рельеф (v71): если прямо не пройти (обрыв) — по пути через склоны
+  if (W.relief) {
+    const S = P.botNav || (P.botNav = { t: 0, tx: 1e9, ty: 1e9 }); S.t -= 1 / 20;
+    if (S.t <= 0 || Math.hypot(S.tx - tx, S.ty - ty) > 70) { S.t = 0.6; S.tx = tx; S.ty = ty; S.path = W.stepOk(P.x, P.y, tx, ty) ? null : W.path(P.x, P.y, tx, ty, 14000); }
+    if (S.path && S.path.length) { const w = nextWaypoint(W, P.x, P.y, S.path); if (!W.stepOk(P.x, P.y, w[0], w[1])) S.t = 0; return w; }
+    return [tx, ty];
+  }
   // река: если прямая пересекает воду — сначала к ближайшему мосту, потом на другой берег
   if (W.river) {
     let cross = false; const n = Math.ceil(dist(P.x, P.y, tx, ty) / 30); for (let i = 1; i < n; i++) { const x = P.x + (tx - P.x) * i / n, y = P.y + (ty - P.y) * i / n; if (W.water(x, y, 10)) { cross = true; break; } }
@@ -49,7 +57,7 @@ export function runBot(cls, minutes, seed = 1, log = false, zone = 'pine', lvl =
   const W = buildWorld(ZONES[zone]), H = newHero('Бот', cls); H.zone = zone; if (lvl > 1) { H.lvl = lvl; for (const sl of ['head', 'chest', 'legs', 'weapon']) H.eq[sl] = makeItem(cls, sl, lvl, 'common', rng(seed + 3)); }
   const G = createGame(H, W, { rand: rng(seed) });
   const dt = 1 / 20, steps = minutes * 60 / dt, lvAt = {}, R = rng(seed + 7);
-  let goal = null, deadT = 0, shopping = false, stuck = 0, side = 0, sdir = 1, nst = 0, lx = 0, ly = 0;
+  let goal = null, deadT = 0, shopping = false, stuck = 0, side = 0, sdir = 1, nst = 0, lx = 0, ly = 0, stuckT = 0, walkT = 0;
   for (let i = 0; i < steps; i++) {
     const P = G.P, I = {};
     if (P.dead) { if ((deadT += dt) > 3) { respawnHero(G); deadT = 0; goal = null; } }
@@ -99,17 +107,18 @@ export function runBot(cls, minutes, seed = 1, log = false, zone = 'pine', lvl =
     }
     lx = G.P.x; ly = G.P.y;
     update(G, dt, I); G.ev.length = 0;
+    if ((I.mx || I.my) && !G.P.dead && !G.P.sit) { walkT += dt; if (Math.hypot(G.P.x - lx, G.P.y - ly) < 0.5) stuckT += dt; }   // хотел идти, но стоит
     if (log && i % (log === 2 ? 20 : 1200) === 0) console.log(Math.round(G.t/60), H.lvl, Math.round(P.x), Math.round(P.y), Math.round(P.hp), H.potions, H.gold, shopping, goal && goal.kind, goal && Math.round(goal.x), goal && Math.round(goal.y), goal && goal.state, P.dead, Math.round(G.t - P.lastCombat), G.corpses.length);
     if (!lvAt[H.lvl]) lvAt[H.lvl] = Math.round(G.t / 6) / 10;
   }
-  return { cls, lvl: H.lvl, lvAt, kills: H.stats.kills, deaths: H.stats.deaths, gold: H.gold, items: H.stats.items, eq: Object.values(H.eq).filter(Boolean).map(i => `${i.name}(${i.rar})`) };
+  return { cls, lvl: H.lvl, lvAt, stuck: Math.round(stuckT), walk: Math.round(walkT), kills: H.stats.kills, deaths: H.stats.deaths, gold: H.gold, items: H.stats.items, eq: Object.values(H.eq).filter(Boolean).map(i => `${i.name}(${i.rar})`) };
 }
 
 if (process.argv[1] && process.argv[1].endsWith('sim.mjs')) {
   const cls = process.argv[2] || 'all', min = +process.argv[3] || 90, zone = process.argv[4] || 'pine', lv = +process.argv[5] || 1;
   for (const c of cls === 'all' ? ['warrior', 'mage', 'archer'] : [cls]) {
     const r = runBot(c, min, 1, false, zone, lv);
-    console.log(`${c}: ур.${r.lvl}, убито ${r.kills}, смертей ${r.deaths}, золото ${r.gold}, вещей ${r.items}`);
+    console.log(`${c}: ур.${r.lvl}, убито ${r.kills}, смертей ${r.deaths}, золото ${r.gold}, вещей ${r.items}, упирался ${r.stuck} с из ${r.walk} с ходьбы`);
     console.log('  минуты до уровня:', Object.entries(r.lvAt).map(([l, m]) => `${l}:${m}`).join(' '));
     console.log('  надето:', r.eq.join(', '));
   }

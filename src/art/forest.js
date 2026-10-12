@@ -10,17 +10,32 @@ const grad = (y0, y1, a, b) => { const g = c.createLinearGradient(0, y0, 0, y1);
 const shadow = (rx, ry = rx * 0.3, x = 0) => { c.fillStyle = 'rgba(0,0,0,.25)'; c.beginPath(); c.ellipse(x, 1, rx, ry, 0, 0, TAU); c.fill(); };
 
 // ------------------------------------------------------------ земля: мох, кочки, листья, корни
+// пятна мха — готовыми картинками (радиальный переход рисуется один раз, а не тысячу раз на кусок земли)
+const BLOT = {};
+function blot(col) {
+  if (BLOT[col]) return BLOT[col];
+  const cv = typeof document !== 'undefined' ? document.createElement('canvas') : null; if (!cv) return null;
+  cv.width = cv.height = 64; const q = cv.getContext('2d'), gr = q.createRadialGradient(32, 32, 0.8, 32, 32, 32); gr.addColorStop(0, `rgba(${col},.45)`); gr.addColorStop(1, `rgba(${col},0)`); q.fillStyle = gr; q.fillRect(0, 0, 64, 64);
+  return (BLOT[col] = cv);
+}
 export function ground(g, x0, y0, w, h, seed = 3, base = true) {
   c = g;
   if (base) { c.fillStyle = '#3e5a2c'; c.fillRect(x0, y0, w, h); }
   // всё — по ячейкам мира 256×256 со своим зерном: куски земли стыкуются без швов
   const C = 256, M = 90, i0 = Math.floor((x0 - M) / C), i1 = Math.floor((x0 + w + M) / C), j0 = Math.floor((y0 - M) / C), j1 = Math.floor((y0 + h + M) / C);
   const cells = []; for (let i = i0; i <= i1; i++) for (let j = j0; j <= j1; j++) cells.push([i, j, rng(Math.abs(i * 92821 + j * 68917 + seed * 131) % 2147483000 + 1)]);
-  for (const [i, j, r] of cells) for (let k = 0; k < 60; k++) { const x = (i + r()) * C, y = (j + r()) * C, s = 10 + r() * 40, q = r(); const col = q < 0.5 ? '90,124,58' : q < 0.8 ? '52,74,36' : '106,92,58'; const gr = c.createRadialGradient(x, y, 1, x, y, s); gr.addColorStop(0, `rgba(${col},.45)`); gr.addColorStop(1, `rgba(${col},0)`); c.fillStyle = gr; c.beginPath(); c.ellipse(x, y, s, s * 0.6, 0, 0, TAU); c.fill(); }
-  for (const [i, j, r] of cells) for (let k = 0; k < 22; k++) { const x = (i + r()) * C, y = (j + r()) * C, s = 3 + r() * 5, n = 2 + Math.floor(r() * 3), col = r() < 0.5 ? '#557c34' : '#4a6e2e';
-    c.fillStyle = 'rgba(16,26,10,.28)'; c.beginPath(); c.ellipse(x + 1, y + s * 0.45, s * 1.3, s * 0.35, 0, 0, TAU); c.fill();
-    for (let m = 0; m < n; m++) { const dx = (m - (n - 1) / 2) * s * 0.7, dy = (r() - 0.5) * s * 0.3, ss = s * (0.6 + r() * 0.4); c.fillStyle = col; c.beginPath(); c.ellipse(x + dx, y + dy, ss, ss * 0.6, 0, 0, TAU); c.fill(); c.fillStyle = 'rgba(190,220,120,.2)'; c.beginPath(); c.ellipse(x + dx - ss * 0.25, y + dy - ss * 0.22, ss * 0.45, ss * 0.2, 0, 0, TAU); c.fill(); } }
-  for (const [i, j, r] of cells) for (let k = 0; k < 200; k++) { const x = (i + r()) * C, y = (j + r()) * C; c.fillStyle = ['#8a6a3a', '#a8783a', '#6a5a30', '#4a6a2a'][Math.floor(r() * 4)]; c.beginPath(); c.ellipse(x, y, 1.2, 0.6, r() * 3, 0, TAU); c.fill(); }
+  for (const [i, j, r] of cells) for (let k = 0; k < 60; k++) { const x = (i + r()) * C, y = (j + r()) * C, s = 10 + r() * 40, q = r(); const col = q < 0.5 ? '90,124,58' : q < 0.8 ? '52,74,36' : '106,92,58'; const b = blot(col); if (b) c.drawImage(b, x - s, y - s * 0.6, s * 2, s * 1.2); }
+  // кочки: тени, тела и блики — одним путём на цвет (быстро)
+  const P = { sh: new Path2D(), a: new Path2D(), b: new Path2D(), hl: new Path2D() };
+  const el = (p, x, y, rx, ry) => { p.moveTo(x + rx, y); p.ellipse(x, y, rx, ry, 0, 0, TAU); };
+  for (const [i, j, r] of cells) for (let k = 0; k < 22; k++) { const x = (i + r()) * C, y = (j + r()) * C, s = 3 + r() * 5, n = 2 + Math.floor(r() * 3), pb = r() < 0.5 ? P.a : P.b;
+    el(P.sh, x + 1, y + s * 0.45, s * 1.3, s * 0.35);
+    for (let m = 0; m < n; m++) { const dx = (m - (n - 1) / 2) * s * 0.7, dy = (r() - 0.5) * s * 0.3, ss = s * (0.6 + r() * 0.4); el(pb, x + dx, y + dy, ss, ss * 0.6); el(P.hl, x + dx - ss * 0.25, y + dy - ss * 0.22, ss * 0.45, ss * 0.2); } }
+  c.fillStyle = 'rgba(16,26,10,.28)'; c.fill(P.sh); c.fillStyle = '#557c34'; c.fill(P.a); c.fillStyle = '#4a6e2e'; c.fill(P.b); c.fillStyle = 'rgba(190,220,120,.2)'; c.fill(P.hl);
+  // сор: листья и хвоя — тоже одним путём на цвет
+  const D = ['#8a6a3a', '#a8783a', '#6a5a30', '#4a6a2a'].map(col => ({ col, p: new Path2D() }));
+  for (const [i, j, r] of cells) for (let k = 0; k < 200; k++) { const x = (i + r()) * C, y = (j + r()) * C, d = D[Math.floor(r() * 4)], a = r() * 3, ca = Math.abs(Math.cos(a)); d.p.rect(x - 1.2 * ca - 0.3, y - 0.6 - 0.6 * (1 - ca), 2.4 * ca + 0.6, 1.2 + 1.2 * (1 - ca)); }   // соринка — прямоугольничком (быстрее, на глаз то же)
+  for (const d of D) { c.fillStyle = d.col; c.fill(d.p); }
   for (const [i, j, r] of cells) for (let k = 0; k < 5; k++) { const x = (i + r()) * C, y = (j + r()) * C, q = r(); tinyShroom(x, y, q < 0.3 ? '#c8382a' : q < 0.5 ? '#c89a5a' : '#e8e0d0', 0.7 + r() * 0.5); }
 }
 function tinyShroom(x, y, cap, s) { c.save(); c.translate(x, y); c.scale(s, s); c.fillStyle = 'rgba(0,0,0,.2)'; c.beginPath(); c.ellipse(0.6, 0.4, 2, 0.6, 0, 0, TAU); c.fill(); F(() => c.rect(-0.5, -2.6, 1, 2.6), '#efe6d2', 0.3); F(() => { c.moveTo(-2, -2.4); c.quadraticCurveTo(0, -5, 2, -2.4); c.closePath(); }, cap, 0.35); c.restore(); }

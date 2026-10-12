@@ -49,6 +49,8 @@ export function migrate(h) {
   if (h.v < 2) { for (const s of Object.keys(h.eq || {})) if (h.eq[s]) h.eq[s] = remakeItem(h.eq[s], h.cls); h.bag = h.bag.map(it => remakeItem(it, h.cls)); }
   // v64: облик вещей моделями — модель и зерно для старых вещей, название по модели
   if (h.v < 3) { for (const s of Object.keys(h.eq)) lookUpgrade(h.eq[s], h.cls); for (const it of h.bag) lookUpgrade(it, h.cls); }
+  // v71: Грибной лес стал шире в 1,3 раза — место героя туда же по карте, жилы зоны — заново (на новых местах)
+  if (h.v < 4) { if (h.zone === 'shroom' && h.pos) h.pos = { x: Math.round(h.pos.x * 1.3), y: Math.round(h.pos.y * 1.3) }; if (h.veins) delete h.veins.shroom; }
   if (h.v < HERO_V) h.v = HERO_V;
   return h;
 }

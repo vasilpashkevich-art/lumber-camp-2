@@ -2,6 +2,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { WEAPONS, HELMS, CHESTS, LEGS, RINGS, NECKS, modelOf, itemLook, drawHelm, drawRing, drawNeck, palette } from '../src/art/gear.js';
+import { HERO_V } from '../src/entities/hero.js';
 import { person } from '../src/art/body.js';
 import { makeItem, lookOf, starterGear } from '../src/systems/items.js';
 import { MOB_LOOK, GUARD_LOOK } from '../src/art/sprites.js';
@@ -50,7 +51,7 @@ test('облик героя: свой для каждого набора вещ�
 test('старое сохранение (v2): вещи получают модель и название, остальное не меняется, повторно — то же', () => {
   const old = () => ({ v: 2, id: 'o', name: 'О', cls: 'warrior', lvl: 9, eq: { chest: { id: 'c1', cls: 'warrior', slot: 'chest', ilvl: 9, rar: 'good', tier: 2, armor: 30, main: 5, stam: 6, props: { crit: 1.2 }, name: 'Кольчуга ястреба' }, weapon: { id: 'w1', cls: 'warrior', slot: 'weapon', ilvl: 9, rar: 'rare', tier: 3, wt: 3, dmg: 20, main: 4, stam: 2, name: 'Секира' } }, bag: [{ id: 'q1', cls: 'warrior', slot: 'head', ilvl: 4, rar: 'common', tier: 1, armor: 4, main: 1, stam: 1, pos: 2, name: 'Кожаная шапка' }, { id: 'ore', kind: 'ore', metal: 'copper', n: 5, pos: 3, name: 'Медная руда' }] });
   const a = migrate(old()), b = migrate(old());
-  assert.equal(a.v, 3); assert.ok(a.eq.chest.m && a.eq.weapon.m && a.bag[0].m);
+  assert.equal(a.v, HERO_V); assert.ok(a.eq.chest.m && a.eq.weapon.m && a.bag[0].m);
   assert.equal(a.eq.chest.armor, 30); assert.equal(a.eq.weapon.dmg, 20); assert.deepEqual(a.eq.chest.props, { crit: 1.2 });
   assert.equal(a.bag[1].kind, 'ore'); assert.ok(!a.bag[1].m, 'руда без модели');
   assert.deepEqual(a.eq, b.eq, 'облик одинаковый при каждой загрузке');

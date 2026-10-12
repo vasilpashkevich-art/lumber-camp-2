@@ -1,6 +1,7 @@
 // Мир зоны: граница, деревья, дороги, лагеря, столица. Строится из данных зоны и её зерна —
 // у всех одинаковый, от сохранения не зависит.
 import { rng, inPoly, segDist, dist, clamp } from '../engine/util.js';
+import { buildRelief, findPath } from './relief.js';
 
 const CELL = 400; // ячейка сетки для быстрого поиска деревьев рядом с экраном
 
@@ -80,13 +81,34 @@ export function buildWorld(Z) {
   W.ponds = PONDS; W.creek = Z.creek || null;
   const inPond = (x, y, pad) => PONDS.some(([px, py, rx, ry]) => ((x - px) / (rx + pad)) ** 2 + ((y - py) / (ry + pad * 0.6)) ** 2 < 1);
   W.water = (x, y, pad = 0) => (PONDS.length && inPond(x, y, pad)) || R && W.riverD(x, y) < R.w / 2 + pad && !R.bridgeAt.some(b => { const dx = x - b.x, dy = y - b.y, u = -dx * Math.sin(b.ra) + dy * Math.cos(b.ra), l = dx * Math.cos(b.ra) + dy * Math.sin(b.ra); return Math.abs(u) < 36 && Math.abs(l) < b.len / 2; });
-  W.blocked = (x, y) => W.blocks.some(b => b.rect ? x > b.x0 && x < b.x1 && y > b.y0 && y < b.y1 : Math.abs(x - b.x) < b.rx && ((x - b.x) / b.rx) ** 2 + ((y - b.y) / b.ry) ** 2 < 1);
+  // препятствия по клеткам (быстро для поиска пути и мобов); сетка пересобирается, когда препятствий стало больше
+  const BC = 200, hitB = (b, x, y) => b.rect ? x > b.x0 && x < b.x1 && y > b.y0 && y < b.y1 : Math.abs(x - b.x) < b.rx && ((x - b.x) / b.rx) ** 2 + ((y - b.y) / b.ry) ** 2 < 1;
+  let bgrid = null, bn = -1;
+  const bgridOf = () => { if (bn === W.blocks.length) return bgrid; bn = W.blocks.length; bgrid = new Map();
+    for (const b of W.blocks) { const x0 = b.rect ? b.x0 : b.x - b.rx, x1 = b.rect ? b.x1 : b.x + b.rx, y0 = b.rect ? b.y0 : b.y - b.ry, y1 = b.rect ? b.y1 : b.y + b.ry;
+      for (let i = Math.floor(x0 / BC); i <= Math.floor(x1 / BC); i++) for (let j = Math.floor(y0 / BC); j <= Math.floor(y1 / BC); j++) { const k = i * 4096 + j; let a = bgrid.get(k); if (!a) bgrid.set(k, a = []); a.push(b); } }
+    return bgrid; };
+  W.blocked = (x, y) => { const a = bgridOf().get(Math.floor(x / BC) * 4096 + Math.floor(y / BC)); return !!a && a.some(b => hitB(b, x, y)); };
   /** Можно ли стоять здесь мобу: внутри зоны, не в воде, не в постройке. */
   W.walkable = (x, y) => inside(x, y) && !W.water(x, y) && !W.blocked(x, y);
+  /** Для поиска пути — с запасом от воды (герой к ней ближе 4 шагов не подходит). */
+  W.navOk = (x, y) => inside(x, y) && !W.water(x, y, 8) && !W.blocked(x, y);
   const inField = (x, y, pad) => W.fields.some(F => { const dx = x - F.x, dy = y - F.y, c = Math.cos(-(F.a || 0)), s = Math.sin(-(F.a || 0)), u = dx * c - dy * s, v = dx * s + dy * c; return Math.abs(u) < F.w / 2 + pad && Math.abs(v) < F.h / 2 + pad; });
   W.inField = inField;
   const edgeDist = (x, y) => { let m = 1e9; for (let i = 0; i < edge.length; i++) { const a = edge[i], b = edge[(i + 1) % edge.length]; m = Math.min(m, segDist(x, y, a[0], a[1], b[0], b[1])); } return m; };
   W.inside = inside; W.edgeDist = edgeDist;
+  // рельеф (v71): ярусы, склоны; высота земли и можно ли шагнуть
+  const RF = W.relief = buildRelief(Z);
+  W.hAt = RF ? (x, y) => RF.height(x, y) : () => 0;
+  W.stepOk = RF ? (x0, y0, x1, y1) => RF.canStep(x0, y0, x1, y1) : () => true;
+  /** Свободно ли место для дерева, камня, жилы: не у края яруса и не на склоне. */
+  W.flatOk = RF ? (x, y, d = 50, rockOnly = false) => !RF.nearEdge(x, y, d, rockOnly) && !RF.nearRamp(x, y, d * 0.8) : () => true;
+  W.path = (x0, y0, x1, y1, max) => RF ? findPath(W, x0, y0, x1, y1, max) : null;
+  /** Точка земли под точкой экрана (x, ys = y − высота): из нескольких — ближняя к зрителю (южнее). */
+  W.ground = RF ? (x, ys) => { let best = null, bd = 1e9, far = ys; for (let y = ys + RF.min * 46 - 6; y <= ys + RF.max * 46 + 6; y += 2) { const d = Math.abs(y - RF.height(x, y) - ys); if (d < 3) best = y; if (d < bd) { bd = d; far = y; } } return best ?? far; } : (x, ys) => ys;
+  // древние великаны: низ ствола — препятствие
+  W.giants = (RF && Z.relief.giants || []).map((g, i) => ({ ...g, s: i * 3 + 3 }));
+  for (const g of W.giants) W.blocks.push({ x: g.x, y: g.y - 6, rx: g.kind === 'oak' ? 38 : 28, ry: g.kind === 'oak' ? 15 : 11 });
 
   // лагеря и точки появления мобов
   Z.camps.forEach((c, ci) => {
@@ -102,10 +124,11 @@ export function buildWorld(Z) {
   });
 
   // точка появления в постройке или в воде — сдвинуть по кругу на свободное место (без зерна: старые точки не меняются)
+  const spawnOk = (c, x, y) => W.walkable(x, y) && (!RF || (RF.levelAt(x, y) === RF.levelAt(c.x, c.y) || !RF.nearEdge(c.x, c.y, c.r, true)) && !RF.nearEdge(x, y, 26, true));
   for (const c of W.camps) for (const sp of c.spawns) {
-    if (W.walkable(sp.x, sp.y)) continue;
+    if (spawnOk(c, sp.x, sp.y)) continue;
     const a0 = Math.atan2(sp.y - c.y, sp.x - c.x), d0 = Math.hypot(sp.x - c.x, sp.y - c.y);
-    search: for (let dd = 0; dd < 6; dd++) for (let k = 1; k < 12; k++) { const a = a0 + k * 0.5, d = Math.max(20, d0 - dd * 30), x = c.x + Math.cos(a) * d, y = c.y + Math.sin(a) * d; if (W.walkable(x, y)) { sp.x = x; sp.y = y; break search; } }
+    search: for (let dd = 0; dd < 6; dd++) for (let k = 1; k < 12; k++) { const a = a0 + k * 0.5, d = Math.max(20, d0 - dd * 30), x = c.x + Math.cos(a) * d, y = c.y + Math.sin(a) * d; if (spawnOk(c, x, y)) { sp.x = x; sp.y = y; break search; } }
   }
   // деревья: не на дорогах, не в столице, не в центре лагерей, не у кладбища
   const T = Z.trees; let tries = 0;
@@ -121,6 +144,7 @@ export function buildWorld(Z) {
     if (W.camps.some(c => dist(x, y, c.x, c.y) < c.r * 0.7 + 30)) continue;
     if (dist(x, y, Z.graveyard.x, Z.graveyard.y) < 180) continue;
     if (W.trees.some(t => Math.abs(t.x - x) < 46 && Math.abs(t.y - y) < 46)) continue;
+    if (RF && (!W.flatOk(x, y, 50) || W.giants.some(g => Math.abs(g.x - x) < 150 && Math.abs(g.y - y) < 110))) continue;
     // деревья гуще у краёв зоны
     if (edgeDist(x, y) > 700 && r() < 0.45) continue;
     const kind = T.kinds[Math.floor(r() * T.kinds.length)];
@@ -132,7 +156,7 @@ export function buildWorld(Z) {
     const n = Math.round(Math.hypot(bx - ax, by - ay) / 70);
     for (let k = 0; k < n; k++) {
       const t = k / n, x = ax + (bx - ax) * t + (r() - 0.5) * 40, y = ay + (by - ay) * t + (r() - 0.5) * 40;
-      if (Z.exits.some(e => dist(x, y, e.x, e.y) < 260)) continue;
+      if (Z.exits.some(e => dist(x, y, e.x, e.y) < 260) || (RF && !W.flatOk(x, y, 30))) continue;
       addTree(W, { x, y, kind: 2, s: 1 + r() * 0.3, v: r(), edge: true });
     }
   }
@@ -151,7 +175,7 @@ export function buildWorld(Z) {
   const rockOk = (x, y, rr) => inside(x, y, 30) && roadD(x, y) > rr + 50 && !(town && dist(x, y, town.x, town.y) < town.R + rr + 140)
     && !W.camps.some(c => dist(x, y, c.x, c.y) < c.r + rr + 60) && !inField(x, y, rr + 20) && !(R && W.riverD(x, y) < R.w / 2 + rr + 30)
     && !Z.exits.some(e => dist(x, y, e.x, e.y) < 300) && dist(x, y, Z.graveyard.x, Z.graveyard.y) > 260
-    && !W.blocks.some(b => !b.rect && dist(x, y, b.x, b.y) < b.rx + rr + 30) && !W.rocks.some(o => dist(x, y, o.x, o.y) < o.w * 0.5 + rr + 40);
+    && !W.blocks.some(b => !b.rect && dist(x, y, b.x, b.y) < b.rx + rr + 30) && !W.rocks.some(o => dist(x, y, o.x, o.y) < o.w * 0.5 + rr + 40) && W.flatOk(x, y, rr + 40);
   for (let i = 0, tries = 0; i < 26 && tries < 2000; tries++) {
     const e = edge[Math.floor(r3() * edge.length)], cx = Z.W / 2, cy = Z.H / 2, a = Math.atan2(cy - e[1], cx - e[0]), d = 110 + r3() * 200;
     const x = e[0] + Math.cos(a) * d, y = e[1] + Math.sin(a) * d, w = 130 + r3() * 90;
@@ -164,7 +188,7 @@ export function buildWorld(Z) {
   for (const o of W.rocks) W.blocks.push({ x: o.x, y: o.y - 4, rx: o.w * 0.48, ry: o.w * 0.16 });
   // Грибной лес (v65): поваленные стволы (обходить), рощи грибов-великанов, папоротники, светящиеся грибочки, камыш у прудов — отдельным зерном
   if (Z.moss) {
-    const r4 = rng(Z.seed + 900), free = (x, y, rr) => inside(x, y, 40) && roadD(x, y) > rr + 30 && !W.water(x, y, rr * 0.4) && !(town && dist(x, y, town.x, town.y) < town.R + rr + 40) && !W.camps.some(c => dist(x, y, c.x, c.y) < c.r * 0.6 + rr) && !Z.exits.some(e => dist(x, y, e.x, e.y) < 260);
+    const r4 = rng(Z.seed + 900), free = (x, y, rr) => inside(x, y, 40) && roadD(x, y) > rr + 30 && !W.water(x, y, rr * 0.4) && !(town && dist(x, y, town.x, town.y) < town.R + rr + 40) && !W.camps.some(c => dist(x, y, c.x, c.y) < c.r * 0.6 + rr) && !Z.exits.some(e => dist(x, y, e.x, e.y) < 260) && W.flatOk(x, y, rr + 24) && !W.giants.some(g => dist(x, y, g.x, g.y) < 70 + rr);
     for (const [lx, ly] of Z.logs || []) { const len = 80 + r4() * 40; if (!free(lx, ly, 60)) continue; W.props.push({ kind: 'log', x: lx, y: ly, len, s: Math.floor(r4() * 1000) }); W.blocks.push({ rect: true, x0: lx - len / 2 - 4, y0: ly - 14, x1: lx + len / 2 + 4, y1: ly + 2 }); }
     for (const [gx, gy, gr] of Z.groves || []) for (let i = 0; i < 6; i++) { const a = r4() * 6.283, d = Math.sqrt(r4()) * gr, x = gx + Math.cos(a) * d, y = gy + Math.sin(a) * d * 0.8; if (!free(x, y, 40) || W.trees.some(t => Math.abs(t.x - x) < 50 && Math.abs(t.y - y) < 40)) continue; addTree(W, { x, y, kind: 'gshroom', s: 0.8 + r4() * 0.5, v: r4() }); }
     for (let i = 0; i < 260; i++) { const x = r4() * Z.W, y = r4() * Z.H; if (!free(x, y, 16) || W.blocked(x, y)) continue; W.props.push({ kind: r4() < 0.75 ? 'fern' : 'glow', x, y, s: Math.floor(r4() * 1000), k: 0.8 + r4() * 0.5 }); }
@@ -192,7 +216,7 @@ export function treesIn(W, x0, y0, x1, y1) {
 
 /** Куда можно сдвинуться из (x,y) в (nx,ny): граница зоны, вода, стена столицы, постройки. */
 export function moveTo(W, x, y, nx, ny, r = 12) {
-  const bad = (a, b) => !W.inside(a, b) || W.water(a, b, 4) || W.blocked(a, b);
+  const bad = (a, b) => !W.inside(a, b) || W.water(a, b, 4) || W.blocked(a, b) || !W.stepOk(x, y, a, b);
   if (bad(nx, ny)) { if (!bad(nx, y)) ny = y; else if (!bad(x, ny)) nx = x; else { nx = x; ny = y; } }
   // стена столицы: кольцо, проходы в воротах
   const c = W.cap;

@@ -38,6 +38,12 @@ function base(g, W, k, big, q = 1) {
   g.fillStyle = '#1c2a1a'; g.fillRect(0, 0, W.W * k + 2, W.H * k + 2);
   g.beginPath(); W.edge.forEach((p, i) => i ? g.lineTo(p[0] * k, p[1] * k) : g.moveTo(p[0] * k, p[1] * k)); g.closePath(); g.fillStyle = W.Z.ground === 'z3' ? '#a8a058' : W.Z.moss ? '#3e5a2c' : '#5d8a42'; g.fill();
   if (big) { g.strokeStyle = '#3a5a2a'; g.lineWidth = 2; g.stroke(); }
+  // рельеф (v71): низины темнее, холмы светлее; каменные края — обводкой
+  if (W.relief) { g.save(); g.clip();
+    for (const rg of W.relief.regions) { g.beginPath(); rg.poly.forEach(([x, y], i) => i ? g.lineTo(x * k, y * k) : g.moveTo(x * k, y * k)); g.closePath();
+      g.fillStyle = rg.lvl <= -1 ? 'rgba(12,24,10,.32)' : rg.lvl < 0 ? 'rgba(12,24,10,.22)' : rg.lvl >= 1 ? 'rgba(220,210,170,.30)' : 'rgba(230,240,180,.14)'; g.fill();
+      if (rg.rock) { g.strokeStyle = 'rgba(40,30,20,.75)'; g.lineWidth = big ? 2 : 1 * q; g.stroke(); } }
+    g.restore(); }
   const FC = { wheat: '#d8b44a', sun: '#c9b030', cabbage: '#7ab04a', pasture: '#9aaa52', orchard: '#6a8a3a' };
   for (const F of W.fields) { g.save(); g.translate(F.x * k, F.y * k); g.rotate(F.a || 0); g.fillStyle = FC[F.crop]; g.globalAlpha = 0.85; g.fillRect(-F.w * k / 2, -F.h * k / 2, F.w * k, F.h * k); g.restore(); }
   g.globalAlpha = 1;

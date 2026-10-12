@@ -9,8 +9,10 @@ const emit = (G, e) => G.ev.push(e);
 const sfx = (G, n) => G.ev.push({ k: 'sfx', n });
 
 /** Подходит ли место под жилу: проходимо, не на дороге, не в лагере, не в городе, не в поле и не у воды. */
-function goodSpot(W, x, y) {
+function goodSpot(W, x, y, A) {
   if (!W.walkable(x, y) || W.edgeDist(x, y) < 70) return false;
+  // рельеф (v71): жила на том же ярусе, что середина области (на холме — на холме), не у края и не на склоне
+  if (W.relief && (W.relief.levelAt(x, y) !== W.relief.levelAt(A.x, A.y) || !W.flatOk(x, y, 80))) return false;
   if (W.roadD(x, y) < 70) return false;
   if (W.town && dist(x, y, W.town.x, W.town.y) < W.town.R + 80) return false;
   if (W.camps.some(c => dist(x, y, c.x, c.y) < c.r + 90)) return false;
@@ -20,7 +22,7 @@ function goodSpot(W, x, y) {
   return true;
 }
 function placeIn(G, A) {
-  for (let i = 0; i < 60; i++) { const a = G.rand() * Math.PI * 2, d = Math.sqrt(G.rand()) * A.r, x = A.x + Math.cos(a) * d, y = A.y + Math.sin(a) * d; if (goodSpot(G.W, x, y)) return { x: Math.round(x), y: Math.round(y) }; }
+  for (let i = 0; i < 60; i++) { const a = G.rand() * Math.PI * 2, d = Math.sqrt(G.rand()) * A.r, x = A.x + Math.cos(a) * d, y = A.y + Math.sin(a) * d; if (goodSpot(G.W, x, y, A)) return { x: Math.round(x), y: Math.round(y) }; }
   return null;
 }
 
@@ -39,7 +41,7 @@ const live = (G, v) => !v.at || v.at <= G.t;
 /** Жила, у которой стоит герой (для E). */
 export function veinNear(G) {
   const P = G.P; let best = null, bd = MINE.reach;
-  for (const v of G.veins || []) { if (!live(G, v)) continue; const d = dist(P.x, P.y, v.x, v.y); if (d < bd) { bd = d; best = v; } }
+  for (const v of G.veins || []) { if (!live(G, v)) continue; const d = dist(P.x, P.y, v.x, v.y); if (d < bd && Math.abs(G.W.hAt(P.x, P.y) - G.W.hAt(v.x, v.y)) < 26) { bd = d; best = v; } }   // с другого яруса не достать
   return best;
 }
 export const miningSkill = H => (H.prof && H.prof.mining) || 0;
