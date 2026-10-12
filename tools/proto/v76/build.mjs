@@ -1,0 +1,3 @@
+import { build } from 'esbuild'; import { writeFileSync } from 'node:fs';
+const r = await build({ stdin: { contents: `import { gallery } from './bosses.js'; const cv = document.getElementById('g'); let t0 = performance.now(); (function L() { gallery(cv, window.STILL ? 1 : (performance.now() - t0) / 1000); if (!window.STILL) requestAnimationFrame(L); })();`, resolveDir: 'tools/proto/v76' }, bundle: true, format: 'iife', write: false });
+writeFileSync('tools/proto/v76/gal.html', `<body style="margin:0;background:#222"><canvas id="g" width="1200" height="1180"></canvas><script>window.STILL=location.hash.includes('still')</script><script>${r.outputFiles[0].text}</script></body>`);
