@@ -59,7 +59,7 @@ export function createHud(In) {
     if (H.lockLvl !== h.lvl) { const A = C.abils[1], open = h.lvl >= A.lvl, b = $('#actAbil2'); const lk = b.querySelector('.lock'); lk.hidden = open; lk.querySelector('b').textContent = `${A.lvl} ур.`; if (open && H.lockLvl > 0 && H.lockLvl < A.lvl) { b.classList.add('ready'); setTimeout(() => b.classList.remove('ready'), 5000); } H.lockLvl = h.lvl; } cool('#actAttack', P.cd, attackOf(h).cd); $('#actAttack').classList.toggle('auto', !!P.auto);
     $('#actPot .n').textContent = h.potions;
     // телефон: кнопка действия рядом с тем, что можно сделать (вместо клавиши E)
-    if (TOUCH) { const it = !P.dead && !P.mine && interactTarget(G), u = $('#actUse'), lab = it ? (it.k === 'corpse' ? 'Обыскать' : it.k === 'vein' ? 'Копать' : it.k === 'exit' ? 'В путь' : it.b.vendor ? 'Торговать' : it.b.guild || it.b.smelt ? 'Войти' : 'Осмотреть') : '';
+    if (TOUCH) { const it = !P.dead && !P.mine && interactTarget(G), u = $('#actUse'), lab = it ? (it.k === 'corpse' ? 'Обыскать' : it.k === 'vein' ? 'Копать' : it.k === 'exit' ? 'В путь' : it.b.vendor ? 'Торговать' : it.b.bank ? 'Банк' : it.b.guild || it.b.smelt ? 'Войти' : 'Осмотреть') : '';
       u.hidden = !it; if (u.textContent !== lab) u.textContent = lab; $('#actSit').classList.toggle('on2', !!P.sit); }
     // аксессуар на клавише 1: значок меняется, когда надели другой
     const tr = h.eq.trinket, tk = tr ? tr.id : ''; const tb = $('#actTrinket');

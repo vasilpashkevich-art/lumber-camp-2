@@ -7,7 +7,7 @@ import { palette } from '../art/gear.js';
 import { field, river as riverArt, bridge, haystack, millBase, millBlades, well } from '../art/farmland.js';
 import { BLD } from '../art/bld.js';
 import { castle, stairs, brazierFire, paving, roundPlaza, ringPath, fountain, lamp, flowerbed, terrace, wallSeg, roundTower, merlons, cone } from '../art/castle.js';
-import { house, inn, tavern, enchant, barn, miners, forge, farmstead } from '../art/houses.js';
+import { house, inn, tavern, enchant, barn, miners, forge, farmstead, bank } from '../art/houses.js';
 import { vein, glint, outcrop } from '../art/ore.js';
 import { BAR_H } from '../art/beasts.js';
 import * as FOR from '../art/forest.js';
@@ -90,10 +90,10 @@ function buildStatics(W) {
   const ART = {
     market: () => stallSpr(), stall: () => stallSpr(), cart: () => cartSpr(),
     forge: () => big('forge', forge), tavern: () => big('tavern', tavern), miners: () => big('miners', miners, 420),
-    enchant: () => big('enchant', enchant), inn: () => big('inn', inn), barn: () => big('barn', barn),
+    enchant: () => big('enchant', enchant), inn: () => big('inn', inn), barn: () => big('barn', barn), bank: () => big('bank', bank),
     house: v => big('house' + v, g => house(g, v)),
   };
-  const LBL = { castle: 455, market: 105, stall: 105, cart: 110, forge: 170, tavern: 210, miners: 200, enchant: 210, inn: 230, barn: 190 };
+  const LBL = { bank: 205, castle: 455, market: 105, stall: 105, cart: 110, forge: 170, tavern: 210, miners: 200, enchant: 210, inn: 230, barn: 190 };
   for (const b of W.houses) {
     const sp = ART[b.art] ? ART[b.art](b.v || 0) : null;
     S.push({ y: b.y, oc: sp && occ(sp, b.x, b.y), draw: g => sp && drawSpr(g, sp, b.x, b.y), label: b.name, lx: b.x, ly: b.y - (LBL[b.art] || 120) });

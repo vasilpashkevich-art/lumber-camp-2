@@ -4,13 +4,13 @@ import { buildNav } from './world/relief.js';
 import { buildWorld, inCity } from './world/world.js';
 import { createGame, update, abilsOf, refreshStats } from './systems/game.js';
 import { addStack } from './systems/mining.js';
-import { loadHero, saveHero, migrate } from './engine/save.js';
+import { loadHero, saveHero, migrate, loadShared, saveShared } from './engine/save.js';
 import { createRenderer, render, ZOOM } from './engine/render.js';
 import { createInput } from './engine/input.js';
 import { soundInit, sfx, music, setSound, soundState } from './engine/audio.js';
 import { showSelect } from './ui/select.js';
 import { createHud } from './ui/hud.js';
-import { openChar, openVendor, openMenu, showDeath, hideTip, openLoot, openAbils, openGuild, openSmelt } from './ui/windows.js';
+import { openChar, openVendor, openMenu, showDeath, hideTip, openLoot, openAbils, openGuild, openSmelt, openBank } from './ui/windows.js';
 import { openMap, miniZoom, miniZoomLevel, MINI_Z } from './ui/map.js';
 import { doll } from './art/body.js';
 import { spriteClear, spriteStats } from './art/sprites.js';
@@ -21,7 +21,7 @@ import { dist } from './engine/util.js';
 import { $, toast, zoneTitle, TOUCH, T } from './ui/dom.js';
 import { RAR_COL } from '../data/balance.js';
 
-const VERSION = 71;
+const VERSION = 72;
 /** Приближение камеры на шаг: +1 ближе, −1 дальше. */
 let zoomT = 0;
 function zoomBy(d) {
@@ -83,7 +83,7 @@ function start(id) {
   hero.worldT = (hero.worldT || 0) + Math.min(3600, Math.max(0, (Date.now() - (hero.seen || Date.now())) / 1000));
   if (!ZONES[hero.zone]) hero.zone = 'pine';
   W = worldOf(hero.zone);
-  G = createGame(hero, W);
+  G = createGame(hero, W); G.shared = loadShared();
   R.cam.x = G.P.x; R.cam.y = G.P.y - G.W.hAt(G.P.x, G.P.y);
   $('#hud').hidden = false; $('#game').hidden = false;
   hud.bind(G); In.clear();
@@ -97,12 +97,14 @@ function stop() { cancelAnimationFrame(raf); if (G) { persist(); G = null; } }
 /** Перейти в другую зону по дороге: сохранить героя на месте прихода и построить новый мир. */
 function goZone(e) {
   const h = G.hero; h.zone = e.zone; h.pos = { x: e.at.x, y: e.at.y }; h.hp = Math.round(G.P.hp);
-  saveHero(h); W = worldOf(e.zone);
-  G = createGame(h, W); R.cam.x = G.P.x; R.cam.y = G.P.y - G.W.hAt(G.P.x, G.P.y); hud.bind(G); In.clear();
+  saveHero(h); keepShared(); const sh = G.shared; W = worldOf(e.zone);
+  G = createGame(h, W); G.shared = sh; R.cam.x = G.P.x; R.cam.y = G.P.y - G.W.hAt(G.P.x, G.P.y); hud.bind(G); In.clear();
   zoneTitle(W.Z.name, `уровни ${W.Z.lvl[0]}–${W.Z.lvl[1]}`);
 }
 
-function persist() { if (!G) return; const h = G.hero; h.pos = { x: Math.round(G.P.x), y: Math.round(G.P.y) }; h.hp = Math.round(G.P.hp); saveHero(h); }
+function persist() { if (!G) return; const h = G.hero; h.pos = { x: Math.round(G.P.x), y: Math.round(G.P.y) }; h.hp = Math.round(G.P.hp); saveHero(h); keepShared(); }
+/** Общий сундук всех героев — свой ключ; пишется, когда в нём что-то поменялось. */
+function keepShared() { if (G && G.sharedDirty && G.shared) { saveShared(G.shared); G.sharedDirty = false; } }
 
 function charWin() { if (!G) return; openChar(G, () => hud.update()); }
 function mapWin() { if (!G || document.querySelector('.modal')) return; openMap(G); }
@@ -125,6 +127,7 @@ function frame(now) {
     if (e.k === 'lvl') { toast(`Новый уровень: ${e.L}! Здоровье восстановлено.`, 'good'); const A = abilsOf(G.hero).find(a => a.lvl === e.L); if (A) toast(`Новое умение: <b>${A.name}</b> — ${T('клавиша ' + A.key, 'новая кнопка справа')}. ${A.d}`, 'good'); }
     if (e.k === 'vendor' && !document.querySelector('.modal')) openVendor(G, () => hud.update(), e.b);
     if (e.k === 'guild' && !document.querySelector('.modal')) openGuild(G, () => hud.update());
+    if (e.k === 'bank' && !document.querySelector('.modal')) { const bm = openBank(G, () => hud.update()), oc = bm.onclose; bm.onclose = () => { oc && oc(); persist(); }; }
     if (e.k === 'smelt' && !document.querySelector('.modal')) openSmelt(G, () => hud.update());
     if (e.k === 'skill') toast(e.s, 'good', 'skill');
     if (e.k === 'zone') { goZone(e.e); break; }

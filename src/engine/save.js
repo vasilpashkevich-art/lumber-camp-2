@@ -2,6 +2,8 @@
 // Ключи ветки II: lumber-camp2-*  (не пересекаются с основной игрой).
 import { HERO_V } from '../entities/hero.js';
 import { remakeItem, lookUpgrade } from '../systems/items.js';
+import { fixSlots } from '../systems/bank.js';
+import { LOOT } from '../../data/balance.js';
 
 const IDX = 'lumber-camp2-heroes';       // список героев: [{id, name, cls, lvl, zone, play, seen}]
 const KEY = id => 'lumber-camp2-hero-' + id;
@@ -51,6 +53,8 @@ export function migrate(h) {
   if (h.v < 3) { for (const s of Object.keys(h.eq)) lookUpgrade(h.eq[s], h.cls); for (const it of h.bag) lookUpgrade(it, h.cls); }
   // v71: Грибной лес стал шире в 1,3 раза — место героя туда же по карте, жилы зоны — заново (на новых местах)
   if (h.v < 4) { if (h.zone === 'shroom' && h.pos) h.pos = { x: Math.round(h.pos.x * 1.3), y: Math.round(h.pos.y * 1.3) }; if (h.veins) delete h.veins.shroom; }
+  // v72: личный банк
+  h.bank = fixSlots((h.bank || []).filter(Boolean), LOOT.bank);
   if (h.v < HERO_V) h.v = HERO_V;
   return h;
 }
@@ -58,7 +62,7 @@ export function migrate(h) {
 /** Все герои одним текстом для файла. */
 export function exportAll() {
   const heroes = listHeroes().map(r => loadHero(r.id)).filter(Boolean);
-  return JSON.stringify({ game: 'lumber-camp-2', v: 1, at: new Date().toISOString(), heroes });
+  return JSON.stringify({ game: 'lumber-camp-2', v: 1, at: new Date().toISOString(), heroes, shared: loadShared() });
 }
 
 /** Загрузить из текста файла. Возвращает {added, skipped} или бросает ошибку с понятным текстом. */
@@ -72,8 +76,17 @@ export function importAll(text) {
     if (!have.some(x => x.id === raw.id) && have.length >= MAX_SLOTS) { skipped++; continue; }
     saveHero(migrate(raw)); added++;
   }
+  // общий сундук: вещей, которых здесь нет, — добавить в свободные ячейки (повторно не удваивается)
+  if (d.shared && Array.isArray(d.shared.items)) { const S = loadShared(), have = new Set(S.items.map(x => x.id)); for (const it of d.shared.items) { if (!it || have.has(it.id) || S.items.length >= LOOT.shared) continue; it.pos = null; S.items.push(it); have.add(it.id); } fixSlots(S.items, LOOT.shared); saveShared(S); }
   return { added, skipped };
 }
+
+// общий сундук всех героев (v72): отдельный ключ, вещи с теми же правилами, что в сумке
+const SHARED = 'lumber-camp2-shared';
+export function loadShared() {
+  try { const d = JSON.parse(get(SHARED) || 'null'); const items = (d && Array.isArray(d.items) ? d.items : []).filter(Boolean).map(it => it.slot && it.cls ? lookUpgrade(it, it.cls) || it : it); return { items: fixSlots(items, LOOT.shared) }; } catch (e) { return { items: [] }; }
+}
+export const saveShared = S => set(SHARED, JSON.stringify({ v: 1, items: S.items }));
 
 // громкость и прочие настройки этого браузера
 export const prefs = {

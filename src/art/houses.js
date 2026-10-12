@@ -134,6 +134,37 @@ export function enchant(g) {
   hp(g, () => { g.moveTo(0, y - 12); g.lineTo(7, y); g.lineTo(0, y + 12); g.lineTo(-7, y); g.closePath(); }, '#b48aff', 1.2);
   for (const x of [-w / 2 + 16, w / 2 - 16]) { hp(g, () => g.rect(x - 6, -30, 12, 30), '#6a6474', 1.2); g.fillStyle = '#9a7aff'; g.beginPath(); g.moveTo(x, -44); g.lineTo(x + 5, -32); g.lineTo(x - 5, -32); g.closePath(); g.fill(); g.stroke(); }
 }
+/** Банк (v72): светлый камень, портик на четырёх колоннах, ступени, тяжёлая дверь с оковкой, решётки на окнах, золотая монета на фронтоне. */
+export function bank(g) {
+  const w = 220, H = 128, stone = '#b4ad9e';
+  shadow(g, w + 40);
+  // ступени во всю ширину портика
+  for (let k = 0; k < 3; k++) hp(g, () => g.rect(-w / 2 + 12 + k * 6, -6 - k * 6, w - 24 - k * 12, 7), shade('#9a948a', 1 - k * 0.04), 1.3);
+  masonry(g, -w / 2, -H, w, H - 18, stone, 51, 13); hp(g, () => g.rect(-w / 2, -H, w, H - 18), null, 1.8);
+  // карниз и фронтон с монетой
+  hp(g, () => g.rect(-w / 2 - 10, -H - 10, w + 20, 12), shade(stone, 1.08), 1.6);
+  hp(g, () => { g.moveTo(-w / 2 - 12, -H - 10); g.lineTo(0, -H - 62); g.lineTo(w / 2 + 12, -H - 10); g.closePath(); }, shade(stone, 1.04), 1.8);
+  hp(g, () => { g.moveTo(-w / 2 + 6, -H - 15); g.lineTo(0, -H - 54); g.lineTo(w / 2 - 6, -H - 15); g.closePath(); }, shade(stone, 0.9), 1.2);
+  // крыша за фронтоном (сланец)
+  hp(g, () => { g.moveTo(-w / 2 - 12, -H - 10); g.lineTo(0, -H - 62); g.lineTo(0, -H - 92); g.lineTo(-w / 2 - 12, -H - 40); g.closePath(); }, '#4a5a72', 1.6);
+  hp(g, () => { g.moveTo(w / 2 + 12, -H - 10); g.lineTo(0, -H - 62); g.lineTo(0, -H - 92); g.lineTo(w / 2 + 12, -H - 40); g.closePath(); }, '#3a4658', 1.6);
+  const gc = g.createRadialGradient(-4, -H - 36, 1, 0, -H - 33, 15); gc.addColorStop(0, '#fff3b0'); gc.addColorStop(1, '#d8a52a');
+  hp(g, () => g.arc(0, -H - 33, 13, 0, 7), gc, 1.6); g.strokeStyle = '#8a6418'; g.lineWidth = 1.2; g.beginPath(); g.arc(0, -H - 33, 8.5, 0, 7); g.stroke();
+  g.fillStyle = '#8a6418'; g.font = 'bold 11px Georgia'; g.textAlign = 'center'; g.fillText('¤', 0, -H - 29);
+  // окна с решётками
+  for (const x of [-74, 74]) { window_(g, x, -98, 26, 34, null); g.strokeStyle = '#2a2a30'; g.lineWidth = 2; for (const dx of [-6, 0, 6]) { g.beginPath(); g.moveTo(x + dx, -98); g.lineTo(x + dx, -64); g.stroke(); } }
+  // дверь — двустворчатая, с оковкой
+  door(g, 0, 52, 78, '#4a2e1c', true);
+  g.strokeStyle = O; g.lineWidth = 1.4; g.beginPath(); g.moveTo(0, -18); g.lineTo(0, -76); g.stroke();
+  // колонны портика
+  for (const x of [-96, -40, 40, 96]) {
+    hp(g, () => g.rect(x - 9, -H + 2, 18, H - 22), shade(stone, 1.12), 1.5);
+    g.fillStyle = 'rgba(36,24,15,.18)'; g.fillRect(x + 3, -H + 2, 6, H - 22); g.fillStyle = 'rgba(255,250,230,.35)'; g.fillRect(x - 7, -H + 2, 3, H - 22);
+    hp(g, () => g.rect(x - 12, -H - 2, 24, 7), shade(stone, 1.05), 1.3); hp(g, () => g.rect(x - 12, -22, 24, 6), shade(stone, 1.0), 1.3);
+  }
+  // фонари у двери
+  for (const x of [-30, 30]) { hp(g, () => g.rect(x - 4, -70, 8, 11), '#3a3a40', 1); g.fillStyle = 'rgba(255,210,120,.85)'; g.fillRect(x - 2.5, -68, 5, 7); }
+}
 /** Амбар: широкие ворота для телеги, сеновал. Без табличек. */
 export function barn(g) {
   const w = 230, H = 120;

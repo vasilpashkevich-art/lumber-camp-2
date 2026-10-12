@@ -6,6 +6,7 @@ import { RAR_COL, RAR_NAME, LOOT, armorCut, PROPS } from '../../data/balance.js'
 import { itemIcon, anyIcon, accIcon, moneyHtml } from './icons.js';
 import { itemLines, itemNums, lookOf } from '../systems/items.js';
 import { compareItem } from '../entities/hero.js';
+import { stashPut, stashTake, stashMove, stashSwap, stashMaterials, store } from '../systems/bank.js';
 import { equip, unequip, sellItem, buyPotion, shopStock, buyShop, POTION_PRICE, respawnHero, lootTake, hasLoot, bagMove, abilsOf } from '../systems/game.js';
 import { ABIL_ICON } from './icons.js';
 import { doll } from '../art/body.js';
@@ -111,6 +112,45 @@ export function openChar(G, onChange) {
   const onKey = e => { if ((e.code === 'KeyI' || e.code === 'KeyB') && !e.repeat) { e.preventDefault(); e.stopPropagation(); m.close(); } };
   addEventListener('keydown', onKey, true);
   m.onclose = () => { hideTip(); removeEventListener('keydown', onKey, true); }; draw(); return m;
+}
+
+/** Банк (v72): слева — личный банк (64) или общий сундук всех героев (32), справа — сумка.
+ *  Компьютер: щелчок — переложить туда-обратно, перетаскивание — в нужную ячейку или на вкладку. Телефон: касание — лист с кнопками. */
+export function openBank(G, onChange) {
+  let tab = 'bank';
+  const m = modal(`<h2>Банк</h2><p class="who">Банкир Евстафий: «У меня надёжнее, чем в сундуке под кроватью. Кладите, путник, — ни мышь, ни разбойник не доберётся. А в общий сундук положите то, что пригодится другим вашим героям».</p>
+    <div class="bankw"><div class="bankside"><div class="tabs"><button class="tab" data-t="bank">Мой банк <span class="c1"></span></button><button class="tab" data-t="shared">Общий сундук <span class="c2"></span></button></div><div class="bag bankgrid"></div></div>
+    <div class="bagside"><h3>Сумка <span class="cb"></span></h3><div class="bag bagg"></div><div class="row"><button class="btn mats">Сложить руду и камни</button></div>
+    <p class="hint">${T('Нажмите на вещь — она перейдёт из сумки в банк или обратно. Можно перетаскивать мышью по ячейкам и на вкладку. Общий сундук видят все ваши герои. Закрыть — E или Esc.', 'Коснитесь вещи — «В банк» или «В сумку». Общий сундук видят все ваши герои.')}</p></div></div>`, 'wide bankbox');
+  let dragSrc = null;
+  const cell = (it, extra = '') => el('button', 'cell', it ? anyIcon(it, 44) + (it.n > 1 ? `<span class="n">${it.n}</span>` : '') + extra : '');
+  const drag = (b, src) => { if (TOUCH) return; b.draggable = true; b.ondragstart = e => { hideTip(); dragSrc = src; b.classList.add('drag'); e.dataTransfer.effectAllowed = 'move'; try { e.dataTransfer.setData('text/plain', 'вещь'); } catch (_) { } }; b.ondragend = () => { b.classList.remove('drag'); dragSrc = null; }; };
+  const drop = (b, fn) => { if (TOUCH) return; b.ondragover = e => { if (dragSrc) { e.preventDefault(); b.classList.add('over'); } }; b.ondragleave = () => b.classList.remove('over');
+    b.ondrop = e => { e.preventDefault(); b.classList.remove('over'); const src = dragSrc; dragSrc = null; if (src) { fn(src); done(); } }; };
+  const done = () => { onChange(); draw(); };
+  const tabName = t => t === 'shared' ? 'В общий сундук' : 'В банк';
+  const draw = () => {
+    const h = G.hero, S = store(G, tab), B = store(G, 'bank'), C = store(G, 'shared');
+    m.querySelector('.c1').textContent = `${B.list.length}/${B.size}`; m.querySelector('.c2').textContent = `${C.list.length}/${C.size}`; m.querySelector('.cb').textContent = `${h.bag.length} / ${LOOT.bag}`;
+    m.querySelectorAll('.tab').forEach(b => { b.classList.toggle('on', b.dataset.t === tab); b.onclick = () => { tab = b.dataset.t; hideTip(); draw(); };
+      drop(b, src => { if (src.bag) stashPut(G, src.it, b.dataset.t); else if (src.from !== b.dataset.t) stashSwap(G, src.it, src.from, b.dataset.t); }); });
+    const grid = m.querySelector('.bankgrid'); grid.innerHTML = ''; grid.classList.toggle('shared', tab === 'shared');
+    for (let i = 0; i < S.size; i++) {
+      const it = S.list.find(x => x.pos === i), b = cell(it, it && it.slot && it.cls === h.cls ? upMark(it, G) : '');
+      if (it) { hov(b, e => tip(e, it, G)); onItem(b, G, it, 'В сумку', () => { stashTake(G, it, tab); done(); }); drag(b, { it, from: tab }); }
+      drop(b, src => { if (src.bag) stashPut(G, src.it, tab, i); else if (src.from === tab) stashMove(G, src.it, tab, i); else stashSwap(G, src.it, src.from, tab, i); });
+      grid.append(b);
+    }
+    const bag = m.querySelector('.bagg'); bag.innerHTML = '';
+    for (let i = 0; i < LOOT.bag; i++) {
+      const it = h.bag.find(x => x.pos === i), b = cell(it, it ? upMark(it, G) : '');
+      if (it) { hov(b, e => tip(e, it, G)); onItem(b, G, it, tabName(tab), () => { stashPut(G, it, tab); done(); }); drag(b, { it, bag: true }); }
+      drop(b, src => { if (src.bag) bagMove(G, src.it, i); else stashTake(G, src.it, src.from, i); });
+      bag.append(b);
+    }
+  };
+  m.querySelector('.mats').onclick = () => { stashMaterials(G, tab); done(); };
+  closeOnE(m); draw(); return m;
 }
 
 /** Окно закрывается той же клавишей E, которой открыто (и Esc — как все окна). */
