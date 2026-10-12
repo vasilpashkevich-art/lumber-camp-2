@@ -33,15 +33,19 @@ const ANIMS = {
 };
 
 /** Скелет воина на момент времени. */
+const TWO = { hatchet: 10, sword: 0, bearded: 11, hammer: 12, greataxe: 14 };
+let CUR_SET = 'plate';
 function frame(anim, t, heading) {
-  const D = ANIMS[anim], q = (t % D.dur) / D.dur, r = D.f(q, t), B = toWorld(solve(r.P), heading + (r.P.spin || 0));
+  const D = ANIMS[anim], q = (t % D.dur) / D.dur, r = D.f(q, t);
+  if ((anim === 'idle' || anim === 'roar' && false) && !r.P.twoHand) r.P.twoHand = TWO[SETS[CUR_SET].weapon];
+  const B = toWorld(solve(r.P), heading + (r.P.spin || 0));
   if (r.dz) { const dd = r.dz - 67, off = [Math.sin(heading) * dd, 0, Math.cos(heading) * dd]; for (const k in B) if (Array.isArray(B[k]) && B[k].length === 3 && k !== 'wDir' && k !== 'wEdge') B[k] = add(B[k], off); }
   // след оружия: конец оружия за последние 0,12 с
-  if (r.trail) { const tr = []; for (let i = 6; i >= 0; i--) { const tt = t - i * 0.02, qq = (tt % D.dur) / D.dur; if (qq > q) continue; const r2 = D.f(qq, tt), B2 = toWorld(solve(r2.P), heading + (r2.P.spin || 0)); const tip = add(B2.grip, mul(B2.wDir, 26)); if (r2.dz) { tip[0] += Math.sin(heading) * (r2.dz - 67); tip[2] += Math.cos(heading) * (r2.dz - 67); } tr.push(tip); } r.trailPts = tr; }
+  if (r.trail) { const tr = []; for (let i = 6; i >= 0; i--) { const tt = t - i * 0.02, qq = (tt % D.dur) / D.dur; if (qq > q) continue; const r2 = D.f(qq, tt), B2 = toWorld(solve(r2.P), heading + (r2.P.spin || 0)); const tip = add(B2.grip, mul(B2.wDir, 42)); if (r2.dz) { tip[0] += Math.sin(heading) * (r2.dz - 67); tip[2] += Math.cos(heading) * (r2.dz - 67); } tr.push(tip); } r.trailPts = tr; }
   return { B, r };
 }
 function paintHero(g, S, set, anim, t, heading) {
-  const { B, r } = frame(anim, t, heading);
+  CUR_SET = set; const { B, r } = frame(anim, t, heading);
   drawWarrior(g, S, B, SETS[set], { t, speed: r.speed || 0, trail: r.trailPts && isSwing(anim, t) ? r.trailPts : null });
 }
 function isSwing(anim, t) {
@@ -106,7 +110,17 @@ function drawGame(now) {
     g.fillText(cap, x0 + W * 0.25, 18);
   });
 }
-function tick() { const now = performance.now() / 1000; drawBig(now); drawTurn(now); drawSets(now); drawGame(now); requestAnimationFrame(tick); }
-for (const cv of [big, turn, sets, game]) { const r = cv.getBoundingClientRect(); cv.width = Math.round(r.width * DPR); cv.height = Math.round(r.height * DPR); }
+// ---------------------------------------------------------------- лицо крупно
+const faces = $('#faces');
+function drawFaces(now) {
+  const g = faces.getContext('2d'), W = faces.width / DPR, H = faces.height / DPR; g.setTransform(DPR, 0, 0, DPR, 0, 0);
+  g.drawImage(ground(W, H, 17), 0, 0, W, H);
+  const list = [['start', 0], ['start', Math.PI / 4], ['start', Math.PI / 2], ['leather', -Math.PI / 6], ['plate', Math.PI / 8], ['epic', 0]];
+  list.forEach(([set, h], i) => { g.save(); g.beginPath(); g.rect(W * i / list.length, 0, W / list.length, H); g.clip(); const k = 7; paintHero(g, { x: W * (i + 0.5) / list.length, y: H * 0.5 + 84 * 0.94 * k, k }, set, 'idle', now + i, h); g.restore(); });
+}
+function tick() { const now = performance.now() / 1000; drawBig(now); drawTurn(now); drawSets(now); drawGame(now); drawFaces(now); requestAnimationFrame(tick); }
+for (const cv of [big, turn, sets, game, faces]) { const r = cv.getBoundingClientRect(); cv.width = Math.round(r.width * DPR); cv.height = Math.round(r.height * DPR); }
 requestAnimationFrame(tick);
+window.__drawFz = (g, sets) => sets.forEach((x, i) => { const [set, h] = x.split(':'); g.save(); g.beginPath(); g.rect(300 * i, 0, 300, 320); g.clip(); paintHero(g, { x: 300 * i + 150, y: 160 + 86 * 0.94 * 14, k: 14 }, set, 'idle', 0.5, +h * Math.PI / 4); g.restore(); });
+window.__SETS = SETS;
 window.__sk = { st, ui, ANIMS };

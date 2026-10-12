@@ -24,17 +24,17 @@ const over = (base, p) => blend(base, { ...base, ...p, hand: { ...base.hand, ...
 export const STAND = {
   root: [0, -1.2, 0], yaw: 0, lean: 0.04, side: 0, twist: 0.08, bend: 0.04, sideBend: 0, breathe: 0,
   head: { pitch: 0.02, yaw: -0.05, roll: 0 },
-  hand: { L: [14.5, 47, 6], R: [-11, 51, 12] }, elbow: { L: [1, -0.3, -0.6], R: [-1, -0.4, -0.5] },
+  hand: { L: [14.5, 47, 6], R: [-7, 50, 14] }, elbow: { L: [1, -0.3, -0.6], R: [-1, -0.4, -0.5] },
   foot: { L: [9, SK.ankleY, 2.5], R: [-8.5, SK.ankleY, -2] }, knee: { L: [0.35, 0, 1], R: [-0.35, 0, 1] }, toe: { L: 0, R: 0 },
   footYaw: { L: 0.15, R: -0.18 },
-  weapon: { dir: [0.18, 0.8, 0.55], edge: [0.1, -0.35, 1] }, twoHand: 0,
+  weapon: { dir: [0.5, 0.72, 0.42], edge: [0.2, -0.3, 1] }, twoHand: 0,
 };
 
 /** Стоит и дышит: грудь поднимается, оружие чуть покачивается, голова оглядывается. */
 export function idle(t) {
   const b = Math.sin(t * 1.9), s = Math.sin(t * 0.7);
   return over(STAND, { breathe: b, root: [0, -1.2 + b * 0.25, 0], twist: 0.08 + s * 0.04, head: { pitch: 0.02 - b * 0.03, yaw: -0.05 + Math.sin(t * 0.45) * 0.25 * clamp(Math.sin(t * 0.3) * 3, -1, 1), roll: 0 },
-    hand: { L: [14.5, 47 + b * 0.5, 6], R: [-11, 51 + b * 0.6, 12] }, weapon: { dir: [0.18 + s * 0.04, 0.8, 0.55], edge: [0.1, -0.35, 1] } });
+    hand: { L: [14.5, 47 + b * 0.5, 6], R: [-7, 50 + b * 0.6, 14] }, weapon: { dir: [0.5 + s * 0.04, 0.72, 0.42], edge: [0.2, -0.3, 1] } });
 }
 
 // ---------------------------------------------------------------- шаг и бег

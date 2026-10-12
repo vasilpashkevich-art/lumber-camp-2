@@ -6,5 +6,5 @@ const { chromium } = require('playwright'); const path = require('path');
   const shots = (process.argv[2] || 'idle:0.5').split(',');
   for (const s of shots) { const [anim, t, set, dir] = s.split(':'); await p.evaluate(([a, t, set, dir]) => { const S = window.__sk.st; S.anim = a; if (set) S.set = set; if (dir) { S.spin = false; S.dir = +dir; } S.fix = +t; window.__sk.ui(); }, [anim, t, set, dir]); await p.waitForTimeout(40); await (await p.$('#big')).screenshot({ path: `${out}/${anim}-${t}-${set || ''}-${dir || ''}.png` }); }
   await p.evaluate(() => { window.__sk.st.fix = null; });
-  if (process.argv[3]) { for (const id of ['turn', 'setsCv', 'game']) { const el = await p.$('#' + id); await el.scrollIntoViewIfNeeded(); await p.waitForTimeout(60); await el.screenshot({ path: `${out}/${id}.png` }); } }
+  if (process.argv[3]) { for (const id of ['faces', 'turn', 'setsCv', 'game']) { const el = await p.$('#' + id); await el.scrollIntoViewIfNeeded(); await p.waitForTimeout(60); await el.screenshot({ path: `${out}/${id}.png` }); } }
   console.log(errs.length ? errs.join('\n') : 'ошибок нет'); await b.close(); })();

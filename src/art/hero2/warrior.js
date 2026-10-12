@@ -1,14 +1,15 @@
 // Воин в новом стиле (эскиз v74): тело, лицо, борода, плащ и 5 комплектов вещей (по ярусам: старт, кожа, кольчуга, латы, фиолетовые).
 // Рисуется по скелету из rig.js (любая сторона), объёмом из paint.js. Части сортируются по близости к зрителю.
 import { proj, add, sub, mul, mv, dot, norm, cross, len, lerpV, clamp, CAM, rotY, mm, rotX, frameFrom, SK } from './rig.js';
-import { MAT, tone, mix, rgba, capsule, limb, aoAt, sphereHull, blob, plate, band, surf, dotAt, gemAt, lineW, hull, smooth, lw, OUT, TAU, spec } from './paint.js';
+import { MAT, tone, mix, rgba, capsule, limb, aoAt, sphereHull, boxHull, blob, plate, band, surf, dotAt, gemAt, lineW, hull, smooth, lw, OUT, TAU, spec } from './paint.js';
+import { drawWeapon2 } from './weapons.js';
 
 // ---------------------------------------------------------------- комплекты
 const STEEL = (c = '#b9c2cb') => MAT(c, { metal: true });
 export const SETS = {
   start: { name: 'Новобранец', skin: '#e9b38a', hair: '#c4652c', beard: 'full',
     shirt: MAT('#dccb9f'), sleeve: MAT('#dccb9f'), forearm: 'skin', pants: MAT('#6a5642'), boots: MAT('#4a2f1c'), belt: MAT('#6b4426'), buckle: STEEL('#c9b27a'),
-    helm: null, pauld: null, weapon: 'hatchet', wpn: { steel: STEEL('#aab2b8'), wood: MAT('#8a5a32'), wrap: MAT('#5a3a20') } },
+    helm: null, pauld: 'pad', pauldMat: MAT('#b8a27a'), weapon: 'hatchet', wpn: { steel: STEEL('#aab2b8'), wood: MAT('#8a5a32'), wrap: MAT('#5a3a20') } },
   leather: { name: 'Кожа', skin: '#e9b38a', hair: '#c4652c', beard: 'braid',
     shirt: MAT('#9a5a2c', { tex: 'leather' }), sleeve: MAT('#4f7a3a'), forearm: MAT('#6b4022', { tex: 'bracer' }), pants: MAT('#5b5a48'), boots: MAT('#432a18'), belt: MAT('#3e2615'), buckle: STEEL('#d8b25a'),
     helm: 'cap', helmMat: MAT('#7a4a28'), pauld: 'leather', pauldMat: MAT('#7a4826'), weapon: 'bearded', wpn: { steel: STEEL('#c2cad0'), wood: MAT('#6b4428'), wrap: MAT('#3d6b3a') } },
@@ -86,12 +87,12 @@ export function drawWarrior(g, S, B, look, o = {}) {
     P(dc, () => {
       const pts = [top[0], mid[0], bot[0], lerpV(bot[0], bot[1], 0.5), bot[1], mid[1], top[1]].map(w => proj(w, S));
       pts[3].y += 2 * S.k + Math.sin(t * 4) * S.k;
-      g.beginPath(); g.moveTo(pts[0].x, pts[0].y); g.quadraticCurveTo(pts[1].x, pts[1].y, pts[2].x, pts[2].y); g.quadraticCurveTo(pts[3].x, pts[3].y, pts[4].x, pts[4].y); g.quadraticCurveTo(pts[5].x, pts[5].y, pts[6].x, pts[6].y); g.closePath();
+      const cp = new Path2D(); cp.moveTo(pts[0].x, pts[0].y); cp.quadraticCurveTo(pts[1].x, pts[1].y, pts[2].x, pts[2].y); cp.quadraticCurveTo(pts[3].x, pts[3].y, pts[4].x, pts[4].y); cp.quadraticCurveTo(pts[5].x, pts[5].y, pts[6].x, pts[6].y); cp.closePath();
       const bx = Math.min(...pts.map(p => p.x)), by = Math.min(...pts.map(p => p.y)), bw = Math.max(...pts.map(p => p.x)) - bx, bh = Math.max(...pts.map(p => p.y)) - by;
-      const gr = g.createLinearGradient(bx, by, bx + bw, by + bh); gr.addColorStop(0, look.cape.hi); gr.addColorStop(0.5, look.cape.base); gr.addColorStop(1, look.cape.lo); g.fillStyle = gr; g.fill();
-      g.save(); g.clip(); g.strokeStyle = rgba(look.cape.lo, 0.55); g.lineWidth = S.k * 1.1; for (const k of [0.3, 0.55, 0.78]) { const a = lerpV(top[0], top[1], k), b2 = lerpV(bot[0], bot[1], k + Math.sin(t * 2 + k * 5) * 0.06); const A = proj(a, S), Bq = proj(b2, S); g.beginPath(); g.moveTo(A.x, A.y + 4 * S.k); g.lineTo(Bq.x, Bq.y); g.stroke(); }
+      const gr = g.createLinearGradient(bx, by, bx + bw, by + bh); gr.addColorStop(0, look.cape.hi); gr.addColorStop(0.5, look.cape.base); gr.addColorStop(1, look.cape.lo); g.fillStyle = gr; g.fill(cp);
+      g.save(); g.clip(cp); g.strokeStyle = rgba(look.cape.lo, 0.55); g.lineWidth = S.k * 1.1; for (const k of [0.3, 0.55, 0.78]) { const a = lerpV(top[0], top[1], k), b2 = lerpV(bot[0], bot[1], k + Math.sin(t * 2 + k * 5) * 0.06); const A = proj(a, S), Bq = proj(b2, S); g.beginPath(); g.moveTo(A.x, A.y + 4 * S.k); g.lineTo(Bq.x, Bq.y); g.stroke(); }
       if (look.trim) { g.strokeStyle = look.trim.base; g.lineWidth = S.k * 1.2; g.beginPath(); g.moveTo(pts[2].x, pts[2].y); g.quadraticCurveTo(pts[3].x, pts[3].y, pts[4].x, pts[4].y); g.stroke(); }
-      g.restore(); g.strokeStyle = OUT; g.lineWidth = lw(S); g.stroke();
+      g.restore(); g.strokeStyle = OUT; g.lineWidth = lw(S); g.stroke(cp);
     });
   }
 
@@ -165,97 +166,158 @@ export function drawWarrior(g, S, B, look, o = {}) {
       if (look.forearm === 'skin') limb(g, S, el, lerpV(el, ha, 0.2), 5.7, 5.8, 5.5, look.sleeve);   // закатанный рукав
       if (look.gauntlet) limb(g, S, lerpV(el, ha, 0.45), lerpV(el, ha, 0.95), 5.4, 5.7, 5.2, look.gauntlet);
     });
-    // кулак: пальцы, большой палец, костяшки
-    P(dH + (s === 'R' ? 0.8 : 0.3), () => {
-      const hm = look.gauntlet || (look.forearm !== 'skin' && look.forearm.metal ? look.forearm : skin);
-      const dirA = norm(sub(ha, el)), c = add(ha, mul(dirA, 1.2));
-      const bq = blob(g, S, sphereHull(S, c, SK.handR, B.chestM, null, [mul(dirA, 3), add(mul(dirA, 2), mv(B.chestM, [0, 0, 2]))]), hm, { spec: hm.metal });
-      if (bq) { const p = proj(add(c, mul(dirA, 2.4)), S); g.strokeStyle = rgba(OUT, 0.55); g.lineWidth = lw(S) * 0.6; for (const k of [-1, 0, 1]) { g.beginPath(); g.arc(p.x + k * 1.4 * S.k, p.y, 1.1 * S.k, 0.2, Math.PI - 0.2); g.stroke(); } }
-    });
+    // кисть: держит рукоять (пальцы обхватывают древко, большой палец сверху) или сжата в кулак
+    const grips = s === 'R' || B.twoHand;
+    P(dH + 0.9, () => drawHand(g, S, B, look, s, grips && !B.dropped));
     const shM = frameFrom(norm(add(mul(mv(B.chestM, [sg, 0, 0]), 1), [0, 0.7, 0])), mv(B.chestM, [0, 0, 1]));
-    P(dep(sh) + 1.2 + (look.pauld ? 1 : 0), () => drawShoulder(g, S, B, look, sh, shM, sg, t));
+    P(dep(sh) + 2.2, () => drawShoulder(g, S, B, look, sh, shM, sg, t));
   }
 
   // ---- оружие
-  const wcen = add(B.grip, mul(B.wDir, 14));
-  const two = look.weapon === 'greataxe';
-  P(dep(wcen) + (dot(B.wDir, CAM.toCam) > 0 ? 0.4 : -0.4), () => drawWeapon(g, S, B, look, t, o));
-  void two;
+  const wcen = add(B.grip, mul(B.wDir, 34));
+  if (o.trail) P(dep(wcen) - 0.05, () => trail(g, S, B, o.trail, look));
+  P(B.dropped ? dep(B.grip) - 0.2 : dep(B.haR) + 0.85, () => drawWeapon2(g, S, B, look, 'haft'));
+  P(dep(wcen) + (dot(B.wDir, CAM.toCam) > 0 ? 0.4 : -0.4), () => drawWeapon2(g, S, B, look, 'head'));
 
   parts.sort((a, b) => a.d - b.d);
   for (const p of parts) p.fn();
 }
 
 // ---------------------------------------------------------------- голова
-/** Голова: лицо с бровями вразлёт, нос картошкой, густая рыжая борода с усами, волосы — всё по сфере, видно с любой стороны. */
+/** Голова. Черты лица — точки на поверхности головы (глаза, брови, нос, усы поворачиваются вместе с ней).
+ *  Голова чуть повёрнута к зрителю (камера сверху), иначе лицо видно хуже. */
+const HEAD_CHEAT = -0.3;
 function drawHead(g, S, B, look, t) {
-  const c = B.head, M = B.headM, R = SK.headR, toW = (d, out = 1) => add(c, mul(mv(M, norm(d)), R * out));
+  const c = B.head, R = SK.headR;
+  // небольшой «киношный» наклон лица к камере (вокруг оси экрана)
+  const M = mm(rotAxisW([1, 0, 0], HEAD_CHEAT), B.headM);
+  const toW = (d, out = 1) => add(c, mul(mv(M, norm(d)), R * out));
   const fac = d => dot(mv(M, norm(d)), CAM.toCam);
   const skin = MAT(look.skin), hair = MAT(look.hair), beardM = MAT(tone(look.hair, -0.04));
   const helm = look.helm, hideHair = helm === 'nasal' || helm === 'horned' || helm === 'crown';
-  const ear = sg => { const e = toW([sg * 0.95, 0.02, -0.12], 1); const b = blob(g, S, sphereHull(S, e, 2.3, mm(M, [1, 0, 0, 0, 1.25, 0, 0, 0, 0.6]), null), skin); if (b) { const p = proj(e, S); g.strokeStyle = rgba(tone(look.skin, -0.45), 0.7); g.lineWidth = lw(S) * 0.6; g.beginPath(); g.arc(p.x, p.y, 1 * S.k, -1.2, 1.6); g.stroke(); } return b; };
-  for (const sg of [1, -1]) if (dot(mv(M, [sg, 0, 0]), CAM.toCam) < -0.3) ear(sg);
-  // голова — шар, подбородок чуть ниже
-  const hb = blob(g, S, sphereHull(S, c, R, M, null, [[0, -R * 1.08, R * 0.3]]), skin);
-  // тень под волосами/шлемом на лбу и щёки
-  const F = (d, fn, out = 1) => { const f = fac(d); if (f > 0.04) fn(proj(toW(d, out), S), clamp(f * 1.7, 0, 1)); };
-  if (hb) { g.save(); g.beginPath(); g.ellipse(hb.cx, hb.cy, hb.w / 2, hb.h / 2, 0, 0, TAU); g.clip(); F([0, 0.6, 0.78], (p, a) => aoAt(g, S, toW([0, 0.6, 0.78]), 10, 3, 0.3 * a)); for (const sg of [1, -1]) F([sg * 0.46, -0.08, 0.88], (p, a) => { const gr = g.createRadialGradient(p.x, p.y, 0, p.x, p.y, 3 * S.k); gr.addColorStop(0, `rgba(225,100,80,${0.42 * a})`); gr.addColorStop(1, 'rgba(225,100,80,0)'); g.fillStyle = gr; g.fillRect(p.x - 3 * S.k, p.y - 3 * S.k, 6 * S.k, 6 * S.k); }); g.restore(); }
-  // глаза: миндалины с тёмной радужкой и бликом; над ними — тень надбровья
-  const eye = sg => F([sg * 0.37, 0.26, 0.9], (p, a) => {
-    const w = 1.75 * S.k * (0.35 + 0.65 * a), h = 1.25 * S.k;
-    g.fillStyle = tone(look.skin, -0.25); g.beginPath(); g.ellipse(p.x, p.y - h * 0.5, w * 1.35, h * 1.1, 0, Math.PI, 0); g.fill();
-    g.beginPath(); g.moveTo(p.x - w * 1.2, p.y); g.quadraticCurveTo(p.x, p.y - h * 1.5, p.x + w * 1.2, p.y - h * 0.15 * sg); g.quadraticCurveTo(p.x, p.y + h * 1.1, p.x - w * 1.2, p.y); g.closePath();
-    g.fillStyle = '#fbf2e2'; g.fill();
-    g.save(); g.clip(); g.fillStyle = '#3a6a8a'; g.beginPath(); g.arc(p.x + w * 0.1, p.y - h * 0.05, h * 0.95, 0, TAU); g.fill(); g.fillStyle = '#12100e'; g.beginPath(); g.arc(p.x + w * 0.1, p.y - h * 0.05, h * 0.5, 0, TAU); g.fill(); g.restore();
-    g.fillStyle = '#fff'; g.beginPath(); g.arc(p.x - w * 0.15, p.y - h * 0.4, Math.max(0.5, h * 0.3), 0, TAU); g.fill();
-    g.strokeStyle = OUT; g.lineWidth = lw(S) * 0.9; g.beginPath(); g.moveTo(p.x - w * 1.25, p.y + h * 0.1); g.quadraticCurveTo(p.x, p.y - h * 1.6, p.x + w * 1.25, p.y - h * 0.1 * sg); g.stroke();
-  });
-  const brow = sg => F([sg * 0.38, 0.5, 0.8], (p, a) => { const w = 2.5 * S.k * (0.4 + 0.6 * a); g.fillStyle = tone(look.hair, -0.3); g.strokeStyle = OUT; g.lineWidth = lw(S) * 0.6; g.beginPath(); g.moveTo(p.x - w * sg * -1 * 0 - w, p.y + (sg > 0 ? 1.2 : -0.6) * S.k * 0.6); g.lineTo(p.x + w, p.y + (sg > 0 ? -0.6 : 1.2) * S.k * 0.6); g.lineTo(p.x + w * 0.8, p.y + (sg > 0 ? -2.0 : 0) * S.k * 0.6 - 0.6 * S.k); g.lineTo(p.x - w * 0.9, p.y + (sg > 0 ? 0 : -2.0) * S.k * 0.6 - 0.6 * S.k); g.closePath(); g.fill(); g.stroke(); });
-  // волосы — выпуклыми кусками (верх ото лба, виски, затылок), чтобы не закрыть лицо
+  // точки черт лица: центр dc (направление), смещения u (вбок, в долях радиуса), v (вверх)
+  const FX = (dc, out = 1.0) => { const z = norm(dc), x = norm(cross([0, 1, 0], z)), y = cross(z, x); return (u, v, o = 0) => proj(add(c, mul(mv(M, norm(add(z, add(mul(x, u), mul(y, v))))), R * (out + o))), S); };
+  const poly = (pts, fill, stroke, w = 0.7) => { g.beginPath(); pts.forEach((p, i) => i ? g.lineTo(p.x, p.y) : g.moveTo(p.x, p.y)); g.closePath(); if (fill) { g.fillStyle = fill; g.fill(); } if (stroke) { g.strokeStyle = stroke; g.lineWidth = lw(S) * w; g.stroke(); } };
+  const curve = (pts, col, w) => { g.beginPath(); pts.forEach((p, i) => i ? g.lineTo(p.x, p.y) : g.moveTo(p.x, p.y)); g.strokeStyle = col; g.lineWidth = w; g.lineCap = 'round'; g.lineJoin = 'round'; g.stroke(); };
+  const arcPts = (f, n, fn) => { const r = []; for (let i = 0; i <= n; i++) { const [u, v] = fn(i / n); r.push(f(u, v)); } return r; };
+  const ear = sg => { const e = toW([sg * 0.93, 0.02, -0.12], 1); return blob(g, S, sphereHull(S, e, 2.3, mm(M, [1, 0, 0, 0, 1.35, 0, 0, 0, 0.6]), null), MAT(tone(look.skin, -0.05))); };
+  if (!hideHair) for (const sg of [1, -1]) ear(sg);
+  // череп и скулы
+  const hb = blob(g, S, sphereHull(S, c, R, M, null, [[0, -R * 1.06, R * 0.32], [R * 0.55, -R * 0.75, R * 0.55], [-R * 0.55, -R * 0.75, R * 0.55]]), skin);
+  const front = fac([0, 0, 1]);
+  // мягкие тени лица: глазницы, под носом, румянец
+  if (hb && front > -0.1) { g.save(); g.beginPath(); smooth(g, sphereHull(S, c, R, M, null, [[0, -R * 1.06, R * 0.32], [R * 0.55, -R * 0.75, R * 0.55], [-R * 0.55, -R * 0.75, R * 0.55]])); g.clip();
+    for (const sg of [1, -1]) { const f = FX([sg * 0.36, 0.2, 0.92]); if (fac([sg * 0.36, 0.2, 0.92]) > 0) { const p = f(0, 0.02); aoAt(g, S, toW([sg * 0.36, 0.24, 0.92]), 3.4, 2.4, 0.42); const q = FX([sg * 0.5, -0.12, 0.86])(0, 0); const gr = g.createRadialGradient(q.x, q.y, 0, q.x, q.y, 3.2 * S.k); gr.addColorStop(0, 'rgba(225,95,75,.42)'); gr.addColorStop(1, 'rgba(225,95,75,0)'); g.fillStyle = gr; g.fillRect(q.x - 4 * S.k, q.y - 4 * S.k, 8 * S.k, 8 * S.k); void p; } }
+    g.restore(); }
+  // затылок и волосы сзади (до бороды)
   const hairTex = (g2, S2, b) => { g2.strokeStyle = rgba(tone(look.hair, -0.45), 0.55); g2.lineWidth = S.k * 0.5; for (let i = -4; i <= 4; i++) { g2.beginPath(); g2.moveTo(b.cx + i * b.w * 0.1, b.y0); g2.quadraticCurveTo(b.cx + i * b.w * 0.13 + b.w * 0.08, b.cy, b.cx + i * b.w * 0.11, b.y1); g2.stroke(); } g2.strokeStyle = rgba(tone(look.hair, 0.4), 0.45); g2.beginPath(); g2.moveTo(b.x0 + b.w * 0.25, b.y0 + b.h * 0.25); g2.quadraticCurveTo(b.cx, b.y0 + b.h * 0.1, b.x0 + b.w * 0.7, b.y0 + b.h * 0.3); g2.stroke(); };
   const nape = sphereHull(S, c, R * 1.06, M, hideHair ? d => d[2] < 0.15 && d[1] > -0.72 && d[1] < 0.5 && !(d[2] > -0.2 && d[1] < -0.2) : d => d[2] < -0.25 && d[1] > -0.62 && d[1] < 0.62, [], true);
   if (nape.length > 2) blob(g, S, nape, hair, { tex: hairTex });
-  // борода: подбородок и скулы (до висков), рисуется до носа и усов
+  // борода: подбородок и щёки, лопатой вниз
   if (fac([0, -0.5, 0.8]) > -0.6) {
-    const bd = sphereHull(S, c, R * 1.07, M, d => d[1] < -0.05 && d[2] > -0.45 && (d[1] < -0.32 || Math.abs(d[0]) > 0.62), [[0, -R * 1.78, R * 0.6], [R * 0.55, -R * 1.55, R * 0.45], [-R * 0.55, -R * 1.55, R * 0.45]], true);
+    const bd = sphereHull(S, c, R * 1.07, M, d => d[2] > -0.4 && (d[1] < -0.5 || (Math.abs(d[0]) > 0.7 && d[1] < -0.05)), [[0, -R * 1.7, R * 0.6], [R * 0.55, -R * 1.5, R * 0.42], [-R * 0.55, -R * 1.5, R * 0.42]], true);
     blob(g, S, bd, beardM, { tex: (g2, S2, b) => { g2.strokeStyle = rgba(tone(look.hair, -0.42), 0.6); g2.lineWidth = S.k * 0.45; for (let i = -4; i <= 4; i++) { g2.beginPath(); g2.moveTo(b.cx + i * b.w * 0.08, b.y0 + b.h * 0.3); g2.quadraticCurveTo(b.cx + i * b.w * 0.11, b.cy + b.h * 0.2, b.cx + i * b.w * 0.07, b.y1 - b.h * 0.06); g2.stroke(); } g2.strokeStyle = rgba(tone(look.hair, 0.35), 0.5); for (let i = -3; i <= 3; i += 2) { g2.beginPath(); g2.moveTo(b.cx + i * b.w * 0.09 - S.k, b.y0 + b.h * 0.35); g2.quadraticCurveTo(b.cx + i * b.w * 0.11 - S.k, b.cy, b.cx + i * b.w * 0.08 - S.k, b.cy + b.h * 0.25); g2.stroke(); } } });
-    if (look.beard === 'braid') { const top = toW([0, -1.5, 0.6], 1), bot = add(top, mul(mv(M, [0, -1, 0.15]), 6)); if (fac([0, -0.4, 0.9]) > -0.2) { limb(g, S, top, bot, 1.9, 1.7, 1.2, beardM); dotAt(g, S, lerpV(top, bot, 0.6), 1.05, look.buckle ? look.buckle.base : '#c9b27a'); } }
+    if (look.beard === 'braid') { const top = toW([0, -1.5, 0.6], 1), dn = mv(M, [0, -1, 0.12]); if (fac([0, -0.4, 0.9]) > -0.2) { for (let i = 0; i < 3; i++) blob(g, S, sphereHull(S, add(top, mul(dn, 1.2 + i * 2.1)), 1.7 - i * 0.25, M, null), beardM); limb(g, S, add(top, mul(dn, 6.6)), add(top, mul(dn, 7.6)), 1.25, 1.3, 1.25, look.buckle || MAT('#c9b27a', { metal: true })); } }
   }
   if (!hideHair) {
-    const top = sphereHull(S, c, R * 1.08, M, d => d[1] > (d[2] > 0 ? 0.58 : 0.58 + d[2] * 1.4), [[0, R * 1.2, -R * 0.05], [R * 0.3, R * 1.12, R * 0.45], [-R * 0.3, R * 1.12, R * 0.45]], true);
+    const top = sphereHull(S, c, R * 1.08, M, d => d[1] > (d[2] > 0 ? 0.6 : 0.6 + d[2] * 1.4), [[0, R * 1.2, -R * 0.05], [R * 0.3, R * 1.12, R * 0.45], [-R * 0.3, R * 1.12, R * 0.45]], true);
     blob(g, S, top, hair, { tex: hairTex });
-    for (const sg of [1, -1]) { const tp = sphereHull(S, c, R * 1.07, M, d => d[0] * sg > 0.7 && d[1] > -0.05 && d[2] < 0.3 && d[2] > -0.6, [], true); if (tp.length > 2) blob(g, S, tp, hair, { tex: hairTex }); }
+    for (const sg of [1, -1]) { const tp = sphereHull(S, c, R * 1.07, M, d => d[0] * sg > 0.78 && d[1] > -0.1 && d[1] < 0.75 && d[2] < 0.12 && d[2] > -0.5, [], true); if (tp.length > 2) blob(g, S, tp, hair, { tex: hairTex }); }
   }
-  // лицо поверх: глаза, брови, нос, рот, усы
-  eye(1); eye(-1); brow(1); brow(-1);
-  F([0, 0.02, 1], (p, a) => { const q = proj(toW([0, -0.02, 1], 1.13), S), r = 2.05 * S.k; const gr = g.createRadialGradient(q.x - r * 0.35, q.y - r * 0.35, r * 0.1, q.x, q.y, r); gr.addColorStop(0, tone(look.skin, 0.25)); gr.addColorStop(1, tone(look.skin, -0.22)); g.fillStyle = gr; g.beginPath(); g.ellipse(q.x, q.y, r, r * 0.9, 0, 0, TAU); g.fill(); g.strokeStyle = rgba(OUT, 0.85); g.lineWidth = lw(S) * 0.7; g.beginPath(); g.ellipse(q.x, q.y, r, r * 0.9, 0, Math.PI * 0.05, Math.PI * 0.95); g.stroke(); void a; });
-  for (const sg of [1, -1]) if (dot(mv(M, [sg, 0, 0]), CAM.toCam) >= -0.3 && !hideHair) ear(sg);
-  if (fac([0, -0.5, 0.8]) > -0.6) {
-    F([0, -0.3, 0.92], (p, a) => { g.fillStyle = '#5a1e14'; g.beginPath(); g.ellipse(p.x, p.y + 0.7 * S.k, 1.7 * S.k * a, 0.75 * S.k, 0, 0, TAU); g.fill(); });
-    F([0, -0.17, 0.96], (p, a) => { const L = 4.2 * S.k * (0.4 + 0.6 * a); g.fillStyle = tone(look.hair, 0.08); g.strokeStyle = OUT; g.lineWidth = lw(S) * 0.7; for (const sg of [-1, 1]) { g.beginPath(); g.moveTo(p.x, p.y - 0.8 * S.k); g.quadraticCurveTo(p.x + sg * L * 0.7, p.y - 1.3 * S.k, p.x + sg * L, p.y + 2.4 * S.k); g.quadraticCurveTo(p.x + sg * L * 0.45, p.y + 0.5 * S.k, p.x, p.y + 0.4 * S.k); g.fill(); g.stroke(); } }, 1.05);
+  // ---- черты лица (видны, если лицо обращено к зрителю)
+  if (front > -0.15) {
+    // глаза: миндалина, радужка, зрачок, блик, тяжёлое верхнее веко
+    for (const sg of [1, -1]) {
+      const dc = [sg * 0.35, 0.2, 0.92]; if (fac(dc) < 0.08) continue;
+      const f = FX(dc, 1.0), W2 = 0.215, H2 = 0.095;
+      const alm = arcPts(f, 14, q => { const a = q * TAU; return [Math.cos(a) * W2, Math.sin(a) * H2 * (Math.sin(a) > 0 ? 1.15 : 0.8) + Math.cos(a) * 0.02 * sg]; });
+      poly(alm, '#fbf1df', null);
+      g.save(); g.beginPath(); alm.forEach((p, i) => i ? g.lineTo(p.x, p.y) : g.moveTo(p.x, p.y)); g.closePath(); g.clip();
+      const ir = arcPts(f, 16, q => [0.02 * sg * -1 + Math.cos(q * TAU) * 0.085, -0.005 + Math.sin(q * TAU) * 0.085]); poly(ir, '#3d6f95', null);
+      const pu = arcPts(f, 12, q => [0.02 * sg * -1 + Math.cos(q * TAU) * 0.045, -0.005 + Math.sin(q * TAU) * 0.045]); poly(pu, '#110d0a', null);
+      const lid = arcPts(f, 10, q => { const a = Math.PI * q; return [Math.cos(a) * W2 * 1.1, H2 * 0.55 + Math.sin(a) * H2 * 0.9]; }); poly(lid.concat(arcPts(f, 6, q => [-W2 * 1.1 + q * W2 * 2.2, H2 * 2.2])), rgba(tone(look.skin, -0.3), 0.65), null);
+      g.restore();
+      const hl = f(-0.04 * sg - 0.03, 0.035); g.fillStyle = '#fff'; g.beginPath(); g.arc(hl.x, hl.y, Math.max(0.6, 0.55 * S.k), 0, TAU); g.fill();
+      curve(arcPts(f, 10, q => { const a = Math.PI * (1 - q); return [Math.cos(a) * W2 * 1.08, Math.sin(a) * H2 * 1.2 + 0.005]; }), OUT, lw(S) * 1.15);
+      curve(arcPts(f, 6, q => [-W2 * 0.7 + q * W2 * 1.4, -H2 * 1.05]), rgba(OUT, 0.35), lw(S) * 0.5);
+      // бровь — клин, к переносице ниже (суровый взгляд)
+      const bw = arcPts(f, 8, q => [(-0.27 + q * 0.54) * -sg, 0.155 + (q - 0.5) * 0.09 * 1 + Math.sin(q * Math.PI) * 0.035]);
+      const bwLow = arcPts(f, 8, q => [(-0.27 + q * 0.54) * -sg, 0.105 + (q - 0.5) * 0.11 + Math.sin(q * Math.PI) * 0.02]);
+      poly(bw.concat(bwLow.reverse()), tone(look.hair, -0.25), OUT, 0.7);
+    }
+    // нос — объёмная «картошка» с крыльями
+    if (fac([0, -0.02, 1]) > 0.05) {
+      const nc = toW([0, -0.03, 1], 1.02), nM = M;
+      // спинка носа и кончик одной формой; ноздри — тенью
+      blob(g, S, sphereHull(S, toW([0, -0.05, 1], 0.99), R * 0.165, mm(nM, [1, 0, 0, 0, 1.1, 0, 0, 0, 1]), null, [mul(mv(nM, [0, 0.12, 0.02]), R)]), MAT(tone(look.skin, -0.04)), { spec: true });
+      for (const sg of [1, -1]) { const q = FX([sg * 0.07, -0.13, 1], 1.12)(0, 0); g.fillStyle = rgba(tone(look.skin, -0.55), 0.6); g.beginPath(); g.ellipse(q.x, q.y, 0.55 * S.k, 0.35 * S.k, 0, 0, TAU); g.fill(); }
+      void nc;
+    }
+    // рот и усы
+    if (fac([0, -0.4, 0.9]) > 0.05) {
+      const f = FX([0, -0.36, 0.93], 1.07);
+      poly(arcPts(f, 10, q => { const a = q * TAU; return [Math.cos(a) * 0.12, Math.sin(a) * 0.045 - 0.03]; }), '#5a1c12', OUT, 0.6);
+      const m = FX([0, -0.25, 0.97], 1.08), mc = tone(look.hair, 0.08);
+      for (const sg of [1, -1]) { const top = arcPts(m, 10, q => [sg * q * 0.46, 0.03 - q * q * 0.22]), bot = arcPts(m, 10, q => [sg * (1 - q) * 0.46, -0.21 + (1 - q) * 0.03 - (1 - q) * (1 - q) * 0.0 + q * q * 0.13]); poly(top.concat(bot), mc, OUT, 0.8); const s2 = arcPts(m, 6, q => [sg * (0.05 + q * 0.3), -0.02 - q * q * 0.16]); curve(s2, rgba(tone(look.hair, 0.45), 0.7), lw(S) * 0.6); }
+    }
   }
-  if (helm) drawHelm(g, S, B, look, t);
+  if (helm) drawHelm(g, S, { ...B, headM: M }, look, t);
+}
+/** Поворот вокруг оси мира (для наклона лица к камере). */
+function rotAxisW(ax, a) { const c = Math.cos(a), s = Math.sin(a); return [1, 0, 0, 0, c, -s, 0, s, c]; }
+
+// ---------------------------------------------------------------- кисти
+/** Кисть руки s. grip — держит древко: кулак вытянут вдоль древка, 4 пальца поперёк, большой палец сверху. */
+function drawHand(g, S, B, look, s, grip) {
+  const el = B['el' + s], ha = B['ha' + s], fa = norm(sub(ha, el));
+  const mat = look.gauntlet || (look.forearm !== 'skin' && look.forearm.metal ? look.forearm : MAT(look.skin));
+  // оси кулака: h — вдоль древка (или поперёк предплечья), bk — тыльная сторона, n — третья
+  let h, c;
+  if (grip) { h = B.wDir; c = s === 'R' ? B.grip : ha; }
+  else { h = norm(cross(fa, mv(B.chestM, [0, 0, 1]))); if (len(h) < 0.1) h = [1, 0, 0]; c = add(ha, mul(fa, 1.6)); }
+  let bk = norm(sub(fa, mul(h, dot(fa, h)))); if (len(bk) < 0.1) bk = [0, 1, 0];
+  bk = mul(bk, -1);   // тыльная сторона смотрит к локтю… кулак сжат вокруг древка: костяшки — прочь от предплечья
+  const n = norm(cross(h, bk));
+  const L = 4.4, T = 3.2, D = 3.5;   // полуразмеры: вдоль древка, толщина, глубина
+  const cen = add(c, mul(bk, -0.6));
+  const pts = boxHull(S, cen, [mul(h, L), mul(bk, T), mul(n, D)], 0.55);
+  const b = blob(g, S, pts, mat, { spec: mat.metal });
+  if (!b) return;
+  // пальцы: 3 борозды поперёк, на стороне, что видна зрителю
+  const side = dot(n, CAM.toCam) >= 0 ? 1 : -1, fs = mul(n, side * D * 0.98);
+  g.save(); g.beginPath(); smooth(g, pts); g.clip();
+  for (const k of [-0.5, 0, 0.5]) { const a = proj(add(add(cen, fs), add(mul(h, k * L), mul(bk, T * 0.9))), S), z = proj(add(add(cen, fs), add(mul(h, k * L), mul(bk, -T * 0.9))), S); g.strokeStyle = rgba(OUT, 0.55); g.lineWidth = lw(S) * 0.6; g.beginPath(); g.moveTo(a.x, a.y); g.lineTo(z.x, z.y); g.stroke(); }
+  // костяшки — блики по тыльному ребру
+  for (const k of [-0.75, -0.25, 0.25, 0.75]) { const p = proj(add(add(cen, mul(bk, -T * 0.8)), add(mul(h, k * L), mul(n, side * D * 0.6))), S); g.fillStyle = mat.metal ? 'rgba(255,255,245,.55)' : 'rgba(255,235,215,.45)'; g.beginPath(); g.arc(p.x, p.y, Math.max(0.6, 0.55 * S.k), 0, TAU); g.fill(); }
+  g.restore();
+  // большой палец: лежит поверх пальцев, у верхнего края
+  const th0 = add(cen, add(mul(h, L * 0.75), add(mul(n, side * D * 0.9), mul(bk, T * 0.5)))), th1 = add(th0, add(mul(bk, -T * 1.3), mul(h, -L * 0.35)));
+  limb(g, S, th0, th1, 1.45, 1.55, 1.3, mat);
+  // манжета перчатки
+  if (look.gauntlet) limb(g, S, add(ha, mul(fa, -3.5)), add(ha, mul(fa, 0.2)), 4.8, 5, 4.9, look.gauntlet);
 }
 
 // ---------------------------------------------------------------- шлемы
 function drawHelm(g, S, B, look, t) {
   const c = B.head, M = B.headM, R = SK.headR, m = look.helmMat, toW = (d, out = 1) => add(c, mul(mv(M, norm(d)), R * out));
   const fac = d => dot(mv(M, norm(d)), CAM.toCam);
-  if (look.helm === 'cap') {
-    blob(g, S, sphereHull(S, c, R * 1.1, M, d => d[1] > 0.28, [], true), m, { tex: (g2, S2, b) => { g2.strokeStyle = rgba('#2a160a', 0.4); g2.lineWidth = S.k * 0.35; g2.setLineDash([S.k * 0.7, S.k * 0.6]); g2.beginPath(); g2.moveTo(b.x0, b.y1 - b.h * 0.25); g2.quadraticCurveTo(b.cx, b.y1 - b.h * 0.05, b.x1, b.y1 - b.h * 0.25); g2.stroke(); g2.setLineDash([]); } });
-    band(g, S, c, M, [R * 1.12, R * 1.12], [R * 1.08, R * 1.08], R * 0.22, R * 0.42, MAT(tone(m.base, 0.15)));
-    return;
-  }
-  const deep = look.helm === 'crown' ? -0.05 : 0.08;
-  blob(g, S, sphereHull(S, c, R * 1.14, M, d => d[1] > deep - (d[2] < 0 ? 0.45 : 0), [], true), m, { tex: (g2, S2, b) => { g2.strokeStyle = rgba('#ffffff', 0.25); g2.lineWidth = S.k * 0.4; g2.beginPath(); g2.moveTo(b.cx, b.y0 + b.h * 0.05); g2.lineTo(b.cx, b.y1); g2.stroke(); } });
-  // обод с заклёпками
-  band(g, S, c, M, [R * 1.17, R * 1.17], [R * 1.15, R * 1.15], R * (deep + 0.02), R * (deep + 0.24), look.trim || MAT(tone(m.base, -0.1), { metal: true }));
-  for (let i = -3; i <= 3; i++) { const a = i * 0.45, s0 = surf(c, M, R * 1.18, R * 1.18, a, R * (deep + 0.13)); if (s0.vis > 0.1) dotAt(g, S, s0.w, 0.45, '#efe6c8'); }
-  // наносник
-  if (fac([0, 0, 1]) > 0.05) { const a = toW([0, deep + 0.05, 1], 1.2), b = toW([0, -0.32, 0.97], 1.18); capsule(g, S, a, b, 0.95, 0.8, m); }
+  // нижний край шлема: над бровями спереди, ниже к затылку
+  const cap = look.helm === 'cap', front = cap ? 0.5 : look.helm === 'crown' ? 0.36 : 0.42, edgeY = z => front - (z < 0 ? -z * (cap ? 0.6 : 1.05) : 0);
+  const RH = R * (cap ? 1.09 : 1.14);
+  const tex = cap ? (g2, S2, b) => TEX.leather(g2, S2, b) : (g2, S2, b) => { g2.strokeStyle = rgba('#ffffff', 0.28); g2.lineWidth = S.k * 0.45; g2.beginPath(); g2.moveTo(b.cx, b.y0 + b.h * 0.05); g2.lineTo(b.cx, b.y1); g2.stroke(); };
+  blob(g, S, sphereHull(S, c, RH, M, d => d[1] > edgeY(d[2]), [], true), m, { tex });
+  // обод: видимая кривая по краю, толстая полоса с заклёпками
+  const rim = []; for (let k = 0; k <= 40; k++) { const a = k / 40 * TAU, z = Math.cos(a), x = Math.sin(a), y = edgeY(z), r0 = Math.sqrt(Math.max(0, 1 - y * y)), d = [x * r0, y, z * r0], wd = mv(M, d); rim.push(dot(wd, CAM.toCam) > 0.02 ? proj(add(c, mul(wd, RH * 1.02)), S) : null); }
+  const rimCol = cap ? tone(m.base, -0.25) : (look.trim ? look.trim.base : tone(m.base, -0.15));
+  g.lineCap = 'round'; g.lineJoin = 'round';
+  for (const [col, w] of [[OUT, 3.2], [rimCol, 2.1], [rgba('#fff8e0', 0.35), 0.6]]) { g.strokeStyle = col; g.lineWidth = lw(S) * w; g.beginPath(); let st = false; for (const p of rim) { if (!p) { st = false; continue; } if (!st) { g.moveTo(p.x, p.y); st = true; } else g.lineTo(p.x, p.y); } g.stroke(); }
+  if (!cap) for (let i = -4; i <= 4; i++) { const a = i * 0.36, z = Math.cos(a), y = edgeY(z) + 0.04, r0 = Math.sqrt(1 - y * y), d = [Math.sin(a) * r0, y, z * r0]; if (fac(d) > 0.1) dotAt(g, S, add(c, mul(mv(M, d), RH * 1.03)), 0.5, '#f4ecd0'); }
+  if (cap) return;
+  // наносник: от обода до кончика носа
+  if (fac([0, 0, 1]) > 0.05) { const a = toW([0, front + 0.02, 0.92], 1.16), b2 = toW([0, 0.05, 1], 1.2); limb(g, S, a, b2, 0.95, 0.9, 0.75, m); }
   if (look.helm === 'horned' || look.helm === 'crown') {
     for (const sg of [1, -1]) {
-      const base = toW([sg * 0.82, 0.42, 0], 1.08);
+      const base = toW([sg * 0.8, 0.55, -0.05], 1.1);
       const dir1 = norm(add(mv(M, [sg, 0.35, 0.1]), [0, 0, 0])), up = mv(M, [0, 1, 0]);
       const p1 = add(base, mul(dir1, 5)), p2 = add(p1, add(mul(up, 6), mul(dir1, 1.5))), p3 = add(p2, add(mul(up, 3.5), mul(dir1, -1.6)));
       const hm = look.helm === 'crown' ? MAT('#e7c35a', { metal: true }) : MAT('#efe2c4');
@@ -263,24 +325,44 @@ function drawHelm(g, S, B, look, t) {
       draw();
     }
   }
-  if (look.helm === 'crown') { for (let i = -2; i <= 2; i++) { const s0 = surf(c, M, R * 1.15, R * 1.15, i * 0.42, R * 0.3); if (s0.vis < 0.05) continue; const top = add(s0.w, mul(mv(M, [0, 1, 0]), 4.2 - Math.abs(i) * 0.9)); capsule(g, S, s0.w, top, 0.9, 0.2, MAT('#e7c35a', { metal: true })); } const gm = surf(c, M, R * 1.18, R * 1.18, 0, R * 0.25); if (gm.vis > 0.1) gemAt(g, S, gm.w, 1.3, '#c58bff', look.glow); }
+  if (look.helm === 'crown') { for (let i = -2; i <= 2; i++) { const s0 = surf(c, M, R * 0.95, R * 0.95, i * 0.42, R * 0.55); if (s0.vis < 0.05) continue; const top = add(s0.w, mul(mv(M, [0, 1, 0]), 4.2 - Math.abs(i) * 0.9)); capsule(g, S, s0.w, top, 0.9, 0.2, MAT('#e7c35a', { metal: true })); } const gm = surf(c, M, R * 0.98, R * 0.98, 0, R * 0.52); if (gm.vis > 0.1) gemAt(g, S, gm.w, 1.4, '#c58bff', look.glow); }
 }
 
 // ---------------------------------------------------------------- плечи
-function drawShoulder(g, S, B, look, sh, shM, sg, t) {
-  const m = look.pauldMat;
-  if (!look.pauld) return;
-  const c = add(sh, mul(mv(shM, [0, 1, 0]), 1.6));
-  const r = look.pauld === 'leather' ? 6.4 : look.pauld === 'round' ? 7 : 8.2;
-  const pts = sphereHull(S, c, r, shM, d => d[1] > -0.25, [], true);
-  blob(g, S, pts, m, { tex: look.pauld === 'leather' ? (g2, S2, b) => TEX.leather(g2, S2, b) : null });
-  // ярусы пластин
-  if (look.pauld === 'plate' || look.pauld === 'spiked') for (const y of [-0.05, 0.3]) band(g, S, c, shM, [r * 1.0, r * 1.0], [r * 0.93, r * 0.93], r * y, r * (y + 0.12), look.trim || MAT(tone(m.base, -0.2), { metal: true }), { thin: true });
-  if (look.pauld === 'round') { const s0 = add(c, mul(mv(shM, [0, 1, 0]), r * 0.98)); dotAt(g, S, s0, 0.9, '#e8dcc0'); }
-  if (look.pauld === 'spiked') for (const [x, z] of [[0, 0], [0.45, 0.35], [0.45, -0.35]]) { const b0 = add(c, mul(mv(shM, norm([x, 1, z])), r * 0.9)), tip = add(b0, mul(mv(shM, norm([x * 1.5, 1, z * 1.5])), 6)); capsule(g, S, b0, tip, 1.5, 0.15, MAT('#d8d0e8', { metal: true })); }
-  if (look.glow && look.pauld === 'spiked') { const gm = add(c, mul(mv(shM, norm([0, 0.6, 0.8])), r * 1.0)); gemAt(g, S, gm, 1.1, '#c58bff', look.glow); }
-  void t; void sg;
+/** Наплечник: купол и под ним 1–2 пластины-ламы внахлёст вниз по руке; кромка, заклёпки, ремень. У каждого комплекта свой. */
+function drawShoulder(g, S, B, look, sh, shM0, sg, t) {
+  const kind = look.pauld; if (!kind) return;
+  const out = mv(B.chestM, [sg, 0, 0]), fwd = mv(B.chestM, [0, 0, 1]);
+  const axis = norm(add(mul(out, 0.75), [0, 0.85, 0]));   // ось купола: вверх и наружу
+  const zz = norm(cross(fwd, axis)), xx = norm(cross(axis, zz));
+  const M = [xx[0], axis[0], zz[0], xx[1], axis[1], zz[1], xx[2], axis[2], zz[2]];
+  const P = { pad: [6.6, 2, 2.2], leather: [6.6, 3, 2.1], round: [7, 2, 2.4], plate: [8.4, 3, 2.6], spiked: [8.8, 3, 2.7] }[kind];
+  const [r, nL, step] = P, down = norm(add(mul(out, 0.5), [0, -1, 0]));
+  const c0 = add(sh, add(mul(axis, kind === 'pad' ? 0.3 : 1.2), mul(out, 0.8)));
+  const m = look.pauldMat, trim = look.trim;
+  const cut = kind === 'pad' ? -0.3 : -0.12;
+  for (let i = nL - 1; i >= 0; i--) {
+    const c = add(c0, mul(down, i * step)), ri = r * (1 - i * 0.07), mat = i % 2 && kind !== 'pad' ? MAT(tone(m.base, -0.1), { metal: m.metal }) : m;
+    const pts = sphereHull(S, c, ri, M, d => d[1] > cut, [], true);
+    const b = blob(g, S, pts, mat, { tex: kind === 'pad' ? quilt : kind === 'leather' ? (g2, S2, bb) => TEX.leather(g2, S2, bb) : null });
+    if (!b) continue;
+    // кромка ламы: видимая дуга по нижнему краю (золотая у лат)
+    const rim = []; for (let k = 0; k <= 24; k++) { const a = k / 24 * TAU, d = [Math.cos(a) * Math.sqrt(1 - cut * cut), cut, Math.sin(a) * Math.sqrt(1 - cut * cut)], wd = mv(M, d); if (dot(wd, CAM.toCam) > 0.02) rim.push(proj(add(c, mul(wd, ri * 1.01)), S)); else if (rim.length) rim.push(null); }
+    g.lineCap = 'round';
+    for (const [col, w] of [[OUT, 1.9], [trim && (kind === 'plate' || kind === 'spiked') ? trim.base : kind === 'leather' ? tone(m.base, 0.25) : tone(m.base, 0.35), 0.9]]) { g.strokeStyle = col; g.lineWidth = lw(S) * w; g.beginPath(); let st = false; for (const p of rim) { if (!p) { st = false; continue; } if (!st) { g.moveTo(p.x, p.y); st = true; } else g.lineTo(p.x, p.y); } g.stroke(); }
+    // заклёпки по кромке
+    if (kind !== 'pad') for (const a of [-0.9, -0.3, 0.3, 0.9]) { const d = [Math.cos(a + Math.PI / 2) * 0.93, cut + 0.2, Math.sin(a + Math.PI / 2) * 0.93], wd = mv(M, d); if (dot(wd, CAM.toCam) > 0.15) dotAt(g, S, add(c, mul(wd, ri * 1.0)), 0.55, kind === 'leather' ? '#d8b878' : '#efe6c8'); }
+  }
+  // гребень по куполу у лат
+  if (kind === 'plate' || kind === 'spiked') { const a0 = add(c0, mul(mv(M, norm([0, 1, -0.75])), r * 1.02)), a1 = add(c0, mul(mv(M, [0, 1, 0]), r * 1.04)), a2 = add(c0, mul(mv(M, norm([0, 1, 0.75])), r * 1.02)); limb(g, S, a0, a1, 0.9, 1, 0.9, trim || m); limb(g, S, a1, a2, 0.9, 1, 0.9, trim || m); }
+  // ремень через плечо у кожи и стёганки
+  if (kind === 'pad' || kind === 'leather') { const a = add(c0, mul(mv(M, norm([0, 0.5, 1])), r * 1.0)), b2 = add(c0, mul(mv(M, norm([0, 0.5, -1])), r * 1.0)); const mid = add(c0, mul(mv(M, [0, 1, 0]), r * 1.05)); limb(g, S, a, mid, 0.8, 0.85, 0.8, MAT('#3e2615')); limb(g, S, mid, b2, 0.8, 0.85, 0.8, MAT('#3e2615')); dotAt(g, S, mid, 0.8, look.buckle.base); }
+  if (kind === 'spiked') for (const [x, z] of [[0, 0], [0.5, 0.45], [0.5, -0.45]]) { const b0 = add(c0, mul(mv(M, norm([x * 0.5, 1, z])), r * 0.95)), tip = add(b0, mul(mv(M, norm([x * 0.3, 1, z * 0.6])), 7)); limb(g, S, b0, tip, 1.8, 1.4, 0.2, MAT('#d8d0e8', { metal: true })); }
+  if (look.glow && kind === 'spiked') { const gm = add(c0, mul(mv(M, norm([0.8, 0.5, 0])), r * 1.0)); gemAt(g, S, gm, 1.2, '#c58bff', look.glow); }
+  void t; void shM0;
 }
+/** Стёганка: ромбы прошивки. */
+function quilt(g, S, b) { g.strokeStyle = 'rgba(70,50,30,.45)'; g.lineWidth = Math.max(0.5, S.k * 0.3); g.setLineDash([S.k * 0.8, S.k * 0.6]); const st = S.k * 3.2; for (let x = b.x0 - b.h; x < b.x1 + b.h; x += st) { g.beginPath(); g.moveTo(x, b.y0); g.lineTo(x + b.h, b.y1); g.moveTo(x + b.h, b.y0); g.lineTo(x, b.y1); g.stroke(); } g.setLineDash([]); }
 
 // ---------------------------------------------------------------- герб на табарде
 function emblem(g, S, p, look) {

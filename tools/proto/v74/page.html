@@ -10,7 +10,7 @@ p{color:var(--dim);line-height:1.5;max-width:880px;margin:4px 0 10px}
 .bar button,select{font:inherit;font-size:14px;color:var(--dim);background:var(--pan);border:1.5px solid var(--line);border-radius:8px;padding:5px 11px;cursor:pointer}
 .bar button.on{color:var(--hi);border-color:var(--acc);background:#2a2014}
 canvas{display:block;width:100%;border-radius:12px;border:1px solid var(--line)}
-#big{height:560px} #turn{height:240px} #setsCv{height:330px} #game{height:260px}
+#big{height:560px} #turn{height:240px} #setsCv{height:330px} #game{height:260px} #faces{height:300px}
 .row{display:grid;grid-template-columns:1fr;gap:10px}
 .lbl{color:var(--dim);font-size:13px}
 @media (max-width:700px){#big{height:420px}#turn{height:170px}#setsCv{height:240px}}
@@ -23,6 +23,8 @@ canvas{display:block;width:100%;border-radius:12px;border:1px solid var(--line)}
 <div class="bar" id="sets"></div>
 <div class="bar" id="dirs"></div>
 <canvas id="big"></canvas>
+<h2>Лицо крупно</h2>
+<canvas id="faces"></canvas>
 <h2>8 сторон</h2>
 <div class="bar"><span class="lbl">движение:</span> <select id="turnAnim"><option value="idle">стоит</option><option value="walk" selected>шаг</option><option value="run">бег</option><option value="chop">удар</option></select></div>
 <canvas id="turn"></canvas>
@@ -33,5 +35,6 @@ canvas{display:block;width:100%;border-radius:12px;border:1px solid var(--line)}
 <p>Так герой выглядит на экране компьютера при обычном приближении.</p>
 <canvas id="game"></canvas>
 </div>
-<div id="main"><h2>Что это за эскиз</h2><p>Первая проба стиля на Воине: тело собрано из объёмных частей, поэтому любая сторона, шаг, бег и удары считаются сами, а не рисуются кадрами. По этой пробе решаем манеру. Если она подходит — дорисую все модели вещей Воина (15 оружий, 9 шлемов, 8 нагрудников, 4 штанов, кольца, шеи), потом Мага и Лучника, и переведу игру.</p></div>
+<div id="main"><h2>Что это за эскиз</h2><p><b>Вторая проба.</b> Лицо переделано: глаза, брови, нос, усы теперь на поверхности головы и поворачиваются вместе с ней; голова чуть повёрнута к зрителю. Кулаки обхватывают рукоять (видны пальцы и большой палец), стоя воин держит оружие двумя руками. Оружие объёмное: лезвия с толщиной, гранями и светлой фаской, древко с обмоткой и кольцами, боёк молота — гранёный брус. Наплечники у каждого комплекта свои: стёганка, кожаные пластины, стальной, латный с гребнем и золотой кромкой, фиолетовый с шипами.</p>
+<p>Первая проба стиля на Воине: тело собрано из объёмных частей, поэтому любая сторона, шаг, бег и удары считаются сами, а не рисуются кадрами. По этой пробе решаем манеру. Если она подходит — дорисую все модели вещей Воина (15 оружий, 9 шлемов, 8 нагрудников, 4 штанов, кольца, шеи), потом Мага и Лучника, и переведу игру.</p></div>
 <!--SCRIPT-->

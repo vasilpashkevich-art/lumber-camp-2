@@ -39,12 +39,12 @@ const bbox = pts => { let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9; for (const p
 export const lw = S => Math.max(1.1, S.k * 0.6);
 
 /** Заливка объёмом: свет слева сверху по рамке фигуры; металл — с бликом-полосой. */
-export function fillVol(g, S, mat, b, round = true) {
+export function fillVol(g, S, mat, b, round = true, pth) {
   const r = Math.max(b.w, b.h) * 0.5 + 0.01;
   let gr;
   if (round) { gr = g.createRadialGradient(b.cx + LIGHT2[0] * r * 0.45, b.cy + LIGHT2[1] * r * 0.45, r * 0.05, b.cx, b.cy, r * 1.15); }
   else { gr = g.createLinearGradient(b.cx + LIGHT2[0] * r, b.cy + LIGHT2[1] * r, b.cx - LIGHT2[0] * r, b.cy - LIGHT2[1] * r); }
-  stops(gr, mat); g.fillStyle = gr; g.fill();
+  stops(gr, mat); g.fillStyle = gr; pth ? g.fill(pth) : g.fill();
 }
 /** Переходы цвета: блик → цвет → тень → отражённый свет у края. */
 export function stops(gr, mat) {
@@ -52,9 +52,9 @@ export function stops(gr, mat) {
   else { gr.addColorStop(0, mat.hi); gr.addColorStop(0.42, mat.base); gr.addColorStop(0.86, mat.lo); gr.addColorStop(1, tone(mat.lo, 0.12)); }
 }
 /** Обводка и мягкий отражённый свет по нижнему краю (как у иконок). */
-export function edge(g, S, mat, b) {
-  if (mat.rim !== false) { g.save(); g.clip(); g.strokeStyle = rgba(mat.rim || tone(mat.base, 0.15), 0.35); g.lineWidth = lw(S) * 2.2; g.translate(-LIGHT2[0] * lw(S) * 1.1, -LIGHT2[1] * lw(S) * 1.1); g.stroke(); g.restore(); }
-  g.strokeStyle = OUT; g.lineWidth = lw(S); g.stroke();
+export function edge(g, S, mat, b, pth) {
+  if (mat.rim !== false) { g.save(); g.clip(pth); g.strokeStyle = rgba(mat.rim || tone(mat.base, 0.15), 0.35); g.lineWidth = lw(S) * 2.2; g.translate(-LIGHT2[0] * lw(S) * 1.1, -LIGHT2[1] * lw(S) * 1.1); g.stroke(pth); g.restore(); }
+  g.strokeStyle = OUT; g.lineWidth = lw(S); g.stroke(pth);
 }
 /** Блик: светлое пятно у края, обращённого к свету. */
 export function spec(g, S, b, a = 0.55, size = 0.3) {
@@ -67,23 +67,23 @@ export function spec(g, S, b, a = 0.55, size = 0.3) {
 export function capsule(g, S, a, b, ra, rb, mat, tex) {
   const A = proj(a, S), Bp = proj(b, S), r1 = ra * S.k, r2 = rb * S.k;
   const dx = Bp.x - A.x, dy = Bp.y - A.y, L = Math.hypot(dx, dy);
-  g.beginPath();
-  if (L < Math.abs(r1 - r2) + 0.01) { const r = Math.max(r1, r2), c = r1 > r2 ? A : Bp; g.arc(c.x, c.y, r, 0, TAU); }
+  const pth = new Path2D();
+  if (L < Math.abs(r1 - r2) + 0.01) { const r = Math.max(r1, r2), c = r1 > r2 ? A : Bp; pth.arc(c.x, c.y, r, 0, TAU); }
   else {
     const ux = dx / L, uy = dy / L, ang = Math.atan2(uy, ux), sa = Math.asin(clamp((r1 - r2) / L, -1, 1));
-    g.arc(A.x, A.y, r1, ang + Math.PI / 2 + sa, ang - Math.PI / 2 - sa + TAU);
-    g.arc(Bp.x, Bp.y, r2, ang - Math.PI / 2 - sa, ang + Math.PI / 2 + sa);
-    g.closePath();
+    pth.arc(A.x, A.y, r1, ang + Math.PI / 2 + sa, ang - Math.PI / 2 - sa + TAU);
+    pth.arc(Bp.x, Bp.y, r2, ang - Math.PI / 2 - sa, ang + Math.PI / 2 + sa);
+    pth.closePath();
   }
   // свет поперёк капсулы
   const nx = -dy / (L || 1), ny = dx / (L || 1), side = nx * LIGHT2[0] + ny * LIGHT2[1] > 0 ? 1 : -1, r = Math.max(r1, r2);
   const mx = (A.x + Bp.x) / 2, my = (A.y + Bp.y) / 2;
   const gr = g.createLinearGradient(mx + nx * side * r, my + ny * side * r, mx - nx * side * r, my - ny * side * r);
-  stops(gr, mat); g.fillStyle = gr; g.fill();
+  stops(gr, mat); g.fillStyle = gr; g.fill(pth);
   const bb = { x0: Math.min(A.x, Bp.x) - r, x1: Math.max(A.x, Bp.x) + r, y0: Math.min(A.y, Bp.y) - r, y1: Math.max(A.y, Bp.y) + r }; bb.cx = (bb.x0 + bb.x1) / 2; bb.cy = (bb.y0 + bb.y1) / 2; bb.w = bb.x1 - bb.x0; bb.h = bb.y1 - bb.y0;
-  if (tex) { g.save(); g.clip(); tex(g, S, { A, B: Bp, ux: dx / (L || 1), uy: dy / (L || 1), nx, ny, r1, r2, L, bb }); g.restore(); }
-  if (mat.metal) { g.save(); g.clip(); g.strokeStyle = 'rgba(255,255,245,.3)'; g.lineWidth = r * 0.22; g.lineCap = 'round'; g.beginPath(); g.moveTo(A.x + nx * side * r * 0.5, A.y + ny * side * r * 0.5); g.lineTo(Bp.x + nx * side * r * 0.5, Bp.y + ny * side * r * 0.5); g.stroke(); g.restore(); }
-  edge(g, S, mat, bb);
+  if (tex) { g.save(); g.clip(pth); tex(g, S, { A, B: Bp, ux: dx / (L || 1), uy: dy / (L || 1), nx, ny, r1, r2, L, bb }); g.restore(); }
+  if (mat.metal) { g.save(); g.clip(pth); g.strokeStyle = 'rgba(255,255,245,.3)'; g.lineWidth = r * 0.22; g.lineCap = 'round'; g.beginPath(); g.moveTo(A.x + nx * side * r * 0.5, A.y + ny * side * r * 0.5); g.lineTo(Bp.x + nx * side * r * 0.5, Bp.y + ny * side * r * 0.5); g.stroke(); g.restore(); }
+  edge(g, S, mat, bb, pth);
   return { A, B: Bp, nx, ny, side, r, L };
 }
 
@@ -93,16 +93,16 @@ export function limb(g, S, a, b, r0, rm, r1, mat, tex) {
   const R = s => (r0 + (r1 - r0) * s + (rm - (r0 + r1) / 2) * Math.sin(Math.PI * s) ** 1.3) * S.k;
   const left = [], right = [], N = 12;
   for (let i = 0; i <= N; i++) { const q = i / N, x = A.x + dx * q, y = A.y + dy * q, r = R(q); left.push([x + nx * r, y + ny * r]); right.push([x - nx * r, y - ny * r]); }
-  g.beginPath(); g.moveTo(left[0][0], left[0][1]); for (const p of left) g.lineTo(p[0], p[1]);
-  const ang = Math.atan2(ny, nx); g.arc(Bp.x, Bp.y, R(1), ang, ang - Math.PI, true);
-  for (let i = N; i >= 0; i--) g.lineTo(right[i][0], right[i][1]);
-  g.arc(A.x, A.y, R(0), ang + Math.PI, ang, true); g.closePath();
+  const pth = new Path2D(); pth.moveTo(left[0][0], left[0][1]); for (const p of left) pth.lineTo(p[0], p[1]);
+  const ang = Math.atan2(ny, nx); pth.arc(Bp.x, Bp.y, R(1), ang, ang - Math.PI, true);
+  for (let i = N; i >= 0; i--) pth.lineTo(right[i][0], right[i][1]);
+  pth.arc(A.x, A.y, R(0), ang + Math.PI, ang, true); pth.closePath();
   const side = nx * LIGHT2[0] + ny * LIGHT2[1] > 0 ? 1 : -1, r = Math.max(R(0), R(0.5), R(1)), mx = (A.x + Bp.x) / 2, my = (A.y + Bp.y) / 2;
-  const gr = g.createLinearGradient(mx + nx * side * r, my + ny * side * r, mx - nx * side * r, my - ny * side * r); stops(gr, mat); g.fillStyle = gr; g.fill();
+  const gr = g.createLinearGradient(mx + nx * side * r, my + ny * side * r, mx - nx * side * r, my - ny * side * r); stops(gr, mat); g.fillStyle = gr; g.fill(pth);
   const bb = { x0: Math.min(A.x, Bp.x) - r, x1: Math.max(A.x, Bp.x) + r, y0: Math.min(A.y, Bp.y) - r, y1: Math.max(A.y, Bp.y) + r }; bb.cx = (bb.x0 + bb.x1) / 2; bb.cy = (bb.y0 + bb.y1) / 2; bb.w = bb.x1 - bb.x0; bb.h = bb.y1 - bb.y0;
-  if (tex && S.k >= 1.1) { g.save(); g.clip(); tex(g, S, { A, B: Bp, ux, uy, nx, ny, r1: R(0), r2: R(1), L, bb }); g.restore(); }
-  if (mat.metal) { g.save(); g.clip(); g.strokeStyle = 'rgba(255,255,245,.32)'; g.lineWidth = r * 0.2; g.lineCap = 'round'; g.beginPath(); g.moveTo(A.x + nx * side * R(0) * 0.5, A.y + ny * side * R(0) * 0.5); g.lineTo(Bp.x + nx * side * R(1) * 0.5, Bp.y + ny * side * R(1) * 0.5); g.stroke(); g.restore(); }
-  edge(g, S, mat, bb);
+  if (tex && S.k >= 1.1) { g.save(); g.clip(pth); tex(g, S, { A, B: Bp, ux, uy, nx, ny, r1: R(0), r2: R(1), L, bb }); g.restore(); }
+  if (mat.metal) { g.save(); g.clip(pth); g.strokeStyle = 'rgba(255,255,245,.32)'; g.lineWidth = r * 0.2; g.lineCap = 'round'; g.beginPath(); g.moveTo(A.x + nx * side * R(0) * 0.5, A.y + ny * side * R(0) * 0.5); g.lineTo(Bp.x + nx * side * R(1) * 0.5, Bp.y + ny * side * R(1) * 0.5); g.stroke(); g.restore(); }
+  edge(g, S, mat, bb, pth);
   return { A, B: Bp, nx, ny, side, r, L, R };
 }
 /** Мягкая тень-«затенение» в месте стыка (под головой, под наплечником). */
@@ -116,27 +116,33 @@ export function sphereHull(S, c, r, M, pred, extra = [], visOnly = false) {
   for (const e of extra) pts.push(proj(add(c, mv(M, e)), S));
   return hull(pts);
 }
+/** Скруглённый брус (кулак, пряжка): оси ax — три вектора полуразмеров, e — «квадратность» (1 — эллипсоид, 0,5 — почти куб). */
+export function boxHull(S, c, ax, e = 0.6, pred = null) {
+  const pts = [], f = v => Math.sign(v) * Math.abs(v) ** e;
+  for (const d of SPH) { if (pred && !pred(d)) continue; const q = [f(d[0]), f(d[1]), f(d[2])]; pts.push(proj(add(c, add(mul(ax[0], q[0]), add(mul(ax[1], q[1]), mul(ax[2], q[2])))), S)); }
+  return hull(pts);
+}
 /** Нарисовать часть сферы как объём (голова, кулак, наплечник, шлем). */
 export function blob(g, S, pts, mat, o = {}) {
   if (pts.length < 3) return null;
-  const b = bbox(pts); g.beginPath(); smooth(g, pts); fillVol(g, S, mat, b, true);
-  if (o.tex && S.k >= 1.1) { g.save(); g.clip(); o.tex(g, S, b); g.restore(); }
-  if (mat.metal || o.spec) { g.save(); g.clip(); spec(g, S, b, mat.metal ? 0.75 : 0.35, mat.metal ? 0.28 : 0.35); g.restore(); }
-  if (mat.glow) { g.save(); g.shadowColor = mat.glow; g.shadowBlur = 6 * S.k / 3; g.strokeStyle = rgba(mat.glow, 0.5); g.lineWidth = lw(S); g.stroke(); g.restore(); }
-  edge(g, S, mat, b); return b;
+  const b = bbox(pts), pth = new Path2D(); smooth(pth, pts); fillVol(g, S, mat, b, true, pth);
+  if (o.tex && S.k >= 1.1) { g.save(); g.clip(pth); o.tex(g, S, b); g.restore(); }
+  if (mat.metal || o.spec) { g.save(); g.clip(pth); spec(g, S, b, mat.metal ? 0.75 : 0.35, mat.metal ? 0.28 : 0.35); g.restore(); }
+  if (mat.glow) { g.save(); g.shadowColor = mat.glow; g.shadowBlur = 6 * S.k / 3; g.strokeStyle = rgba(mat.glow, 0.5); g.lineWidth = lw(S); g.stroke(pth); g.restore(); }
+  edge(g, S, mat, b, pth); b.pth = pth; return b;
 }
 /** Плоский многоугольник в мире (лезвие, пластина): свет по нормали к миру. */
 export function plate(g, S, wpts, mat, o = {}) {
   const P = wpts.map(w => proj(w, S));
   const n = norm(cross(sub(wpts[1], wpts[0]), sub(wpts[2], wpts[0])));
   const lit = Math.abs(dot(n, LIGHT3));
-  const b = bbox(P); g.beginPath(); if (o.round) smooth(g, P); else { g.moveTo(P[0].x, P[0].y); for (let i = 1; i < P.length; i++) g.lineTo(P[i].x, P[i].y); g.closePath(); }
+  const b = bbox(P), pth = new Path2D(); if (o.round) smooth(pth, P); else { pth.moveTo(P[0].x, P[0].y); for (let i = 1; i < P.length; i++) pth.lineTo(P[i].x, P[i].y); pth.closePath(); }
   const base = tone(mat.base, (lit - 0.5) * (mat.metal ? 0.7 : 0.4));
   const gr = g.createLinearGradient(b.x0, b.y0, b.x1, b.y1); gr.addColorStop(0, tone(base, mat.metal ? 0.45 : 0.2)); gr.addColorStop(0.5, base); gr.addColorStop(1, tone(base, mat.metal ? -0.45 : -0.3));
-  g.fillStyle = gr; g.fill();
-  if (o.tex) { g.save(); g.clip(); o.tex(g, S, b, P); g.restore(); }
-  if (mat.glow) { g.save(); g.shadowColor = mat.glow; g.shadowBlur = 8 * S.k / 3; g.strokeStyle = rgba(mat.glow, 0.6); g.lineWidth = lw(S); g.stroke(); g.restore(); }
-  g.strokeStyle = OUT; g.lineWidth = lw(S); g.stroke();
+  g.fillStyle = gr; g.fill(pth);
+  if (o.tex) { g.save(); g.clip(pth); o.tex(g, S, b, P, pth); g.restore(); }
+  if (mat.glow) { g.save(); g.shadowColor = mat.glow; g.shadowBlur = 8 * S.k / 3; g.strokeStyle = rgba(mat.glow, 0.6); g.lineWidth = lw(S); g.stroke(pth); g.restore(); }
+  g.strokeStyle = OUT; g.lineWidth = lw(S); g.stroke(pth);
   return { P, b, lit };
 }
 
@@ -153,11 +159,11 @@ export function band(g, S, c, M, r0, r1, y0, y1, mat, o = {}) {
   }
   if (A.length < 2) return null;
   const P = A.concat(Bv.reverse()), b = bbox(P);
-  g.beginPath(); g.moveTo(P[0].x, P[0].y); for (let i = 1; i < P.length; i++) g.lineTo(P[i].x, P[i].y); g.closePath();
-  fillVol(g, S, mat, b, false);
-  if (o.tex && S.k >= 1.1) { g.save(); g.clip(); o.tex(g, S, b, A, Bv); g.restore(); }
-  if (mat.metal) { g.save(); g.clip(); spec(g, S, b, 0.5, 0.25); g.restore(); }
-  g.strokeStyle = OUT; g.lineWidth = lw(S) * (o.thin ? 0.7 : 1); g.stroke();
+  const pth = new Path2D(); pth.moveTo(P[0].x, P[0].y); for (let i = 1; i < P.length; i++) pth.lineTo(P[i].x, P[i].y); pth.closePath();
+  fillVol(g, S, mat, b, false, pth);
+  if (o.tex && S.k >= 1.1) { g.save(); g.clip(pth); o.tex(g, S, b, A, Bv); g.restore(); }
+  if (mat.metal) { g.save(); g.clip(pth); spec(g, S, b, 0.5, 0.25); g.restore(); }
+  g.strokeStyle = OUT; g.lineWidth = lw(S) * (o.thin ? 0.7 : 1); g.stroke(pth);
   return { A, B: Bv, b };
 }
 /** Точка на поверхности кольца-эллипса, видна ли она зрителю (для пряжек, заклёпок, камней). */

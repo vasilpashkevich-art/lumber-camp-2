@@ -42,7 +42,7 @@ export const proj = (w, S) => ({ x: S.x + w[0] * S.k, y: S.y + (-w[1] * CAM.ky +
 // ---------------------------------------------------------------- скелет (рост 100)
 export const SK = {
   hipY: 45, hipX: 7.6, thigh: 21, shin: 20, ankleY: 4.6, foot: 8.5,
-  waistY: 55, chestY: 66, shY: 73, shX: 18, neckY: 78.5, headY: 89.5, headR: 10.5,
+  waistY: 55, chestY: 66, shY: 73, shX: 18, neckY: 78.5, headY: 89.8, headR: 11,
   upper: 16, fore: 14.5, handR: 4.6,
 };
 
@@ -107,7 +107,7 @@ export function solve(P) {
   // оружие: из правой кисти по направлению dir, плоскость лезвия — edge
   const W = P.weapon || {};
   B.wDir = norm(W.dir || [0, 1, 0.3]); B.wEdge = norm(sub(W.edge || [0, 0, 1], mul(B.wDir, dot(W.edge || [0, 0, 1], B.wDir))));
-  B.grip = B.haR;
+  B.grip = B.haR; B.twoHand = P.twoHand || 0; B.dropped = !!(P.drop && P.drop.k > 0.5);
   // оружие положено на землю (сидит)
   if (P.drop) { const k = P.drop.k; B.grip = lerpV(B.haR, add(root, P.drop.at), k); B.wDir = norm(lerpV(B.wDir, P.drop.dir, k)); B.wEdge = norm(lerpV(B.wEdge, P.drop.edge, k)); }
   // падение на бок: всё тело поворачивается вокруг точки у ног
