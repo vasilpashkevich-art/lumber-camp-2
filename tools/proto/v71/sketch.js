@@ -2,7 +2,7 @@
 import { LOOK } from '../../../src/art/look.js';
 import { treeSpr, personSpr, beastSpr, MOB_LOOK, drawFrame, drawSpr, TREE_K } from '../../../src/art/sprites.js';
 import { lookOf, makeItem } from '../../../src/systems/items.js';
-import { makeRelief, bakeLayers, drawFace, drawRim, drawRamp, blob, band, LH } from './relief.js';
+import { makeRelief, bakeLayers, drawFace, drawRim, drawRampWhole, blob, band, smooth, LH } from './relief.js';
 import { GIANT, giantBase, giantUpper, giantCrown, giantShade } from './giants.js';
 
 const DPR = Math.min(2, window.devicePixelRatio || 1);
@@ -17,8 +17,13 @@ const regions0 = [{ lvl: -1, poly: F }, { lvl: -1, poly: G }, { lvl: 1, poly: A 
 const probe0 = makeRelief({ W, H, regions: regions0, ramps: [] });
 const cSy = x => { let y = 300; while (probe0.levelAt(x, y) === 2 && y < H) y++; return y; };
 // уступ вдоль южной стены утёса (серпантин: склон на уступ, по уступу, лестница наверх)
-const LEDGE = (() => { const top = [], bot = []; for (let x = 1700; x <= 2160; x += 20) { const e = cSy(x); top.push([x, e - 24]); bot.push([x, e + 70]); } return [...top, ...bot.reverse()]; })();
-const regions = [{ lvl: -1, poly: F }, { lvl: -1, poly: G }, { lvl: 1, poly: A }, { lvl: 1, poly: E }, { lvl: 1, poly: LEDGE }, { lvl: 2, poly: C }, { lvl: 2, poly: B }];
+const LEDGE = (() => { const top = [], bot = []; for (let x = 1700; x <= 2160; x += 20) { const e = cSy(x); top.push([x, e - 24]); bot.push([x, e + 70]); } return smooth([...top, ...bot.reverse()], 3); })();
+// мелкий рельеф в пол роста: бугры и ложбины — проходимы везде
+const SOFT = [
+  { lvl: 0.5, soft: true, poly: blob(330, 1180, 185, 118, 21) }, { lvl: 0.5, soft: true, poly: blob(1490, 655, 140, 88, 23) }, { lvl: 0.5, soft: true, poly: blob(2050, 1460, 110, 66, 31) }, { lvl: 0.5, soft: true, poly: blob(1890, 690, 80, 48, 33) },
+  { lvl: -0.5, soft: true, poly: blob(1330, 1380, 125, 70, 27) }, { lvl: -0.5, soft: true, poly: blob(770, 850, 90, 54, 29) },
+];
+const regions = [{ lvl: -1, poly: F }, { lvl: -1, poly: G }, ...SOFT, { lvl: 1, poly: A }, { lvl: 1, poly: E }, { lvl: 1, poly: LEDGE }, { lvl: 1.5, soft: true, poly: blob(250, 440, 85, 58, 25) }, { lvl: 2, poly: C }, { lvl: 2, poly: B }];
 const probe = makeRelief({ W, H, regions, ramps: [] });
 const edgeY = (x, y, dir, lvl) => { while (probe.levelAt(x, y) === lvl && y > 0 && y < H) y += dir; return y; };   // идти от точки, пока уровень тот же
 const edgeX = (x, y, dir, lvl) => { while (probe.levelAt(x, y) === lvl && x > 0 && x < W) x += dir; return x; };
@@ -30,10 +35,10 @@ const ramps = [
   { kind: 'slope', w: 64, pts: [[1600, cSy(1720) + 150, 0], [1712, cSy(1720) + 69, 1]] },               // на уступ утёса
   { kind: 'stairs', w: 54, pts: [[2120, cSy(2120) + 66, 1], [2120, cSy(2120) - 1, 2]] },                 // с уступа наверх
   { kind: 'slope', w: 96, pts: [[985, fN - 24, 0], [985, fN + 120, -1]] },                                  // спуск в низину
-  { kind: 'slope', w: 100, pts: [[1478, 821, 0], [1610, 918, -1]] },                                          // спуск в овраг
+  { kind: 'slope', w: 66, pts: [[1484, 826, 0], [1620, 925, -1]] },                                          // спуск в овраг
 ];
 const ponds = [[1010, 1250, 150, 72]];
-const hills = [[300, 1170, 200], [2150, 760, 150], [620, 930, 130]];
+const hills = [[2150, 760, 150], [620, 960, 120], [1150, 760, 110]];
 const RF = makeRelief({ W, H, regions, ramps, hills, ponds });
 
 // великаны и обычные деревья
@@ -60,7 +65,7 @@ const mobs = [
 // подписи форм рельефа
 const LABELS = [
   [520, 520, 'Возвышенность'], [470, 300, 'Вершина-курган'], [560, aS + 70, 'Склон'], [bE + 40, 360, 'Лестница'], [eW - 40, 330, 'Лестница'], [1900, cS + 40, 'Уступ и лестница'],
-  [1960, 200, 'Утёс в 2 яруса'], [950, 240, 'Ущелье'], [1000, 1110, 'Низина: пруд, туман'], [985, fN + 50, 'Спуск'], [1830, 1060, 'Овраг'], [300, 1100, 'Пригорок'],
+  [1960, 200, 'Утёс в 2 яруса'], [950, 240, 'Ущелье'], [1000, 1110, 'Низина: пруд, туман'], [985, fN + 50, 'Спуск'], [1830, 1060, 'Овраг'], [330, 1110, 'Бугор в пол роста'], [1330, 1340, 'Ложбина'], [770, 820, 'Ложбина'], [1490, 600, 'Бугор'], [2150, 700, 'Пригорок'],
   [760, 380, 'Древний дуб'], [600, 950, 'Вековая сосна'], [1185, 250, 'Возвышенность'],
 ];
 
@@ -90,7 +95,7 @@ for (const t of giants) {
   sprites['base' + t.s] = canvasOf(Gd.trunkW * 4, Gd.low + 40, Gd.trunkW * 2, Gd.low + 20, 1.6, g => giantBase(g, t.kind, t.s));
   sprites['crown' + t.s] = canvasOf(Gd.crownR * 2.6, Gd.crownR * 2.4, Gd.crownR * 1.3, Gd.crownR * 1.25, 1.2, g => giantCrown(g, t.kind, t.s));
 }
-const rampLvl = s => Math.ceil(Math.max(s.l0, s.l1) - 0.001);
+const rampLvl = rp => RF.levels.find(L => L >= Math.max(...rp.pts.map(p => p[2])) - 0.001);
 
 // туман низины
 let PUFF = null;
@@ -103,12 +108,12 @@ function render(cv, cam, zk, t, opts = {}) {
   g.setTransform(z * DPR, 0, 0, z * DPR, -x0 * z * DPR, -y0 * z * DPR); g.lineJoin = 'round';
   // 1. земля по ярусам: обрывы → верх яруса → склоны → кромки
   const terrain = (L, filter) => {
-    if (L > RF.min) (RF.edges[L] || []).forEach((e, i) => (!filter || filter(e.y0, e.y1)) && drawFace(g, e, L, i * 7 + L));
+    if (L > RF.min) (RF.edges[L] || []).forEach((e, i) => (!filter || filter(e.y0, e.y1)) && drawFace(g, e, L, i * 7 + Math.round(L * 10)));
     if (!filter) g.drawImage(layers[L], 0, -pad);
-    RF.segs.forEach((s, i) => rampLvl(s) === L && (!filter || filter(Math.min(s.y0, s.y1), Math.max(s.y0, s.y1))) && drawRamp(g, s, i + 3));
+    RF.ramps.forEach((rp, i) => { if (rampLvl(rp) !== L) return; const ys = rp.pts.map(p => p[1]); if (!filter || filter(Math.min(...ys), Math.max(...ys))) drawRampWhole(g, RF, rp, i + 3); });
     if (L > RF.min) (RF.edges[L] || []).forEach(e => (!filter || filter(e.y0, e.y1)) && drawRim(g, e, L));
   };
-  for (let L = RF.min; L <= RF.max; L++) terrain(L);
+  for (const L of RF.levels) terrain(L);
   // 2. всё, что стоит на земле, — по глубине; после каждого — ярусы выше него, что стоят южнее, закрывают его
   const list = [];
   for (const tr of trees) list.push({ y: tr.y, x: tr.x, tree: tr, bw: 60 * tr.s, bh: 170 * tr.s });
@@ -125,7 +130,7 @@ function render(cv, cam, zk, t, opts = {}) {
     else { const f = hero.moving ? Math.floor(hero.step) % 8 : 0; drawFrame(g, personSpr(HERO_L, hero.view, hero.moving ? 'walk' : 'idle', f), hero.x, sy, hero.dir, 1.15); }
     // заслон: ярусы выше этого, что лежат южнее него
     const lv = h / LH;
-    for (let L = Math.ceil(lv + 0.05); L <= RF.max; L++) {
+    for (const L of RF.levels) { if (L <= lv + 0.05) continue;
       g.save(); g.beginPath(); g.rect(o.x - o.bw, sy - o.bh, o.bw * 2, o.bh + 14); g.clip();
       g.beginPath(); g.rect(o.x - o.bw, o.y - L * LH, o.bw * 2, 2000); g.clip();
       g.drawImage(layers[L], 0, -pad);
@@ -217,7 +222,7 @@ function tick(now) {
   }
   const hy = hero.y - RF.height(hero.x, hero.y) - 20; cam.x += (hero.x - cam.x) * 0.12; cam.y += (hy - cam.y) * 0.12;
   render(view, cam, zoomK, t, VO);
-  $('#hud').textContent = `Ярус под героем: ${['низина', 'равнина', 'возвышенность', 'вершина'][Math.round(RF.height(hero.x, hero.y) / LH) + 1] || ''}${RF.onRamp(hero.x, hero.y) ? ' · на склоне' : ''}`;
+  { const hl = RF.height(hero.x, hero.y) / LH, n = hl <= -0.75 ? 'низина' : hl < -0.1 ? 'ложбина' : hl < 0.25 ? 'равнина' : hl < 0.75 ? 'бугор' : hl < 1.25 ? 'возвышенность' : hl < 1.75 ? 'бугор на возвышенности' : 'вершина'; $('#hud').textContent = `Под героем: ${n} (высота ${Math.round(hl * 10) / 10} роста)${RF.onRamp(hero.x, hero.y) ? ' · на склоне' : ''}`; }
   if (Math.floor(t * 2) !== Math.floor((t - dt) * 2)) render(over, { x: W / 2, y: H / 2 - 30 }, over.width / DPR / W * 0.98, t, OO);
   requestAnimationFrame(tick);
 }
