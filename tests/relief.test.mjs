@@ -31,7 +31,7 @@ function walk(x, y, tx, ty, pts) {
 test('край шире в 1,3 раза; ярусы: низина, долина, холмы, овраг, впадина; склоны найдены', () => {
   assert.equal(SHROOM.W, 10400); assert.equal(SHROOM.H, 6500);
   assert.deepEqual(RF.levels, [-1, -0.5, 0, 0.5, 1]);
-  assert.equal(RF.ramps.filter(r => r.kind !== 'road').length, 5); console.log('съездов дорог:', RF.ramps.filter(r => r.kind === 'road').length);
+  assert.equal(RF.ramps.filter(r => r.kind !== 'road').length, 4); console.log('съездов дорог:', RF.ramps.filter(r => r.kind === 'road').length);
   for (const rp of RF.ramps) { const [a, b] = [rp.pts[0], rp.pts[rp.pts.length - 1]]; assert.equal(RF.levelAt(a[0], a[1]), a[2], 'низ склона на своём ярусе'); assert.equal(RF.levelAt(b[0], b[1]), b[2], 'верх склона на своём ярусе'); }
   const lv = n => RF.levelAt(...[W.camps.find(c => c.name === n)].map(c => [c.x, c.y])[0]);
   assert.equal(lv('Паучий холм'), 1); assert.equal(lv('Логово Полоза'), -1); assert.equal(lv('Сырой овраг'), -1); assert.equal(lv('Камышовое стойбище'), -1);

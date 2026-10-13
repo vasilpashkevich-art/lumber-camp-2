@@ -239,7 +239,6 @@ export const SHROOM = {
       { kind: 'stairs', w: 64, auto: [9500, 600, -1, 0.2] },
       { kind: 'slope', w: 110, auto: [6640, 1440, 0, -1] },
       { kind: 'slope', w: 100, auto: [7000, 3990, 0.62, 0.78] },
-      { kind: 'slope', w: 100, auto: [8380, 5240, -0.62, -0.78] },
     ],
     giants: [{ kind: 'oak', x: 1150, y: 4140 }, { kind: 'oak', x: 4700, y: 4540 }, { kind: 'oak', x: 6950, y: 5220 }, { kind: 'pine', x: 2310, y: 2030 }],
   },
