@@ -3,8 +3,7 @@
 // деревья группами, фонари и лавки вдоль улиц. Мягкий облик, как у людей и зверей (v75): всё рисуется картинками,
 // контур — затемнённая копия со сдвигом, свет слева сверху. Масштаб: 1 рост героя ≈ 42–55.
 import { masonry, paving, fountain, lamp, flowerbed, castle, terrace, stairs, brazierFire, cone } from './castle.js';
-import { house, inn, tavern, enchant, bank, miners, forge, herbal } from './houses.js';
-import { stallFront, stallTop } from './forest.js';
+import { BLD2 } from './bld2.js';
 import { well, haystack } from './farmland.js';
 import { person } from './body.js';
 
@@ -15,23 +14,23 @@ const shade = (hex, k) => { const n = parseInt(hex.slice(1), 16), f = v => Math.
 
 /** Размеры столицы (мир): внутренний двор стен, толщина, высота, башни, ворота. Центр — (0,0), север — вверх. */
 export const CITY = {
-  x0: -900, x1: 900, y0: -800, y1: 780,      // внутренняя кромка стен
+  x0: -1100, x1: 1100, y0: -900, y1: 860,    // внутренняя кромка стен
   th: 64, H: 136,                             // толщина и высота стены (1,5 и 3 роста)
   towerR: 80, towerH: 200,                    // угловые башни
   gate: { w: 140, towerR: 58, towerH: 210 },  // проём ворот и надвратные башни
-  southGate: 0, eastGate: 120,                // где ворота: x на южной стене, y на восточной
+  southGate: 0, eastGate: 165,                // где ворота: x на южной стене, y на восточной
   stone: '#8f8b82', roof: '#2f5fa8',
 };
 
 // ---------------------------------------------------------------- земля: трава, улицы, площадь
 /** Улицы и площади — прямоугольники мощения в мире (x, y, w, h). Дворец — на террасе у северной стены. */
 export const STREETS = [
-  { x: -70, y: -430, w: 140, h: 1210, kind: 'main' },     // главная улица: от южных ворот к лестнице дворца
-  { x: -780, y: 70, w: 1680, h: 110, kind: 'cross' },     // поперечная: от западного двора к восточным воротам
-  { x: -760, y: -210, w: 1540, h: 90, kind: 'lane' },     // северный переулок
-  { x: -840, y: 500, w: 1680, h: 90, kind: 'lane' },      // южный переулок
+  { x: -70, y: -440, w: 140, h: 1300, kind: 'main' },     // главная улица: от южных ворот к лестнице дворца
+  { x: -980, y: 110, w: 2080, h: 110, kind: 'cross' },    // поперечная: от западного двора к восточным воротам
+  { x: -960, y: -300, w: 1920, h: 90, kind: 'lane' },     // северный переулок
+  { x: -1040, y: 560, w: 2080, h: 90, kind: 'lane' },     // южный переулок
   { x: -300, y: -140, w: 600, h: 420, kind: 'plaza' },    // площадь с фонтаном
-  { x: -360, y: -430, w: 720, h: 80, kind: 'plaza' },     // площадка перед лестницей дворца
+  { x: -400, y: -520, w: 800, h: 80, kind: 'plaza' },     // площадка перед лестницей дворца
 ];
 /** Мощение всей столицы: вызывать в координатах мира (центр столицы — начало). */
 export function cityGround(g) {
@@ -41,14 +40,14 @@ export function cityGround(g) {
     cobbles(g, s.x, s.y, s.w, s.h, s.kind === 'main' ? 7 : 11, s.kind === 'lane' ? 20 : 24);
   }
   for (const s of STREETS) if (s.kind === 'plaza') paving(g, s.x, s.y, s.w, s.h, 5, true);
-  plazaPattern(g, 0, 70, 300, 210);
+  plazaPattern(g, 0, 60, 300, 200);
   // бордюры улиц — поверх плит, чтобы стыки читались
   for (const s of STREETS) { if (s.kind === 'plaza') continue; g.strokeStyle = '#7a736a'; g.lineWidth = 6; g.strokeRect(s.x, s.y, s.w, s.h); g.strokeStyle = 'rgba(36,24,15,.55)'; g.lineWidth = 1.2; g.strokeRect(s.x - 3, s.y - 3, s.w + 6, s.h + 6); }
   // площадь поверх бордюров улиц
   for (const s of STREETS) if (s.kind === 'plaza') { g.fillStyle = 'rgba(0,0,0,0)'; g.strokeStyle = '#7a736a'; g.lineWidth = 7; g.strokeRect(s.x, s.y, s.w, s.h); }
   // газоны у площади и клумбы
-  for (const [x, y, w, h] of [[-250, -120, 170, 60], [80, -120, 170, 60], [-250, 200, 170, 60], [80, 200, 170, 60]]) { lawn(g, x, y, w, h); }
-  for (const [x, y] of [[-165, -90], [165, -90], [-165, 230], [165, 230]]) { g.save(); g.translate(x, y); flowerbed(g, 110, 34, Math.abs(x + y)); g.restore(); }
+  for (const [x, y, w, h] of [[-250, 230, 170, 44], [80, 230, 170, 44]]) { lawn(g, x, y, w, h); }
+  for (const [x, y] of [[-165, -100], [165, -100]]) { g.save(); g.translate(x, y); flowerbed(g, 110, 34, Math.abs(x + y)); g.restore(); }
 }
 function cobbles(g, x, y, w, h, seed, S) {
   const r = rnd(seed), cols = ['#a89f90', '#b8b0a2', '#9d9486', '#c0b8aa', '#a39a8b'];
@@ -176,22 +175,22 @@ function treeOne(g, seed) { const r = rnd(seed); g.fillStyle = 'rgba(20,12,6,.28
 // ---------------------------------------------------------------- постройки с дворами
 /** Постройки столицы: место фасада (середина у земли), рисунок, двор (мелочи относительно фасада). */
 export const CITY_BUILDINGS = [
-  { id: 'enchant', name: 'Мастерская чар', x: -620, y: -230, art: 'enchant', yard: [['fenceH', -130, 10, 60], ['fenceH', 70, 10, 60], ['crate', -100, -6], ['tree', -190, -60]] },
-  { id: 'bank', name: 'Банк', x: 300, y: -230, art: 'bank', yard: [['lamp', -125, 14], ['lamp', 125, 14]] },
-  { id: 'forge', name: 'Кузница', x: 650, y: -230, art: 'forge', yard: [['woodpile', 150, -6], ['barrel', 118, -4], ['barrel', 136, 8], ['cartWood', -150, -12], ['fenceH', -210, 10, 110]] },
-  { id: 'market1', name: 'Рынок', x: -220, y: -60, art: 'stall', yard: [['crate', -70, -4], ['barrel', 60, -2]] },
-  { id: 'market2', x: 220, y: -60, art: 'stall', yard: [['crate', 70, -4], ['barrel', -60, -2]] },
-  { id: 'herbal', name: 'Лавка травницы', x: -680, y: 50, art: 'herbal', yard: [['fenceH', 110, 8, 70], ['tree', -190, -50]] },
-  { id: 'mentor', name: 'Наставник', x: -400, y: 50, art: 'house', v: 0, yard: [['fenceH', -130, 8, 50], ['bench', 120, 6]] },
-  { id: 'h4', x: 400, y: 50, art: 'house', v: 2, yard: [['fenceH', 90, 8, 60], ['haystack', 170, -14]] },
-  { id: 'inn', name: 'Постоялый двор', x: 700, y: 50, art: 'inn', yard: [['bench', -160, 6], ['lamp', 150, 14]] },
-  { id: 'h3', x: -740, y: 480, art: 'house', v: 1, yard: [['fenceH', 90, 10, 60], ['woodpile', -120, -4], ['tree', -70, -200]] },
-  { id: 'tavern', name: 'Таверна', x: -400, y: 480, art: 'tavern', yard: [['barrel', -150, -4], ['barrel', -132, 6], ['bench', 150, 8], ['lamp', 175, 20]] },
-  { id: 'miners', name: 'Гильдия рудокопов', x: 400, y: 480, art: 'miners', yard: [['crate', -150, -6], ['crate', -126, -2], ['cartWood', 190, -12]] },
-  { id: 'h5', x: 740, y: 480, art: 'house', v: 0, yard: [['well', -150, -20], ['fenceH', -230, 10, 60]] },
+  { id: 'enchant', name: 'Мастерская чар', x: -760, y: -320, art: 'enchant', yard: [['fenceH', -190, 10, 60], ['crate', -140, -6], ['tree', -250, -80]] },
+  { id: 'bank', name: 'Банк', x: 440, y: -320, art: 'bank', yard: [['lamp', -170, 14], ['lamp', 170, 14]] },
+  { id: 'forge', name: 'Кузница', x: 820, y: -320, art: 'forge', yard: [['woodpile', 185, -6], ['barrel', 156, -4], ['barrel', 172, 8], ['cartWood', -200, -12]] },
+  { id: 'market1', name: 'Рынок', x: -220, y: -60, art: 'stall', yard: [['crate', -90, -4], ['barrel', 80, -2]] },
+  { id: 'market2', x: 220, y: -60, art: 'stall', yard: [['crate', 90, -4], ['barrel', -80, -2]] },
+  { id: 'herbal', name: 'Лавка травницы', x: -880, y: 90, art: 'herbal', yard: [['tree', -200, -60]] },
+  { id: 'mentor', name: 'Наставник', x: -560, y: 90, art: 'house', v: 0, yard: [['bench', 150, 6]] },
+  { id: 'h4', x: 560, y: 90, art: 'house', v: 2, yard: [['haystack', 185, -14]] },
+  { id: 'h5', x: 880, y: 90, art: 'house', v: 1, yard: [['well', 180, -20], ['fenceH', -190, 10, 50]] },
+  { id: 'h3', x: -900, y: 540, art: 'house', v: 1, yard: [['woodpile', 160, -4], ['tree', -60, -280]] },
+  { id: 'tavern', name: 'Таверна', x: -520, y: 540, art: 'tavern', yard: [['lamp', 215, 20]] },
+  { id: 'miners', name: 'Гильдия рудокопов', x: 520, y: 540, art: 'miners', yard: [['cartWood', 200, -12]] },
+  { id: 'inn', name: 'Постоялый двор', x: 900, y: 540, art: 'inn', yard: [['lamp', -195, 14]] },
 ];
-const ART = { house: (g, v) => house(g, v), inn, tavern, enchant, bank, miners, forge, herbal, stall: g => { g.save(); g.translate(0, -7); g.scale(1.15, 1.15); person(g, { cls: 'warrior', hair: '#5a3a1e', beard: 'short' }, 'front', {}); g.restore(); stallFront(g); stallTop(g); } };
-export function drawBuilding(g, b) { const f = ART[b.art]; if (f) f(g, b.v || 0); }
+const ART = { ...BLD2 };
+export function drawBuilding(g, b, t = 0) { const f = ART[b.art]; if (f) f(g, b.art === 'house' ? (b.v || 0) : t, t); }
 export function drawYardItem(g, it, t = 0) {
   const [k, x, y, a] = it; g.save(); g.translate(x, y);
   if (k === 'fenceH') fence(g, a, true, Math.abs(x)); else if (k === 'fenceV') fence(g, a, false, Math.abs(y));
@@ -201,10 +200,10 @@ export function drawYardItem(g, it, t = 0) {
 }
 /** Фонари вдоль главной улицы и площади, лавки у фонтана, деревья группами по пустым углам. */
 export const CITY_DECOR = [
-  ...[-330, -60, 180, 330, 430].flatMap(y => [['lamp', -92, y], ['lamp', 92, y]]),
+  ...[-380, -200, 330, 430, 520, 700, 780].flatMap(y => [['lamp', -92, y], ['lamp', 92, y]]),
   ['lamp', -320, -125], ['lamp', 320, -125], ['lamp', -320, 300], ['lamp', 320, 300],
-  ['bench', -120, 120], ['bench', 120, 120], ['bench', -120, 20], ['bench', 120, 20],
-  ['tree', -800, -600], ['tree', -640, -660], ['tree', 800, -600], ['tree', 640, -660], ['tree', -820, -420], ['tree', 820, -420],
-  ['tree', -560, 330], ['tree', 560, 330], ['tree', -820, 700], ['tree', -600, 720], ['tree', 820, 700], ['tree', 600, 720], ['tree', -300, 720], ['tree', 300, 720],
-  ['well', 0, 330], ['haystack', -450, 690], ['cartWood', 450, 690], ['barrel', -140, 690], ['crate', 140, 690],
+  ['bench', -120, 130], ['bench', 120, 130], ['bench', -120, 20], ['bench', 120, 20],
+  ['tree', -1000, -700], ['tree', -840, -760], ['tree', 1000, -700], ['tree', 840, -760], ['tree', -1020, -500], ['tree', 1020, -500], ['tree', -600, -620], ['tree', 600, -620],
+  ['tree', -700, 380], ['tree', 700, 380], ['tree', -1020, 800], ['tree', -700, 820], ['tree', 1020, 800], ['tree', 700, 820], ['tree', -350, 800], ['tree', 350, 800], ['tree', -1020, 330], ['tree', 1020, 330],
+  ['well', 0, 400], ['haystack', -500, 790], ['cartWood', 500, 790], ['barrel', -160, 790], ['crate', 160, 790],
 ];

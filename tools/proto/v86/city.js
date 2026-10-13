@@ -1,6 +1,7 @@
 // Эскиз v86: новая квадратная Столица целиком, вид как в игре, мягкий облик.
 import { CITY, STREETS, cityGround, wallFace, wallTop, wallSide, tower, gatehouse, CITY_BUILDINGS, drawBuilding, drawYardItem, CITY_DECOR } from '../../../src/art/city.js';
-import { castle, terrace, stairs, fountain, brazierFire, lamp } from '../../../src/art/castle.js';
+import { fountain, brazierFire, lamp } from '../../../src/art/castle.js';
+import { BLD2 } from '../../../src/art/bld2.js';
 import { person } from '../../../src/art/body.js';
 import { setInk, INK, INK_HARD } from '../../../src/art/gear.js';
 
@@ -35,7 +36,7 @@ export function draw(cv, t) {
   // мощение внутри
   g.save(); g.beginPath(); g.rect(C.x0, C.y0, C.x1 - C.x0, C.y1 - C.y0); g.clip(); cityGround(g); g.restore();
   // терраса дворца
-  const K = { x: 0, y: -560, terrace: 360, stairs: 125, front: 70 };
+  const K = { x: 0, y: -560 };
   const items = [];
   const add = (y, w, h, ox, oy, x, yy, f) => items.push({ y, draw: () => { g.save(); g.translate(x, yy); soft(g, w, h, ox, oy, f); g.restore(); } });
   // стены: северная — лицо и верх; западная и восточная — верх; южная — верх и лицо; башни по углам; ворота
@@ -57,14 +58,12 @@ export function draw(cv, t) {
     add(sy + C.towerR * 0.3, C.towerR * 2.6 + 40, C.towerH + C.towerR * 3, C.towerR * 1.3 + 20, C.towerH + C.towerR * 2.6, sx, sy + C.towerR * 0.3, c => tower(c, C.towerR, C.towerH, sd));
   add(C.y1 + th + 1, gw + 160, C.gate.towerH + 140, gw / 2 + 80, C.gate.towerH + 120, C.southGate, C.y1 + th, c => gatehouse(c, C.gate.w, C.gate.towerR, H + 10, 30));
   // дворец
-  add(K.y, 700, 540, 350, 500, K.x, K.y, c => { c.scale(0.8, 0.8); castle(c, 'b', 0, false); });
-  add(K.y + 56, 2 * K.terrace + 60, 160, K.terrace + 30, 50, K.x, K.y + 56, c => { terrace(c, K.terrace, K.stairs + 36, 67); c.save(); c.translate(0, -56); c.scale(0.8, 0.8); stairs(c, 240, 6, 14); c.restore(); });
-  for (const sd of [-1, 1]) items.push({ y: K.y + 57, draw: () => brazierFire(g, K.x + sd * 133, K.y + 30, t, false) });
+  add(K.y, 1200, 760, 600, 700, K.x, K.y, c => BLD2.palace(c, t));
   // фонтан
-  add(70 + 30, 300, 240, 150, 200, 0, 70, c => { c.scale(0.84, 0.84); fountain(c, t, 110); });
+  add(60 + 30, 300, 240, 150, 200, 0, 60, c => { c.scale(0.84, 0.84); fountain(c, t, 110); });
   // постройки и дворы
   for (const b of CITY_BUILDINGS) {
-    add(b.y, 460, 360, 230, 330, b.x, b.y, c => drawBuilding(c, b));
+    add(b.y, 620, 480, 310, 440, b.x, b.y, c => drawBuilding(c, b, t));
     for (const it of b.yard || []) add(b.y + it[2] + 1, 300, 200, 150, 170, b.x, b.y, c => drawYardItem(c, it, t));
   }
   for (const it of CITY_DECOR) add(it[2] + 1, 300, 200, 150, 170, it[1], it[2], c => drawYardItem(c, [it[0], 0, 0, it[3]], t));
@@ -76,6 +75,6 @@ export function draw(cv, t) {
   items.sort((a, b) => a.y - b.y); for (const it of items) it.draw();
   // подписи
   g.font = 'bold 22px Georgia'; g.textAlign = 'center'; g.fillStyle = '#ffe9a8'; g.strokeStyle = 'rgba(0,0,0,.8)'; g.lineWidth = 4;
-  for (const b of CITY_BUILDINGS) if (b.name) { g.strokeText(b.name, b.x, b.y - 150); g.fillText(b.name, b.x, b.y - 150); }
-  g.strokeText('Королевский дворец', K.x, K.y - 450); g.fillText('Королевский дворец', K.x, K.y - 450);
+  for (const b of CITY_BUILDINGS) if (b.name) { g.strokeText(b.name, b.x, b.y - 230); g.fillText(b.name, b.x, b.y - 230); }
+  g.strokeText('Королевский дворец', K.x, K.y - 560); g.fillText('Королевский дворец', K.x, K.y - 560);
 }
