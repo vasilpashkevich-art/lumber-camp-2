@@ -23,7 +23,7 @@ import { GIANT, giantBase, giantUpper, giantCrown, giantShade } from '../art/gia
 import { LH } from '../world/relief.js';
 import { ORES, veinColor, MINE } from '../../data/mining.js';
 import { miningSkill } from '../systems/mining.js';
-import { sprite, styled, drawSpr, flashOf, heroSpr, mobSpr, MOB_SCALE, MOB_LOOK, personSpr, beastSpr, drawFrame, GUARD_LOOK, MERCH_LOOK, viewOf, viewOf8, sideways, sprBox, FRAMES, treeSpr, TREE_K, bldSpr, mountainSpr } from '../art/sprites.js';
+import { sprite, styled, PEOPLE_K, drawSpr, flashOf, heroSpr, mobSpr, MOB_SCALE, MOB_LOOK, personSpr, beastSpr, drawFrame, GUARD_LOOK, MERCH_LOOK, viewOf, viewOf8, sideways, sprBox, FRAMES, treeSpr, TREE_K, bldSpr, mountainSpr } from '../art/sprites.js';
 import { treesIn, GATE_W } from '../world/world.js';
 import { lookOf } from '../systems/items.js';
 import { interactTarget, abilsOf } from '../systems/game.js';
@@ -153,7 +153,7 @@ function buildStatics(W) {
     house: v => big('house' + v, g => house(g, v)), herbal: () => big('herbal', herbal),
   };
   // v86: объёмные постройки столицы (мягкий облик), размер картинки — по основанию
-  const B2 = (key, v) => { const [w, d, lh] = FOOT[key] || [200, 150, 200]; const pw = w + d * 0.3 + 160, ph = lh + 220; return sprite('b2|' + key + (v || 0), pw, ph, w / 2 + 80, ph - 60, 1.6, styled(g => BLD2[key](g, v || 0, 0.4))); };
+  const B2 = (key, v) => { const [w, d, lh] = FOOT[key] || [200, 150, 200]; const pw = w + d * 0.3 + 160, ph = lh + 220; return sprite('b2|' + key + (v || 0), pw, ph, w / 2 + 80, ph - 60, 1.6, styled(g => { if (key === 'stall') { g.save(); g.translate(0, -44); g.scale(PEOPLE_K, PEOPLE_K); person(g, MERCH_LOOK, 'front', {}); g.restore(); } BLD2[key](g, v || 0, 0.4); })); };
   const LBL = { herbal: 185, bank: 205, castle: 455, market: 105, stall: 105, cart: 110, forge: 170, tavern: 210, miners: 200, enchant: 210, inn: 230, barn: 190 };
   for (const b of W.houses) {
     const sq = c && c.square && BLD2[b.art];
@@ -225,12 +225,12 @@ function hides(o, pts) { const b = o.oc; if (!b) return false;
   if (o.soft != null) { let a = 1; for (const [x, y] of pts) if (y < o.y - 4 && y > b.y0 + 10) a = Math.min(a, 0.42 + 0.58 * Math.max(0, Math.min(1, (Math.abs(x - o.soft) - 50) / 150))); return a; }
   for (const [x, y] of pts) if (y < o.y - 4 && x > b.x0 + 14 && x < b.x1 - 14 && y > b.y0 + 10) return 0.42; return 1; }
 // прилавок рынка с купцом за стойкой (v65) и тележка купца с купцом рядом
-function stallSpr() { return sprite('stallM', 100, 80, 50, 70, 2.2, g => { g.save(); g.translate(0, -7); g.scale(1.15, 1.15); person(g, MERCH_LOOK, 'front', {}); g.restore(); FOR.stallFront(g); FOR.stallTop(g); }); }
-function cartSpr() { return sprite('cartM', 160, 90, 80, 76, 2.2, g => { FOR.cart(g, 0); g.save(); g.translate(46, 6); g.scale(1.15, 1.15); person(g, MERCH_LOOK, 'front', {}); g.restore(); }); }
+function stallSpr() { return sprite('stallM', 120, 110, 60, 100, 2.2, g => { g.save(); g.translate(0, -7); g.scale(1.2, 1.2); person(g, MERCH_LOOK, 'front', {}); g.restore(); FOR.stallFront(g); FOR.stallTop(g); }); }
+function cartSpr() { return sprite('cartM', 170, 115, 85, 101, 2.2, g => { FOR.cart(g, 0); g.save(); g.translate(46, 6); g.scale(1.25, 1.25); person(g, MERCH_LOOK, 'front', {}); g.restore(); }); }
 // городской стражник в полный рост (как герой), чуть дышит
 function guard(g, x, y, view, dir, t) {
   g.fillStyle = 'rgba(0,0,0,.25)'; g.beginPath(); g.ellipse(x, y + 2, 14, 5, 0, 0, 7); g.fill();
-  drawFrame(g, personSpr(GUARD_LOOK, view, 'idle', 0), x, y + Math.sin(t * 2 + x) * 0.4, dir, 1.15);
+  drawFrame(g, personSpr(GUARD_LOOK, view, 'idle', 0), x, y + Math.sin(t * 2 + x) * 0.4, dir, PEOPLE_K);
 }
 // дым над пепелищем
 function smoke(g, x, y, t) { for (let i = 0; i < 4; i++) { const q = (t * 0.25 + i / 4) % 1; g.fillStyle = `rgba(90,85,80,${0.35 * (1 - q)})`; g.beginPath(); g.arc(x + Math.sin(t + i) * 6 + q * 14, y - q * 70, 8 + q * 16, 0, 7); g.fill(); } }
@@ -732,7 +732,7 @@ function drawHero(c, G, look, t) {
   const view = viewOf8(dx, dy), dir = sideways(view) ? (Math.abs(dx) > 0.05 ? (dx < 0 ? -1 : 1) : P.dir) : 1;
   const mode = P.dead ? 'dead' : (P.atkT > 0 || P.mine) ? 'atk' : (P.moving || P.dash) ? 'walk' : 'idle';
   const f = mode === 'dead' ? frameOf('dead', P.deadT / 0.7) : mode === 'atk' ? frameOf('atk', P.mine ? (P.mine.t / 0.6) % 1 : 1 - P.atkT / P.atkDur) : mode === 'walk' ? frameOf('walk', (P.step / 3) % 1) : 0;
-  c.fillStyle = 'rgba(0,0,0,.28)'; c.beginPath(); c.ellipse(P.x, P.y + 2, 15, 5, 0, 0, 7); c.fill();
+  c.fillStyle = 'rgba(0,0,0,.28)'; c.beginPath(); c.ellipse(P.x, P.y + 2, 15 * PEOPLE_K / 1.15, 5 * PEOPLE_K / 1.15, 0, 0, 7); c.fill();
   const B = P.buf || {};
   if (B.stone > 0) { c.strokeStyle = 'rgba(190,185,170,.85)'; c.lineWidth = 4; c.beginPath(); c.ellipse(P.x, P.y - 18, 24, 30, 0, 0, 7); c.stroke(); c.fillStyle = 'rgba(160,155,140,.18)'; c.fill(); }
   if (B.berserk > 0) V.berserkAura(c, P.x, P.y, t, Math.min(1, B.berserk / 0.5, (12.5 - B.berserk) / 0.3 + 0.1));
@@ -742,14 +742,14 @@ function drawHero(c, G, look, t) {
   if (P.weak > 0) { c.strokeStyle = 'rgba(160,160,255,.5)'; c.lineWidth = 2; c.beginPath(); c.ellipse(P.x, P.y + 2, 20, 8, 0, 0, 7); c.stroke(); }
   if (P.sit) { // сидит: ноги поджаты, тело ниже
     const sp = personSpr(look, 'side', 'idle', 0), lc = legColor(look);
-    c.save(); c.beginPath(); c.rect(P.x - 60, P.y - 120, 120, 120 + 5); c.clip(); drawFrame(c, sp, P.x, P.y + 10, P.dir, 1.15); c.restore();
+    c.save(); c.beginPath(); c.rect(P.x - 60, P.y - 120, 120, 120 + 5); c.clip(); drawFrame(c, sp, P.x, P.y + 10, P.dir, PEOPLE_K); c.restore();
     c.fillStyle = lc; c.strokeStyle = '#24180f'; c.lineWidth = 1.2; for (const ox of [-7, 7]) { c.beginPath(); c.ellipse(P.x + ox * P.dir, P.y + 7, 8, 4, 0, 0, 7); c.fill(); c.stroke(); }
     c.fillStyle = 'rgba(160,220,255,.7)'; const q = (t * 0.7) % 1; c.globalAlpha = 1 - q; c.font = 'bold 11px Georgia'; c.fillText('z', P.x + 14, P.y - 40 - q * 16); c.globalAlpha = 1;
     return;
   }
   if (P.mine) look = { ...look, weapon: { m: 'pick', P: PICK_P }, swing: 'chop', key: look.key + '|pick' };
   const sp = personSpr(look, view, mode, f), breathe = mode === 'idle' ? Math.sin(t * 2) * 0.4 : 0;
-  drawFrame(c, P.hurt > 0 ? flashOf(sp) : sp, P.x - (P.hurt > 0 && view === 'side' ? dir * 2 : 0), P.y + breathe, dir, 1.15, P.dead ? Math.max(0.35, 1 - P.deadT / 3) : 1);
+  drawFrame(c, P.hurt > 0 ? flashOf(sp) : sp, P.x - (P.hurt > 0 && view === 'side' ? dir * 2 : 0), P.y + breathe, dir, PEOPLE_K, P.dead ? Math.max(0.35, 1 - P.deadT / 3) : 1);
   if (B.berserk > 0) V.berserkAura(c, P.x, P.y + 3, t + 0.5, Math.min(1, B.berserk / 0.5) * 0.3, 9);
   if (P.poison) { c.fillStyle = 'rgba(120,220,80,.6)'; for (let i = 0; i < 3; i++) c.fillRect(P.x - 10 + i * 9, P.y - 60 - ((t * 40 + i * 13) % 20), 3, 3); }
   if (P.mine) mineSparks(c, P);

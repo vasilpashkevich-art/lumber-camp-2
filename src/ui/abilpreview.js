@@ -2,6 +2,7 @@
 // Те же сцены, что в эскизе tools/proto/v73 (talents.html). Рисуется по времени t, своего состояния нет.
 import { LOOK } from '../art/look.js';
 import { personSpr, beastSpr, MOB_LOOK, drawFrame, flashOf } from '../art/sprites.js';
+import { PEOPLE_K } from '../art/sprites.js';
 import * as V from '../art/vfx.js';
 
 // ---------------------------------------------------------------- сцена: земля, герой, враги
@@ -14,7 +15,7 @@ function ground() {
   return (GROUND = c);
 }
 const mob = (x, y, kind = 'bandit') => ({ x, y, kind, dir: -1, view: 'side', mode: 'idle', f: 0, hurt: 0, alpha: 1, hp: 1 });
-function drawPerson(g, o, L, sc = 1.15) {
+function drawPerson(g, o, L, sc = PEOPLE_K) {
   g.fillStyle = 'rgba(0,0,0,.28)'; g.beginPath(); g.ellipse(o.x, o.y + 2, 15 * (sc / 1.15), 5, 0, 0, 7); g.fill();
   const sp = personSpr(L, o.view, o.mode, o.f); g.globalAlpha = o.alpha ?? 1; drawFrame(g, o.hurt > 0 ? flashOf(sp) : sp, o.x, o.y, o.dir, sc); g.globalAlpha = 1;
 }
@@ -144,7 +145,7 @@ export function render(cv, id, t, L) {
   sc.fn(S, t);
   g.setTransform(k, 0, 0, k, 0, 0); g.clearRect(0, 0, SW, SH); g.drawImage(ground(), 0, 0, SW, SH);
   for (const f of S.under) f(g);
-  for (const gh of S.ghosts) { g.globalAlpha = gh.a; const sp = personSpr(L, 'side', 'walk', 2); drawFrame(g, sp, gh.x, gh.y, 1, 1.15); g.globalAlpha = 1; }
+  for (const gh of S.ghosts) { g.globalAlpha = gh.a; const sp = personSpr(L, 'side', 'walk', 2); drawFrame(g, sp, gh.x, gh.y, 1, PEOPLE_K); g.globalAlpha = 1; }
   const list = [...S.mobs.map(m => ({ y: m.y, m })), { y: S.hero.y, h: 1 }].sort((a, b) => a.y - b.y);
   for (const o of list) { if (o.h) { drawPerson(g, S.hero, L); for (const f of S.overHero) f(g); } else drawMob(g, o.m); }
   for (const f of S.over) f(g);
