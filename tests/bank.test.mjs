@@ -3,7 +3,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { PINE } from '../data/zones.js';
 import { LOOT } from '../data/balance.js';
-import { buildWorld } from '../src/world/world.js';
+import { buildWorld, inCity } from '../src/world/world.js';
 import { newHero } from '../src/entities/hero.js';
 import { createGame, update } from '../src/systems/game.js';
 import { makeItem, makeStack } from '../src/systems/items.js';
@@ -18,7 +18,7 @@ const item = (G, s = 'chest', r = 0.3) => { const it = makeItem('warrior', s, 5,
 
 test('банкир стоит в Столице; E у банка открывает банк', () => {
   const b = W.houses.find(h => h.bank); assert.ok(b, 'банк есть'); assert.equal(b.name, 'Банк');
-  assert.ok(Math.hypot(b.x - W.cap.x, b.y - W.cap.y) < W.cap.R - 100, 'внутри стены');
+  assert.ok(inCity(W, b.x, b.y), 'внутри стены');
   const G = game(); G.P.x = b.x; G.P.y = b.y + 40; G.ev.length = 0;
   update(G, 0.05, { interact: true });
   assert.ok(G.ev.some(e => e.k === 'bank'), 'открылось окно банка');

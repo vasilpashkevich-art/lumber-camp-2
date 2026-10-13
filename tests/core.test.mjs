@@ -42,11 +42,12 @@ test('мир: столица и кладбище внутри зоны, все �
 test('стена столицы: сквозь стену не пройти, через ворота — можно', () => {
   const c = W.cap;
   // с севера прямо в стену
-  let [x, y] = [c.x, c.y - c.R - 60];
+  const Q = c.square;
+  let [x, y] = [c.x, c.y + Q.y0 - Q.th - 60];
   for (let i = 0; i < 60; i++) [x, y] = moveTo(W, x, y, x, y + 10);
   assert.ok(!inCity(W, x, y), 'с севера не зашли');
   // через южные ворота
-  [x, y] = [c.x, c.y + c.R + 60];
+  [x, y] = [c.x, c.y + Q.y1 + Q.th + 60];
   for (let i = 0; i < 60; i++) [x, y] = moveTo(W, x, y, x, y - 10);
   assert.ok(inCity(W, x, y), 'через ворота зашли');
 });

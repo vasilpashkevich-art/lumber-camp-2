@@ -14,7 +14,7 @@ function goodSpot(W, x, y, A) {
   // рельеф (v71): жила на том же ярусе, что середина области (на холме — на холме), не у края и не на склоне
   if (W.relief && (W.relief.levelAt(x, y) !== W.relief.levelAt(A.x, A.y) || !W.flatOk(x, y, 80))) return false;
   if (W.roadD(x, y) < 70) return false;
-  if (W.town && dist(x, y, W.town.x, W.town.y) < W.town.R + 80) return false;
+  if (W.town && W.townD(x, y) < 80) return false;
   if (W.camps.some(c => dist(x, y, c.x, c.y) < c.r + 90)) return false;
   if (W.inField && W.inField(x, y, 20)) return false;
   if (W.river && W.riverD(x, y) < W.river.w / 2 + 40) return false;

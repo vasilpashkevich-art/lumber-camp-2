@@ -94,7 +94,7 @@ function soft(g, draw) {
   for (const h of shades) { g.setTransform(h.m); g.fillStyle = `rgba(0,0,0,${h.a})`; g.beginPath(); g.ellipse(h.x, h.y, h.rx, h.ry, 0, 0, 7); g.fill(); }
   g.restore();
 }
-const styled = draw => STYLE.soft ? g => soft(g, draw) : draw;
+export const styled = draw => STYLE.soft ? g => soft(g, draw) : draw;
 const SK = () => STYLE.soft ? '' : '|o';
 /** Кадр человека (герой, разбойники). Начало — как у heroSpr: ступни на +12,6. */
 export function personSpr(L, view, mode, f) {

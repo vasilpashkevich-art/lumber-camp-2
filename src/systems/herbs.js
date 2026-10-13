@@ -25,7 +25,7 @@ function goodSpot(W, x, y, A) {
   if (!W.walkable(x, y) || W.edgeDist(x, y) < 60) return false;
   if (W.relief && (W.relief.levelAt(x, y) !== W.relief.levelAt(A.x, A.y) || !W.flatOk(x, y, 60))) return false;
   if (W.roadD(x, y) < 40) return false;
-  if (W.town && dist(x, y, W.town.x, W.town.y) < W.town.R + 60) return false;
+  if (W.town && W.townD(x, y) < 60) return false;
   if (W.camps.some(c => dist(x, y, c.x, c.y) < c.r + 70)) return false;
   if (W.inField && W.inField(x, y, 10)) return false;
   if (W.river && W.riverD(x, y) < W.river.w / 2 + 30) return false;

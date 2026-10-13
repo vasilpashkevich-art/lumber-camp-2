@@ -42,7 +42,7 @@ test('касание моба — цель, автоатака и подход �
   run(G, 0.05, { pick: { x: m.x, y: m.y - 10, touch: true } }); run(G, 3); assert.ok(m.hp < 9999, 'дошёл и бьёт');
 });
 test('касание торговца — подходит и открывает лавку', () => {
-  const G = game(), b = G.W.houses.find(b => b.vendor); G.P.x = b.x + 250; G.P.y = b.y + 120;
+  const G = game(), b = G.W.houses.find(b => b.vendor); G.P.x = b.x + 60; G.P.y = b.y + 220;
   const ev = run(G, 4, { pick: { x: b.x, y: b.y - 30, touch: true } });
   assert.ok(ev.some(e => e.k === 'vendor'), 'лавка');
 });

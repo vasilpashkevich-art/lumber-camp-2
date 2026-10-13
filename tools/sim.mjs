@@ -1,7 +1,7 @@
 // Автоигрок: бегает по Сосновому долу, бьёт мобов по силам, пьёт зелья, надевает лучшее.
 // Запуск: node tools/sim.mjs [класс] [минут]   — печатает, за сколько минут берётся каждый уровень.
 import { PINE, ZONES } from '../data/zones.js';
-import { buildWorld } from '../src/world/world.js';
+import { buildWorld, inCity } from '../src/world/world.js';
 import { nextWaypoint } from '../src/world/relief.js';
 import { newHero, compareItem } from '../src/entities/hero.js';
 import { createGame, update, respawnHero, equip, buyPotion, sellItem, POTION_PRICE, lootAll, hasLoot } from '../src/systems/game.js';
@@ -30,6 +30,27 @@ function via(W, P, tx, ty) {
       return [b.x, b.y - ts * 110]; }
   }
   const c = W.cap; if (!c) return [tx, ty];
+  if (c.square) {   // v86: квадратная столица — через ворота и площадь, снаружи — в обход по углам
+    const R = W.town.rect, pad = 210, inP = inCity(W, P.x, P.y), inT = inCity(W, tx, ty), plaza = [c.x, c.y + 160];
+    const near = (x, y) => W.gates.reduce((a, g) => dist(x, y, g.x, g.y) < dist(x, y, a.x, a.y) ? g : a);
+    const gz = W.gates.find(g => { const ax = g.out[0] - g.in[0], ay = g.out[1] - g.in[1], L = Math.hypot(ax, ay), u = ((P.x - g.in[0]) * ax + (P.y - g.in[1]) * ay) / L, v = Math.abs((P.x - g.in[0]) * ay - (P.y - g.in[1]) * ax) / L; return u > -20 && u < (inT ? L + 20 : L - 40) && v < 70; });
+    if (gz) { const e = inT ? gz.in : gz.out; if (dist(P.x, P.y, e[0], e[1]) > 30) return e; }   // в проёме ворот — пройти насквозь
+    if (inP && inT) return dist(P.x, P.y, tx, ty) > 320 && dist(P.x, P.y, plaza[0], plaza[1]) > 60 && dist(tx, ty, plaza[0], plaza[1]) > 60 ? plaza : [tx, ty];
+    if (inP) { const g = near(tx, ty); const south = Math.abs(g.x - c.x) < 1, past = (P.x - g.in[0]) * (g.out[0] - g.in[0]) + (P.y - g.in[1]) * (g.out[1] - g.in[1]) > 0 && Math.abs(south ? P.x - g.x : P.y - g.y) < 50; if (!past && dist(P.x, P.y, g.in[0], g.in[1]) > 30) { const onStreet = south ? Math.abs(P.x - c.x) < 60 : Math.abs(P.y - g.y) < 50; return !onStreet && dist(P.x, P.y, plaza[0], plaza[1]) > 60 ? plaza : g.in; } return g.out; }
+    if (inT) { const g = near(P.x, P.y); if (dist(P.x, P.y, g.out[0], g.out[1]) > 50 && W.townD(P.x, P.y) < 160) return g.out; if (dist(P.x, P.y, g.out[0], g.out[1]) > 50) return g.out; return g.in; }
+    const E = [R[0] - pad, R[1] - pad, R[2] + pad, R[3] + pad], dx = tx - P.x, dy = ty - P.y;
+    const hit = (() => { let t0 = 0, t1 = 1; for (const [p, q] of [[-dx, P.x - E[0]], [dx, E[2] - P.x], [-dy, P.y - E[1]], [dy, E[3] - P.y]]) { if (p === 0) { if (q < 0) return false; continue; } const t = q / p; if (p < 0) t0 = Math.max(t0, t); else t1 = Math.min(t1, t); } return t0 < t1; })();
+    if (!hit) return [tx, ty];
+    // обход по кольцу вокруг стены: ближайшая точка кольца от героя и от цели, идти по короткой дуге от угла к углу
+    const o = 70, X0 = E[0] - o, Y0 = E[1] - o, X1 = E[2] + o, Y1 = E[3] + o, Wd = X1 - X0, Hd = Y1 - Y0, Per = 2 * (Wd + Hd);
+    const ringS = (x, y) => { const cx_ = Math.max(X0, Math.min(X1, x)), cy_ = Math.max(Y0, Math.min(Y1, y)), d = [cy_ - Y0, X1 - cx_, Y1 - cy_, cx_ - X0], side = d.indexOf(Math.min(...d)); return side === 0 ? cx_ - X0 : side === 1 ? Wd + (cy_ - Y0) : side === 2 ? Wd + Hd + (X1 - cx_) : 2 * Wd + Hd + (Y1 - cy_); };
+    const atS = sv => { sv = ((sv % Per) + Per) % Per; return sv < Wd ? [X0 + sv, Y0] : sv < Wd + Hd ? [X1, Y0 + sv - Wd] : sv < 2 * Wd + Hd ? [X1 - (sv - Wd - Hd), Y1] : [X0, Y1 - (sv - 2 * Wd - Hd)]; };
+    const sP = ringS(P.x, P.y), sT = ringS(tx, ty), fwd = ((sT - sP) % Per + Per) % Per, dir = fwd <= Per / 2 ? 1 : -1, len = dir > 0 ? fwd : Per - fwd;
+    const cs = [0, Wd, Wd + Hd, 2 * Wd + Hd];
+    let next = null, best = 1e9; for (const cc of cs) { const d = dir > 0 ? ((cc - sP) % Per + Per) % Per : ((sP - cc) % Per + Per) % Per; if (d > 50 && d < best) { best = d; next = cc; } }
+    if (next === null || best >= len) return atS(sT);
+    return atS(next);
+  }
   const dP = dist(P.x, P.y, c.x, c.y), inP = dP < c.R, inT = dist(tx, ty, c.x, c.y) < c.R;
   // в проёме ворот — сначала пройти его насквозь
   if (Math.abs(dP - c.R) < 70) { const a = Math.atan2(P.y - c.y, P.x - c.x); for (const g of c.gates) { const da = Math.abs(((a - g) + Math.PI * 3) % (Math.PI * 2) - Math.PI); if (da < (c.gateW || 0.15)) { const out = inT ? -1 : 1; return [c.x + Math.cos(g) * (c.R + out * 100), c.y + Math.sin(g) * (c.R + out * 100)]; } } }

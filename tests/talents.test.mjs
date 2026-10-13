@@ -17,7 +17,7 @@ function setup(cls, lvl, tal = {}, near = 150) {
   const h = newHero('Т', cls); h.lvl = lvl; h.talents = tal;
   const G = createGame(h, W, { rand: rng(5) });
   const ms = G.mobs.filter(m => m.kind === 'boar').slice(0, 3);
-  ms.forEach((m, i) => { m.hp = m.max = 1e6; m.lvl = 1; m.dmg = 0; m.D = { ...m.D, trait: null }; m.x = 2000 + i * 40; m.y = 2000 + (i % 2) * 30; m.hx = m.x; m.hy = m.y; m.state = 'chase'; });
+  ms.forEach((m, i) => { m.hp = m.max = 1e6; m.lvl = 1; m.dmg = 0; m.D = { ...m.D, trait: null }; m.x = 5200 + i * 40; m.y = 2000 + (i % 2) * 30; m.hx = m.x; m.hy = m.y; m.state = 'chase'; });
   for (const o of G.mobs) if (!ms.includes(o)) { o.state = 'dead'; o.respawnAt = 1e9; }
   const m = ms[0]; G.P.x = m.x - near; G.P.y = m.y; G.P.target = m;
   return { G, m, ms };
@@ -117,8 +117,8 @@ test('Лучник: Капкан ловит первого наступивше�
   const { G, m } = setup('archer', 20, {}, 120); m.D = { ...m.D, speed: 60 };
   run(G, 0.05, { ability4: true }); assert.equal(G.traps.length, 1);
   G.traps[0].x = m.x; G.traps[0].y = m.y; run(G, 0.1); assert.ok(m.root > 3.5 && m.trapT > 3.5, 'в капкане'); assert.ok(m.bleed); assert.ok(G.fx.some(f => f.k === 'trapSnap'));
-  const t2 = setup('archer', 20, { 20: 'twoTraps' }, 600); t2.G.P.x = 3000; run(t2.G, 0.05, { ability4: true }); t2.G.P.acd = {}; run(t2.G, 0.05, { ability4: true }); t2.G.P.acd = {}; run(t2.G, 0.05, { ability4: true }); assert.equal(t2.G.traps.length, 2, 'не больше двух');
-  const t1 = setup('archer', 20, {}, 600); t1.G.P.x = 3000; run(t1.G, 0.05, { ability4: true }); t1.G.P.acd = {}; run(t1.G, 0.05, { ability4: true }); assert.equal(t1.G.traps.length, 1, 'без таланта — один');
+  const t2 = setup('archer', 20, { 20: 'twoTraps' }, 600); t2.G.P.x = 6200; run(t2.G, 0.05, { ability4: true }); t2.G.P.acd = {}; run(t2.G, 0.05, { ability4: true }); t2.G.P.acd = {}; run(t2.G, 0.05, { ability4: true }); assert.equal(t2.G.traps.length, 2, 'не больше двух');
+  const t1 = setup('archer', 20, {}, 600); t1.G.P.x = 6200; run(t1.G, 0.05, { ability4: true }); t1.G.P.acd = {}; run(t1.G, 0.05, { ability4: true }); assert.equal(t1.G.traps.length, 1, 'без таланта — один');
   const v = setup('archer', 20, { 20: 'venom' }, 120); run(v.G, 0.05, { ability4: true }); v.G.traps[0].x = v.m.x; v.G.traps[0].y = v.m.y; run(v.G, 0.1); assert.ok(v.m.venom);
   const r = setup('archer', 10, { 10: 'ricochet' }, 250); r.ms.forEach((o, i) => { o.x = r.m.x + i * 50; o.y = r.m.y; o.D = { ...o.D, speed: 0 }; }); r.G.P.target = r.m; const h0 = r.ms.map(o => o.hp); run(r.G, 2, { ability: true }); assert.ok(r.ms.filter((o, i) => o.hp < h0[i]).length >= 2, 'рикошет');
 });

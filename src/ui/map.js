@@ -39,7 +39,7 @@ function base(g, W, k, big, q = 1) {
     g.fillStyle = '#121612'; g.fillRect(0, 0, W.W * k + 2, W.H * k + 2);
     for (const r of W.rooms) { g.fillStyle = '#6a7462'; g.fillRect(r.x0 * k, r.y0 * k, (r.x1 - r.x0) * k, (r.y1 - r.y0) * k); }
     if (big) { g.strokeStyle = '#2a3026'; g.lineWidth = 3; for (const r of W.rooms) g.strokeRect(r.x0 * k, r.y0 * k, (r.x1 - r.x0) * k, (r.y1 - r.y0) * k); g.fillStyle = '#6a7462'; for (const r of W.rooms) g.fillRect(r.x0 * k + 1.5, r.y0 * k + 1.5, (r.x1 - r.x0) * k - 3, (r.y1 - r.y0) * k - 3); }
-    if (W.town) { g.fillStyle = 'rgba(217,199,154,.35)'; g.beginPath(); g.arc(W.town.x * k, W.town.y * k, W.town.R * k, 0, 7); g.fill(); }
+    if (W.town) { g.fillStyle = 'rgba(217,199,154,.35)'; g.beginPath(); if (W.town.rect) { const R = W.town.rect; g.rect(R[0] * k, R[1] * k, (R[2] - R[0]) * k, (R[3] - R[1]) * k); } else g.arc(W.town.x * k, W.town.y * k, W.town.R * k, 0, 7); g.fill(); }
     const gy = W.graveyard; if (gy.fire) { g.fillStyle = '#ff9a3a'; g.beginPath(); g.arc(gy.x * k, gy.y * k, big ? 6 : 3 * q, 0, 7); g.fill(); }
     for (const e of W.exits) { g.fillStyle = e.temple ? '#d0bc68' : '#ffd34d'; g.strokeStyle = O; g.lineWidth = 1; g.beginPath(); g.arc(e.x * k, e.y * k, big ? 7 : 3 * q, 0, 7); g.fill(); if (big) g.stroke(); }
     return;
@@ -65,9 +65,9 @@ function base(g, W, k, big, q = 1) {
   if (W.river) { g.beginPath(); W.river.pts.forEach(([x, y], i) => i ? g.lineTo(x * k, y * k) : g.moveTo(x * k, y * k)); g.strokeStyle = '#3f7a92'; g.lineWidth = Math.max(2 * q, W.river.w * k + (big ? 3 : 1)); g.stroke();
     for (const b of W.river.bridgeAt) { g.save(); g.translate(b.x * k, b.y * k); g.rotate(b.ra - Math.PI / 2); g.fillStyle = '#8a6a42'; g.strokeStyle = O; g.lineWidth = 1; const bw = big ? 5 : 2.5 * q, bh = big ? 9 : 4.5 * q; g.fillRect(-bw, -bh, bw * 2, bh * 2); if (big) g.strokeRect(-bw, -bh, bw * 2, bh * 2); g.restore(); } }
   for (const f of W.Z.farmsteads || []) { const x = f.x * k, y = f.y * k, s = big ? 1 : 0.5 * q; g.fillStyle = f.burned ? '#4a3a32' : '#c98a4a'; g.beginPath(); g.moveTo(x - 6 * s, y + 4 * s); g.lineTo(x - 6 * s, y - 2 * s); g.lineTo(x, y - 7 * s); g.lineTo(x + 6 * s, y - 2 * s); g.lineTo(x + 6 * s, y + 4 * s); g.closePath(); g.fill(); }
-  if (W.town) { g.fillStyle = W.cap ? '#d9c79a' : 'rgba(217,199,154,.8)'; g.strokeStyle = '#4a3a24'; g.lineWidth = big ? 3 : 1.5 * q; g.beginPath(); g.arc(W.town.x * k, W.town.y * k, W.town.R * k, 0, 7); g.fill(); if (W.cap) g.stroke(); }
+  if (W.town) { g.fillStyle = W.cap ? '#d9c79a' : 'rgba(217,199,154,.8)'; g.strokeStyle = '#4a3a24'; g.lineWidth = big ? 3 : 1.5 * q; g.beginPath(); if (W.town.rect) { const R = W.town.rect; g.rect(R[0] * k, R[1] * k, (R[2] - R[0]) * k, (R[3] - R[1]) * k); } else g.arc(W.town.x * k, W.town.y * k, W.town.R * k, 0, 7); g.fill(); if (W.cap) g.stroke(); }
   if (W.castle) { const K = W.castle; g.fillStyle = '#c9bfa4'; g.strokeStyle = O; g.lineWidth = 1; g.fillRect((K.x - K.w / 2) * k, (K.y - 300) * k, K.w * k, 300 * k); if (big) g.strokeRect((K.x - K.w / 2) * k, (K.y - 300) * k, K.w * k, 300 * k); g.fillStyle = '#2f5d9a'; for (const sd of [-1, 0, 1]) { g.beginPath(); g.arc((K.x + sd * K.w * 0.4) * k, (K.y - 150) * k, (big ? 6 : 2.5 * q) * (sd ? 1 : 1.4), 0, 7); g.fill(); } }
-  if (W.cap && W.cap.fountain) { g.fillStyle = '#4f8fb0'; g.beginPath(); g.arc(W.cap.x * k, W.cap.y * k, Math.max(2, W.cap.fountain.r * k), 0, 7); g.fill(); }
+  if (W.cap && W.cap.fountain) { g.fillStyle = '#4f8fb0'; g.beginPath(); g.arc((W.cap.x + (W.cap.fountain.x || 0)) * k, (W.cap.y + (W.cap.fountain.y || 0)) * k, Math.max(2, W.cap.fountain.r * k), 0, 7); g.fill(); }
   const gx = W.graveyard.x * k, gy = W.graveyard.y * k, cs = big ? 2.2 : q;
   if (!W.graveyard.hidden) { g.fillStyle = '#eee'; g.fillRect(gx - 1 * cs, gy - 4 * cs, 2 * cs, 8 * cs); g.fillRect(gx - 3 * cs, gy - 2 * cs, 6 * cs, 2 * cs); }
   for (const e of W.exits) { g.fillStyle = '#ffd34d'; g.strokeStyle = O; g.lineWidth = 1; g.beginPath(); g.arc(e.x * k, e.y * k, big ? 7 : 3 * q, 0, 7); g.fill(); if (big) g.stroke(); }

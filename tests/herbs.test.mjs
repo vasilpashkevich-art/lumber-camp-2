@@ -23,7 +23,7 @@ test('кусты: в своих областях, на проходимой зе
   for (const W of [WP, WF, WS]) {
     const G = game(W);
     const want = W.Z.herbs.reduce((s, a) => s + a.n, 0); assert.ok(G.plants.length >= want - 2, `${W.Z.id}: ${G.plants.length} из ${want}`);
-    for (const v of G.plants) { const A = W.Z.herbs[v.a]; assert.equal(v.herb, A.herb); assert.ok(dist(v.x, v.y, A.x, A.y) <= A.r + 1); assert.ok(W.walkable(v.x, v.y)); assert.ok(W.roadD(v.x, v.y) >= 40); if (W.town) assert.ok(dist(v.x, v.y, W.town.x, W.town.y) > W.town.R); }
+    for (const v of G.plants) { const A = W.Z.herbs[v.a]; assert.equal(v.herb, A.herb); assert.ok(dist(v.x, v.y, A.x, A.y) <= A.r + 1); assert.ok(W.walkable(v.x, v.y)); assert.ok(W.roadD(v.x, v.y) >= 40); if (W.town) assert.ok(W.townD(v.x, v.y) > 0); }
     const G2 = createGame(G.hero, W, { rand: rng(99) }); assert.deepEqual(G2.plants.map(v => [v.x, v.y]), G.plants.map(v => [v.x, v.y]));
   }
 });

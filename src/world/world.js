@@ -2,6 +2,7 @@
 // у всех одинаковый, от сохранения не зависит.
 import { rng, inPoly, segDist, dist, clamp } from '../engine/util.js';
 import { buildRelief, findPath } from './relief.js';
+import { cityBlocks, footRect } from '../art/city.js';
 
 const CELL = 400; // ячейка сетки для быстрого поиска деревьев рядом с экраном
 
@@ -25,9 +26,13 @@ export function buildWorld(Z) {
     return m;
   };
   // безопасное место зоны: столица со стеной или посёлок без стены (мобы не заходят, отдых быстрее)
-  const town = cap ? { x: cap.x, y: cap.y, R: cap.R, name: cap.name } : Z.village ? { x: Z.village.x, y: Z.village.y, R: Z.village.R, name: Z.village.name } : Z.safe ? { ...Z.safe } : null;
+  // v86: столица квадратная — её контур прямоугольником (town.rect), R — охват для поиска мест вокруг
+  const SQ = cap && cap.square ? { ...cap.square } : null;
+  const town = cap ? { x: cap.x, y: cap.y, R: cap.R, name: cap.name, rect: SQ ? [cap.x + SQ.x0, cap.y + SQ.y0, cap.x + SQ.x1, cap.y + SQ.y1] : null } : Z.village ? { x: Z.village.x, y: Z.village.y, R: Z.village.R, name: Z.village.name } : Z.safe ? { ...Z.safe } : null;
+  /** Насколько точка снаружи города (0 — внутри): прямоугольник у квадратной столицы, круг у посёлка. */
+  const townD = (x, y) => !town ? 1e9 : town.rect ? Math.max(0, town.rect[0] - x, x - town.rect[2], town.rect[1] - y, y - town.rect[3]) : Math.max(0, dist(x, y, town.x, town.y) - town.R);
   const W = {
-    Z, edge, W: Z.W, H: Z.H, cap, town, village: Z.village || null,
+    Z, edge, W: Z.W, H: Z.H, cap, town, townD, village: Z.village || null,
     roads: Z.roads, roadD,
     trees: [], grid: new Map(),
     camps: [], graveyard: Z.graveyard, exits: Z.exits,
@@ -38,10 +43,24 @@ export function buildWorld(Z) {
   W.houses = T0 ? T0.buildings.map(b => ({ ...b, x: T0.x + b.dx, y: T0.y + b.dy })) : [];
   // препятствия: эллипс под основанием построек (столица, посёлок, хутора, мельница)
   const block = (x, y, rx) => W.blocks.push({ x, y: y - 22, rx, ry: rx * 0.42 });
-  if (cap) for (const b of cap.buildings) if (b.col) block(cap.x + b.dx, cap.y + b.dy, b.col);
-  // дворец, терраса с лестницей, фонтан: прямоугольники и эллипс
   const rect = (x0, y0, x1, y1) => W.blocks.push({ rect: true, x0, y0, x1, y1 });
-  if (cap && cap.castle) {
+  if (cap && SQ) {
+    // квадратная столица: стены с проёмами ворот и башни — препятствия; постройки — прямоугольник основания от лица вглубь
+    const CB = cityBlocks(SQ); for (const [x0, y0, x1, y1] of CB.rects) rect(cap.x + x0, cap.y + y0, cap.x + x1, cap.y + y1);
+    for (const [x, y, rx, ry] of CB.ells) W.blocks.push({ x: cap.x + x, y: cap.y + y, rx, ry });
+    for (const b of cap.buildings) { const [x0, y0, x1, y1] = footRect(b.art, cap.x + b.dx, cap.y + b.dy); rect(x0, y0, x1, y1); }
+    if (cap.fountain) W.blocks.push({ x: cap.x + cap.fountain.x, y: cap.y + cap.fountain.y - 18, rx: cap.fountain.r + 8, ry: (cap.fountain.r + 8) * 0.55 });
+    for (const d of cap.decor || []) if (d[0] === 'well') W.blocks.push({ x: cap.x + d[1], y: cap.y + d[2] - 10, rx: 26, ry: 12 }); else if (d[0] === 'haystack') W.blocks.push({ x: cap.x + d[1], y: cap.y + d[2] - 10, rx: 34, ry: 14 });
+    W.castle = { x: cap.x, y: cap.y + cap.castle.dy, ...cap.castle };
+    // ворота: снаружи и внутри — для автоигрока и проверок
+    W.gates = [{ x: cap.x + SQ.southGate, y: cap.y + SQ.y1 + SQ.th / 2, out: [cap.x + SQ.southGate, cap.y + SQ.y1 + SQ.th + 90], in: [cap.x + SQ.southGate, cap.y + SQ.y1 - 90] },
+      { x: cap.x + SQ.x1 + SQ.th / 2, y: cap.y + SQ.eastGate, out: [cap.x + SQ.x1 + SQ.th + 90, cap.y + SQ.eastGate], in: [cap.x + SQ.x1 - 90, cap.y + SQ.eastGate] }];
+  } else if (cap) {
+    for (const b of cap.buildings) if (b.col) block(cap.x + b.dx, cap.y + b.dy, b.col);
+    W.gates = cap.gates.map(a => ({ x: cap.x + Math.cos(a) * cap.R, y: cap.y + Math.sin(a) * cap.R, out: [cap.x + Math.cos(a) * (cap.R + 90), cap.y + Math.sin(a) * (cap.R + 90)], in: [cap.x + Math.cos(a) * (cap.R - 90), cap.y + Math.sin(a) * (cap.R - 90)] }));
+  }
+  // дворец, терраса с лестницей, фонтан: прямоугольники и эллипс
+  if (cap && cap.castle && !SQ) {
     const K = cap.castle, fy = cap.y + K.dy, cx = cap.x, T = K.terrace, sw = K.stairs + 36;
     rect(cx - K.w / 2, cap.y - Math.sqrt(cap.R ** 2 - (K.w / 2) ** 2) - 5, cx + K.w / 2, fy);   // сам дворец до северной стены (только внутри стены)
     rect(cx - T, fy + 56, cx - sw, fy + K.front); rect(cx + sw, fy + 56, cx + T, fy + K.front);   // подпорная стенка террасы
@@ -49,7 +68,7 @@ export function buildWorld(Z) {
     rect(cx - T, fy - 10, cx - K.w / 2, fy + 4); rect(cx + K.w / 2, fy - 10, cx + T, fy + 4);   // за террасой к стене не уйти
     W.castle = { x: cx, y: fy, ...K };
   }
-  if (cap && cap.fountain) W.blocks.push({ x: cap.x, y: cap.y - 18, rx: cap.fountain.r + 8, ry: (cap.fountain.r + 8) * 0.55 });
+  if (cap && cap.fountain && !SQ) W.blocks.push({ x: cap.x, y: cap.y - 18, rx: cap.fountain.r + 8, ry: (cap.fountain.r + 8) * 0.55 });
   if (Z.village) { for (const b of Z.village.buildings) block(Z.village.x + b.dx, Z.village.y + b.dy, b.col || 70); if (Z.village.well !== false) block(Z.village.x, Z.village.y + 10, 26); }
   for (const f of Z.farmsteads || []) block(f.x + (f.burned ? 20 : 50), f.y, f.burned ? 80 : 128);
   if (Z.mill) block(Z.mill.x, Z.mill.y, 58);
@@ -58,6 +77,7 @@ export function buildWorld(Z) {
   if (Z.temple) { const T = Z.temple; rect(T.x - 370, T.y - 300, T.x - 32, T.y); rect(T.x + 32, T.y - 300, T.x + 370, T.y); rect(T.x - 32, T.y - 300, T.x + 32, T.y - 70); W.temple = { ...T }; }
   // плиточные дорожки столицы (для травы и проверок)
   W.onPave = (x, y) => {
+    if (cap && cap.streets) { const dx = x - cap.x, dy = y - cap.y; return cap.streets.some(s => dx >= s.x && dx <= s.x + s.w && dy >= s.y && dy <= s.y + s.h); }
     if (!cap || !cap.ring) return false;
     const dx = x - cap.x, dy = y - cap.y, d = Math.hypot(dx, dy);
     if (d < cap.fountain.plaza || Math.abs(d - cap.ring.r) < cap.ring.w / 2) return true;
@@ -144,7 +164,7 @@ export function buildWorld(Z) {
   while (W.trees.length < T.count && tries++ < T.count * 20) {
     const x = r() * Z.W, y = r() * Z.H;
     if (!inside(x, y, 40)) continue;
-    if (town && dist(x, y, town.x, town.y) < town.R + 120) continue;
+    if (town && townD(x, y) < 120) continue;
     if (R && W.riverD(x, y) < R.w / 2 + 50) continue;
     if (PONDS.length && inPond(x, y, 60)) continue;
     if (inField(x, y, 30)) continue;
@@ -182,7 +202,7 @@ export function buildWorld(Z) {
   }
   // скалы и пригорки (v61): у края зоны и кое-где посреди — отдельным зерном, остальное не сдвигается
   const r3 = rng(Z.seed + 700); W.rocks = [];
-  const rockOk = (x, y, rr) => inside(x, y, 30) && roadD(x, y) > rr + 50 && !(town && dist(x, y, town.x, town.y) < town.R + rr + 140)
+  const rockOk = (x, y, rr) => inside(x, y, 30) && roadD(x, y) > rr + 50 && !(town && townD(x, y) < rr + 140)
     && !W.camps.some(c => dist(x, y, c.x, c.y) < c.r + rr + 60) && !inField(x, y, rr + 20) && !(R && W.riverD(x, y) < R.w / 2 + rr + 30)
     && !Z.exits.some(e => dist(x, y, e.x, e.y) < 300) && dist(x, y, Z.graveyard.x, Z.graveyard.y) > 260
     && !W.blocks.some(b => !b.rect && dist(x, y, b.x, b.y) < b.rx + rr + 30) && !W.rocks.some(o => dist(x, y, o.x, o.y) < o.w * 0.5 + rr + 40) && W.flatOk(x, y, rr + 40);
@@ -198,7 +218,7 @@ export function buildWorld(Z) {
   for (const o of W.rocks) W.blocks.push({ x: o.x, y: o.y - 4, rx: o.w * 0.48, ry: o.w * 0.16 });
   // Грибной лес (v65): поваленные стволы (обходить), рощи грибов-великанов, папоротники, светящиеся грибочки, камыш у прудов — отдельным зерном
   if (Z.moss) {
-    const r4 = rng(Z.seed + 900), free = (x, y, rr) => inside(x, y, 40) && roadD(x, y) > rr + 30 && !W.water(x, y, rr * 0.4) && !(town && dist(x, y, town.x, town.y) < town.R + rr + 40) && !W.camps.some(c => dist(x, y, c.x, c.y) < c.r * 0.6 + rr) && !Z.exits.some(e => dist(x, y, e.x, e.y) < 260) && !(Z.temple && Math.abs(x - Z.temple.x) < 400 + rr && y > Z.temple.y - 360 && y < Z.temple.y + 140) && W.flatOk(x, y, rr + 24) && !W.giants.some(g => dist(x, y, g.x, g.y) < 70 + rr);
+    const r4 = rng(Z.seed + 900), free = (x, y, rr) => inside(x, y, 40) && roadD(x, y) > rr + 30 && !W.water(x, y, rr * 0.4) && !(town && townD(x, y) < rr + 40) && !W.camps.some(c => dist(x, y, c.x, c.y) < c.r * 0.6 + rr) && !Z.exits.some(e => dist(x, y, e.x, e.y) < 260) && !(Z.temple && Math.abs(x - Z.temple.x) < 400 + rr && y > Z.temple.y - 360 && y < Z.temple.y + 140) && W.flatOk(x, y, rr + 24) && !W.giants.some(g => dist(x, y, g.x, g.y) < 70 + rr);
     for (const [lx, ly] of Z.logs || []) { const len = 80 + r4() * 40; if (!free(lx, ly, 60)) continue; W.props.push({ kind: 'log', x: lx, y: ly, len, s: Math.floor(r4() * 1000) }); W.blocks.push({ rect: true, x0: lx - len / 2 - 4, y0: ly - 14, x1: lx + len / 2 + 4, y1: ly + 2 }); }
     for (const [gx, gy, gr] of Z.groves || []) for (let i = 0; i < 6; i++) { const a = r4() * 6.283, d = Math.sqrt(r4()) * gr, x = gx + Math.cos(a) * d, y = gy + Math.sin(a) * d * 0.8; if (!free(x, y, 40) || W.trees.some(t => Math.abs(t.x - x) < 50 && Math.abs(t.y - y) < 40)) continue; addTree(W, { x, y, kind: 'gshroom', s: 0.8 + r4() * 0.5, v: r4() }); }
     for (let i = 0; i < 260; i++) { const x = r4() * Z.W, y = r4() * Z.H; if (!free(x, y, 16) || W.blocked(x, y)) continue; W.props.push({ kind: r4() < 0.75 ? 'fern' : 'glow', x, y, s: Math.floor(r4() * 1000), k: 0.8 + r4() * 0.5 }); }
@@ -230,7 +250,7 @@ export function moveTo(W, x, y, nx, ny, r = 12) {
   if (bad(nx, ny)) { if (!bad(nx, y)) ny = y; else if (!bad(x, ny)) nx = x; else { nx = x; ny = y; } }
   // стена столицы: кольцо, проходы в воротах
   const c = W.cap;
-  if (c) {
+  if (c && !c.square) {
     const d0 = dist(x, y, c.x, c.y), d1 = dist(nx, ny, c.x, c.y), wall = c.R, th = 26;
     if (Math.abs(d1 - wall) < th + r || (d0 - wall) * (d1 - wall) < 0) {
       const a = Math.atan2(ny - c.y, nx - c.x);
@@ -247,5 +267,5 @@ export function inGate(c, a) {
 }
 
 /** В столице или посёлке: мобы сюда не заходят, здоровье восстанавливается быстро. */
-export const inCity = (W, x, y) => !!W.town && dist(x, y, W.town.x, W.town.y) < W.town.R;
+export const inCity = (W, x, y) => !!W.town && (W.town.rect ? x > W.town.rect[0] && x < W.town.rect[2] && y > W.town.rect[1] && y < W.town.rect[3] : dist(x, y, W.town.x, W.town.y) < W.town.R);
 export const clampW = (W, x, y) => [clamp(x, 0, W.W), clamp(y, 0, W.H)];

@@ -2,10 +2,9 @@
 // мощёные улицы с бордюром, площадь с узором вокруг фонтана, дворы построек (заборы, бочки, телеги, дровники, колодец),
 // деревья группами, фонари и лавки вдоль улиц. Мягкий облик, как у людей и зверей (v75): всё рисуется картинками,
 // контур — затемнённая копия со сдвигом, свет слева сверху. Масштаб: 1 рост героя ≈ 42–55.
-import { masonry, paving, fountain, lamp, flowerbed, castle, terrace, stairs, brazierFire, cone } from './castle.js';
+import { masonry, paving, lamp, flowerbed, cone } from './castle.js';
 import { BLD2 } from './bld2.js';
 import { well, haystack } from './farmland.js';
-import { person } from './body.js';
 
 const O = '#24180f';
 const rnd = s => { s = Math.abs(s | 0) || 1; return () => { s = (s * 16807) % 2147483647; return s / 2147483647; }; };
@@ -33,21 +32,16 @@ export const STREETS = [
   { x: -400, y: -520, w: 800, h: 80, kind: 'plaza' },     // площадка перед лестницей дворца
 ];
 /** Мощение всей столицы: вызывать в координатах мира (центр столицы — начало). */
-export function cityGround(g) {
-  // улицы: булыжник с бордюром; площадь — крупные плиты узором
-  for (const s of STREETS) {
-    if (s.kind === 'plaza') continue;
-    cobbles(g, s.x, s.y, s.w, s.h, s.kind === 'main' ? 7 : 11, s.kind === 'lane' ? 20 : 24);
-  }
-  for (const s of STREETS) if (s.kind === 'plaza') paving(g, s.x, s.y, s.w, s.h, 5, true);
-  plazaPattern(g, 0, 60, 300, 200);
-  // бордюры улиц — поверх плит, чтобы стыки читались
-  for (const s of STREETS) { if (s.kind === 'plaza') continue; g.strokeStyle = '#7a736a'; g.lineWidth = 6; g.strokeRect(s.x, s.y, s.w, s.h); g.strokeStyle = 'rgba(36,24,15,.55)'; g.lineWidth = 1.2; g.strokeRect(s.x - 3, s.y - 3, s.w + 6, s.h + 6); }
-  // площадь поверх бордюров улиц
-  for (const s of STREETS) if (s.kind === 'plaza') { g.fillStyle = 'rgba(0,0,0,0)'; g.strokeStyle = '#7a736a'; g.lineWidth = 7; g.strokeRect(s.x, s.y, s.w, s.h); }
-  // газоны у площади и клумбы
-  for (const [x, y, w, h] of [[-250, 230, 170, 44], [80, 230, 170, 44]]) { lawn(g, x, y, w, h); }
-  for (const [x, y] of [[-165, -100], [165, -100]]) { g.save(); g.translate(x, y); flowerbed(g, 110, 34, Math.abs(x + y)); g.restore(); }
+export function cityGround(g, cap = null) {
+  const ST = cap && cap.streets ? cap.streets.map(s => ({ ...s, kind: s.plaza ? 'plaza' : s.h > 100 ? 'cross' : s.w === 140 ? 'main' : 'lane' })) : STREETS;
+  const F = cap && cap.fountain ? cap.fountain : { x: 0, y: 60 };
+  for (const s of ST) if (s.kind !== 'plaza') cobbles(g, s.x, s.y, s.w, s.h, s.kind === 'main' ? 7 : 11, s.kind === 'lane' ? 20 : 24);
+  for (const s of ST) if (s.kind === 'plaza') paving(g, s.x, s.y, s.w, s.h, 5, true);
+  plazaPattern(g, F.x, F.y, 300, 200);
+  for (const s of ST) { if (s.kind === 'plaza') continue; g.strokeStyle = '#7a736a'; g.lineWidth = 6; g.strokeRect(s.x, s.y, s.w, s.h); g.strokeStyle = 'rgba(36,24,15,.55)'; g.lineWidth = 1.2; g.strokeRect(s.x - 3, s.y - 3, s.w + 6, s.h + 6); }
+  for (const s of ST) if (s.kind === 'plaza') { g.strokeStyle = '#7a736a'; g.lineWidth = 7; g.strokeRect(s.x, s.y, s.w, s.h); }
+  for (const [x, y, w, h] of (cap && cap.lawns) || [[-250, 230, 170, 44], [80, 230, 170, 44]]) lawn(g, x, y, w, h);
+  for (const [x, y, w, h] of (cap && cap.beds) || [[-165, -100, 110, 34], [165, -100, 110, 34]]) { g.save(); g.translate(x, y); flowerbed(g, w, h, Math.abs(x + y)); g.restore(); }
 }
 function cobbles(g, x, y, w, h, seed, S) {
   const r = rnd(seed), cols = ['#a89f90', '#b8b0a2', '#9d9486', '#c0b8aa', '#a39a8b'];
@@ -207,3 +201,22 @@ export const CITY_DECOR = [
   ['tree', -700, 380], ['tree', 700, 380], ['tree', -1020, 800], ['tree', -700, 820], ['tree', 1020, 800], ['tree', 700, 820], ['tree', -350, 800], ['tree', 350, 800], ['tree', -1020, 330], ['tree', 1020, 330],
   ['well', 0, 400], ['haystack', -500, 790], ['cartWood', 500, 790], ['barrel', -160, 790], ['crate', 160, 790],
 ];
+
+/** Основание построек в мире (ширина лица, глубина, высота подписи): прямоугольник препятствия — от лица вглубь. */
+export const FOOT = { house: [230, 175, 215], forge: [270, 190, 230], bank: [300, 200, 250], tavern: [330, 225, 290], enchant: [216, 175, 260], miners: [256, 190, 225], herbal: [243, 175, 230], inn: [324, 200, 320], stall: [150, 80, 150], palace: [900, 300, 560] };
+/** Препятствия квадратной столицы (в мире, относительно центра): стены с проёмами ворот, башни, дворец, постройки, фонтан. */
+export function cityBlocks(C) {
+  const th = C.th, R = [], E = [];
+  const rect = (x0, y0, x1, y1) => R.push([x0, y0, x1, y1]), ell = (x, y, rx, ry) => E.push([x, y, rx, ry]);
+  const gw = C.gate.w;
+  rect(C.x0 - th, C.y0 - th, C.x1 + th, C.y0);                                  // северная
+  rect(C.x0 - th, C.y0 - th, C.x0, C.y1 + th);                                  // западная
+  rect(C.x1, C.y0 - th, C.x1 + th, C.eastGate - gw / 2); rect(C.x1, C.eastGate + gw / 2, C.x1 + th, C.y1 + th);   // восточная с проёмом
+  rect(C.x0 - th, C.y1, C.southGate - gw / 2, C.y1 + th); rect(C.southGate + gw / 2, C.y1, C.x1 + th, C.y1 + th); // южная с проёмом
+  for (const [x, y] of [[C.x0 - th / 2, C.y0 - th / 2], [C.x1 + th / 2, C.y0 - th / 2], [C.x0 - th / 2, C.y1 + th / 2], [C.x1 + th / 2, C.y1 + th / 2]]) ell(x, y + C.towerR * 0.3, C.towerR + 6, C.towerR * 0.5 + 6);
+  for (const sd of [-1, 1]) ell(C.southGate + sd * (gw / 2 + C.gate.towerR), C.y1 + th + 6, C.gate.towerR + 4, C.gate.towerR * 0.5 + 4);
+  for (const sd of [-1, 1]) ell(C.x1 + th / 2, C.eastGate + sd * (gw / 2 + C.gate.towerR), C.gate.towerR + 4, C.gate.towerR * 0.5 + 4);
+  return { rects: R, ells: E };
+}
+/** Прямоугольник основания постройки: [x0, y0, x1, y1] относительно середины лица (x, y). */
+export function footRect(art, x, y) { const [w, d] = FOOT[art] || [120, 100]; return [x - w / 2, y - d * 0.5, x + w / 2 + d * 0.3, y]; }

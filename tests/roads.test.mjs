@@ -30,7 +30,7 @@ test('концы дорог: у двери мельницы, у калитки �
 });
 
 test('развилка у южных ворот столицы отодвинута: у ворот одна дорога', () => {
-  const c = P.cap, gx = c.x, gy = c.y + c.R;
+  const c = P.cap, gx = c.x, gy = c.y + c.square.y1 + c.square.th;
   const starts = P.roads.filter(rd => rd.some(p => dist(p[0], p[1], gx, gy) < 300)).length;
   assert.equal(starts, 1);
 });

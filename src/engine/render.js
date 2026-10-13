@@ -9,6 +9,8 @@ import { BLD } from '../art/bld.js';
 import { castle, stairs, brazierFire, paving, roundPlaza, ringPath, fountain, lamp, flowerbed, terrace, wallSeg, roundTower, merlons, cone } from '../art/castle.js';
 import { house, inn, tavern, enchant, barn, miners, forge, farmstead, bank, herbal } from '../art/houses.js';
 import { bush, herbGlint, pickLeaves, herbBurst, drinkFx } from '../art/herbs.js';
+import { cityGround, wallFace, wallTop, wallSide, tower as cityTower, gatehouse, drawYardItem, FOOT } from '../art/city.js';
+import { BLD2 } from '../art/bld2.js';
 import { HERBS, HERBAL } from '../../data/herbs.js';
 import { herbSkill, skillColor } from '../systems/herbs.js';
 import { vein, glint, outcrop } from '../art/ore.js';
@@ -21,7 +23,7 @@ import { GIANT, giantBase, giantUpper, giantCrown, giantShade } from '../art/gia
 import { LH } from '../world/relief.js';
 import { ORES, veinColor, MINE } from '../../data/mining.js';
 import { miningSkill } from '../systems/mining.js';
-import { sprite, drawSpr, flashOf, heroSpr, mobSpr, MOB_SCALE, MOB_LOOK, personSpr, beastSpr, drawFrame, GUARD_LOOK, MERCH_LOOK, viewOf, viewOf8, sideways, sprBox, FRAMES, treeSpr, TREE_K, bldSpr, mountainSpr } from '../art/sprites.js';
+import { sprite, styled, drawSpr, flashOf, heroSpr, mobSpr, MOB_SCALE, MOB_LOOK, personSpr, beastSpr, drawFrame, GUARD_LOOK, MERCH_LOOK, viewOf, viewOf8, sideways, sprBox, FRAMES, treeSpr, TREE_K, bldSpr, mountainSpr } from '../art/sprites.js';
 import { treesIn, GATE_W } from '../world/world.js';
 import { lookOf } from '../systems/items.js';
 import { interactTarget, abilsOf } from '../systems/game.js';
@@ -51,9 +53,59 @@ export function createRenderer(cv) {
 }
 
 // ---------------------------------------------------------------- статичные предметы зоны
+/** v86: квадратная столица — стены (лицо и боевой ход), угловые башни, надвратная, восточные ворота, дворец, стража, фонтан, дворы. */
+function cityStatics(S, W, c) {
+  const C = c.square, th = C.th, H = C.H, cx = c.x, cy = c.y, gw = C.gate.w + 2 * C.gate.towerR;
+  const Lw = C.x1 - C.x0 + 2 * th, Lh = C.y1 - C.y0 + 2 * th;
+  const put = (key, w, h, ox, oy, x, y, draw, depthY, extra = {}) => { const sp = sprite(key, w, h, ox, oy, 1.6, styled(draw)); S.push({ y: depthY, oc: occ(sp, x, y), soft: x, draw: g => drawSpr(g, sp, x, y), ...extra }); };
+  // северная стена: лицо и верх — одной картинкой на всю длину (кусками по 600, чтобы не делать гигантский холст)
+  const seg = 600;
+  for (let x = 0; x < Lw; x += seg) {
+    const w = Math.min(seg, Lw - x), k = Math.round(x / seg);
+    put('cwN' + k + '|' + w, w + 20, H + th + 40, 10, H + th + 30, cx + C.x0 - th + x, cy + C.y0, g => { wallFace(g, w, H, 3 + k); g.save(); g.translate(0, -H - th); wallTop(g, w, th, 40 + k, false); g.restore(); }, cy + C.y0 - 1);
+    // южная: с проёмом ворот
+    const gx0 = C.southGate - gw / 2 - (C.x0 - th), gx1 = gx0 + gw;
+    if (x + w <= gx0 || x >= gx1) put('cwS' + k + '|' + w, w + 20, H + th + 40, 10, H + th + 30, cx + C.x0 - th + x, cy + C.y1 + th, g => { wallFace(g, w, H, 8 + k); g.save(); g.translate(0, -H - th); wallTop(g, w, th, 50 + k, true); g.restore(); }, cy + C.y1 + th);
+    else { const a = Math.max(0, gx0 - x), b = Math.max(0, x + w - gx1);
+      if (a > 0) put('cwSa' + k + '|' + a, a + 20, H + th + 40, 10, H + th + 30, cx + C.x0 - th + x, cy + C.y1 + th, g => { wallFace(g, a, H, 8 + k); g.save(); g.translate(0, -H - th); wallTop(g, a, th, 50 + k, true); g.restore(); }, cy + C.y1 + th);
+      if (b > 0) put('cwSb' + k + '|' + b, b + 20, H + th + 40, 10, H + th + 30, cx + C.x0 - th + x + w - b, cy + C.y1 + th, g => { wallFace(g, b, H, 9 + k); g.save(); g.translate(0, -H - th); wallTop(g, b, th, 51 + k, true); g.restore(); }, cy + C.y1 + th); }
+  }
+  // западная и восточная: верх полосой кусками по 600 (у восточной — проём ворот)
+  for (let y = 0; y < Lh; y += seg) {
+    const h = Math.min(seg, Lh - y), k = Math.round(y / seg), wy = cy + C.y0 - th - H + y;
+    put('cwW' + k + '|' + h, th + 20, h + 20, 10, 10, cx + C.x0 - th, wy, g => wallSide(g, h, th, 60 + k, false), cy + C.y0 + y + h - H - th);
+    const gy0 = C.eastGate - gw / 2 - (C.y0 - th), gy1 = gy0 + gw;
+    if (y + h <= gy0 || y >= gy1) put('cwE' + k + '|' + h, th + 20, h + 20, 10, 10, cx + C.x1, wy, g => wallSide(g, h, th, 70 + k, true), cy + C.y0 + y + h - H - th);
+    else { const a = Math.max(0, gy0 - y), b = Math.max(0, y + h - gy1);
+      if (a > 0) put('cwEa' + k + '|' + a, th + 20, a + 20, 10, 10, cx + C.x1, wy, g => wallSide(g, a, th, 70 + k, true), cy + C.y0 + y + a - H - th);
+      if (b > 0) put('cwEb' + k + '|' + b, th + 20, b + 20, 10, 10, cx + C.x1, wy + h - b, g => wallSide(g, b, th, 71 + k, true), cy + C.y0 + y + h - H - th); }
+  }
+  // башни по углам, у восточных ворот, надвратная
+  const TR = C.towerR, TH = C.towerH;
+  for (const [sx, sy, sd] of [[C.x0 - th / 2, C.y0 - th / 2, 20], [C.x1 + th / 2, C.y0 - th / 2, 21], [C.x0 - th / 2, C.y1 + th / 2, 22], [C.x1 + th / 2, C.y1 + th / 2, 23]])
+    put('ctw' + sd, TR * 2.6 + 40, TH + TR * 3, TR * 1.3 + 20, TH + TR * 2.6, cx + sx, cy + sy + TR * 0.3, g => cityTower(g, TR, TH, sd), cy + sy + TR * 0.3);
+  const GR = C.gate.towerR, GH = C.gate.towerH;
+  for (const sd of [-1, 1]) put('cgE' + sd, GR * 2.6 + 40, GH + GR * 3, GR * 1.3 + 20, GH + GR * 2.6, cx + C.x1 + th / 2, cy + C.eastGate + sd * (C.gate.w / 2 + GR), g => cityTower(g, GR, GH, 12 + sd), cy + C.eastGate + sd * (C.gate.w / 2 + GR) + 10);
+  put('cgS', gw + 160, GH + 140, gw / 2 + 80, GH + 120, cx + C.southGate, cy + C.y1 + th, g => gatehouse(g, C.gate.w, GR, H + 10, 30), cy + C.y1 + th + 1);
+  // стража у ворот и у дворца
+  const K = W.castle;
+  for (const sd of [-1, 1]) { const x = cx + C.southGate + sd * 110, y = cy + C.y1 + th + 40; S.push({ y, draw: (g, t) => guard(g, x, y, 'front', 1, t) }); }
+  for (const sd of [-1, 1]) { const x = cx + C.x1 + th + 40, y = cy + C.eastGate + sd * 80; S.push({ y, draw: (g, t) => guard(g, x, y, 'side', -1, t) }); }
+  if (K) for (const dx of [-56, 56]) S.push({ y: K.y + 14, draw: (g, t) => guard(g, cx + dx, K.y + 14, 'front', 1, t) });
+  // фонтан
+  if (c.fountain) { const fx = cx + c.fountain.x, fy = cy + c.fountain.y; S.push({ y: fy + 30, x: fx, draw: (g, t) => { g.save(); g.translate(fx, fy); g.scale(0.84, 0.84); fountain(g, t, 110); g.restore(); } }); }
+  // дворы и убранство
+  for (const d of c.decor || []) {
+    const [k, dx, dy, a] = d, x = cx + dx, y = cy + dy;
+    if (k === 'lamp') { const lampSpr = sprite('lamp', 50, 130, 25, 120, 2, g => { g.scale(0.8, 0.8); lamp(g, 0, false); }); S.push({ y, x, draw: g => drawSpr(g, lampSpr, x, y) }); continue; }
+    const sp = sprite('cd|' + k + '|' + (a || 0), 200, 120, 100, 100, 2, styled(g => drawYardItem(g, [k, 0, 0, a], 0)));
+    S.push({ y: y + 1, x, draw: g => drawSpr(g, sp, x, y) });
+  }
+}
 function buildStatics(W) {
   const S = [], c = W.cap, r = rng(W.Z.seed + 99);
-  if (c) {
+  if (c && c.square) cityStatics(S, W, c);
+  else if (c) {
     // стена столицы: 3 роста, кусками по окружности, проёмы ворот
     const n = 120, GW = c.gateW || GATE_W, H = 126, th = 26;
     for (let i = 0; i < n; i++) {
@@ -100,10 +152,15 @@ function buildStatics(W) {
     enchant: () => big('enchant', enchant), inn: () => big('inn', inn), barn: () => big('barn', barn), bank: () => big('bank', bank),
     house: v => big('house' + v, g => house(g, v)), herbal: () => big('herbal', herbal),
   };
+  // v86: объёмные постройки столицы (мягкий облик), размер картинки — по основанию
+  const B2 = (key, v) => { const [w, d, lh] = FOOT[key] || [200, 150, 200]; const pw = w + d * 0.3 + 160, ph = lh + 220; return sprite('b2|' + key + (v || 0), pw, ph, w / 2 + 80, ph - 60, 1.6, styled(g => BLD2[key](g, v || 0, 0.4))); };
   const LBL = { herbal: 185, bank: 205, castle: 455, market: 105, stall: 105, cart: 110, forge: 170, tavern: 210, miners: 200, enchant: 210, inn: 230, barn: 190 };
   for (const b of W.houses) {
-    const sp = ART[b.art] ? ART[b.art](b.v || 0) : null;
-    S.push({ y: b.y, oc: sp && occ(sp, b.x, b.y), draw: g => sp && drawSpr(g, sp, b.x, b.y), label: b.name, lx: b.x, ly: b.y - (LBL[b.art] || 120) });
+    const sq = c && c.square && BLD2[b.art];
+    const sp = sq ? B2(b.art, b.v) : ART[b.art] ? ART[b.art](b.v || 0) : null;
+    // у объёмных построек рамка заслона — по стенам и крыше, без дыма из трубы (иначе герой на улице перед домом «прячется» за ним)
+    const oc = sp && (sq ? (() => { const [w, d, lh] = FOOT[b.art] || [200, 150, 200]; return { x0: b.x - w / 2 - 10, y0: b.y - lh + 30, x1: b.x + w / 2 + d * 0.3 + 10, y1: b.y }; })() : occ(sp, b.x, b.y));
+    S.push({ y: b.y, oc, draw: g => sp && drawSpr(g, sp, b.x, b.y), label: b.name, lx: b.x + (sq ? (FOOT[b.art] || [0, 0])[1] * 0.15 : 0), ly: b.y - (sq ? (FOOT[b.art] || [0, 0, 120])[2] : LBL[b.art] || 120) });
   }
   if (W.village) { const v = W.village, sp = v.well !== false ? sprite('well', 70, 80, 35, 66, 2, g => well(g)) : null; S.push({ y: v.y + 10, draw: g => sp && drawSpr(g, sp, v.x, v.y + 10), label: v.name, lx: v.x, ly: v.y - v.R + 30 });
     if (v.camp) { const fx = v.x + 140, fy = v.y + 120; S.push({ y: fy, fire: true, x: fx, draw: (g, t) => campfire(g, fx, fy, t) }); } }
@@ -247,7 +304,9 @@ function paintGround(g, W, x0, y0, CW, CH, i, j) {
   for (let k = 0; k < 120 * CH / CHUNK; k++) { const x = x0 + r() * CW, y = y0 + r() * CH; if (W.roadD(x, y) < 28) { g.fillStyle = r() < 0.5 ? 'rgba(120,100,70,.55)' : 'rgba(230,215,180,.5)'; g.beginPath(); g.ellipse(x, y, 2 + r() * 2, 1.4 + r(), 0, 0, 7); g.fill(); } }
   // столица: газоны, плиточные дорожки, площадь у фонтана, терраса дворца, клумбы
   const c = W.cap;
-  if (c && Math.abs(c.x - (x0 + CW / 2)) < c.R + CW && Math.abs(c.y - (y0 + CH / 2)) < c.R + CH) {
+  if (c && c.square && Math.abs(c.x - (x0 + CW / 2)) < c.R + CW && Math.abs(c.y - (y0 + CH / 2)) < c.R + CH) {
+    const Q = c.square; g.save(); g.beginPath(); g.rect(c.x + Q.x0, c.y + Q.y0, Q.x1 - Q.x0, Q.y1 - Q.y0); g.clip(); g.translate(c.x, c.y); cityGround(g, c); g.restore();
+  } else if (c && Math.abs(c.x - (x0 + CW / 2)) < c.R + CW && Math.abs(c.y - (y0 + CH / 2)) < c.R + CH) {
     g.save(); g.beginPath(); g.arc(c.x, c.y, c.R - 4, 0, 7); g.clip();
     g.fillStyle = 'rgba(110,160,60,.16)'; g.fillRect(x0, y0, CW, CH);
     for (const p of c.paths || []) { g.save(); g.translate(c.x, c.y); g.rotate(p.a); paving(g, 0, -p.w / 2, p.to + 40, p.w, 11 + Math.abs(Math.round(p.a * 10)) + (p.a < 0 ? 40 : 0)); g.restore(); }
@@ -283,7 +342,7 @@ function paintGround(g, W, x0, y0, CW, CH, i, j) {
   // трава и цветы
   for (let k = 0; k < 70 * CH / CHUNK; k++) {
     const x = x0 + r() * CW, y = y0 + r() * CH;
-    if (!inPoly(x, y, W.edge) || W.roadD(x, y) < 44 || (W.town && !W.cap && dist(x, y, W.town.x, W.town.y) < W.town.R + 20) || (W.cap && (W.onPave(x, y) || W.blocked(x, y) || Math.abs(dist(x, y, W.cap.x, W.cap.y) - W.cap.R) < 30)) || (W.ponds && W.ponds.length && W.water(x, y, 6)) || (W.river && W.riverD(x, y) < W.river.w / 2 + 16) || W.inField(x, y, 4)) continue;
+    if (!inPoly(x, y, W.edge) || W.roadD(x, y) < 44 || (W.town && !W.cap && dist(x, y, W.town.x, W.town.y) < W.town.R + 20) || (W.cap && (W.onPave(x, y) || W.blocked(x, y) || (W.cap.square ? W.townD(x, y) < 70 && W.townD(x, y) > 0 : Math.abs(dist(x, y, W.cap.x, W.cap.y) - W.cap.R) < 30))) || (W.ponds && W.ponds.length && W.water(x, y, 6)) || (W.river && W.riverD(x, y) < W.river.w / 2 + 16) || W.inField(x, y, 4)) continue;
     LOOK.tuft(x, y, 0.9 + r() * 0.6, W.Z.ground, r());
   }
 }
