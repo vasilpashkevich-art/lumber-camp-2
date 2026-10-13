@@ -59,3 +59,20 @@ test('старое сохранение: вещи пересчитаны, нич
   assert.deepEqual(migrate(a).eq.chest, a.eq.chest, 'второй раз не пересчитывает');
   assert.equal(remakeItem({ id: 'z', slot: 'legs', ilvl: 3, rar: 'common' }, 'warrior').cls, 'warrior');
 });
+
+// v81: выкуп проданного за ту же цену
+test('выкуп: проданная вещь ждёт у торговца, выкупается за ту же цену, список не длиннее 12', async () => {
+  const { createGame, sellItem, buyBack } = await import('../src/systems/game.js');
+  const { buildWorld } = await import('../src/world/world.js'); const { PINE } = await import('../data/zones.js');
+  const { newHero } = await import('../src/entities/hero.js'); const { rng } = await import('../src/engine/util.js');
+  const { migrate } = await import('../src/engine/save.js');
+  const G = createGame(newHero('Т', 'warrior'), buildWorld(PINE), { rand: rng(1) }), H = G.hero;
+  H.bag = []; for (let i = 0; i < 14; i++) { const it = makeItem('warrior', 'ring', 5 + i, 'common', rng(i + 2)); it.pos = i; H.bag.push(it); }
+  const first = H.bag[0], g0 = H.gold = 0;
+  for (const it of H.bag.slice()) sellItem(G, it);
+  assert.equal(H.buyback.length, 12, 'держит 12'); assert.ok(!H.buyback.some(e => e.it.id === first.id), 'самая старая выпала');
+  const last = H.buyback[H.buyback.length - 1], gold = H.gold;
+  assert.ok(buyBack(G, H.buyback.length - 1)); assert.equal(H.gold, gold - last.v); assert.equal(H.bag.length, 1); assert.equal(H.bag[0].name, last.it.name); assert.equal(H.buyback.length, 11);
+  H.gold = 0; assert.ok(!buyBack(G, 0), 'без денег нельзя');
+  const old = migrate({ name: 'С', cls: 'warrior', lvl: 3, bag: [] }); assert.deepEqual(old.buyback, []);
+});

@@ -736,7 +736,17 @@ export const POTION_PRICE = L => 4 + L * 2;
 export function sellItem(G, it) {
   const H = G.hero, i = H.bag.indexOf(it); if (i < 0) return;
   const v = it.price * (it.n || 1); H.bag.splice(i, 1); H.gold += v; sfx(G, 'coin');
+  // v81: проданное можно выкупить обратно за ту же цену — последние 12 вещей
+  H.buyback = H.buyback || []; const bb = { ...it }; delete bb.pos; H.buyback.push({ it: bb, v }); while (H.buyback.length > LOOT.buyback) H.buyback.shift();
   emit(G, { k: 'toast', s: `Продано: ${it.name}${it.n > 1 ? ' × ' + it.n : ''} за ${money(v)}`, id: 'sell' });
+}
+/** Выкупить проданную вещь обратно (за ту же цену). */
+export function buyBack(G, idx) {
+  const H = G.hero, L = H.buyback || [], e = L[idx]; if (!e) return false;
+  if (H.gold < e.v) { emit(G, { k: 'toast', s: 'Не хватает денег', id: 'gold' }); return false; }
+  if (H.bag.length >= LOOT.bag) { emit(G, { k: 'toast', s: 'Сумка полна', id: 'bagfull' }); return false; }
+  H.gold -= e.v; L.splice(idx, 1); bagAdd(H, { ...e.it }); sfx(G, 'coin');
+  emit(G, { k: 'toast', s: `Выкуплено: ${e.it.name}`, id: 'buy' }); return true;
 }
 export function buyPotion(G) {
   const H = G.hero, p = POTION_PRICE(H.lvl);

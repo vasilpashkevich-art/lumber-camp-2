@@ -7,13 +7,14 @@ import { itemIcon, anyIcon, accIcon, moneyHtml } from './icons.js';
 import { itemLines, itemNums, lookOf } from '../systems/items.js';
 import { compareItem } from '../entities/hero.js';
 import { stashPut, stashTake, stashMove, stashSwap, stashMaterials, store } from '../systems/bank.js';
-import { equip, unequip, sellItem, buyPotion, shopStock, buyShop, POTION_PRICE, respawnHero, lootTake, hasLoot, bagMove, abilsOf } from '../systems/game.js';
+import { equip, unequip, sellItem, buyPotion, shopStock, buyShop, POTION_PRICE, respawnHero, lootTake, hasLoot, bagMove, abilsOf, buyBack } from '../systems/game.js';
 import { ABIL_ICON } from './icons.js';
 import { iconUrl } from '../art/abicons.js';
 import { playPreview, hasPreview, SW, SH } from './abilpreview.js';
 import { talentRows, talentFree, chooseTalent, resetTalents, resetPrice } from '../systems/talents.js';
 import { doll } from '../art/body.js';
 import { $, el, modal, toast, TOUCH, T } from './dom.js';
+import { makeDnD } from './drag.js';
 import { soundState, setSound, setVol } from '../engine/audio.js';
 import { fmt1 } from '../engine/util.js';
 import { statRows } from './stathelp.js';
@@ -78,7 +79,7 @@ export const hideTip = () => { if (tipEl) tipEl.hidden = true; };
 
 /** Окно персонажа: слева облик и надетое, справа сумка. Клик по вещи в сумке — надеть, по надетой — снять. */
 export function openChar(G, onChange) {
-  const m = modal(`<h2>${G.hero.name}</h2><div class="charwin"><div><div class="dollw"><div class="eq eqL"></div><canvas width="340" height="472"></canvas><div class="eq eqR"></div></div><dl class="stats"></dl><div class="skillb"></div></div><div class="bagside"><h3>Сумка <span class="cnt"></span></h3><div class="bag"></div><p class="hint">${T('Нажмите на вещь в сумке — надеть, на надетую — снять. Вещи можно перетаскивать мышью: по ячейкам сумки, на снаряжение и обратно. Руда и слитки лежат стопками до 20. Закрыть — I, B или Esc.', 'Коснитесь вещи — увидите, что она даёт, и сможете надеть или снять. Руда и слитки лежат стопками до 20.')}</p></div></div>`, 'wide');
+  const m = modal(`<h2>${G.hero.name}</h2><div class="charwin"><div><div class="dollw"><div class="eq eqL"></div><canvas width="340" height="472"></canvas><div class="eq eqR"></div></div><dl class="stats"></dl><div class="skillb"></div></div><div class="bagside"><h3>Сумка <span class="cnt"></span></h3><div class="bag"></div><p class="hint">${T('Нажмите на вещь в сумке — надеть, на надетую — снять. Вещи можно перетаскивать мышью: по ячейкам сумки, на снаряжение и обратно. Руда и слитки лежат стопками до 20. Закрыть — I, B или Esc.', 'Коснитесь вещи — увидите, что она даёт, и сможете надеть или снять. Задержите палец на вещи и ведите — переложите в другую ячейку или на снаряжение. Руда и слитки лежат стопками до 20.')}</p></div></div>`, 'wide');
   const cell = (it, extra = '') => el('button', 'cell', it ? anyIcon(it, 44) + (it.n > 1 ? `<span class="n">${it.n}</span>` : '') + extra : '');
   const draw = () => {
     const h = G.hero, st = G.st;
@@ -106,11 +107,8 @@ export function openChar(G, onChange) {
       bag.append(b);
     }
   };
-  // перетаскивание мышью: из сумки в сумку, на снаряжение и обратно
-  let dragSrc = null;
-  const drag = (b, src) => { b.draggable = true; b.ondragstart = e => { hideTip(); dragSrc = src; b.classList.add('drag'); e.dataTransfer.effectAllowed = 'move'; try { e.dataTransfer.setData('text/plain', 'вещь'); } catch (_) { } }; b.ondragend = () => { b.classList.remove('drag'); dragSrc = null; }; };
-  const drop = (b, fn) => { b.ondragover = e => { if (dragSrc) { e.preventDefault(); b.classList.add('over'); } }; b.ondragleave = () => b.classList.remove('over');
-    b.ondrop = e => { e.preventDefault(); b.classList.remove('over'); const s = dragSrc; dragSrc = null; if (s) { fn(s); onChange(); draw(); } }; };
+  // перетаскивание (v81: и мышью, и пальцем): из сумки в сумку, на снаряжение и обратно
+  const { drag, drop } = makeDnD(() => { onChange(); draw(); });
   m.isChar = true;
   const onKey = e => { if ((e.code === 'KeyI' || e.code === 'KeyB') && !e.repeat) { e.preventDefault(); e.stopPropagation(); m.close(); } };
   addEventListener('keydown', onKey, true);
@@ -124,12 +122,9 @@ export function openBank(G, onChange) {
   const m = modal(`<h2>Банк</h2><p class="who">Банкир Евстафий: «У меня надёжнее, чем в сундуке под кроватью. Кладите, путник, — ни мышь, ни разбойник не доберётся. А в общий сундук положите то, что пригодится другим вашим героям».</p>
     <div class="bankw"><div class="bankside"><div class="tabs"><button class="tab" data-t="bank">Мой банк <span class="c1"></span></button><button class="tab" data-t="shared">Общий сундук <span class="c2"></span></button></div><div class="bag bankgrid"></div></div>
     <div class="bagside"><h3>Сумка <span class="cb"></span></h3><div class="bag bagg"></div><div class="row"><button class="btn mats">Сложить руду и камни</button></div>
-    <p class="hint">${T('Нажмите на вещь — она перейдёт из сумки в банк или обратно. Можно перетаскивать мышью по ячейкам и на вкладку. Общий сундук видят все ваши герои. Закрыть — E или Esc.', 'Коснитесь вещи — «В банк» или «В сумку». Общий сундук видят все ваши герои.')}</p></div></div>`, 'wide bankbox');
-  let dragSrc = null;
+    <p class="hint">${T('Нажмите на вещь — она перейдёт из сумки в банк или обратно. Можно перетаскивать мышью по ячейкам и на вкладку. Общий сундук видят все ваши герои. Закрыть — E или Esc.', 'Коснитесь вещи — «В банк» или «В сумку»; задержите палец и ведите — в нужную ячейку. Общий сундук видят все ваши герои.')}</p></div></div>`, 'wide bankbox');
   const cell = (it, extra = '') => el('button', 'cell', it ? anyIcon(it, 44) + (it.n > 1 ? `<span class="n">${it.n}</span>` : '') + extra : '');
-  const drag = (b, src) => { if (TOUCH) return; b.draggable = true; b.ondragstart = e => { hideTip(); dragSrc = src; b.classList.add('drag'); e.dataTransfer.effectAllowed = 'move'; try { e.dataTransfer.setData('text/plain', 'вещь'); } catch (_) { } }; b.ondragend = () => { b.classList.remove('drag'); dragSrc = null; }; };
-  const drop = (b, fn) => { if (TOUCH) return; b.ondragover = e => { if (dragSrc) { e.preventDefault(); b.classList.add('over'); } }; b.ondragleave = () => b.classList.remove('over');
-    b.ondrop = e => { e.preventDefault(); b.classList.remove('over'); const src = dragSrc; dragSrc = null; if (src) { fn(src); done(); } }; };
+  const { drag, drop } = makeDnD(() => { onChange(); draw(); });
   const done = () => { onChange(); draw(); };
   const tabName = t => t === 'shared' ? 'В общий сундук' : 'В банк';
   const draw = () => {
@@ -166,7 +161,7 @@ function closeOnE(m, extra) {
 /** Рынок: продать вещи, купить зелья. */
 export function openVendor(G, onChange, shop = null) {
   const who = shop && shop.name === 'Лавка' ? 'Лавочник Трофим: «Колечко, бусы, зелье — всё для путника. Хорошее нынче дорого».' : shop && shop.id === 'cart' ? 'Купец Демьян: «В этом лесу, путник, без зелья ни шагу — туман, споры да пауки. Бери, пока я тут стою».' : 'Купец Савва: «Что продаёшь, путник? Зелья свежие, утром привезли. А вот и украшения — не дёшево, да того стоят».';
-  const m = modal(`<h2>${shop ? shop.name : 'Рынок'}</h2><p class="who">${who}</p><div class="vend"><div><h3>Купить</h3><div class="buy"></div></div><div><h3>Продать <small>(${T('нажмите на вещь, цена — в подсказке', 'коснитесь вещи — увидите цену')})</small></h3><div class="bag"></div><div class="row"><button class="btn sellall">Продать всё, что не надеть</button><button class="btn sellore">Продать руду, слитки и камни</button></div></div></div><p class="gold">Деньги: <b></b></p>`, 'wide');
+  const m = modal(`<h2>${shop ? shop.name : 'Рынок'}</h2><p class="who">${who}</p><div class="vend"><div><div class="tabs"><button class="tab on" data-t="buy">Купить</button><button class="tab" data-t="back">Выкуп <span class="cbb"></span></button></div><div class="buy"></div><div class="back" hidden></div></div><div><h3>Продать <small>(${T('нажмите на вещь, цена — в подсказке', 'коснитесь вещи — увидите цену')})</small></h3><div class="bag"></div><div class="row"><button class="btn sellall">Продать всё, что не надеть</button><button class="btn sellore">Продать руду, слитки и камни</button></div></div></div><p class="gold">Деньги: <b></b></p>`, 'wide');
   const draw = () => {
     const h = G.hero, p = POTION_PRICE(h.lvl);
     m.querySelector('.gold b').innerHTML = moneyHtml(h.gold);
@@ -185,13 +180,26 @@ export function openVendor(G, onChange, shop = null) {
         w.onclick = () => { hideTip(); const go = () => { buyShop(G, shop, i); onChange(); draw(); }; if (TOUCH) itemSheet(G, it, [['Купить за ' + moneyHtml(it.cost), go, true]]); else go(); }; buy.append(w);
       });
     }
+    // выкуп: последние проданные вещи за ту же цену
+    const back = m.querySelector('.back'); back.innerHTML = ''; const BB = h.buyback || [];
+    m.querySelector('.cbb').textContent = BB.length ? BB.length : '';
+    if (!BB.length) back.append(el('p', 'hint', 'Вы ещё ничего не продавали. Проданное можно выкупить обратно за ту же цену — последние 12 вещей.'));
+    BB.slice().reverse().forEach((e, k) => {
+      const i = BB.length - 1 - k, it = e.it;
+      const w = el('button', 'ware', `<span class="ic">${anyIcon(it, 40)}${upMark(it, G)}</span><span><b style="color:${RAR_COL[it.rar] || '#e9dfc8'}">${it.name}${it.n > 1 ? ' × ' + it.n : ''}</b><small>${it.rar ? RAR_NAME[it.rar] + ' · ' : ''}${it.slot ? SLOT_NAME[it.slot] + ' · ' : ''}${it.ilvl ? 'ур. ' + it.ilvl : ''}</small></span><span class="pr">${moneyHtml(e.v)}</span>`);
+      hov(w, ev => tip(ev, it, G));
+      w.onclick = () => { hideTip(); const go = () => { buyBack(G, i); onChange(); draw(); }; if (TOUCH) itemSheet(G, it, [['Выкупить за ' + moneyHtml(e.v), go, true]]); else go(); }; back.append(w);
+    });
     const bag = m.querySelector('.bag'); bag.innerHTML = '';
     for (let i = 0; i < LOOT.bag; i++) {
       const it = h.bag.find(x => x.pos === i), c = el('button', 'cell', it ? anyIcon(it, 44) + (it.n > 1 ? `<span class="n">${it.n}</span>` : '') + upMark(it, G) : '');
-      if (it) { hov(c, e => tip(e, it, G)); onItem(c, G, it, 'Продать', () => { sellItem(G, it); onChange(); draw(); }); }
+      if (it) { hov(c, e => tip(e, it, G)); onItem(c, G, it, 'Продать', () => { sellItem(G, it); onChange(); draw(); }); D.drag(c, { it }); }
+      D.drop(c, src => { if (src.it) bagMove(G, src.it, i); });
       bag.append(c);
     }
   };
+  const D = makeDnD(() => { onChange(); draw(); });
+  for (const t of m.querySelectorAll('.tab')) t.onclick = () => { for (const u of m.querySelectorAll('.tab')) u.classList.toggle('on', u === t); m.querySelector('.buy').hidden = t.dataset.t !== 'buy'; m.querySelector('.back').hidden = t.dataset.t !== 'back'; };
   m.querySelector('.sellall').onclick = () => {
     const h = G.hero;
     for (const it of h.bag.slice()) { if (!it.slot) continue; const c = compareItem(h, it); if (!c || (h.eq[it.slot] && c.score <= 0 && !it.trinket)) sellItem(G, it); }
