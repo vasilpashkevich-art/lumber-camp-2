@@ -22,7 +22,7 @@ import { dist } from './engine/util.js';
 import { $, toast, zoneTitle, TOUCH, T } from './ui/dom.js';
 import { RAR_COL } from '../data/balance.js';
 
-const VERSION = 76;
+const VERSION = 77;
 /** Приближение камеры на шаг: +1 ближе, −1 дальше. */
 let zoomT = 0;
 function zoomBy(d) {
@@ -143,7 +143,7 @@ function frame(now) {
   render(R, G, now);
   G.ev.length = 0;
   hud.update();
-  if ((musicT -= dt) <= 0) { musicT = 1; music('day', inCity(G.W, G.P.x, G.P.y)); }
+  if ((musicT -= dt) <= 0) { musicT = 1; music(G.W.Z.theme || 'day', !G.W.Z.dungeon && inCity(G.W, G.P.x, G.P.y)); }
   if ((saveT += dt) > 10) { saveT = 0; persist(); }
   raf = requestAnimationFrame(frame);
 }

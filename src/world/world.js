@@ -25,7 +25,7 @@ export function buildWorld(Z) {
     return m;
   };
   // безопасное место зоны: столица со стеной или посёлок без стены (мобы не заходят, отдых быстрее)
-  const town = cap ? { x: cap.x, y: cap.y, R: cap.R, name: cap.name } : Z.village ? { x: Z.village.x, y: Z.village.y, R: Z.village.R, name: Z.village.name } : null;
+  const town = cap ? { x: cap.x, y: cap.y, R: cap.R, name: cap.name } : Z.village ? { x: Z.village.x, y: Z.village.y, R: Z.village.R, name: Z.village.name } : Z.safe ? { ...Z.safe } : null;
   const W = {
     Z, edge, W: Z.W, H: Z.H, cap, town, village: Z.village || null,
     roads: Z.roads, roadD,
@@ -53,6 +53,7 @@ export function buildWorld(Z) {
   if (Z.village) { for (const b of Z.village.buildings) block(Z.village.x + b.dx, Z.village.y + b.dy, b.col || 70); if (Z.village.well !== false) block(Z.village.x, Z.village.y + 10, 26); }
   for (const f of Z.farmsteads || []) block(f.x + (f.burned ? 20 : 50), f.y, f.burned ? 80 : 128);
   if (Z.mill) block(Z.mill.x, Z.mill.y, 58);
+  for (const [x, y] of (Z.decor && Z.decor.columns) || []) W.blocks.push({ x, y: y - 4, rx: 16, ry: 9 });   // v77: колонны подземелья
   // v76: фасад Храма квакунов — стена по обе стороны от врат, в проём можно войти до порога
   if (Z.temple) { const T = Z.temple; rect(T.x - 370, T.y - 300, T.x - 32, T.y); rect(T.x + 32, T.y - 300, T.x + 370, T.y); rect(T.x - 32, T.y - 300, T.x + 32, T.y - 70); W.temple = { ...T }; }
   // плиточные дорожки столицы (для травы и проверок)
@@ -63,7 +64,11 @@ export function buildWorld(Z) {
     for (const p of cap.paths) { const u = dx * Math.cos(p.a) + dy * Math.sin(p.a), v = -dx * Math.sin(p.a) + dy * Math.cos(p.a); if (u > 0 && u < p.to && Math.abs(v) < p.w / 2) return true; }
     return false;
   };
-  const inside = (x, y, pad = 0) => inPoly(x, y, edge) && (pad <= 0 || edgeDist(x, y) > pad);
+  // v77: подземелье — внутри только комнаты и коридоры (прямоугольники), всё остальное — скала
+  const ROOMS = Z.interior ? Z.rooms.map(q => ({ ...q, x0: q.r[0], y0: q.r[1], x1: q.r[0] + q.r[2], y1: q.r[1] + q.r[3] })) : null;
+  const roomDepth = (x, y) => { let m = -1e9; for (const q of ROOMS) { const d = Math.min(x - q.x0, q.x1 - x, y - q.y0, q.y1 - y); if (d > m) m = d; } return m; };   // глубина внутри ближайшей комнаты (< 0 — в скале)
+  const inside = ROOMS ? (x, y, pad = 0) => (pad > 0 ? roomDepth(x, y) > pad : roomDepth(x, y) >= 0) : (x, y, pad = 0) => inPoly(x, y, edge) && (pad <= 0 || edgeDist(x, y) > pad);
+  W.rooms = ROOMS; W.roomAt = ROOMS ? (x, y) => ROOMS.find(q => x >= q.x0 && x <= q.x1 && y >= q.y0 && y <= q.y1) || null : () => null;
   // река: вода по ломаной, мосты — проходы
   const R = W.river;
   // мост — там, где дорога пересекает реку (ближе всего к заданной точке); a — угол реки, ra — угол дороги
@@ -97,15 +102,17 @@ export function buildWorld(Z) {
   W.navOk = (x, y) => inside(x, y) && !W.water(x, y, 8) && !W.blocked(x, y);
   const inField = (x, y, pad) => W.fields.some(F => { const dx = x - F.x, dy = y - F.y, c = Math.cos(-(F.a || 0)), s = Math.sin(-(F.a || 0)), u = dx * c - dy * s, v = dx * s + dy * c; return Math.abs(u) < F.w / 2 + pad && Math.abs(v) < F.h / 2 + pad; });
   W.inField = inField;
-  const edgeDist = (x, y) => { let m = 1e9; for (let i = 0; i < edge.length; i++) { const a = edge[i], b = edge[(i + 1) % edge.length]; m = Math.min(m, segDist(x, y, a[0], a[1], b[0], b[1])); } return m; };
+  const edgeDist = ROOMS ? (x, y) => Math.max(0, roomDepth(x, y)) : (x, y) => { let m = 1e9; for (let i = 0; i < edge.length; i++) { const a = edge[i], b = edge[(i + 1) % edge.length]; m = Math.min(m, segDist(x, y, a[0], a[1], b[0], b[1])); } return m; };
   W.inside = inside; W.edgeDist = edgeDist;
   // рельеф (v71): ярусы, склоны; высота земли и можно ли шагнуть
   const RF = W.relief = buildRelief(Z);
   W.hAt = RF ? (x, y) => RF.height(x, y) : () => 0;
-  W.stepOk = RF ? (x0, y0, x1, y1) => RF.canStep(x0, y0, x1, y1) : () => true;
+  // в подземелье «шагнуть» значит пройти по прямой внутри комнат (стены не обойти напрямую — считается путь)
+  const lineOk = (x0, y0, x1, y1) => { const n = Math.ceil(Math.hypot(x1 - x0, y1 - y0) / 10); for (let k = 1; k <= n; k++) if (!inside(x0 + (x1 - x0) * k / n, y0 + (y1 - y0) * k / n)) return false; return true; };
+  W.stepOk = RF ? (x0, y0, x1, y1) => RF.canStep(x0, y0, x1, y1) : ROOMS ? lineOk : () => true;
   /** Свободно ли место для дерева, камня, жилы: не у края яруса и не на склоне. */
   W.flatOk = RF ? (x, y, d = 50, rockOnly = false) => !RF.nearEdge(x, y, d, rockOnly) && !RF.nearRamp(x, y, d * 0.8) : () => true;
-  W.path = (x0, y0, x1, y1, max) => RF ? findPath(W, x0, y0, x1, y1, max) : null;
+  W.path = (x0, y0, x1, y1, max) => RF || ROOMS ? findPath(W, x0, y0, x1, y1, max) : null;
   /** Точка земли под точкой экрана (x, ys = y − высота): из нескольких — ближняя к зрителю (южнее). */
   W.ground = RF ? (x, ys) => { let best = null, bd = 1e9, far = ys; for (let y = ys + RF.min * 46 - 6; y <= ys + RF.max * 46 + 6; y += 2) { const d = Math.abs(y - RF.height(x, y) - ys); if (d < 3) best = y; if (d < bd) { bd = d; far = y; } } return best ?? far; } : (x, ys) => ys;
   // древние великаны: низ ствола — препятствие

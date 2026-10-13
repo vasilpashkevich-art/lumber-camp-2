@@ -128,6 +128,39 @@ export function entrance(g, t = 0) {
   g.fillStyle = 'rgba(78,122,58,.6)'; for (let i = 0; i < 30; i++) { const px = -X + r() * 2 * X, py = Y2 - 8 + r() * 230; if (Math.abs(px) < GW / 2 + 16 && py > -GH - 4) continue; g.beginPath(); g.ellipse(px, py, 3 + r() * 7, 2 + r() * 3, r() * 3, 0, TAU); g.fill(); }
 }
 /** Факел в нише. */
-function torchAt(g, x, y, t) { hp(g, () => g.rect(x - 2.5, y, 5, 26), '#3a2e22', 0.9); const f = Math.sin(t * 10 + x) * 2; g.fillStyle = '#ff9a3a'; g.beginPath(); g.moveTo(x - 5, y); g.quadraticCurveTo(x + f, y - 18, x + 5, y); g.fill(); g.fillStyle = '#ffe08a'; g.beginPath(); g.moveTo(x - 2.5, y); g.quadraticCurveTo(x + f * 0.5, y - 10, x + 2.5, y); g.fill(); const gl = g.createRadialGradient(x, y - 4, 2, x, y - 4, 70); gl.addColorStop(0, 'rgba(255,170,70,.32)'); gl.addColorStop(1, 'rgba(255,170,70,0)'); g.fillStyle = gl; g.fillRect(x - 70, y - 74, 140, 140); }
+export function torchAt(g, x, y, t) { hp(g, () => g.rect(x - 2.5, y, 5, 26), '#3a2e22', 0.9); const f = Math.sin(t * 10 + x) * 2; g.fillStyle = '#ff9a3a'; g.beginPath(); g.moveTo(x - 5, y); g.quadraticCurveTo(x + f, y - 18, x + 5, y); g.fill(); g.fillStyle = '#ffe08a'; g.beginPath(); g.moveTo(x - 2.5, y); g.quadraticCurveTo(x + f * 0.5, y - 10, x + 2.5, y); g.fill(); const gl = g.createRadialGradient(x, y - 4, 2, x, y - 4, 70); gl.addColorStop(0, 'rgba(255,170,70,.32)'); gl.addColorStop(1, 'rgba(255,170,70,0)'); g.fillStyle = gl; g.fillRect(x - 70, y - 74, 140, 140); }
 /** Барельеф жабьей морды (в стене). */
 function toadRelief(g, x, y, s) { g.save(); g.translate(x, y); g.scale(s, s); const col = sh(STONE, -0.08); hp(g, () => { g.moveTo(-40, 0); g.bezierCurveTo(-44, -40, 44, -40, 40, 0); g.quadraticCurveTo(0, 14, -40, 0); g.closePath(); }, col, 1.4); for (const sx of [-1, 1]) { hp(g, () => g.arc(sx * 18, -22, 10, 0, TAU), col, 1.2); g.fillStyle = '#2a3a28'; g.beginPath(); g.arc(sx * 18, -22, 4.5, 0, TAU); g.fill(); } g.strokeStyle = O; g.lineWidth = 1.4; g.beginPath(); g.moveTo(-28, 0); g.quadraticCurveTo(0, 8, 28, 0); g.stroke(); g.restore(); }
+
+// ======================================================== v77: внутренность храма — пол комнат и стены по их краям
+export const WALL_H = 120;   // высота дальней (северной) стены
+const SIDE_W = 16, TOP_H = 22;
+function roomsPath(g, R) { for (const q of R) g.rect(q.x0, q.y0, q.x1 - q.x0, q.y1 - q.y0); }
+/** Кусок подземелья в мировых координатах (g уже переведён). Скала, стены всех комнат в кадре, затем полы, проёмы, украшения. */
+export function interior(g, W, x0, y0, CW, CH) {
+  const R = W.rooms.filter(q => q.x1 + SIDE_W + 40 > x0 && q.x0 - SIDE_W - 40 < x0 + CW && q.y1 + TOP_H + 40 > y0 && q.y0 - WALL_H - 40 < y0 + CH);
+  // скала
+  g.fillStyle = '#151a15'; g.fillRect(x0, y0, CW, CH);
+  const r = rnd(x0 * 7 + y0 * 13 + 1); g.fillStyle = 'rgba(70,80,66,.25)'; for (let i = 0; i < 40; i++) { const px = x0 + r() * CW, py = y0 + r() * CH, s = 10 + r() * 30; g.beginPath(); g.moveTo(px, py); g.lineTo(px + s, py + s * 0.3); g.lineTo(px + s * 0.6, py + s); g.closePath(); g.fill(); }
+  if (!R.length) return;
+  // стены (всё, что не пол, потом накрывается полами)
+  for (const q of R) {
+    masonry(g, q.x0 - SIDE_W, q.y0 - WALL_H, q.x1 - q.x0 + SIDE_W * 2, WALL_H, STONE, (q.x0 * 3 + q.y0) | 0, 18);   // дальняя стена лицом
+    hp(g, () => g.rect(q.x0 - SIDE_W, q.y0 - WALL_H - 8, q.x1 - q.x0 + SIDE_W * 2, 8), STONE_L, 1.2);              // карниз
+    for (const x of [q.x0 - SIDE_W, q.x1]) { hp(g, () => g.rect(x, q.y0 - WALL_H - 8, SIDE_W, q.y1 - q.y0 + WALL_H + 8 + TOP_H), STONE_D, 1.2); g.fillStyle = 'rgba(0,0,0,.25)'; g.fillRect(x === q.x1 ? x : x + SIDE_W - 5, q.y0 - WALL_H, 5, q.y1 - q.y0 + WALL_H + TOP_H); }   // боковые стены (видны сверху)
+    hp(g, () => g.rect(q.x0 - SIDE_W, q.y1, q.x1 - q.x0 + SIDE_W * 2, TOP_H), STONE_D, 1.2); g.fillStyle = 'rgba(0,0,0,.3)'; g.fillRect(q.x0 - SIDE_W, q.y1 + TOP_H - 6, q.x1 - q.x0 + SIDE_W * 2, 6);   // ближняя стена — верх
+  }
+  // полы
+  for (const q of R) floor(g, q.x0, q.y0, q.x1 - q.x0, q.y1 - q.y0, (q.x0 + q.y0 * 7) | 0, 40, !!q.name);
+  // знаки и факелы на дальних стенах — только там, где стена видна (не накрыта полом соседней комнаты)
+  g.save(); g.beginPath(); roomsPath(g, W.rooms); g.rect(x0 - 2000, y0 - 2000, CW + 4000, CH + 4000); g.clip('evenodd');
+  for (const q of R) { const n = Math.max(1, Math.round((q.x1 - q.x0) / 200)); for (let i = 0; i < n; i++) { const x = q.x0 + (q.x1 - q.x0) * (i + 0.5) / n; glyph(g, x, q.y0 - WALL_H * 0.72, 11, 'rgba(192,172,92,.6)'); if (q.name) torchAt(g, x + 60 > q.x1 ? x - 60 : x + 60, q.y0 - WALL_H * 0.5, 0); } mossEdge(g, q.x0 - SIDE_W, q.y0 - WALL_H - 8, q.x1 - q.x0 + SIDE_W * 2, q.x0 | 0, Math.ceil((q.x1 - q.x0) / 60)); mossEdge(g, q.x0, q.y0 - 4, q.x1 - q.x0, q.y0 | 0, Math.ceil((q.x1 - q.x0) / 70), true); }
+  g.restore();
+  // проёмы: наружу — тёмный проход в ближней стене со ступенями вниз; врата подземелья — запертые в дальней стене
+  for (const d of W.Z.doors || []) {
+    if (d.kind === 'out') { hp(g, () => g.rect(d.x - 40, d.y - 2, 80, TOP_H + 4), '#0c100c', 1.2); for (let i = 0; i < 3; i++) { g.fillStyle = i % 2 ? STONE : STONE_L; g.fillRect(d.x - 34, d.y + 2 + i * 6, 68, 5); } g.fillStyle = 'rgba(120,200,150,.15)'; g.fillRect(d.x - 40, d.y - 30, 80, 30); }
+    else { doorway(g, d.x, d.y, 84, 112, false); glyph(g, d.x, d.y - 124, 14, '#d0bc68'); for (const sx of [-1, 1]) column(g, d.x + sx * 70, d.y, WALL_H - 10, 22, 3); }
+  }
+  // канавки с водой
+  for (const [cx0, cy, cx1, w] of (W.Z.decor && W.Z.decor.channels) || []) channel(g, cx0, cy, cx1, w, 0);
+}

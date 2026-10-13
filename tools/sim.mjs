@@ -16,7 +16,7 @@ import { rng, dist } from '../src/engine/util.js';
 // путь: из столицы — через ближайшие к цели ворота; снаружи — в обход стены; внутрь — через ворота
 function via(W, P, tx, ty) {
   // рельеф (v71): если прямо не пройти (обрыв) — по пути через склоны
-  if (W.relief) {
+  if (W.relief || W.rooms) {
     const S = P.botNav || (P.botNav = { t: 0, tx: 1e9, ty: 1e9 }); S.t -= 1 / 20;
     if (S.t <= 0 || Math.hypot(S.tx - tx, S.ty - ty) > 70) { S.t = 0.6; S.tx = tx; S.ty = ty; S.path = W.stepOk(P.x, P.y, tx, ty) ? null : W.path(P.x, P.y, tx, ty, 14000); }
     if (S.path && S.path.length) { const w = nextWaypoint(W, P.x, P.y, S.path); if (!W.stepOk(P.x, P.y, w[0], w[1])) S.t = 0; return w; }

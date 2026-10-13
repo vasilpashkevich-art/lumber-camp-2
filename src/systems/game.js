@@ -57,7 +57,7 @@ const emit = (G, e) => G.ev.push(e);
 const tier = (G, a, b) => !G.W.relief || Math.abs(G.W.hAt(a.x, a.y) - G.W.hAt(b.x, b.y)) < LH * 0.55;
 /** Обход обрывов: если прямо не пройти — путь по сетке (пересчёт раз в 0,6 с или когда цель ушла). Возвращает точку, куда идти сейчас, или null — идти прямо. */
 export function steer(G, o, tx, ty, dt) {
-  const W = G.W; if (!W.relief) return null;
+  const W = G.W; if (!W.relief && !W.rooms) return null;
   const S = o.nav || (o.nav = { t: 0, path: null, tx: 1e9, ty: 1e9 });
   S.t -= dt;
   if (S.t <= 0 || Math.hypot(S.tx - tx, S.ty - ty) > 70) {
@@ -251,14 +251,14 @@ function killMob(G, m) {
   if (P.target === m) P.target = null;
   sfx(G, 'kill');
   // опыт
-  const xp = xpKill(m.lvl, H.lvl, m.D.rare ? 3 : 1);
+  const xp = Math.round(xpKill(m.lvl, H.lvl, m.D.rare ? 3 : 1) * (G.W.Z.xpMul || 1));
   if (xp) {
     const up = addXp(H, xp);
     emit(G, { k: 'txt', x: m.x, y: m.y - 46, s: `+${xp} опыта`, col: '#c8a0ff' });
     if (up) { const old = G.st.maxHp; G.st = heroStats(H); P.hp += G.st.maxHp - old; P.hp = G.st.maxHp; emit(G, { k: 'lvl', L: H.lvl }); sfx(G, 'levelUp'); }
   }
   // добыча остаётся в теле: монеты (в меди) и вещи
-  const money = Math.max(1, Math.round(m.lvl * m.D.gold * (LOOT.goldMin + G.rand() * (LOOT.goldMax - LOOT.goldMin))));
+  const money = Math.max(1, Math.round(m.lvl * m.D.gold * (G.W.Z.goldMul || 1) * (LOOT.goldMin + G.rand() * (LOOT.goldMax - LOOT.goldMin))));
   const items = [];
   const ZL = G.W.Z.loot || {};
   if (m.D.rare || G.rand() < (ZL.chance ?? LOOT.itemChance)) items.push(rollDrop(H.cls, m.lvl, m.D.rare, G.rand, ZL));
@@ -548,7 +548,7 @@ function doInteract(G, t) {
   if (t.k === 'corpse') { G.P.auto = null; emit(G, { k: 'lootOpen', c: t.c }); return; }
   if (t.k === 'vein') { if (G.P.mine) stopMine(G); else startMine(G, t.v); return; }
   if (t.k === 'b') { if (t.b.vendor) emit(G, { k: 'vendor', b: t.b }); else if (t.b.bank) emit(G, { k: 'bank', b: t.b }); else if (t.b.mentor) emit(G, { k: 'mentor', b: t.b }); else if (t.b.guild) emit(G, { k: 'guild', b: t.b }); else if (t.b.smelt) emit(G, { k: 'smelt', b: t.b }); else emit(G, { k: 'toast', s: `${t.b.name}. ${t.b.note}`, id: 'bld' }); }
-  if (t.k === 'exit') { if (t.e.zone) emit(G, { k: 'zone', e: t.e }); else if (t.e.temple) emit(G, { k: 'toast', s: 'Врата Храма квакунов заперты. Внутри тихо — подземелье откроется в следующих версиях', id: 'exit' }); else emit(G, { k: 'toast', s: `Дорога в ${t.e.to} (ур. ${t.e.lvl}) откроется в следующих версиях`, id: 'exit' }); }
+  if (t.k === 'exit') { if (t.e.zone) emit(G, { k: 'zone', e: t.e }); else if (t.e.temple) emit(G, { k: 'toast', s: t.e.door ? 'Врата подземелья заперты — откроются в следующих версиях' : 'Врата Храма квакунов заперты. Внутри тихо — подземелье откроется в следующих версиях', id: 'exit' }); else emit(G, { k: 'toast', s: `Дорога в ${t.e.to} (ур. ${t.e.lvl}) откроется в следующих версиях`, id: 'exit' }); }
 }
 
 // ---------------------------------------------------------------- урон герою и смерть
@@ -606,7 +606,7 @@ function mobTick(G, m, dt) {
   m.stun = Math.max(0, m.stun - dt); m.root = Math.max(0, m.root - dt); m.chill = Math.max(0, m.chill - dt); m.frozen = Math.max(0, (m.frozen || 0) - dt); m.trapT = Math.max(0, (m.trapT || 0) - dt);
   if (m.stun > 0 || m.frozen > 0) return;   // оглушён или вмёрз в лёд — стоит
   const dH = dist(m.x, m.y, P.x, P.y), dHome = dist(m.x, m.y, m.hx, m.hy), slowK = m.chill > 0 ? 0.5 : 1;
-  const go = (tx, ty, sp) => { if (m.state !== 'idle' && G.W.relief && m.root <= 0) { const w = steer(G, m, tx, ty, dt); if (w) { tx = w[0]; ty = w[1]; } } const d = dist(m.x, m.y, tx, ty); if (d < 1 || m.root > 0) { if (Math.abs(tx - m.x) > 2) m.face = tx < m.x ? -1 : 1; return; } sp *= slowK; const k = Math.min(1, sp * dt / d); let nx = m.x + (tx - m.x) * k, ny = m.y + (ty - m.y) * k; let ok = (a, b) => G.W.walkable(a, b) && !inCity(G.W, a, b) && G.W.stepOk(m.x, m.y, a, b); let ax = nx, ay = ny; if (!ok(ax, ay)) { if (ok(nx, m.y)) ay = m.y; else if (ok(m.x, ny)) ax = m.x; } if (ok(ax, ay)) { const nx2 = ax, ny2 = ay; nx = nx2; ny = ny2; const mv = Math.hypot(nx - m.x, ny - m.y); if (mv > 0.05) { m.mdx = nx - m.x; m.mdy = ny - m.y; m.moving = true; m.walkPh = (m.walkPh + mv / (m.D.humanoid ? 56 : 44)) % 1; } m.x = nx; m.y = ny; } if (Math.abs(tx - m.x) > 2) m.face = tx < m.x ? -1 : 1; };
+  const go = (tx, ty, sp) => { if (m.state !== 'idle' && (G.W.relief || G.W.rooms) && m.root <= 0) { const w = steer(G, m, tx, ty, dt); if (w) { tx = w[0]; ty = w[1]; } } const d = dist(m.x, m.y, tx, ty); if (d < 1 || m.root > 0) { if (Math.abs(tx - m.x) > 2) m.face = tx < m.x ? -1 : 1; return; } sp *= slowK; const k = Math.min(1, sp * dt / d); let nx = m.x + (tx - m.x) * k, ny = m.y + (ty - m.y) * k; let ok = (a, b) => G.W.walkable(a, b) && !inCity(G.W, a, b) && G.W.stepOk(m.x, m.y, a, b); let ax = nx, ay = ny; if (!ok(ax, ay)) { if (ok(nx, m.y)) ay = m.y; else if (ok(m.x, ny)) ax = m.x; } if (ok(ax, ay)) { const nx2 = ax, ny2 = ay; nx = nx2; ny = ny2; const mv = Math.hypot(nx - m.x, ny - m.y); if (mv > 0.05) { m.mdx = nx - m.x; m.mdy = ny - m.y; m.moving = true; m.walkPh = (m.walkPh + mv / (m.D.humanoid ? 56 : 44)) % 1; } m.x = nx; m.y = ny; } if (Math.abs(tx - m.x) > 2) m.face = tx < m.x ? -1 : 1; };
 
   if (m.state === 'idle') {
     m.wander.t -= dt;

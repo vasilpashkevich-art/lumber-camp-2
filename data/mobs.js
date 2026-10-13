@@ -119,4 +119,20 @@ export const MOBS = {
     trait: 'poison', gold: 8,
     smash: { every: 7, wind: 1.0, r: 120, mul: 2.4, say: 'готовит бросок!', style: 'coil' },
   },
+  // v77: Храм квакунов (подземелье, 20–22): здоровья намного больше обычного
+  kvak_guard: {
+    name: 'Квакун-страж', art: 'kvak_guard', r: 15,
+    hp: 2.6, dmg: 1.15, speed: 140, reach: 42, cd: 1.6,
+    trait: 'pack', packN: 2, packR: 240, gold: 3,
+  },
+  kvak_priest: {
+    name: 'Квакун-жрец', art: 'kvak_priest', r: 14,
+    hp: 2.0, dmg: 1.05, speed: 130, reach: 280, cd: 2.0,
+    trait: 'caster', curseSay: 'тина вяжет', summon: { kind: 'temple_frog', n: 1, max: 2, every: 14, say: 'зовёт лягушку!' }, gold: 3.5,
+  },
+  temple_frog: {
+    name: 'Храмовая лягушка', art: 'temple_frog', r: 14,
+    hp: 1.8, dmg: 1.0, speed: 175, reach: 60, cd: 1.3,
+    trait: 'poison', poisonSay: 'язык', gold: 2,
+  },
 };

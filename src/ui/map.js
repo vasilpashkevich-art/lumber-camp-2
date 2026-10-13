@@ -35,6 +35,15 @@ export function lairGlyph(g, kind, x, y, s) {
 
 /** Подложка зоны: суша, дороги, деревья, столица, кладбище, выходы. k — масштаб. */
 function base(g, W, k, big, q = 1) {
+  if (W.rooms) {   // v77: подземелье — комнаты на тёмной скале, проёмы, костёр
+    g.fillStyle = '#121612'; g.fillRect(0, 0, W.W * k + 2, W.H * k + 2);
+    for (const r of W.rooms) { g.fillStyle = '#6a7462'; g.fillRect(r.x0 * k, r.y0 * k, (r.x1 - r.x0) * k, (r.y1 - r.y0) * k); }
+    if (big) { g.strokeStyle = '#2a3026'; g.lineWidth = 3; for (const r of W.rooms) g.strokeRect(r.x0 * k, r.y0 * k, (r.x1 - r.x0) * k, (r.y1 - r.y0) * k); g.fillStyle = '#6a7462'; for (const r of W.rooms) g.fillRect(r.x0 * k + 1.5, r.y0 * k + 1.5, (r.x1 - r.x0) * k - 3, (r.y1 - r.y0) * k - 3); }
+    if (W.town) { g.fillStyle = 'rgba(217,199,154,.35)'; g.beginPath(); g.arc(W.town.x * k, W.town.y * k, W.town.R * k, 0, 7); g.fill(); }
+    const gy = W.graveyard; if (gy.fire) { g.fillStyle = '#ff9a3a'; g.beginPath(); g.arc(gy.x * k, gy.y * k, big ? 6 : 3 * q, 0, 7); g.fill(); }
+    for (const e of W.exits) { g.fillStyle = e.temple ? '#d0bc68' : '#ffd34d'; g.strokeStyle = O; g.lineWidth = 1; g.beginPath(); g.arc(e.x * k, e.y * k, big ? 7 : 3 * q, 0, 7); g.fill(); if (big) g.stroke(); }
+    return;
+  }
   g.fillStyle = '#1c2a1a'; g.fillRect(0, 0, W.W * k + 2, W.H * k + 2);
   g.beginPath(); W.edge.forEach((p, i) => i ? g.lineTo(p[0] * k, p[1] * k) : g.moveTo(p[0] * k, p[1] * k)); g.closePath(); g.fillStyle = W.Z.ground === 'z3' ? '#a8a058' : W.Z.moss ? '#3e5a2c' : '#5d8a42'; g.fill();
   if (big) { g.strokeStyle = '#3a5a2a'; g.lineWidth = 2; g.stroke(); }

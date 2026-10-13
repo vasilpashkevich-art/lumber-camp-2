@@ -329,7 +329,8 @@ export function openMenu({ onExit, inGame }) {
 
 /** Гибель: возрождение у кладбища. */
 export function showDeath(G, onDone) {
-  const m = modal(`<h2>Вы погибли</h2><p>Дух уносит вас к кладбищу у Столицы. Вещи и золото при вас, но первые 30 секунд удары слабее.</p><div class="row"><button class="btn main" data-x="ok">Возродиться у кладбища</button></div>`, 'death');
+  const gy = G.W.graveyard, where = gy.fire ? `к костру в Преддверии храма` : gy.hidden ? `к Стоянке купца` : G.W.cap ? `к кладбищу у Столицы` : `к кладбищу у ${G.W.town ? G.W.town.name.replace(/^Хутор /, 'Хутора ') : 'посёлка'}`;
+  const m = modal(`<h2>Вы погибли</h2><p>Дух уносит вас ${where}. Вещи и золото при вас, но первые 30 секунд удары слабее.</p><div class="row"><button class="btn main" data-x="ok">${gy.fire ? 'Возродиться у костра' : 'Возродиться у кладбища'}</button></div>`, 'death');
   m.querySelector('[data-x=ok]').onclick = () => { m.close(); };
   m.onclose = () => { respawnHero(G); onDone(); };
   return m;
