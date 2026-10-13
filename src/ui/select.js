@@ -9,6 +9,8 @@ import { rng, plural } from '../engine/util.js';
 import { CONTINENT } from '../../data/zones.js';
 import { $, el, modal, toast } from './dom.js';
 import { moneyHtml } from './icons.js';
+import { scene, campfire, title } from './selscene.js';
+export const GAME_NAME = 'Континент';
 
 // затемнённая копия готовой картинки (герои у костра за спиной выбранного); фильтры холста слишком медленные
 const DARK = new WeakMap();
@@ -23,7 +25,7 @@ const zoneName = id => (CONTINENT.find(z => z.id === id) || {}).name || '';
 export const playTime = s => { const m = Math.round(s / 60); return m < 60 ? `${m} мин` : `${Math.floor(m / 60)} ч ${m % 60} мин`; };
 
 export function showSelect({ onEnter, onSettings }) {
-  const root = $('#select'); root.hidden = false;
+  const root = $('#select'); root.hidden = false; document.documentElement.classList.add('sel');
   const cv = $('#selCanvas'), c = cv.getContext('2d');
   let heroes = listHeroes(), sel = heroes.length ? 0 : -1, raf = 0, alive = true;
   try { const last = localStorage.getItem('lumber-camp2-last'); const i = heroes.findIndex(h => h.id === last); if (i >= 0) sel = i; } catch (e) { }
@@ -36,14 +38,17 @@ export function showSelect({ onEnter, onSettings }) {
     const d = Math.min(2, devicePixelRatio || 1), Wd = innerWidth, Hd = innerHeight, t = now / 1000;
     c.setTransform(d, 0, 0, d, 0, 0);
     scene(c, Wd, Hd, t);
-    const cx = Wd * 0.5, gy = Hd * 0.78, k = Math.min(Wd / 1600, Hd / 900) * 1.05 + 0.05;
+    const cx = Wd * 0.5, gy = Hd * 0.8, k = Math.min(Wd / 1600, Hd / 900) * 1.05 + 0.05;
     const others = heroes.map((h, i) => i).filter(i => i !== sel).slice(0, 4);
-    others.forEach((i, n) => drawSpr(c, darkOf(heroSpr(lookOf(heroes[i]), -1)), cx + (110 + n * 85) * k, gy - 50 * k, 1, 2.8 * k));
-    fire(c, cx + 25 * k, gy - 30 * k, 3.1 * k, t);
+    others.forEach((i, n) => { const x = cx + (120 + n * 90) * k, y = gy - 56 * k; c.fillStyle = 'rgba(0,0,0,.4)'; c.beginPath(); c.ellipse(x, y + 4 * k, 34 * k, 8 * k, 0, 0, 7); c.fill(); drawSpr(c, darkOf(heroSpr(lookOf(heroes[i]), -1)), x, y, 1, 3 * k); });
+    campfire(c, cx + 25 * k, gy - 34 * k, 3.4 * k, t);
     if (sel >= 0) {
-      c.fillStyle = 'rgba(0,0,0,.45)'; c.beginPath(); c.ellipse(cx - 140 * k, gy + 18 * k, 80 * k, 16 * k, 0, 0, 7); c.fill();
-      doll(c, cx - 140 * k, gy - 30 * k, 5.4 * k, 1, lookOf(heroes[sel]), t);
+      c.fillStyle = 'rgba(0,0,0,.45)'; c.beginPath(); c.ellipse(cx - 150 * k, gy + 16 * k, 86 * k, 17 * k, 0, 0, 7); c.fill();
+      doll(c, cx - 150 * k, gy - 34 * k, 5.8 * k, 1, lookOf(heroes[sel]), t);
+      // тёплый отсвет костра на герое
+      c.save(); c.globalCompositeOperation = 'source-atop'; c.restore();
     }
+    const ts = Math.max(34, Math.min(Wd * 0.08, Hd * 0.105)); title(c, GAME_NAME, cx, Hd * 0.025 + ts * 0.95, ts);
     raf = requestAnimationFrame(draw);
   }
   raf = requestAnimationFrame(draw);
@@ -53,25 +58,25 @@ export function showSelect({ onEnter, onSettings }) {
     const list = $('#selList'); list.innerHTML = '';
     for (let i = 0; i < MAX_SLOTS; i++) {
       const h = heroes[i];
-      if (!h) { const b = el('button', 'slot empty', `<span>Свободное место</span>`); b.onclick = create; list.append(b); continue; }
-      const b = el('button', 'slot' + (i === sel ? ' on' : ''), `<canvas width="120" height="120"></canvas><b>${esc(h.name)}</b><i style="color:${CC(h.cls)}">${CN(h.cls)} ${h.lvl} уровня</i><small>${zoneName(h.zone)}</small>`);
+      if (!h) { const b = el('button', 'slot empty', `<span>${ICO.plus}Свободное место</span>`); b.onclick = create; list.append(b); continue; }
+      const b = el('button', 'slot ' + h.cls + (i === sel ? ' on' : ''), `<span class="medal"><canvas width="120" height="120"></canvas><span class="lvl">${h.lvl}</span></span><b>${esc(h.name)}</b><i style="color:${CC(h.cls)}">${classIcon(h.cls)}${CN(h.cls)}</i><small>${ICO.place}${zoneName(h.zone)}</small>`);
       b.onclick = () => { sel = i; render(); }; b.ondblclick = () => enter();
       list.append(b);
-      const pc = b.querySelector('canvas').getContext('2d'); pc.save(); pc.beginPath(); pc.arc(60, 60, 56, 0, 7); pc.fillStyle = CC(h.cls) + '55'; pc.fill(); pc.clip(); doll(pc, 60, 172, 5.6, 1, lookOf(h), 0.3); pc.restore();
+      const pc = b.querySelector('canvas').getContext('2d'); pc.save(); pc.beginPath(); pc.arc(60, 60, 58, 0, 7); const bg = pc.createRadialGradient(60, 40, 6, 60, 60, 60); bg.addColorStop(0, CC(h.cls) + 'aa'); bg.addColorStop(1, '#120c08'); pc.fillStyle = bg; pc.fill(); pc.clip(); doll(pc, 60, 172, 5.6, 1, lookOf(h), 0.3); pc.restore();
     }
     const info = $('#selInfo');
     if (sel < 0) { info.innerHTML = `<h2>Добро пожаловать</h2><p>Создайте первого героя: выберите класс и имя. Новый герой начинает в простой одежде у ворот Столицы.</p>`; }
     else {
       const h = heroes[sel];
-      info.innerHTML = `<h2>${esc(h.name)}</h2><p class="cls" style="color:${CC(h.cls)}">${CN(h.cls)}, ${h.lvl} уровень</p>
-        <dl><dt>Где сейчас</dt><dd>${zoneName(h.zone)}</dd><dt>В игре</dt><dd>${playTime(h.play || 0)}</dd><dt>Деньги</dt><dd>${moneyHtml(h.gold || 0)}</dd><dt>Повержено</dt><dd>${h.kills || 0} ${plural(h.kills || 0, 'враг', 'врага', 'врагов')}</dd></dl>`;
+      info.innerHTML = `<h2>${esc(h.name)}</h2><p class="cls" style="color:${CC(h.cls)}">${classIcon(h.cls)}${CN(h.cls)}, ${h.lvl} уровень</p>
+        <dl><dt>${ICO.place}Где сейчас</dt><dd>${zoneName(h.zone)}</dd><dt>${ICO.time}В игре</dt><dd>${playTime(h.play || 0)}</dd><dt>${ICO.coins}Деньги</dt><dd>${moneyHtml(h.gold || 0)}</dd><dt>${ICO.skull}Повержено</dt><dd>${h.kills || 0} ${plural(h.kills || 0, 'враг', 'врага', 'врагов')}</dd></dl>`;
     }
     $('#selEnter').disabled = sel < 0; $('#selDel').disabled = sel < 0;
     $('#selNew').disabled = heroes.length >= MAX_SLOTS;
   }
 
   function enter() { if (sel < 0) return; const id = heroes[sel].id; try { localStorage.setItem('lumber-camp2-last', id); } catch (e) { } close(); onEnter(id); }
-  function close() { alive = false; cancelAnimationFrame(raf); removeEventListener('resize', resize); removeEventListener('keydown', onKey); root.hidden = true; }
+  function close() { alive = false; cancelAnimationFrame(raf); removeEventListener('resize', resize); removeEventListener('keydown', onKey); root.hidden = true; document.documentElement.classList.remove('sel'); }
 
   function create() {
     if (listHeroes().length >= MAX_SLOTS) { toast('Все 5 мест заняты — удалите героя, чтобы создать нового'); return; }
@@ -130,27 +135,22 @@ export function showSelect({ onEnter, onSettings }) {
 }
 
 const esc = s => String(s).replace(/[&<>"]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]));
+// значки экрана входа: объём, блик, тёмная обводка — как у иконок умений
+const SV = (body, vb = '0 0 24 24') => `<svg class="ico" viewBox="${vb}" aria-hidden="true">${body}</svg>`;
+export const ICO = {
+  place: SV(`<path d="M12 2.5c-3.6 0-6.5 2.8-6.5 6.4 0 4.6 6.5 12.1 6.5 12.1s6.5-7.5 6.5-12.1c0-3.6-2.9-6.4-6.5-6.4z" fill="#d8503a" stroke="#24180f" stroke-width="1.5"/><circle cx="12" cy="9" r="2.6" fill="#ffe9a8" stroke="#24180f" stroke-width="1.2"/><path d="M8.5 6.5c.8-1.6 2.4-2.4 3.6-2.4" stroke="#ff9a8a" stroke-width="1.4" stroke-linecap="round" fill="none"/>`),
+  time: SV(`<path d="M6 3h12v2.5c0 2.6-2.4 4.2-4 6.5 1.6 2.3 4 3.9 4 6.5V21H6v-2.5c0-2.6 2.4-4.2 4-6.5-1.6-2.3-4-3.9-4-6.5z" fill="#e8dcc4" stroke="#24180f" stroke-width="1.5"/><path d="M8.5 5.5h7c0 2-2 3.2-3.5 4.8C10.5 8.7 8.5 7.5 8.5 5.5zm3.5 8.2c1.5 1.6 3.5 2.8 3.5 4.8h-7c0-2 2-3.2 3.5-4.8z" fill="#e0a83a"/><path d="M5 2.5h14M5 21.5h14" stroke="#7a5a2a" stroke-width="2" stroke-linecap="round"/>`),
+  coins: SV(`<ellipse cx="10" cy="15.5" rx="7" ry="3.2" fill="#b8862a" stroke="#24180f" stroke-width="1.4"/><ellipse cx="10" cy="13" rx="7" ry="3.2" fill="#e8c250" stroke="#24180f" stroke-width="1.4"/><ellipse cx="15" cy="9.5" rx="6.5" ry="3" fill="#b8862a" stroke="#24180f" stroke-width="1.4"/><ellipse cx="15" cy="7.2" rx="6.5" ry="3" fill="#ffd96a" stroke="#24180f" stroke-width="1.4"/><ellipse cx="15" cy="7.2" rx="3" ry="1.3" fill="#fff0b0"/>`),
+  skull: SV(`<path d="M12 3c-4.4 0-7.5 3-7.5 7 0 2.4 1.2 4.3 3 5.5V19a1.5 1.5 0 0 0 1.5 1.5h6A1.5 1.5 0 0 0 16.5 19v-3.5c1.8-1.2 3-3.1 3-5.5 0-4-3.1-7-7.5-7z" fill="#ece4d0" stroke="#24180f" stroke-width="1.5"/><circle cx="9.2" cy="10.5" r="2" fill="#24180f"/><circle cx="14.8" cy="10.5" r="2" fill="#24180f"/><path d="M11 14.5l1-1.6 1 1.6z" fill="#24180f"/><path d="M10 17.5v2M12 17.5v2M14 17.5v2" stroke="#24180f" stroke-width="1.2"/>`),
+  plus: SV(`<circle cx="12" cy="12" r="9" fill="#5a9a4a" stroke="#24180f" stroke-width="1.5"/><path d="M12 7.5v9M7.5 12h9" stroke="#f4ffe8" stroke-width="2.6" stroke-linecap="round"/>`),
+  scroll: SV(`<path d="M5 5h13a2 2 0 0 1 2 2v12H7a2 2 0 0 1-2-2z" fill="#e8d8a8" stroke="#24180f" stroke-width="1.5"/><path d="M5 5a2 2 0 0 0-2 2v1h4V7a2 2 0 0 0-2-2z" fill="#c8b070" stroke="#24180f" stroke-width="1.5"/><path d="M9 10h8M9 13h8M9 16h5" stroke="#7a5a2a" stroke-width="1.4" stroke-linecap="round"/>`),
+  load: SV(`<path d="M4 7h6l2 2h8v10H4z" fill="#e0a83a" stroke="#24180f" stroke-width="1.5"/><path d="M4 11h16v8H4z" fill="#f0c860" stroke="#24180f" stroke-width="1.5"/><path d="M12 3v6M9.5 6.5L12 9l2.5-2.5" stroke="#24180f" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none"/>`),
+  gear: SV(`<path d="M12 2.8l1.8 2.2 2.8-.6 1 2.7 2.7 1-.6 2.8 2.2 1.8-2.2 1.8.6 2.8-2.7 1-1 2.7-2.8-.6L12 21.2l-1.8-2.2-2.8.6-1-2.7-2.7-1 .6-2.8L2.1 12l2.2-1.8-.6-2.8 2.7-1 1-2.7 2.8.6z" fill="#b8b2a8" stroke="#24180f" stroke-width="1.4" stroke-linejoin="round"/><circle cx="12" cy="12" r="3.6" fill="#5a5650" stroke="#24180f" stroke-width="1.4"/><path d="M8.5 7.5c1-.9 2.2-1.4 3.5-1.5" stroke="#f0ece4" stroke-width="1.3" stroke-linecap="round" fill="none"/>`),
+  trash: SV(`<path d="M6 7h12l-1 13H7z" fill="#8a6a42" stroke="#24180f" stroke-width="1.5"/><path d="M4.5 7h15" stroke="#24180f" stroke-width="2" stroke-linecap="round"/><path d="M9.5 4h5l.8 3H8.7z" fill="#b8b2a8" stroke="#24180f" stroke-width="1.3"/><path d="M9.5 10v8M12 10v8M14.5 10v8" stroke="#3a2a1a" stroke-width="1.3" stroke-linecap="round"/>`),
+  enter: SV(`<path d="M4 4h10v16H4z" fill="#6a4a2a" stroke="#24180f" stroke-width="1.5"/><path d="M14 4l6 2v12l-6 2z" fill="#4a3220" stroke="#24180f" stroke-width="1.5"/><circle cx="12" cy="12.5" r="1.1" fill="#e8c250"/><path d="M8 12h-5m2.2-2.5L2.5 12l2.7 2.5" stroke="#ffe9a8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>`),
+  warrior: SV(`<path d="M12 3l1.6 5.2 5.4.1-4.4 3.2 1.7 5.2L12 13.5l-4.3 3.2 1.7-5.2L5 8.3l5.4-.1z" fill="#e05a4a" stroke="#24180f" stroke-width="1.4" stroke-linejoin="round"/><path d="M12 5.5l.9 3" stroke="#ffd0c0" stroke-width="1.2" stroke-linecap="round"/>`),
+  mage: SV(`<path d="M12 2.5l2.4 6.3 6.6.4-5.2 4.2 1.9 6.4L12 16.2l-5.7 3.6 1.9-6.4L3 9.2l6.6-.4z" fill="#5a9af0" stroke="#24180f" stroke-width="1.4" stroke-linejoin="round"/><circle cx="12" cy="11" r="2" fill="#e8f4ff"/>`),
+  archer: SV(`<path d="M6 4c6 1 10 6 10 12v4" fill="none" stroke="#5fd35f" stroke-width="2.6" stroke-linecap="round"/><path d="M6 4L16 20" stroke="#e8dcc4" stroke-width="1.2"/><path d="M4 12l9-1-1 9" fill="none" stroke="#c8a040" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>`),
+};
+const classIcon = c => ICO[c] || '';
 
-// ---------------------------------------------------------------- сцена
-function scene(c, W, H, t) {
-  const sky = c.createLinearGradient(0, 0, 0, H); sky.addColorStop(0, '#0b1022'); sky.addColorStop(.55, '#1b2340'); sky.addColorStop(1, '#120d0a'); c.fillStyle = sky; c.fillRect(0, 0, W, H);
-  const r = rng(7); c.fillStyle = '#fff';
-  for (let i = 0; i < 160; i++) { c.globalAlpha = (.3 + r() * .7) * (0.75 + 0.25 * Math.sin(t * (0.5 + r()) + i)); c.beginPath(); c.arc(r() * W, r() * H * 0.47, r() * 1.4 + .3, 0, 7); c.fill(); }
-  c.globalAlpha = 1;
-  const mx = W * 0.62, my = H * 0.2, mg = c.createRadialGradient(mx, my, 10, mx, my, 120); mg.addColorStop(0, 'rgba(255,245,210,.5)'); mg.addColorStop(1, 'rgba(255,245,210,0)'); c.fillStyle = mg; c.beginPath(); c.arc(mx, my, 120, 0, 7); c.fill(); c.fillStyle = '#f6ecc8'; c.beginPath(); c.arc(mx, my, 40, 0, 7); c.fill();
-  c.fillStyle = '#1c2236'; c.beginPath(); c.moveTo(0, H * 0.58); for (let x = 0; x <= W + 80; x += 80) c.lineTo(x, H * 0.48 - Math.abs(Math.sin(x * 0.004 + 1)) * H * 0.13); c.lineTo(W, H); c.lineTo(0, H); c.fill();
-  const pine = (x, y, h, col) => { c.fillStyle = col; c.beginPath(); c.moveTo(x, y - h); for (let k = 0; k < 4; k++) { const yy = y - h + h * (k + 1) / 4; c.lineTo(x + h * 0.18 + k * h * 0.05, yy); c.lineTo(x + h * 0.07, yy - h * 0.04); } c.lineTo(x + h * 0.03, y); c.lineTo(x - h * 0.03, y); for (let k = 3; k >= 0; k--) { const yy = y - h + h * (k + 1) / 4; c.lineTo(x - h * 0.07, yy - h * 0.04); c.lineTo(x - h * 0.18 - k * h * 0.05, yy); } c.closePath(); c.fill(); };
-  const r2 = rng(11); for (let i = 0; i < 46; i++) pine(r2() * W, H * 0.62 + r2() * 30, 120 + r2() * 80, '#141a28');
-  for (let i = 0; i < 22; i++) { const x = r2() * W; if (x > W * 0.3 && x < W * 0.72) continue; pine(x, H * 0.74 + r2() * 40, 200 + r2() * 120, '#0d1118'); }
-  const gr = c.createRadialGradient(W / 2, H * 0.84, 40, W / 2, H * 0.84, W * 0.45); gr.addColorStop(0, '#3a3220'); gr.addColorStop(.5, '#1e2216'); gr.addColorStop(1, '#0c0e0a'); c.fillStyle = gr; c.beginPath(); c.ellipse(W / 2, H * 0.87, W * 0.52, H * 0.22, 0, 0, 7); c.fill();
-  const fl = 0.55 + 0.05 * Math.sin(t * 7) + 0.03 * Math.sin(t * 13), fg = c.createRadialGradient(W / 2, H * 0.76, 10, W / 2, H * 0.76, Math.min(W, H) * 0.6); fg.addColorStop(0, `rgba(255,170,70,${fl})`); fg.addColorStop(.4, 'rgba(255,120,40,.16)'); fg.addColorStop(1, 'rgba(255,100,30,0)'); c.fillStyle = fg; c.beginPath(); c.arc(W / 2, H * 0.76, Math.min(W, H) * 0.6, 0, 7); c.fill();
-}
-function fire(c, x, y, s, t) {
-  c.save(); c.translate(x, y); c.scale(s, s);
-  for (let i = 0; i < 9; i++) { const a = i / 9 * Math.PI * 2; c.fillStyle = i % 2 ? '#5a5650' : '#6e6a62'; c.strokeStyle = '#24180f'; c.lineWidth = 1; c.beginPath(); c.ellipse(Math.cos(a) * 16, Math.sin(a) * 6 + 2, 4.5, 3, 0, 0, 7); c.fill(); c.stroke(); }
-  c.strokeStyle = '#24180f'; c.lineWidth = 5; c.beginPath(); c.moveTo(-12, 4); c.lineTo(10, -2); c.moveTo(-10, -2); c.lineTo(12, 4); c.stroke(); c.strokeStyle = '#6b4a2c'; c.lineWidth = 3.2; c.stroke();
-  const fl = (w, h, col, o) => { c.fillStyle = col; c.beginPath(); c.moveTo(-w, 0); c.quadraticCurveTo(-w * 0.9, -h * 0.5, o, -h); c.quadraticCurveTo(w * 0.9, -h * 0.5, w, 0); c.closePath(); c.fill(); };
-  fl(11, 28 + Math.sin(t * 9) * 3, '#e2552a', Math.sin(t * 5) * 2); fl(8, 21 + Math.sin(t * 11) * 2, '#f59a2a', Math.sin(t * 7) * 2); fl(5, 13 + Math.sin(t * 13), '#ffe07a', 0);
-  for (let i = 0; i < 4; i++) { const q = (t * 0.7 + i / 4) % 1; c.fillStyle = `rgba(255,190,90,${1 - q})`; c.fillRect(Math.sin(i * 3 + t) * 8, -20 - q * 40, 1.5, 1.5); }
-  c.restore();
-}

@@ -29,5 +29,5 @@ export function installHtml() {
 /** Повесить кнопку «Установить» в уже открытом окне. */
 export function bindInstall(m) {
   const b = m.querySelector('[data-x=install]'); if (!b) return;
-  b.onclick = async () => { if (!deferred) return; deferred.prompt(); try { await deferred.userChoice; } catch (_) { } deferred = null; b.closest('.inst').innerHTML = '<p>Готово — ищите значок «Лесоруб II» на экране телефона.</p>'; };
+  b.onclick = async () => { if (!deferred) return; deferred.prompt(); try { await deferred.userChoice; } catch (_) { } deferred = null; b.closest('.inst').innerHTML = '<p>Готово — ищите значок «Континент» на экране телефона.</p>'; };
 }
