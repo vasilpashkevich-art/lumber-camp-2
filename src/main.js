@@ -22,7 +22,7 @@ import { dist } from './engine/util.js';
 import { $, toast, zoneTitle, TOUCH, T } from './ui/dom.js';
 import { RAR_COL } from '../data/balance.js';
 
-const VERSION = 84;
+const VERSION = 85;
 /** Приближение камеры на шаг: +1 ближе, −1 дальше. */
 let zoomT = 0;
 function zoomBy(d) {
@@ -121,7 +121,7 @@ function frame(now) {
   const dt = Math.min(0.05, (now - last) / 1000); last = now;
   const modalOpen = !!document.querySelector('.modal');
   const toWorld = (sx, sy) => { const x = R.cam.x + (sx * R.dpr - R.cv.width / 2) / R.cam.z, ys = R.cam.y + (sy * R.dpr - R.cv.height / 2) / R.cam.z; return { x, y: G.W.ground(x, ys) }; };   // рельеф: точка экрана → земля
-  const I = modalOpen ? (In.read(), {}) : In.read(toWorld);
+  const I = modalOpen ? (In.read(), {}) : In.read(toWorld, G.hero.bar);
   if (!paused && !G.P.dead) update(G, dt, I);
   else if (!paused) update(G, dt, {});
   // события
@@ -137,6 +137,7 @@ function frame(now) {
     if (e.k === 'smelt' && !document.querySelector('.modal')) openSmelt(G, () => hud.update());
     if (e.k === 'alchemy' && !document.querySelector('.modal')) profWin({ teach: !!e.b.alchemy, brew: true, tab: 'alchemy' });
     if (e.k === 'skill') toast(e.s, 'good', 'skill');
+    if (e.k === 'barSwap') { persist(); toast('Ячейки панели поменяны местами — клавиши остались у ячеек', '', 'bar'); }
     if (e.k === 'zone') { goZone(e.e); break; }
     if (e.k === 'lootOpen' && !document.querySelector('.modal')) { lootWin = openLoot(G, e.c, () => hud.update()); const oc = lootWin.onclose; lootWin.onclose = () => { lootWin = null; oc && oc(); }; }
     if (e.k === 'die') { sfx('die'); setTimeout(() => G && showDeath(G, () => hud.update()), 900); }

@@ -14,9 +14,13 @@ import { $, TOUCH } from './dom.js';
 import { interactTarget, abilsOf } from '../systems/game.js';
 import { iconUrl } from '../art/abicons.js';
 import { talentFree } from '../systems/talents.js';
+import { makeDnD } from './drag.js';
 
-/** Кнопки умений: клавиша → номер в списке умений класса (3 — пассивное, без кнопки). */
-const ABTN = [['#actAbil', 'KeyC', 0], ['#actAbil2', 'KeyV', 1], ['#actAbil3', 'KeyR', 2], ['#actAbil4', 'KeyF', 4]];
+/** Ячейки панели (v85): у ячейки — клавиша, внутри — действие из h.bar (удар, умение, аксессуар, зелья); переставляются перетаскиванием. */
+const SLOTS = ['#actAttack', '#actAbil', '#actAbil2', '#actAbil3', '#actAbil4', '#actTrinket', '#actPot2', '#actPot'];
+const SLOT_CODE = ['Attack', 'KeyC', 'KeyV', 'KeyR', 'KeyF', 'Trk', 'Pot2', 'Pot'];
+const SLOT_KEY = ['пробел', 'C', 'V', 'R', 'F', '1', '2', 'Q'];
+const AB_IDX = { ab0: 0, ab1: 1, ab2: 2, ab4: 4 };
 export const abImg = (id, passive = false) => `<img src="${iconUrl(id, passive)}" alt="" draggable="false">`;
 import { fmt1 } from '../engine/util.js';
 
@@ -24,20 +28,15 @@ export function createHud(In) {
   const H = { portraitKey: '', mini: null };
   const cls = () => H.G.hero.cls;
   // кнопки действий (и для мыши, и для пальца)
-  In.button($('#actAttack'), 'Attack', true);
-  for (const [sel, key] of ABTN) In.button($(sel), key);
-  In.button($('#actPot'), 'KeyQ');
-  In.button($('#actTrinket'), 'Digit1'); In.button($('#actPot2'), 'Pot2');
+  SLOTS.forEach((sel, i) => In.button($(sel), SLOT_CODE[i]));
   In.button($('#actSit'), 'Sit'); In.button($('#actUse'), 'Use');
+  // перестановка ячеек: мышью — перетащить, пальцем — задержать и вести; обмен местами, клавиша остаётся у ячейки
+  const D = makeDnD(() => { H.slotK = []; H.update(); for (const j of H.swapped || []) { const e = $(SLOTS[j]); e.classList.add('swapped'); setTimeout(() => e.classList.remove('swapped'), 2200); } H.swapped = null; });
+  SLOTS.forEach((sel, i) => { const b = $(sel); D.drag(b, { slot: i }); D.drop(b, src => { if (src.slot == null || src.slot === i) return; const bar = H.G.hero.bar; [bar[src.slot], bar[i]] = [bar[i], bar[src.slot]]; H.G.ev.push({ k: 'barSwap' }); H.swapped = [src.slot, i]; }); });
   H.bind = G => {
     H.G = G; H.portraitKey = ''; H.mini = null; H.miniKey = null; H.goldK = null;
     const C = CLASSES[cls()];
-    const ai = $('#actAttack .ico'); ai.innerHTML = abImg('atk_' + cls()); ai.classList.add('pic');
-    const L = abilsOf(G.hero);
-    for (const [sel, , i] of ABTN) { const A = L[i], b = $(sel), ic = b.querySelector('.ico'); ic.innerHTML = abImg(A.icon); ic.classList.add('pic'); b.title = `${A.name} — ${A.key}. ${A.d}`; }
-    $('#actPot .ico').innerHTML = ABIL_ICON.potion;
-    $('#actAttack').title = 'Удар — пробел. Нажать один раз — автоатака по цели, пока она жива или пока не выберете другую'; $('#actPot').title = 'Зелье здоровья — Q';
-    H.lockLvl = -1; H.trK = null; H.potK = null; H.elixK = null;
+    H.slotK = []; H.lockLvl = -1; H.elixK = null;
     $('#btnBag').innerHTML = ABIL_ICON.bag; $('#btnMap').innerHTML = ABIL_ICON.map; $('#btnProf').innerHTML = ABIL_ICON.prof; $('#btnMenu').innerHTML = ABIL_ICON.menu;
     $('#pfName').textContent = G.hero.name;
     $('#pfRing').style.borderColor = C.color;
@@ -61,25 +60,31 @@ export function createHud(In) {
       setBar('#tgHp', t.hp / t.max, `${Math.ceil(t.hp)} / ${t.max}`);
       $('#tgNote').textContent = t.D.rare ? 'Редкий и сильный' : t.state === 'return' ? 'Уходит домой' : '';
     }
-    // панель действий
-    const AL = abilsOf(h);
-    for (const [sel, , i] of ABTN) cool(sel, P.acd[AL[i].id] || 0, AL[i].cd);
-    cool('#actPot', P.potCd, 20);
-    // умения закрыты до своего уровня; когда открылось — кнопка мигает
-    if (H.lockLvl !== h.lvl) { for (const [sel, , i] of ABTN) { const A = AL[i], open = h.lvl >= A.lvl, b = $(sel), lk = b.querySelector('.lock'); if (!lk) continue; lk.hidden = open; lk.querySelector('b').textContent = `${A.lvl} ур.`; if (open && H.lockLvl > 0 && H.lockLvl < A.lvl) { b.classList.add('ready'); setTimeout(() => b.classList.remove('ready'), 5000); } } H.lockLvl = h.lvl; }
-    $('#actAbil4').classList.toggle('on', P.buf.berserk > 0);
-    cool('#actAttack', P.cd, attackOf(h).cd); $('#actAttack').classList.toggle('auto', !!P.auto);
-    $('#actPot .n').textContent = h.potions;
+    // панель действий (v85): по ячейкам, что в какой лежит — h.bar
+    const AL = abilsOf(h), bar = h.bar || In.DEFAULT_BAR, tr = h.eq.trinket, T = tr && TRINKETS.find(x => x.id === tr.trinket), pid = h.lastPot, pn = pid ? countOf(h, 'potion', pid) : 0;
+    bar.forEach((a, i) => {
+      const b = $(SLOTS[i]), key = SLOT_KEY[i], ic = b.querySelector('.ico'), lk = b.querySelector('.lock'), n = b.querySelector('.n');
+      // содержимое ячейки перерисовываем только при смене (значок, аксессуар, зелье, уровень)
+      const k = a + (a === 'trinket' ? ':' + (tr ? tr.id : '') : a === 'pot2' ? ':' + pid + ':' + pn : a in AB_IDX ? ':' + h.lvl : '');
+      if (H.slotK[i] !== k) {
+        H.slotK[i] = k; b.className = 'act'; ic.className = 'ico'; lk.hidden = true; n.textContent = ''; b.querySelector('.cd').style.height = '0'; b.querySelector('.cdt').textContent = '';
+        if (a === 'attack') { ic.innerHTML = abImg('atk_' + h.cls); ic.classList.add('pic'); b.title = `Удар — ${key}. Нажать один раз — автоатака по цели, пока она жива или пока не выберете другую`; }
+        else if (a in AB_IDX) { const A = AL[AB_IDX[a]]; ic.innerHTML = abImg(A.icon); ic.classList.add('pic'); b.title = `${A.name} — ${key}. ${A.d}`; lk.hidden = h.lvl >= A.lvl; lk.querySelector('b').textContent = `${A.lvl} ур.`; }
+        else if (a === 'trinket') { b.classList.add('tr'); if (tr) { ic.innerHTML = accIcon(tr.trinket, tr.rar, 44).replace(/width="44" height="44"/, 'width="100%" height="100%"'); b.title = `${T.name} — ${key}. ${T.d}`; } else { ic.innerHTML = ABIL_ICON.trinketEmpty; b.classList.add('empty'); b.title = `Аксессуар — ${key}. Наденьте аксессуар в окне героя`; } }
+        else if (a === 'pot2') { b.classList.add('pot2'); if (pid) { ic.innerHTML = potionIcon(pid, 'common', 44).replace(/width="44" height="44"/, 'width="100%" height="100%"'); n.textContent = pn; b.classList.toggle('none', !pn); b.title = `${POTIONS[pid].name} — ${key}. ${POTIONS[pid].d}`; } else { ic.innerHTML = ABIL_ICON.potionEmpty; b.classList.add('empty'); b.title = `Зелье — ${key}. Выпейте зелье из сумки — оно будет здесь`; } }
+        else if (a === 'potion') { ic.innerHTML = ABIL_ICON.potion; b.title = `Зелье здоровья — ${key}`; }
+        b.title += '. Перетащите, чтобы поменять ячейки местами';
+      }
+      if (a === 'attack') { cool(SLOTS[i], P.cd, attackOf(h).cd); b.classList.toggle('auto', !!P.auto); }
+      else if (a in AB_IDX) { const A = AL[AB_IDX[a]]; cool(SLOTS[i], P.acd[A.id] || 0, A.cd); if (a === 'ab4') b.classList.toggle('on', P.buf.berserk > 0); }
+      else if (a === 'trinket') { if (T) cool(SLOTS[i], P.tcd, T.cd); }
+      else if (a === 'potion') { cool(SLOTS[i], P.potCd, 20); n.textContent = h.potions; }
+    });
+    // умение открылось на новом уровне — его кнопка мигает
+    if (H.lockLvl !== h.lvl) { if (H.lockLvl > 0) bar.forEach((a, i) => { if (a in AB_IDX && AL[AB_IDX[a]].lvl > H.lockLvl && AL[AB_IDX[a]].lvl <= h.lvl) { const b = $(SLOTS[i]); b.classList.add('ready'); setTimeout(() => b.classList.remove('ready'), 5000); } }); H.lockLvl = h.lvl; }
     // телефон: кнопка действия рядом с тем, что можно сделать (вместо клавиши E)
     if (TOUCH) { const it = !P.dead && !P.mine && !P.gather && interactTarget(G), u = $('#actUse'), lab = it ? (it.k === 'corpse' ? 'Обыскать' : it.k === 'vein' ? 'Копать' : it.k === 'plant' ? 'Собрать' : it.k === 'exit' ? (it.e.temple ? 'Врата' : it.e.door ? 'Выход' : 'В путь') : it.b.vendor ? 'Торговать' : it.b.bank ? 'Банк' : it.b.mentor ? 'Наставник' : it.b.alchemy ? 'Травница' : it.b.guild || it.b.smelt || it.b.brew ? 'Войти' : 'Осмотреть') : '';
       u.hidden = !it; if (u.textContent !== lab) u.textContent = lab; $('#actSit').classList.toggle('on2', !!P.sit); }
-    // аксессуар на клавише 1: значок меняется, когда надели другой
-    const tr = h.eq.trinket, tk = tr ? tr.id : ''; const tb = $('#actTrinket');
-    if (tk !== H.trK) { H.trK = tk; tb.hidden = !tr; if (tr) { const T = TRINKETS.find(x => x.id === tr.trinket); tb.querySelector('.ico').innerHTML = accIcon(tr.trinket, tr.rar, 44).replace(/width="44" height="44"/, 'width="100%" height="100%"'); tb.title = `${T.name} — 1. ${T.d}`; } }
-    if (tr) { const T = TRINKETS.find(x => x.id === tr.trinket); cool('#actTrinket', P.tcd, T.cd); }
-    // зелье на клавише 2 (v84): последнее выбранное, с числом в сумке; действующие зелья под портретом
-    const pid = h.lastPot, pn = pid ? countOf(h, 'potion', pid) : 0, pk = pid + ':' + pn, pb = $('#actPot2');
-    if (pk !== H.potK) { H.potK = pk; pb.hidden = !pid; pb.classList.toggle('none', !pn); if (pid) { pb.querySelector('.ico').innerHTML = potionIcon(pid, 'common', 44).replace(/width="44" height="44"/, 'width="100%" height="100%"'); pb.querySelector('.n').textContent = pn; pb.title = `${POTIONS[pid].name} — 2. ${POTIONS[pid].d}`; } }
     const E = h.elixir || {}, ek = ['battle', 'guard'].map(k => E[k] ? E[k].id + ':' + Math.ceil(E[k].t / 5) : '').join('|');
     if (ek !== H.elixK) { H.elixK = ek; $('#pfElix').innerHTML = ['battle', 'guard'].map(k => { const e = E[k]; if (!e) return ''; const tt = Math.ceil(e.t), m = Math.floor(tt / 60), sec = tt % 60; return `<div class="ex" title="${POTIONS[e.id].name}: ${POTIONS[e.id].d}">${potionIcon(e.id, 'common', 38)}<i>${tt >= 60 ? m + ':' + String(sec).padStart(2, '0') : sec + ' с'}</i></div>`; }).join(''); }
     const gk = h.gold; if (gk !== H.goldK) { H.goldK = gk; $('#gold').innerHTML = moneyHtml(gk); }

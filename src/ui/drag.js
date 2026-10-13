@@ -4,15 +4,15 @@
 // перерисовке окна — цель ищется под пальцем в момент отпускания (elementFromPoint), по полю __drop.
 import { TOUCH } from './dom.js';
 let ghost = null, src = null, hot = null, suppress = 0;
-function clearGhost() { if (ghost) { ghost.remove(); ghost = null; } if (hot) { hot.classList.remove('over'); hot = null; } }
+function clearGhost() { if (ghost) { ghost.remove(); ghost = null; } if (hot) { hot.classList.remove('over'); hot = null; } document.documentElement.classList.remove('dnd'); }
 function targetAt(x, y) { const el = document.elementFromPoint(x, y); const b = el && el.closest('[data-drop]'); return b && b.__drop ? b : null; }
 export function makeDnD(done) {
   const drag = (b, what) => {
     // мышь — родной перенос
     if (!TOUCH) {
       b.draggable = true;
-      b.ondragstart = e => { src = what; b.classList.add('drag'); e.dataTransfer.effectAllowed = 'move'; try { e.dataTransfer.setData('text/plain', 'вещь'); } catch (_) { } };
-      b.ondragend = () => { b.classList.remove('drag'); src = null; };
+      b.ondragstart = e => { src = what; b.classList.add('drag'); document.documentElement.classList.add('dnd'); e.dataTransfer.effectAllowed = 'move'; try { e.dataTransfer.setData('text/plain', 'вещь'); } catch (_) { } };
+      b.ondragend = () => { b.classList.remove('drag'); src = null; document.documentElement.classList.remove('dnd'); };
       return;
     }
     // палец
@@ -21,7 +21,7 @@ export function makeDnD(done) {
       if (e.pointerType === 'mouse') return;
       const x0 = e.clientX, y0 = e.clientY, id = e.pointerId; let timer = 0, dragging = false;
       const start = () => {
-        dragging = true; src = what; b.classList.add('drag');
+        dragging = true; src = what; b.classList.add('drag'); document.documentElement.classList.add('dnd');
         ghost = b.cloneNode(true); ghost.className = 'cell ghost'; Object.assign(ghost.style, { position: 'fixed', left: 0, top: 0, zIndex: 100, pointerEvents: 'none', transform: `translate(${x0 - 28}px,${y0 - 28}px) scale(1.15)` });
         document.body.append(ghost); try { b.setPointerCapture(id); } catch (_) { }
       };

@@ -1,10 +1,14 @@
 // Управление: клавиатура и мышь на компьютере, джойстик и кнопки на телефоне.
 // Каждый кадр game получает I = {mx, my, attack, attackTap, ability, potion, interact, pick}.
 
+/** Действия панели: удар, умения по номеру в списке класса (3 — пассивное, без кнопки), аксессуар, зелье на 2, зелье здоровья. */
+export const DEFAULT_BAR = ['attack', 'ab0', 'ab1', 'ab2', 'ab4', 'trinket', 'pot2', 'potion'];
+export const ACTION_FIELD = { attack: 'attack', ab0: 'ability', ab1: 'ability2', ab2: 'ability3', ab4: 'ability4', trinket: 'trinket', pot2: 'potion2', potion: 'potion' };
+
 export function createInput(cv) {
   const keys = new Set(), tap = new Set();
-  let joy = null, pick = null, attackHeld = false;
-  const In = { keys, enabled: true, onKey: null };
+  let joy = null, pick = null; const held = new Set();   // v85: зажатые кнопки на экране (по коду)
+  const In = { keys, enabled: true, onKey: null, DEFAULT_BAR, ACTION_FIELD };
 
   addEventListener('keydown', e => {
     if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) return;
@@ -15,7 +19,7 @@ export function createInput(cv) {
     if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Tab'].includes(e.code)) e.preventDefault();
   });
   addEventListener('keyup', e => keys.delete(e.code));
-  addEventListener('blur', () => { keys.clear(); attackHeld = false; joy = null; });
+  addEventListener('blur', () => { keys.clear(); held.clear(); joy = null; });
 
   // мышь: щелчок — цель или действие (подойти и обыскать/копать/поговорить)
   // палец (v69): короткое касание — то же + идти по земле; ведёшь пальцем в левой части — джойстик; два пальца — приближение
@@ -45,28 +49,35 @@ export function createInput(cv) {
   cv.addEventListener('pointerup', up); cv.addEventListener('pointercancel', up);
 
   /** Кнопки на экране (телефон): нажатие = как клавиша. */
-  In.button = (el, code, hold) => {
-    el.addEventListener('pointerdown', e => { e.preventDefault(); tap.add(code); if (hold) attackHeld = true; el.classList.add('on'); });
-    ['pointerup', 'pointercancel', 'pointerleave'].forEach(ev => el.addEventListener(ev, () => { if (hold) attackHeld = false; el.classList.remove('on'); }));
+  // v85: нажатие срабатывает при отпускании (короткое касание), чтобы перетаскивание кнопки её не нажимало; удержание — пока зажата
+  In.button = (el, code) => {
+    let t0 = 0;
+    el.addEventListener('pointerdown', e => { if (e.pointerType !== 'mouse') e.preventDefault(); t0 = performance.now(); held.add(code); el.classList.add('on'); });   // мышь без preventDefault — иначе не начнётся перетаскивание
+    el.addEventListener('pointerup', () => { if (held.has(code) && performance.now() - t0 < 300) tap.add(code); held.delete(code); el.classList.remove('on'); el.blur && el.blur(); });
+    ['pointercancel', 'pointerleave', 'dragstart'].forEach(ev => el.addEventListener(ev, () => { held.delete(code); el.classList.remove('on'); }));
   };
+  /** Ячейки панели действий (v85): клавиши у ячеек, действия переставляются (h.bar). */
+  In.SLOT_KEYS = [['Space', 'Attack'], ['KeyC'], ['KeyV'], ['KeyR'], ['KeyF'], ['Digit1', 'Numpad1', 'Trk'], ['Digit2', 'Numpad2', 'Pot2'], ['KeyQ', 'Pot']];
   In.joy = () => joy;
 
   /** Снять состояние на этот кадр. toWorld(sx,sy) переводит экран в мир. */
-  In.read = toWorld => {
-    const k = c => keys.has(c), t = c => tap.has(c);
+  In.read = (toWorld, bar = null) => {
+    const k = c => keys.has(c) || held.has(c), t = c => tap.has(c);
     let mx = (k('KeyD') || k('ArrowRight') ? 1 : 0) - (k('KeyA') || k('ArrowLeft') ? 1 : 0);
     let my = (k('KeyS') || k('ArrowDown') ? 1 : 0) - (k('KeyW') || k('ArrowUp') ? 1 : 0);
     if (joy) { mx = joy.dx; my = joy.dy; }
     const I = {
       mx, my,
-      attack: k('Space') || attackHeld, attackTap: t('Space') || t('Attack'),
-      ability: t('KeyC'), ability2: t('KeyV'), ability3: t('KeyR'), ability4: t('KeyF'), sit: t('KeyX') || t('Sit'), potion: t('KeyQ') || t('Pot'), interact: t('KeyE') || t('Use'), trinket: t('Digit1') || t('Numpad1'), potion2: t('Digit2') || t('Numpad2') || t('Pot2'),
+      sit: t('KeyX') || t('Sit'), interact: t('KeyE') || t('Use'),
       pick: pick && toWorld ? { ...toWorld(pick.sx, pick.sy), touch: pick.touch } : null,
       tabTarget: t('Tab'),
     };
+    // действия панели по ячейкам: что лежит в ячейке — то и срабатывает от её клавиши
+    const B = bar || In.DEFAULT_BAR;
+    In.SLOT_KEYS.forEach((codes, i) => { const a = B[i], tp = codes.some(t), hd = codes.some(k); const F = In.ACTION_FIELD[a]; if (!F) return; if (a === 'attack') { I.attack = hd; I.attackTap = tp; } else if (tp) I[F] = true; });
     tap.clear(); pick = null;
     return I;
   };
-  In.clear = () => { keys.clear(); tap.clear(); attackHeld = false; joy = null; pick = null; touches.clear(); pinch = null; if (joyEl) joyEl.hidden = true; };
+  In.clear = () => { keys.clear(); tap.clear(); held.clear(); joy = null; pick = null; touches.clear(); pinch = null; if (joyEl) joyEl.hidden = true; };
   return In;
 }

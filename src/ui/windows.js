@@ -18,6 +18,7 @@ import { talentRows, talentFree, chooseTalent, resetTalents, resetPrice } from '
 import { doll } from '../art/body.js';
 import { $, el, modal, toast, TOUCH, T } from './dom.js';
 import { makeDnD } from './drag.js';
+import { DEFAULT_BAR } from '../engine/input.js';
 import { soundState, setSound, setVol } from '../engine/audio.js';
 import { fmt1 } from '../engine/util.js';
 import { statRows } from './stathelp.js';
@@ -294,11 +295,12 @@ export function openAbils(G, opts = {}) {
     const price = resetPrice(h);
     const reset = opts.mentor ? `<div class="mentor"><b>Наставник Ратибор:</b> «Передумал? Забудем выученное — за ${moneyHtml(price)}.» ${got ? `<button class="btn" data-x="reset">Сбросить таланты</button>` : '<span class="dim">Сбрасывать пока нечего.</span>'}</div>` : `<p class="hint">Сбросить таланты можно у наставника в Столице (дом у западной стены) — сейчас это стоит ${moneyHtml(price)}.</p>`;
     m.innerHTML = `<h2>Развитие героя</h2><p class="sub">${h.name} · ${C.name.toLowerCase()} · ${h.lvl} уровень${open ? ` · таланты: ${got} из ${open}` : ''}${free ? ` <span class="free">можно выбрать: ${free}</span>` : ''}</p>
-      <div class="devgrid"><section><h3>Умения</h3>${atk}${AB.map(abil).join('')}</section>
+      <div class="devgrid"><section><h3>Умения</h3>${atk}${AB.map(abil).join('')}<p class="hint">Ячейки панели внизу можно менять местами: ${T('перетащите кнопку мышью', 'задержите палец на кнопке и ведите')} — клавиша остаётся у ячейки. <button class="btn sm" data-x="barReset" ${JSON.stringify(h.bar || []) === JSON.stringify(DEFAULT_BAR) ? 'disabled' : ''}>Вернуть порядок</button></p></section>
       <section><h3>Таланты</h3><p class="hint">На 10, 15 и 20 уровне — ряд из трёх, берётся один. ▶ — посмотреть умение, которое талант усиливает.</p>${rows.map(tal).join('')}${reset}</section></div>
       <div class="row"><button class="btn main" data-x="ok">Закрыть</button></div>`;
     m.prepend(xbtn);
     m.querySelector('[data-x=ok]').onclick = () => m.close();
+    m.querySelector('[data-x=barReset]').onclick = () => { h.bar = DEFAULT_BAR.slice(); toast('Панель — как была', 'good'); opts.onChange && opts.onChange(); draw(); };
     const rb = m.querySelector('[data-x=reset]'); if (rb) rb.onclick = () => { const r = resetTalents(h); if (r === 'gold') toast('Не хватает денег', '', 'gold'); else if (r === 'ok') { toast('Таланты сброшены — выберите заново', 'good'); opts.onChange && opts.onChange(); } ask = null; draw(); };
     m.querySelectorAll('.tal.can').forEach(b => b.onclick = e => { if (e.target.closest('.play') || e.target.closest('.ic')) return; ask = { r: +b.dataset.r, o: b.dataset.o }; draw(); });
     const yes = m.querySelector('[data-a=yes]'); if (yes) yes.onclick = () => { if (chooseTalent(h, ask.r, ask.o)) { toast('Новый талант!', 'good'); opts.onChange && opts.onChange(); } ask = null; draw(); };

@@ -47,7 +47,9 @@ export function migrate(h) {
   h.eq = Object.assign({ head: null, neck: null, chest: null, legs: null, weapon: null, ring: null, trinket: null }, h.eq || {});
   h.prof = Object.assign({ mining: 0, herbal: 0, alchemy: 0 }, h.prof || {}); h.tPity = h.tPity || 0; h.veins = h.veins || {};
   // v84: травы, зелья
-  h.plants = h.plants || {}; h.elixir = Object.assign({ battle: null, guard: null }, h.elixir || {}); h.lastPot = h.lastPot || null; h.shops = h.shops || {}; h.buyback = Array.isArray(h.buyback) ? h.buyback : [];
+  h.plants = h.plants || {};
+  // v85: порядок ячеек панели действий
+  { const D = ['attack', 'ab0', 'ab1', 'ab2', 'ab4', 'trinket', 'pot2', 'potion']; h.bar = Array.isArray(h.bar) && h.bar.length === 8 && D.every(a => h.bar.includes(a)) ? h.bar : D.slice(); } h.elixir = Object.assign({ battle: null, guard: null }, h.elixir || {}); h.lastPot = h.lastPot || null; h.shops = h.shops || {}; h.buyback = Array.isArray(h.buyback) ? h.buyback : [];
   h.potions = h.potions ?? 2; h.gold = h.gold || 0; h.worldT = h.worldT || 0; h.zone = h.zone || 'pine';
   // v59: вещи по новым правилам — главный параметр класса и свойства; место, уровень и цвет те же
   if (h.v < 2) { for (const s of Object.keys(h.eq || {})) if (h.eq[s]) h.eq[s] = remakeItem(h.eq[s], h.cls); h.bag = h.bag.map(it => remakeItem(it, h.cls)); }
