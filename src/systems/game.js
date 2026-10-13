@@ -811,6 +811,6 @@ export function bagMove(G, it, pos) {
   const H = G.hero; if (!H.bag.includes(it) || pos < 0 || pos >= LOOT.bag || it.pos === pos) return;
   const other = bagAt(H, pos); if (other) other.pos = it.pos; it.pos = pos;
 }
-function restat(G) { const ratio = G.P.hp / G.st.maxHp; G.st = heroStats(G.hero); G.P.hp = Math.max(1, Math.round(G.st.maxHp * ratio)); }
+function restat(G) { const ratio = G.P.hp / G.st.maxHp; G.st = heroStats(G.hero); G.P.hp = Math.max(1, G.st.maxHp * ratio); }
 
 export { xpNeed };

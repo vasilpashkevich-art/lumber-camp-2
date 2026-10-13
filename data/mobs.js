@@ -18,7 +18,7 @@ export const MOBS = {
   wolf: {
     name: 'Серый волк', art: 'wolf', r: 15,
     hp: 0.9, dmg: 1.0, speed: 166, reach: 32, cd: 1.5,
-    trait: 'pack', gold: 0.8,
+    trait: 'pack', packN: 1, gold: 0.8,   // v89: зовёт одного ближнего — вдвоём честный бой, втроём — смерть
   },
   boar: {
     name: 'Лесной кабан', art: 'boar', r: 17,
@@ -33,7 +33,7 @@ export const MOBS = {
   bandit: {
     name: 'Молодой разбойник', art: 'bandit', r: 14,
     hp: 1.05, dmg: 1.1, speed: 153, reach: 36, cd: 1.6,
-    trait: 'pack', gold: 1.6, humanoid: true,
+    trait: 'pack', packN: 1, gold: 1.6, humanoid: true,
   },
   bandit_archer: {
     name: 'Разбойник-стрелок', art: 'bandit_archer', r: 14,
@@ -50,12 +50,12 @@ export const MOBS = {
   dog: {
     name: 'Дикий пёс', art: 'dog', r: 14,
     hp: 0.85, dmg: 1.0, speed: 168, reach: 30, cd: 1.3,
-    trait: 'pack', gold: 1.0,
+    trait: 'pack', packN: 1, gold: 1.0,
   },
   crow: {
     name: 'Чёрная ворона', art: 'crow', r: 11, flying: true,
     hp: 0.55, dmg: 0.7, speed: 175, reach: 34, cd: 1.1,
-    trait: 'pack', gold: 0.5,
+    trait: 'pack', packN: 2, gold: 0.5,
   },
   scarecrow: {
     name: 'Ожившее пугало', art: 'scarecrow', r: 15,
@@ -70,7 +70,7 @@ export const MOBS = {
   robber: {
     name: 'Грабитель', art: 'robber', r: 15,
     hp: 1.15, dmg: 1.15, speed: 155, reach: 36, cd: 1.5,
-    trait: 'pack', gold: 1.8, humanoid: true,
+    trait: 'pack', packN: 1, gold: 1.8, humanoid: true,
   },
   firestarter: {
     name: 'Поджигатель', art: 'firestarter', r: 14,
@@ -86,7 +86,7 @@ export const MOBS = {
   kvakun: {
     name: 'Квакун-копейщик', art: 'kvakun', r: 14,
     hp: 1.05, dmg: 1.05, speed: 150, reach: 40, cd: 1.5,
-    trait: 'pack', packN: 2, packR: 260, gold: 1.2,   // зовёт двух ближних сородичей
+    trait: 'pack', packN: 1, packR: 260, gold: 1.2,   // зовёт одного ближнего (v89: было двух)
   },
   kvak_shaman: {
     name: 'Квакун-шаман', art: 'kvak_shaman', r: 14,
@@ -119,11 +119,11 @@ export const MOBS = {
     trait: 'poison', gold: 8,
     smash: { every: 7, wind: 1.0, r: 120, mul: 2.4, say: 'готовит бросок!', style: 'coil' },
   },
-  // v77: Храм квакунов (подземелье, 20–22): здоровья намного больше обычного
+  // v77: Храм квакунов (подземелье, 15–17 с v89): здоровья намного больше обычного
   kvak_guard: {
     name: 'Квакун-страж', art: 'kvak_guard', r: 15,
     hp: 2.6, dmg: 1.15, speed: 140, reach: 42, cd: 1.6,
-    trait: 'pack', packN: 2, packR: 240, gold: 3,
+    trait: 'pack', packN: 1, packR: 240, gold: 3,   // v89: зовёт одного
   },
   kvak_priest: {
     name: 'Квакун-жрец', art: 'kvak_priest', r: 14,

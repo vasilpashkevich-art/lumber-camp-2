@@ -66,5 +66,5 @@ test('Мельник зовёт ворон; вороны исчезают, ко�
 
 test('автоигрок 6-го уровня во второй зоне: за 40 минут растёт и не застревает', () => {
   const r = runBot('warrior', 40, 2, false, 'farms', 6);
-  assert.ok(r.lvl >= 8, `уровень ${r.lvl}`); assert.ok(r.kills > 150, `убито ${r.kills}`);
+  assert.ok(r.lvl >= 8, `уровень ${r.lvl}`); assert.ok(r.kills > 100, `убито ${r.kills}`);   // v89: бои дольше
 });

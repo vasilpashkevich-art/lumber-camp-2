@@ -204,7 +204,7 @@ export const SHROOM = {
     { x: K(300), y: K(2500), to: 'Сосновый дол', lvl: '1–6', zone: 'pine', at: { x: 7560, y: 2600 } },
     { x: K(7700), y: K(3000), to: 'Болотный край', lvl: '14–18' },
     // v76: врата Храма квакунов во впадине Полоза (подземелье — в следующих версиях)
-    { x: 8775, y: 5090, to: 'Храм квакунов', lvl: '20–22', temple: true, zone: 'temple', at: { x: 1600, y: 2230 } },
+    { x: 8775, y: 5090, to: 'Храм квакунов', lvl: '15–17', temple: true, zone: 'temple', at: { x: 1600, y: 2230 } },
   ],
   temple: { x: 8775, y: 5110, name: 'Храм квакунов' },   // фасад на северном краю впадины, лицом на юг
   roads: [
@@ -280,7 +280,7 @@ export const SHROOM = {
 // v77: Храм квакунов — подземелье. Одна карта на весь храм; пока открыто только Преддверие (от врат до врат подземелья).
 // interior: комнаты и коридоры прямоугольниками [x, y, w, h]; всё остальное — скала. Стены рисуются сами по краям комнат.
 export const TEMPLE = {
-  id: 'temple', name: 'Храм квакунов', lvl: [20, 22], dungeon: true,
+  id: 'temple', name: 'Храм квакунов', lvl: [15, 17], dungeon: true,   // v89: 20–22 → 15–17 (для героя 14–15 после Грибного леса)
   W: 3200, H: 2600, seed: 77, scaleV: 2,
   ground: 'temple', interior: true, theme: 'crypt',
   edge: [[0, 0], [3200, 0], [3200, 2600], [0, 2600]],
@@ -298,11 +298,11 @@ export const TEMPLE = {
   arrive: { x: 1600, y: 2230 },
   exits: [
     { x: 1600, y: 2270, to: 'Грибной лес', lvl: '10–14', zone: 'shroom', at: { x: 8775, y: 5180 }, door: true },
-    { x: 2700, y: 1140, to: 'Подземелье', lvl: '20–22', temple: true, door: true },
+    { x: 2700, y: 1140, to: 'Подземелье', lvl: '15–17', temple: true, door: true },
   ],
   roads: [], camps: [
-    { name: 'Караульная', lair: 'none', mob: ['kvak_guard', 'temple_frog', 'kvak_guard', 'temple_frog'], lvl: [20, 21], x: 1600, y: 1350, n: 4, r: 150 },
-    { name: 'Зал врат', lair: 'none', mob: ['kvak_guard', 'kvak_priest'], lvl: [21, 22], x: 2700, y: 1330, n: 2, r: 110 },
+    { name: 'Караульная', lair: 'none', mob: ['kvak_guard', 'temple_frog', 'kvak_guard', 'temple_frog'], lvl: [15, 16], x: 1600, y: 1350, n: 4, r: 150 },
+    { name: 'Зал врат', lair: 'none', mob: ['kvak_guard', 'kvak_priest'], lvl: [16, 17], x: 2700, y: 1330, n: 2, r: 110 },
   ],
   trees: { count: 0, kinds: ['moss'], clearR: 100 },
   loot: { chance: 0.22, rarity: [['common', 45], ['good', 40], ['rare', 15]], rare: [['good', 40], ['rare', 60]] },   // вещи чаще, белых меньше

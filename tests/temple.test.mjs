@@ -17,8 +17,8 @@ test('комнаты проходимы, скала — нет, стыки ко�
   const p = W.path(1600, 2230, 2700, 1300, 60000); assert.ok(p && p.length > 10, 'путь по коридорам');
   for (const [x, y] of p) assert.ok(W.walkable(x, y), 'путь по полу');
 });
-test('мобы подземелья: в комнатах, 20–22 ур., здоровья намного больше обычных; у стража и жреца свои повадки', () => {
-  for (const c of W.camps) for (const s of c.spawns) { assert.ok(W.walkable(s.x, s.y), s.kind); assert.ok(s.lvl >= 20 && s.lvl <= 22); }
+test('мобы подземелья: в комнатах, 15–17 ур., здоровья намного больше обычных; у стража и жреца свои повадки', () => {
+  for (const c of W.camps) for (const s of c.spawns) { assert.ok(W.walkable(s.x, s.y), s.kind); assert.ok(s.lvl >= 15 && s.lvl <= 17); }
   assert.ok(MOBS.kvak_guard.hp >= 2 && MOBS.temple_frog.hp >= 1.5 && MOBS.kvak_priest.summon.kind === 'temple_frog');
   assert.equal(ZONES.temple, TEMPLE);
 });

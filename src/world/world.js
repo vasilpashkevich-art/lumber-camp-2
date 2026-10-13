@@ -143,7 +143,7 @@ export function buildWorld(Z) {
   Z.camps.forEach((c, ci) => {
     const camp = { ...c, i: ci, spawns: [] };
     for (let k = 0; k < c.n; k++) {
-      const a = k / c.n * Math.PI * 2 + r() * 0.8, d = c.n === 1 ? 0 : c.r * (0.35 + r() * 0.6);
+      const a = k / c.n * Math.PI * 2 + r() * 0.8, d = c.n === 1 ? 0 : c.r * (0.5 + r() * 0.5);   // v89: мобы ближе к краю логова (0,5–1,0 r), реже по двое-трое
       const kind = Array.isArray(c.mob) ? c.mob[k % c.mob.length] : c.mob;
       const lvl = c.lvl[0] + Math.floor(r() * (c.lvl[1] - c.lvl[0] + 1));
       // ключ моба: в Сосновом доле — как раньше (старые сохранения), в других зонах — с именем зоны

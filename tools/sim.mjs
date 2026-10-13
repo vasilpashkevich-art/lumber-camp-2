@@ -5,7 +5,7 @@ import { buildWorld, inCity } from '../src/world/world.js';
 import { nextWaypoint } from '../src/world/relief.js';
 import { newHero, compareItem } from '../src/entities/hero.js';
 import { createGame, update, respawnHero, equip, buyPotion, sellItem, POTION_PRICE, lootAll, hasLoot } from '../src/systems/game.js';
-import { LOOT } from '../data/balance.js';
+import { LOOT, AGGRO } from '../data/balance.js';
 import { lvlColor } from '../data/balance.js';
 import { makeItem } from '../src/systems/items.js';
 import { talentRows, chooseTalent } from '../src/systems/talents.js';
@@ -81,7 +81,7 @@ export function runBot(cls, minutes, seed = 1, log = false, zone = 'pine', lvl =
   const W = buildWorld(ZONES[zone]), H = newHero('Бот', cls); H.zone = zone; if (lvl > 1) { H.lvl = lvl; for (const sl of ['head', 'chest', 'legs', 'weapon']) H.eq[sl] = makeItem(cls, sl, lvl, 'common', rng(seed + 3)); }
   const G = createGame(H, W, { rand: rng(seed) });
   const dt = 1 / 20, steps = minutes * 60 / dt, lvAt = {}, R = rng(seed + 7);
-  let goal = null, deadT = 0, shopping = false, stuck = 0, side = 0, sdir = 1, nst = 0, lx = 0, ly = 0, stuckT = 0, walkT = 0;
+  let goal = null, pullT = 0, wasBusy = false, hpAtStart = 1, deadT = 0, shopping = false, stuck = 0, side = 0, sdir = 1, nst = 0, lx = 0, ly = 0, stuckT = 0, walkT = 0;
   for (let i = 0; i < steps; i++) {
     const P = G.P, I = {};
     if (P.dead) { if ((deadT += dt) > 3) { respawnHero(G); deadT = 0; goal = null; } }
@@ -99,11 +99,12 @@ export function runBot(cls, minutes, seed = 1, log = false, zone = 'pine', lvl =
       } else {
         if (P.hp < G.st.maxHp * 0.35) I.potion = true;
         const busy = G.mobs.find(m => m.state === 'chase');
+        if (busy && !wasBusy) hpAtStart = P.hp / G.st.maxHp; wasBusy = !!busy;
         if (!goal || goal.state === 'dead' || goal.state === 'return') {
           goal = null; let bd = 1e9;
           for (const m of G.mobs) {
             if (m.state === 'dead') continue; const c = lvlColor(m.lvl, H.lvl);
-            if (c === '#9a9a9a' || m.lvl > H.lvl + 1) continue;
+            if (c === '#9a9a9a' || m.lvl > H.lvl + (H.lvl >= 5 ? 1 : 0) || m.camp && m.camp.lvl[1] > H.lvl + 1) continue;   // v89: до 5-го — не выше себя; в логова старших не лезть
             if (m.D.rare && H.lvl < 6) continue;
             const d = dist(P.x, P.y, m.x, m.y); if (d < bd) { bd = d; goal = m; }
           }
@@ -112,20 +113,28 @@ export function runBot(cls, minutes, seed = 1, log = false, zone = 'pine', lvl =
         const body = !busy && G.corpses.filter(hasLoot).sort((a, b) => dist(P.x, P.y, a.x, a.y) - dist(P.x, P.y, b.x, b.y))[0];
         const t = busy || (body && dist(P.x, P.y, body.x, body.y) < 500 ? null : goal);
         // без врагов на хвосте и с малым здоровьем — сначала отдохнуть
-        if (!busy && (P.hp < G.st.maxHp * 0.65 || P.sit && P.hp < G.st.maxHp * 0.95)) { if (!P.sit && G.t - P.lastCombat > 1.6) I.sit = true; }  // сесть и перевести дух
+        if (!busy && (P.hp < G.st.maxHp * 0.8 || P.sit && P.hp < G.st.maxHp * 0.95)) { if (!P.sit && G.t - P.lastCombat > 1.6) I.sit = true; }  // сесть и перевести дух (v89: с 80%, не лезть в логово раненым)
         else if (!busy && body && dist(P.x, P.y, body.x, body.y) < 500) {
           if (dist(P.x, P.y, body.x, body.y) > LOOT.lootR - 15) { const [x, y] = via(W, P, body.x, body.y); toward(I, P, x, y); }
           else lootAll(G, body);
-        } else if (t) {
+        } else if (t && !(P.weak > 0 && !busy)) {   // v89: в слабости после гибели в бой не лезть
           const reach = { warrior: 50, mage: 340, archer: 380 }[cls], d = dist(P.x, P.y, t.x, t.y);
           G.P.target = t;
-          if (d > reach) { const [x, y] = via(W, P, t.x, t.y); toward(I, P, x, y); }
-          if (P.hp > G.st.maxHp * 0.25 || H.potions > 0) I.attack = true;
+          // v89: тянуть по одному — подойти на край заметности, подождать, пока моб сам пойдёт; в логово не заходить
+          const ar = AGGRO * Math.max(0.55, Math.min(1.6, 1 + (t.lvl - H.lvl) * 0.1)) - 6;   // как в game.js: с какого расстояния моб заметит
+          const pull = !busy && t.state === 'idle' && d > reach && d <= ar && pullT < 2.5;
+          if (pull) pullT += dt; else if (busy || d > ar + 30) pullT = 0;
+          if (d > reach && !pull) { const [x, y] = via(W, P, t.x, t.y); toward(I, P, x, y); }
+          if (busy || P.hp > G.st.maxHp * 0.25 || H.potions > 0) I.attack = true;   // v89: если уже напали — драться до конца
           if (d < 300 && R() < 0.05) I.ability = true;
           if (H.lvl >= 5 && d < 150 && R() < 0.04) I.ability2 = true;
           if (NEW && H.lvl >= 10 && d < (cls === 'warrior' ? 70 : 300) && R() < 0.05) I.ability3 = true;
           if (NEW && H.lvl >= 20 && d < 200 && R() < 0.03) I.ability4 = true;
-        } else { const cp = W.camps[Math.floor(G.t / 90) % W.camps.length]; const [x, y] = via(W, P, cp.x, cp.y); if (dist(P.x, P.y, cp.x, cp.y) > 150) toward(I, P, x, y); }   // никого рядом — к другому логову
+        } else {   // никого рядом — к ближайшему логову по силам, где кто-то жив
+          const alive = c => G.mobs.some(m => m.camp === c && m.state !== 'dead' && lvlColor(m.lvl, H.lvl) !== '#9a9a9a');
+          const ok = W.camps.filter(c => c.lvl[1] <= H.lvl + 1 && alive(c)); const cs = ok.length ? ok : W.camps.filter(alive);
+          if (cs.length) { const cp = cs.reduce((a, c) => dist(P.x, P.y, c.x, c.y) < dist(P.x, P.y, a.x, a.y) ? c : a); const [x, y] = via(W, P, cp.x, cp.y); if (dist(P.x, P.y, cp.x, cp.y) > 150) toward(I, P, x, y); }
+        }
       }
     }
     // объезд препятствий: если идём, но не двигаемся — шагнуть вбок
@@ -133,8 +142,11 @@ export function runBot(cls, minutes, seed = 1, log = false, zone = 'pine', lvl =
       if (side > 0) { side -= dt; const a = Math.atan2(I.my, I.mx) + sdir * Math.PI / 2; I.mx = Math.cos(a); I.my = Math.sin(a); }
       else if (Math.hypot(G.P.x - lx, G.P.y - ly) < 2) { if ((stuck += dt) > 0.3) { nst++; side = 0.9 + Math.min(2, nst * 0.3); if (nst % 3 === 0) sdir = -sdir; stuck = 0; } } else { stuck = 0; if (Math.hypot(G.P.x - lx, G.P.y - ly) > 3) nst = Math.max(0, nst - dt); }
     }
+    if (process.env.TLOG) { const T = P.botT || (P.botT = { sit: 0, walk: 0, fight: 0, dead: 0, shop: 0, idle: 0 }); T[P.dead ? 'dead' : P.sit ? 'sit' : shopping ? 'shop' : G.mobs.some(m => m.state === 'chase') ? 'fight' : (I.mx || I.my) ? 'walk' : 'idle'] += dt; if (i === steps - 1) console.log('  время:', Object.entries(T).map(([k, v]) => `${k} ${Math.round(v)} с`).join(', ')); }
     lx = G.P.x; ly = G.P.y;
+    const dBefore = H.stats.deaths, chasing = G.mobs.filter(m => m.state === 'chase').map(m => `${m.D.name} ${m.lvl}`).join(', ');
     update(G, dt, I); G.ev.length = 0;
+    if (process.env.DLOG && H.stats.deaths > dBefore) console.log(`  † ${Math.round(G.t / 60)} мин, ур.${H.lvl}, зелий ${H.potions}, в погоне: ${chasing}; в бой вошёл с ${Math.round(hpAtStart * 100)}%, слабость ${P.weak > 0 ? 'да' : 'нет'}`);
     if ((I.mx || I.my) && !G.P.dead && !G.P.sit) { walkT += dt; if (Math.hypot(G.P.x - lx, G.P.y - ly) < 0.5) stuckT += dt; }   // хотел идти, но стоит
     if (log && i % (log === 2 ? 20 : 1200) === 0) console.log(Math.round(G.t/60), H.lvl, Math.round(P.x), Math.round(P.y), Math.round(P.hp), H.potions, H.gold, shopping, goal && goal.kind, goal && Math.round(goal.x), goal && Math.round(goal.y), goal && goal.state, P.dead, Math.round(G.t - P.lastCombat), G.corpses.length);
     if (!lvAt[H.lvl]) lvAt[H.lvl] = Math.round(G.t / 6) / 10;
