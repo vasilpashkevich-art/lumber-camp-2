@@ -1,0 +1,4 @@
+import { build } from 'esbuild'; import { writeFileSync } from 'node:fs';
+const r = await build({ stdin: { contents: `import { drawGate } from './gate.js'; drawGate(document.getElementById('g'));`, resolveDir: 'tools/proto/v88' }, bundle: true, format: 'iife', write: false });
+writeFileSync('tools/proto/v88/gate.html', `<title>Ворота: пластилиновый камень</title><style>body{margin:0;background:#1d1a16;color:#e9dfc8;font:14px Georgia,serif}.bar{padding:8px 14px;background:#2a2218}canvas{display:block;max-width:100%;height:auto}</style><body><div class="bar"><b>v88 — проба стиля</b> · южные ворота Столицы: крупные скруглённые блоки с фаской, без обводки, свет слева сверху</div><canvas id="g" width="1100" height="640"></canvas><script>${r.outputFiles[0].text}</script></body>`);
+console.log('ok');
