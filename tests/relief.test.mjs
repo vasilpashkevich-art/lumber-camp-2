@@ -56,7 +56,7 @@ test('от стоянки купца достижимо всё: логова, ж
   const targets = [
     ...W.camps.flatMap(c => c.spawns.map(s => [c.name, s.x, s.y])),
     ...G.veins.map(v => ['жила ' + v.metal, v.x, v.y + 30]),
-    ...W.exits.map(e => ['выход ' + e.to, e.x + (e.x < 1000 ? 120 : -120), e.y]),
+    ...W.exits.map(e => e.temple ? ['врата ' + e.to, e.x, e.y + 80] : ['выход ' + e.to, e.x + (e.x < 1000 ? 120 : -120), e.y]),
     ...W.giants.map(g => ['великан', g.x, g.y + 60]),
   ];
   const bad = [];

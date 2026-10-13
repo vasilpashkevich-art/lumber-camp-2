@@ -69,7 +69,7 @@ export function createHud(In) {
     cool('#actAttack', P.cd, attackOf(h).cd); $('#actAttack').classList.toggle('auto', !!P.auto);
     $('#actPot .n').textContent = h.potions;
     // телефон: кнопка действия рядом с тем, что можно сделать (вместо клавиши E)
-    if (TOUCH) { const it = !P.dead && !P.mine && interactTarget(G), u = $('#actUse'), lab = it ? (it.k === 'corpse' ? 'Обыскать' : it.k === 'vein' ? 'Копать' : it.k === 'exit' ? 'В путь' : it.b.vendor ? 'Торговать' : it.b.bank ? 'Банк' : it.b.mentor ? 'Наставник' : it.b.guild || it.b.smelt ? 'Войти' : 'Осмотреть') : '';
+    if (TOUCH) { const it = !P.dead && !P.mine && interactTarget(G), u = $('#actUse'), lab = it ? (it.k === 'corpse' ? 'Обыскать' : it.k === 'vein' ? 'Копать' : it.k === 'exit' ? (it.e.temple ? 'Врата' : 'В путь') : it.b.vendor ? 'Торговать' : it.b.bank ? 'Банк' : it.b.mentor ? 'Наставник' : it.b.guild || it.b.smelt ? 'Войти' : 'Осмотреть') : '';
       u.hidden = !it; if (u.textContent !== lab) u.textContent = lab; $('#actSit').classList.toggle('on2', !!P.sit); }
     // аксессуар на клавише 1: значок меняется, когда надели другой
     const tr = h.eq.trinket, tk = tr ? tr.id : ''; const tb = $('#actTrinket');

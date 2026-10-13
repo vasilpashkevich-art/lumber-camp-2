@@ -11,6 +11,7 @@ import { house, inn, tavern, enchant, barn, miners, forge, farmstead, bank } fro
 import { vein, glint, outcrop } from '../art/ore.js';
 import { BAR_H } from '../art/beasts.js';
 import * as MF from '../art/mobfx.js';
+import { entrance as templeEntrance } from '../art/temple.js';
 import * as FOR from '../art/forest.js';
 import { drawFace, drawRim, drawRampWhole, softGlow, footShadow, TINT, poly as rpoly } from '../art/relief.js';
 import { GIANT, giantBase, giantUpper, giantCrown, giantShade } from '../art/giants.js';
@@ -112,7 +113,9 @@ function buildStatics(W) {
   }
   if (!gy.hidden) S.push({ y: gy.y + 110, label: gy.name, lx: gy.x, ly: gy.y - 110, draw: () => {} });
   // указатели на выходах
+  if (W.temple) { const T = W.temple, sp = sprite('temple', 760, 400, 380, 320, 1.5, g => templeEntrance(g, 0)); S.push({ y: T.y, x: T.x, oc: occ(sp, T.x, T.y), label: T.name, lx: T.x, ly: T.y - 330, draw: g => drawSpr(g, sp, T.x, T.y) }); }
   for (const e of W.exits) {
+    if (e.temple) continue;
     const sp = sprite('sign', 120, 110, 60, 90, 2, g => signpost(g));
     S.push({ y: e.y, draw: g => drawSpr(g, sp, e.x - 40, e.y), label: `${e.to} · ${e.lvl}`, lx: e.x - 40, ly: e.y - 100 });
   }
@@ -581,7 +584,7 @@ export function render(R, G, now) {
   if (P.goal && P.goal.k === 'ground') { c.strokeStyle = 'rgba(255,233,168,.8)'; c.lineWidth = 2; c.beginPath(); c.ellipse(P.goal.x, P.goal.y - lift(P.goal.x, P.goal.y), 14 + 3 * Math.sin(now / 150), 6, 0, 0, 7); c.stroke(); }
   // подсказка «E»
   const it = !P.dead && interactTarget(G);
-  if (it && !P.mine && !TOUCH) label(c, it.k === 'b' ? `E — ${it.b.name}` : it.k === 'exit' ? 'E — дорога' : it.k === 'vein' ? 'E — копать' : 'E — обыскать', P.x, P.y - 78 - hP, '#fff2a0', 14);   // на телефоне вместо надписи — кнопка действия
+  if (it && !P.mine && !TOUCH) label(c, it.k === 'b' ? `E — ${it.b.name}` : it.k === 'exit' ? (it.e.temple ? 'E — врата' : 'E — дорога') : it.k === 'vein' ? 'E — копать' : 'E — обыскать', P.x, P.y - 78 - hP, '#fff2a0', 14);   // на телефоне вместо надписи — кнопка действия
   // полоска копания
   if (P.mine) { const q = Math.min(1, P.mine.t / P.mine.max), x = P.x - 40, y = P.y - 86 - hP; c.fillStyle = 'rgba(20,14,8,.9)'; c.fillRect(x - 1, y - 1, 82, 10); c.fillStyle = '#e0a060'; c.fillRect(x, y, 80 * q, 8); label(c, ORES[P.mine.v.metal].ore, P.x, y - 5, '#ffe9a8', 13); }
   // всплывающие числа

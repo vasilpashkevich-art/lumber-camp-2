@@ -5,7 +5,7 @@ const TAU = Math.PI * 2, O = '#24180f';
 const rnd = s => { s = Math.abs(s | 0) || 1; return () => { s = (s * 16807) % 2147483647; return s / 2147483647; }; };
 const sh = (hex, k) => { const n = parseInt(hex.slice(1), 16), f = v => Math.max(0, Math.min(255, Math.round(k > 0 ? v + (255 - v) * k : v * (1 + k)))); return '#' + [(n >> 16) & 255, (n >> 8) & 255, n & 255].map(v => f(v).toString(16).padStart(2, '0')).join(''); };
 function hp(g, fn, fill, lw = 1.3) { g.beginPath(); fn(); if (fill) { g.fillStyle = fill; g.fill(); } if (lw) { g.strokeStyle = O; g.lineWidth = lw; g.stroke(); } }
-export const STONE = '#6f7a66', STONE_D = '#4a5444', STONE_L = '#8e9a84', MOSS = '#4e7a3a', WATER = '#2e5a66', FLOOR = '#5c665a', FLOOR_L = '#6f7a6a';
+export const STONE = '#66705c', STONE_D = '#3e4738', STONE_L = '#8a957e', MOSS = '#4e7a3a', WATER = '#2e5a66', FLOOR = '#5c665a', FLOOR_L = '#6f7a6a';
 
 /** Мох по краю: пятна полукругом внизу прямоугольника. */
 function mossEdge(g, x, y, w, seed, n = 8, up = false) { const r = rnd(seed); g.fillStyle = MOSS; for (let i = 0; i < n; i++) { const px = x + r() * w, rx = 4 + r() * 8; g.beginPath(); g.ellipse(px, y, rx, rx * 0.5, 0, up ? Math.PI : 0, up ? TAU : Math.PI); g.fill(); } }
@@ -82,27 +82,52 @@ export function chest(g, x, y, open = false) { hp(g, () => g.rect(x - 16, y - 16
 /** Костёр возрождения в предбаннике: кольцо камней, огонь, жабий знак на полу. */
 export function restFire(g, x, y, t) { glyph(g, x, y + 2, 26, 'rgba(184,168,96,.35)'); const r = rnd(7); for (let i = 0; i < 9; i++) { const a = i / 9 * TAU; hp(g, () => g.ellipse(x + Math.cos(a) * 20, y + Math.sin(a) * 9, 4 + r() * 2, 3, a, 0, TAU), STONE_D, 1); } for (let i = 0; i < 3; i++) hp(g, () => { g.moveTo(x - 14 + i * 6, y - 2); g.lineTo(x + 8 + i * 4, y - 8 - i * 2); }, null, 2.6); const f = Math.sin(t * 9) * 2; g.fillStyle = '#ff9a3a'; g.beginPath(); g.moveTo(x - 9, y - 4); g.quadraticCurveTo(x - 4 + f, y - 20, x + f * 0.5, y - 30); g.quadraticCurveTo(x + 6 - f, y - 18, x + 9, y - 4); g.closePath(); g.fill(); g.fillStyle = '#ffe08a'; g.beginPath(); g.moveTo(x - 4, y - 4); g.quadraticCurveTo(x + f * 0.4, y - 14, x, y - 20); g.quadraticCurveTo(x + 4, y - 12, x + 4, y - 4); g.closePath(); g.fill(); const gl = g.createRadialGradient(x, y - 14, 2, x, y - 14, 110); gl.addColorStop(0, 'rgba(255,170,70,.35)'); gl.addColorStop(1, 'rgba(255,170,70,0)'); g.fillStyle = gl; g.fillRect(x - 110, y - 124, 220, 220); }
 
-/** Вход в храм во впадине: врезан в каменный склон. Начало — середина порога у земли. */
+/** Вход в Храм квакунов (v76): монументальный фасад, врезанный в скалу впадины. Начало — порог врат у земли.
+ *  Врата 2,4 роста (100), статуи жаб 1,5 роста, фасад ≈ 560 в ширину и 300 в высоту со скалой. */
 export function entrance(g, t = 0) {
-  // склон за входом
-  // склон впадины: ярусы скалы с травой на уступах, фасад врезан в нижний ярус
-  const r = rnd(11), band = (y0, dy, col) => { hp(g, () => { g.moveTo(-290, y0); for (let x = -290; x <= 290; x += 36) g.lineTo(x, y0 - dy - (x > -170 && x < 170 ? 0 : 0) + Math.sin(x * 0.11) * 6 + (r() - 0.5) * 6); g.lineTo(290, y0 + 60); g.lineTo(-290, y0 + 60); g.closePath(); }, col, 1.4); };
-  band(-120, 50, '#4a5446'); band(-70, 40, '#55604e'); band(-20, 36, '#5e6a56');
-  g.fillStyle = 'rgba(78,122,58,.6)'; for (let i = 0; i < 50; i++) { const px = -280 + r() * 560, py = -175 + r() * 170; if (px > -165 && px < 165 && py > -175) continue; g.beginPath(); g.ellipse(px, py, 6 + r() * 12, 3 + r() * 5, r() * 3, 0, TAU); g.fill(); }
-  g.strokeStyle = 'rgba(36,24,15,.35)'; g.lineWidth = 1.2; for (let i = 0; i < 24; i++) { const px = -280 + r() * 560, py = -160 + r() * 150; if (px > -160 && px < 160) continue; g.beginPath(); g.moveTo(px, py); g.lineTo(px + 10 + r() * 20, py + 8 + r() * 12); g.stroke(); }
-  // фасад
-  masonry(g, -150, -130, 300, 130, STONE, 5, 18);
-  hp(g, () => g.rect(-150, -130, 300, 130), null, 1.6);
-  hp(g, () => { g.moveTo(-165, -130); g.lineTo(0, -170); g.lineTo(165, -130); g.closePath(); }, sh(STONE, 0.06), 1.5); // фронтон
-  glyph(g, 0, -142, 16, '#b8a860'); mossEdge(g, -150, -130, 300, 6, 10);
-  // проём
-  doorway(g, 0, 0, 64, 92, true);
-  for (const sx of [-1, 1]) column(g, sx * 60, 0, 112, 20, 3);
-  for (const sx of [-1, 1]) toadStatue(g, sx * 150, 10, 0.95);
-  for (const sx of [-1, 1]) brazier(g, sx * 104, 6, t);
-  // ступени к порогу
-  for (let i = 0; i < 4; i++) hp(g, () => g.rect(-90 - i * 14, i * 9, 180 + i * 28, 9), i % 2 ? STONE : STONE_L, 1.1);
-  // вода у подножия с кувшинками
-  g.fillStyle = WATER; g.beginPath(); g.ellipse(-190, 50, 70, 22, 0, 0, TAU); g.ellipse(200, 54, 60, 18, 0, 0, TAU); g.fill();
-  g.fillStyle = '#5a9a4a'; for (const [px, py] of [[-210, 48], [-170, 56], [190, 50], [220, 58]]) { g.beginPath(); g.ellipse(px, py, 9, 5, 0, 0.3, TAU - 0.3); g.fill(); }
+  const r = rnd(76);
+  // ---- скала за фасадом: три уступа, трещины, корни и мох
+  const crag = (y0, h, col, seed) => { const q = rnd(seed); hp(g, () => { g.moveTo(-360, y0 + 40); g.lineTo(-360, y0); for (let x = -360; x <= 360; x += 28) g.lineTo(x, y0 - h * (0.7 + q() * 0.3) + Math.sin(x * 0.07 + seed) * 8); g.lineTo(360, y0); g.lineTo(360, y0 + 40); g.closePath(); }, col, 1.5); };
+  crag(-230, 60, '#38423a', 3); g.fillStyle = 'rgba(0,0,0,.18)'; g.fillRect(-360, -230, 720, 14); crag(-170, 60, '#434f42', 5); g.fillRect(-360, -170, 720, 14); crag(-110, 70, '#4c594a', 7); g.fillRect(-360, -110, 720, 14); crag(-40, 50, '#556252', 9);
+  g.save(); g.beginPath(); g.rect(-360, -300, 720, 320); g.clip();
+  g.strokeStyle = 'rgba(30,22,14,.45)'; g.lineWidth = 1.4; for (let i = 0; i < 40; i++) { const px = -350 + r() * 700, py = -280 + r() * 260; if (px > -300 && px < 300 && py > -270) continue; g.beginPath(); g.moveTo(px, py); g.lineTo(px + 8 + r() * 16, py + 10 + r() * 16); g.lineTo(px + 4 + r() * 10, py + 24 + r() * 14); g.stroke(); }
+  g.fillStyle = 'rgba(78,122,58,.55)'; for (let i = 0; i < 70; i++) { const px = -350 + r() * 700, py = -290 + r() * 270; if (px > -290 && px < 290 && py > -265) continue; g.beginPath(); g.ellipse(px, py, 5 + r() * 12, 3 + r() * 5, r() * 3, 0, TAU); g.fill(); }
+  g.restore();
+  // ---- фасад: нижний ярус (колоннада), верхний ярус (фриз), фронтон
+  const X = 280, Y1 = -150, Y2 = -240;
+  masonry(g, -X, Y1, 2 * X, 150, STONE, 5, 20);
+  masonry(g, -X + 20, Y2, 2 * X - 40, 90, sh(STONE, 0.05), 6, 18);
+  hp(g, () => g.rect(-X, Y1, 2 * X, 150), null, 1.8); hp(g, () => g.rect(-X + 20, Y2, 2 * X - 40, 90), null, 1.8);
+  hp(g, () => g.rect(-X - 10, Y1 - 12, 2 * X + 20, 12), STONE_L, 1.4);   // карниз между ярусами
+  hp(g, () => g.rect(-X + 10, Y2 - 10, 2 * X - 20, 10), STONE_L, 1.4);   // карниз верхний
+  hp(g, () => { g.moveTo(-X + 4, Y2 - 10); g.lineTo(0, Y2 - 70); g.lineTo(X - 4, Y2 - 10); g.closePath(); }, sh(STONE, 0.1), 1.8);   // фронтон
+  // фриз: жабьи знаки в нишах
+  for (let i = -3; i <= 3; i++) { if (i === 0) continue; const x = i * 68; hp(g, () => g.roundRect(x - 20, Y2 + 18, 40, 48, 4), sh(STONE, -0.18), 1.1); glyph(g, x, Y2 + 44, 12, '#c0ac5c'); }
+  // большой знак на фронтоне и во лбу верхнего яруса
+  glyph(g, 0, Y2 - 32, 20, '#d0bc68'); hp(g, () => g.roundRect(-26, Y2 + 14, 52, 56, 5), sh(STONE, -0.22), 1.2); toadRelief(g, 0, Y2 + 68, 0.5);
+  // колоннада: по две колонны с каждой стороны, между ними ниши с факелами
+  for (const x of [-220, -130, 130, 220]) column(g, x, 0, 150, 26, 4);
+  for (const sx of [-1, 1]) { const x = sx * 175; hp(g, () => { g.moveTo(x - 16, -30); g.lineTo(x - 16, -100); g.arc(x, -100, 16, Math.PI, 0); g.lineTo(x + 16, -30); g.closePath(); }, '#1a201a', 1.3); torchAt(g, x, -74, t); }
+  // врата: арка 2,4 роста, косяки с резьбой, тьма внутри с зеленоватым светом
+  const GW = 64, GH = 100;
+  hp(g, () => { g.moveTo(-GW / 2 - 14, 0); g.lineTo(-GW / 2 - 14, -GH + 10); g.arc(0, -GH + 10, GW / 2 + 14, Math.PI, 0); g.lineTo(GW / 2 + 14, 0); g.closePath(); }, STONE_L, 1.6);
+  const dg = g.createLinearGradient(0, -GH, 0, 0); dg.addColorStop(0, '#0c100c'); dg.addColorStop(0.7, '#101810'); dg.addColorStop(1, '#1a2a1e');
+  hp(g, () => { g.moveTo(-GW / 2, 0); g.lineTo(-GW / 2, -GH + 10); g.arc(0, -GH + 10, GW / 2, Math.PI, 0); g.lineTo(GW / 2, 0); g.closePath(); }, dg, 1.4);
+  const gl = g.createRadialGradient(0, -20, 4, 0, -20, 60); gl.addColorStop(0, 'rgba(120,200,150,.22)'); gl.addColorStop(1, 'rgba(120,200,150,0)'); g.fillStyle = gl; g.fillRect(-40, -80, 80, 80);
+  for (let i = 0; i < 7; i++) { const a = Math.PI + i * Math.PI / 6; glyph(g, Math.cos(a) * (GW / 2 + 7), -GH + 10 + Math.sin(a) * (GW / 2 + 7), 4.5, '#9a8a4a'); }   // знаки по дуге
+  // статуи жаб у лестницы — 1,5 роста
+  for (const sx of [-1, 1]) toadStatue(g, sx * 118, 46, 1.35);
+  // лестница: 5 ступеней вниз от порога, расширяется
+  for (let i = 0; i < 5; i++) hp(g, () => g.rect(-70 - i * 12, i * 10, 140 + i * 24, 10), i % 2 ? STONE : STONE_L, 1.2);
+  // жаровни по краям лестницы
+  for (const sx of [-1, 1]) brazier(g, sx * 150, 56, t);
+  // жабы-водомёты у подножия: вода льётся в канавки и лужи
+  for (const sx of [-1, 1]) { const x = sx * 260, y = -4; hp(g, () => g.ellipse(x, y - 10, 14, 10, 0, 0, TAU), STONE_D, 1.2); glyph(g, x, y - 12, 6, '#9a8a4a'); g.strokeStyle = 'rgba(160,220,230,.75)'; g.lineWidth = 3; g.beginPath(); g.moveTo(x, y - 2); g.quadraticCurveTo(x, y + 14, x - sx * 6, y + 26); g.stroke(); g.fillStyle = WATER; g.beginPath(); g.ellipse(x - sx * 10, y + 34, 44, 14, 0, 0, TAU); g.fill(); g.fillStyle = '#5a9a4a'; g.beginPath(); g.ellipse(x - sx * 20, y + 32, 8, 4.5, 0, 0.3, TAU - 0.3); g.fill(); }
+  // корни и лианы поверх камня
+  g.strokeStyle = '#4a3a24'; g.lineWidth = 2.4; for (const [x0, y0, x1, y1] of [[-X, Y2 - 6, -X + 50, Y1 + 40], [X, Y2, X - 40, Y1 + 60], [-120, Y2 - 10, -90, Y2 + 70]]) { g.beginPath(); g.moveTo(x0, y0); g.quadraticCurveTo((x0 + x1) / 2 + 20, (y0 + y1) / 2, x1, y1); g.stroke(); }
+  g.fillStyle = 'rgba(78,122,58,.6)'; for (let i = 0; i < 30; i++) { const px = -X + r() * 2 * X, py = Y2 - 8 + r() * 230; if (Math.abs(px) < GW / 2 + 16 && py > -GH - 4) continue; g.beginPath(); g.ellipse(px, py, 3 + r() * 7, 2 + r() * 3, r() * 3, 0, TAU); g.fill(); }
 }
+/** Факел в нише. */
+function torchAt(g, x, y, t) { hp(g, () => g.rect(x - 2.5, y, 5, 26), '#3a2e22', 0.9); const f = Math.sin(t * 10 + x) * 2; g.fillStyle = '#ff9a3a'; g.beginPath(); g.moveTo(x - 5, y); g.quadraticCurveTo(x + f, y - 18, x + 5, y); g.fill(); g.fillStyle = '#ffe08a'; g.beginPath(); g.moveTo(x - 2.5, y); g.quadraticCurveTo(x + f * 0.5, y - 10, x + 2.5, y); g.fill(); const gl = g.createRadialGradient(x, y - 4, 2, x, y - 4, 70); gl.addColorStop(0, 'rgba(255,170,70,.32)'); gl.addColorStop(1, 'rgba(255,170,70,0)'); g.fillStyle = gl; g.fillRect(x - 70, y - 74, 140, 140); }
+/** Барельеф жабьей морды (в стене). */
+function toadRelief(g, x, y, s) { g.save(); g.translate(x, y); g.scale(s, s); const col = sh(STONE, -0.08); hp(g, () => { g.moveTo(-40, 0); g.bezierCurveTo(-44, -40, 44, -40, 40, 0); g.quadraticCurveTo(0, 14, -40, 0); g.closePath(); }, col, 1.4); for (const sx of [-1, 1]) { hp(g, () => g.arc(sx * 18, -22, 10, 0, TAU), col, 1.2); g.fillStyle = '#2a3a28'; g.beginPath(); g.arc(sx * 18, -22, 4.5, 0, TAU); g.fill(); } g.strokeStyle = O; g.lineWidth = 1.4; g.beginPath(); g.moveTo(-28, 0); g.quadraticCurveTo(0, 8, 28, 0); g.stroke(); g.restore(); }
