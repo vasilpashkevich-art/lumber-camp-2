@@ -38,7 +38,7 @@ export const PINE = {
       { id: 'miners', name: 'Гильдия рудокопов', dx: 420, dy: 480, col: 92, art: 'miners', guild: true, smelt: true, note: 'Горное дело' },
       { id: 'enchant', name: 'Мастерская чар', dx: -560, dy: -280, col: 76, art: 'enchant', note: 'Зачарование — скоро' },
       { id: 'bank', name: 'Банк', dx: 640, dy: 190, col: 92, art: 'bank', bank: true, note: 'Банкир Евстафий' }, { id: 'h2', name: 'Наставник', dx: -640, dy: 230, col: 68, art: 'house', v: 0, mentor: true, note: 'Наставник Ратибор: сброс талантов' },
-      { id: 'h3', dx: 230, dy: 660, col: 68, art: 'house', v: 1 }, { id: 'h4', dx: -230, dy: 660, col: 68, art: 'house', v: 2 },
+      { id: 'herbal', name: 'Лавка травницы', dx: 230, dy: 660, col: 84, art: 'herbal', alchemy: true, note: 'Травница Агафья: травничество и алхимия' }, { id: 'h4', dx: -230, dy: 660, col: 68, art: 'house', v: 2 },
     ],
     // убранство: деревья, клумбы, фонари (смещения от центра)
     trees: [[212, -212, 1], [-212, -212, 1], [212, 212, 3], [-212, 212, 3], [470, -560, 1], [-470, -560, 1], [700, -120, 3], [-700, -150, 3], [560, 650, 1], [-560, 650, 1]],
@@ -81,6 +81,11 @@ export const PINE = {
     { metal: 'copper', x: 2300, y: 4350, r: 380, n: 2 }, { metal: 'copper', x: 5300, y: 4400, r: 320, n: 1 }, { metal: 'copper', x: 7300, y: 2200, r: 320, n: 1 },
     { metal: 'copper', x: 600, y: 2300, r: 320, n: 1 },
   ],
+  // области трав (v84; на карте не видны): серебролист — у опушек и тропинок, по 2–3 куста в области
+  herbs: [
+    { herb: 'silverleaf', x: 2000, y: 1500, r: 500, n: 3 }, { herb: 'silverleaf', x: 4600, y: 1900, r: 500, n: 3 }, { herb: 'silverleaf', x: 6600, y: 1700, r: 450, n: 2 },
+    { herb: 'silverleaf', x: 3400, y: 3900, r: 500, n: 3 }, { herb: 'silverleaf', x: 6200, y: 3800, r: 450, n: 2 }, { herb: 'silverleaf', x: 1200, y: 3300, r: 420, n: 2 },
+  ],
 };
 
 // Хуторские угодья (ур. 6–10): к югу от Соснового дола. Поля, хутора, река с двумя мостами, старая мельница.
@@ -94,7 +99,7 @@ export const FARMS = {
   village: {
     name: 'Хутор Подгорный', x: 3000, y: 1050, R: 430,
     buildings: [
-      { id: 'inn', name: 'Постоялый двор', dx: -170, dy: -110, col: 96, art: 'inn', note: 'Отдых: здоровье восстанавливается быстро' },
+      { id: 'inn', name: 'Постоялый двор', dx: -170, dy: -110, col: 96, art: 'inn', brew: true, note: 'Отдых: здоровье восстанавливается быстро. В трактире есть котёл — варить зелья' },
       { id: 'market', name: 'Лавка', dx: 190, dy: -70, col: 60, art: 'stall', vendor: true, jewel: { good: 1800, rare: 5000 } },
       { id: 'barn', name: 'Амбар', dx: 110, dy: 200, col: 92, art: 'barn', note: 'Здесь хутор держит зерно и сено' },
       { id: 'house1', dx: 330, dy: 175, col: 68, art: 'house', v: 1 },
@@ -150,6 +155,11 @@ export const FARMS = {
   ore: [
     { metal: 'tin', x: 900, y: 600, r: 420, n: 2 }, { metal: 'tin', x: 6900, y: 650, r: 420, n: 1 }, { metal: 'tin', x: 7200, y: 2950, r: 380, n: 1 },
     { metal: 'tin', x: 3200, y: 4450, r: 380, n: 2 }, { metal: 'tin', x: 700, y: 3200, r: 380, n: 1 }, { metal: 'copper', x: 4300, y: 2900, r: 320, n: 1 },
+  ],
+  // травы (v84): полынь по межам и пустошам, немного серебролиста у входа
+  herbs: [
+    { herb: 'wormwood', x: 1800, y: 1800, r: 520, n: 3 }, { herb: 'wormwood', x: 5200, y: 1500, r: 500, n: 3 }, { herb: 'wormwood', x: 6400, y: 3600, r: 480, n: 2 },
+    { herb: 'wormwood', x: 2600, y: 3800, r: 500, n: 3 }, { herb: 'wormwood', x: 4600, y: 4300, r: 420, n: 2 }, { herb: 'silverleaf', x: 3600, y: 600, r: 420, n: 2 },
   ],
   // с обычных мобов — белые и иногда зелёные; с Мельника — зелёная или синяя (25%)
   loot: { chance: 0.08, rarity: [['common', 85], ['good', 15]], rare: [['good', 75], ['rare', 25]] },
@@ -210,6 +220,11 @@ export const SHROOM = {
   ore: [
     { metal: 'tin', x: K(1000), y: K(800), r: 380, n: 2 }, { metal: 'tin', x: K(2700), y: K(1900), r: 320, n: 1 }, { metal: 'tin', x: K(700), y: K(4200), r: 300, n: 1 }, { metal: 'tin', x: K(4300), y: K(700), r: 340, n: 1 },
     { metal: 'iron', x: K(5000), y: K(3700), r: 300, n: 1 }, { metal: 'iron', x: 8150, y: 820, r: 300, n: 2 }, { metal: 'iron', x: K(7300), y: K(3300), r: 320, n: 1 }, { metal: 'iron', x: K(5600), y: K(2650), r: 300, n: 1 }, { metal: 'iron', x: K(3400), y: K(4500), r: 300, n: 1 }, { metal: 'iron', x: 9050, y: 880, r: 260, n: 1 },
+  ],
+  // травы (v84): светлячковый гриб во мху долины и низины, полынь ближе к входу
+  herbs: [
+    { herb: 'glowcap', x: K(2300), y: K(2500), r: 520, n: 3 }, { herb: 'glowcap', x: K(4500), y: K(3600), r: 500, n: 3 }, { herb: 'glowcap', x: K(5900), y: K(1800), r: 480, n: 2 },
+    { herb: 'glowcap', x: K(3000), y: K(4300), r: 450, n: 2 }, { herb: 'glowcap', x: K(6800), y: K(3900), r: 450, n: 2 }, { herb: 'wormwood', x: K(1000), y: K(1700), r: 420, n: 2 },
   ],
   // рельеф (v71): области — уровень (0 — равнина), soft — откос в пол яруса (проходим везде), без soft — каменный обрыв
   relief: {

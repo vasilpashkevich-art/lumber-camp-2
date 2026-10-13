@@ -2,7 +2,7 @@
 // Без рисования. Состояние жил хранится в герое (h.veins[зона]), чтобы не появлялись заново при каждом входе.
 import { ORES, MINE, GEMS, veinColor } from '../../data/mining.js';
 import { LOOT } from '../../data/balance.js';
-import { makeStack, makePick } from './items.js';
+import { makeStack, makePick, isStackKind } from './items.js';
 import { dist } from '../engine/util.js';
 
 const emit = (G, e) => G.ev.push(e);
@@ -85,7 +85,7 @@ export function mineTick(G, dt) {
 }
 
 // ---------------------------------------------------------------- стопки
-const isStack = it => it && (it.kind === 'ore' || it.kind === 'bar' || it.kind === 'gem');
+const isStack = it => isStackKind(it);
 const freePos = H => { for (let p = 0; p < LOOT.bag; p++) if (!H.bag.some(x => x.pos === p)) return p; return -1; };
 /** Положить стопку: сперва в неполные такие же, остаток — в свободные ячейки. Возвращает, сколько не влезло. */
 export function addStack(H, st) {
@@ -96,7 +96,7 @@ export function addStack(H, st) {
 }
 /** Сколько всего такой руды/слитков в сумке. */
 export const countOf = (H, kind, metal) => H.bag.reduce((s, it) => s + (isStack(it) && it.kind === kind && it.metal === metal ? it.n : 0), 0);
-function takeStack(H, kind, metal, n) {
+export function takeStack(H, kind, metal, n) {
   for (const it of H.bag.slice().sort((a, b) => a.n - b.n)) { if (n <= 0) break; if (isStack(it) && it.kind === kind && it.metal === metal) { const k = Math.min(n, it.n); it.n -= k; n -= k; if (it.n <= 0) H.bag.splice(H.bag.indexOf(it), 1); } }
 }
 

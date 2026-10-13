@@ -7,7 +7,10 @@ import { palette } from '../art/gear.js';
 import { field, river as riverArt, bridge, haystack, millBase, millBlades, well } from '../art/farmland.js';
 import { BLD } from '../art/bld.js';
 import { castle, stairs, brazierFire, paving, roundPlaza, ringPath, fountain, lamp, flowerbed, terrace, wallSeg, roundTower, merlons, cone } from '../art/castle.js';
-import { house, inn, tavern, enchant, barn, miners, forge, farmstead, bank } from '../art/houses.js';
+import { house, inn, tavern, enchant, barn, miners, forge, farmstead, bank, herbal } from '../art/houses.js';
+import { bush, herbGlint, pickLeaves, herbBurst, drinkFx } from '../art/herbs.js';
+import { HERBS, HERBAL } from '../../data/herbs.js';
+import { herbSkill, skillColor } from '../systems/herbs.js';
 import { vein, glint, outcrop } from '../art/ore.js';
 import { BAR_H } from '../art/beasts.js';
 import * as MF from '../art/mobfx.js';
@@ -95,9 +98,9 @@ function buildStatics(W) {
     market: () => stallSpr(), stall: () => stallSpr(), cart: () => cartSpr(),
     forge: () => big('forge', forge), tavern: () => big('tavern', tavern), miners: () => big('miners', miners, 420),
     enchant: () => big('enchant', enchant), inn: () => big('inn', inn), barn: () => big('barn', barn), bank: () => big('bank', bank),
-    house: v => big('house' + v, g => house(g, v)),
+    house: v => big('house' + v, g => house(g, v)), herbal: () => big('herbal', herbal),
   };
-  const LBL = { bank: 205, castle: 455, market: 105, stall: 105, cart: 110, forge: 170, tavern: 210, miners: 200, enchant: 210, inn: 230, barn: 190 };
+  const LBL = { herbal: 185, bank: 205, castle: 455, market: 105, stall: 105, cart: 110, forge: 170, tavern: 210, miners: 200, enchant: 210, inn: 230, barn: 190 };
   for (const b of W.houses) {
     const sp = ART[b.art] ? ART[b.art](b.v || 0) : null;
     S.push({ y: b.y, oc: sp && occ(sp, b.x, b.y), draw: g => sp && drawSpr(g, sp, b.x, b.y), label: b.name, lx: b.x, ly: b.y - (LBL[b.art] || 120) });
@@ -459,7 +462,7 @@ function canopy(Rd, c, G, x0, y0, zw, zh, t) {
 // ---------------------------------------------------------------- кадр
 let R_PARTS = null, EXEC = 0;
 /** Эффекты над фигурами (v73): взрывы, удары, вспышки. thirst — от тела к герою (в мировых координатах). */
-const OVER = { venom: MF.venom, sporeBurst: MF.sporeBurst, curseHit: MF.curseHit, impact: V.impact, explosion: V.explosion, frostHit: V.frostHit, bloodHit: V.bloodHit, critBurst: V.critBurst, igniteFlash: V.igniteFlash, trapSnap: V.trapSnap, thirst: V.thirst };
+const OVER = { venom: MF.venom, sporeBurst: MF.sporeBurst, curseHit: MF.curseHit, impact: V.impact, explosion: V.explosion, frostHit: V.frostHit, bloodHit: V.bloodHit, critBurst: V.critBurst, igniteFlash: V.igniteFlash, trapSnap: V.trapSnap, thirst: V.thirst, herbPick: herbBurst, drink: drinkFx };
 export function render(R, G, now) {
   const { ctx: c, cv } = R, W = G.W, P = G.P; R_PARTS = R.parts;
   if (R.W !== W) { R.W = W; R.chunks.clear(); R.statics = buildStatics(W); }
@@ -515,6 +518,7 @@ export function render(R, G, now) {
   for (const tr of treesIn(W, x0 - 150, y0 - 60, x0 + zw + 150, y0 + zh + 240)) L.push({ y: tr.y, tree: tr });
   for (const k of G.corpses) if (vis(k.x, k.y)) L.push({ y: k.y - 1, corpse: k });
   for (const gi of W.giants || []) if (vis(gi.x, gi.y, 300)) { const Gd = GIANT[gi.kind], sp = sprite('gbase|' + gi.kind + '|' + gi.s, Gd.trunkW * 4, Gd.low + 40, Gd.trunkW * 2, Gd.low + 20, 1.6, g => giantBase(g, gi.kind, gi.s)); L.push({ y: gi.y, x: gi.x, draw: g => drawSpr(g, sp, gi.x, gi.y) }); }
+  for (const v of G.plants || []) if ((!v.at || v.at <= G.t) && vis(v.x, v.y)) { const sp = sprite('herb|' + v.herb + '|' + (v.s % 4), 60, 50, 30, 40, 2, gg => bush(gg, v.herb, v.s % 4 + 1)); L.push({ y: v.y, x: v.x, draw: (g, t) => { drawSpr(g, sp, v.x, v.y); g.save(); g.translate(v.x, v.y); herbGlint(g, v.herb, t, v.s % 7); g.restore(); } }); }
   for (const v of G.veins || []) if ((!v.at || v.at <= G.t) && vis(v.x, v.y)) { const sp = sprite('vein|' + v.metal + '|' + (v.s % 5), 110, 90, 55, 70, 2, gg => vein(gg, v.metal, v.s % 5 + 1)); L.push({ y: v.y, x: v.x, oc: occ(sp, v.x, v.y), draw: (g, t) => { drawSpr(g, sp, v.x, v.y); g.save(); g.translate(v.x, v.y); glint(g, v.metal, t, v.s % 7); g.restore(); } }); }
   for (const m of G.mobs) if (m.state !== 'dead' && vis(m.x, m.y)) L.push({ y: m.y, mob: m });
   L.push({ y: P.y, hero: true });
@@ -580,6 +584,7 @@ export function render(R, G, now) {
   for (const s of R.statics) if (s.label && vis(s.lx, s.ly, 100)) { const sx = (s.lx - x0) * z, sy = (s.ly - y0) * z; if (bar && sx > bar.left - 90 && sx < bar.right + 90 && sy > bar.top - 14) continue; label(c, s.label, s.lx, s.ly - lift(s.lx, s.y), '#ffe9a8', 15); }
   // название жилы вблизи — цветом по навыку (как в WoW)
   for (const v of G.veins || []) if ((!v.at || v.at <= G.t) && dist(v.x, v.y, P.x, P.y) < 320 && !(P.mine && P.mine.v === v)) { const col = MINE.colorHex[miningSkill(G.hero) ? veinColor(miningSkill(G.hero), ORES[v.metal].req).c : 'gray']; label(c, ORES[v.metal].vein, v.x, v.y + 22 - lift(v.x, v.y), col, 13); }
+  for (const v of G.plants || []) if ((!v.at || v.at <= G.t) && dist(v.x, v.y, P.x, P.y) < 260) { const col = MINE.colorHex[herbSkill(G.hero) ? skillColor(herbSkill(G.hero), HERBS[v.herb].req).c : 'gray']; label(c, HERBS[v.herb].name, v.x, v.y + 18 - lift(v.x, v.y), col, 12); }
   // таблички над мобами
   for (const m of G.mobs) if (m.state !== 'dead' && vis(m.x, m.y) && (m === P.target || m.state === 'chase' || m.hp < m.max || dist(m.x, m.y, P.x, P.y) < 260)) { const mh = lift(m.x, m.y); if (mh) { c.save(); c.translate(0, -mh); plate(c, G, m); c.restore(); } else plate(c, G, m); }
   // кто гонится за героем из-за края экрана — красный уголок у края (v67: при сильном приближении стрелков не видно)
@@ -594,9 +599,10 @@ export function render(R, G, now) {
   if (P.goal && P.goal.k === 'ground') { c.strokeStyle = 'rgba(255,233,168,.8)'; c.lineWidth = 2; c.beginPath(); c.ellipse(P.goal.x, P.goal.y - lift(P.goal.x, P.goal.y), 14 + 3 * Math.sin(now / 150), 6, 0, 0, 7); c.stroke(); }
   // подсказка «E»
   const it = !P.dead && interactTarget(G);
-  if (it && !P.mine && !TOUCH) label(c, it.k === 'b' ? `E — ${it.b.name}` : it.k === 'exit' ? (it.e.temple ? 'E — врата' : it.e.door ? 'E — выход' : 'E — дорога') : it.k === 'vein' ? 'E — копать' : 'E — обыскать', P.x, P.y - 78 - hP, '#fff2a0', 14);   // на телефоне вместо надписи — кнопка действия
+  if (it && !P.mine && !P.gather && !TOUCH) label(c, it.k === 'b' ? `E — ${it.b.name}` : it.k === 'exit' ? (it.e.temple ? 'E — врата' : it.e.door ? 'E — выход' : 'E — дорога') : it.k === 'vein' ? 'E — копать' : it.k === 'plant' ? 'E — собрать' : 'E — обыскать', P.x, P.y - 78 - hP, '#fff2a0', 14);   // на телефоне вместо надписи — кнопка действия
   // полоска копания
   if (P.mine) { const q = Math.min(1, P.mine.t / P.mine.max), x = P.x - 40, y = P.y - 86 - hP; c.fillStyle = 'rgba(20,14,8,.9)'; c.fillRect(x - 1, y - 1, 82, 10); c.fillStyle = '#e0a060'; c.fillRect(x, y, 80 * q, 8); label(c, ORES[P.mine.v.metal].ore, P.x, y - 5, '#ffe9a8', 13); }
+  if (P.gather) { const q = Math.min(1, P.gather.t / P.gather.max), x = P.x - 40, y = P.y - 86 - hP; c.fillStyle = 'rgba(20,14,8,.9)'; c.fillRect(x - 1, y - 1, 82, 10); c.fillStyle = '#9ad87a'; c.fillRect(x, y, 80 * q, 8); label(c, HERBS[P.gather.v.herb].name, P.x, y - 5, '#ffe9a8', 13); }
   // всплывающие числа
   for (const f of R.floats) { f.t -= 1 / 60; f.y -= 32 / 60; c.globalAlpha = Math.min(1, f.t * 2); label(c, f.s, f.x, f.y, f.col, f.big ? 22 : 15, true); }
   c.globalAlpha = 1; R.floats = R.floats.filter(f => f.t > 0);
@@ -663,7 +669,7 @@ const PICK_P = palette('common', 11);
 function drawHero(c, G, look, t) {
   const P = G.P;
   // куда смотрит: при ударе и рывке — на цель, иначе — куда шёл
-  const aim = P.atkT > 0 || P.dash || P.mine, dx = aim ? Math.cos(P.face) : P.mvx, dy = aim ? Math.sin(P.face) : P.mvy;
+  const aim = P.atkT > 0 || P.dash || P.mine || P.gather, dx = aim ? Math.cos(P.face) : P.mvx, dy = aim ? Math.sin(P.face) : P.mvy;
   const view = viewOf8(dx, dy), dir = sideways(view) ? (Math.abs(dx) > 0.05 ? (dx < 0 ? -1 : 1) : P.dir) : 1;
   const mode = P.dead ? 'dead' : (P.atkT > 0 || P.mine) ? 'atk' : (P.moving || P.dash) ? 'walk' : 'idle';
   const f = mode === 'dead' ? frameOf('dead', P.deadT / 0.7) : mode === 'atk' ? frameOf('atk', P.mine ? (P.mine.t / 0.6) % 1 : 1 - P.atkT / P.atkDur) : mode === 'walk' ? frameOf('walk', (P.step / 3) % 1) : 0;
@@ -688,6 +694,7 @@ function drawHero(c, G, look, t) {
   if (B.berserk > 0) V.berserkAura(c, P.x, P.y + 3, t + 0.5, Math.min(1, B.berserk / 0.5) * 0.3, 9);
   if (P.poison) { c.fillStyle = 'rgba(120,220,80,.6)'; for (let i = 0; i < 3; i++) c.fillRect(P.x - 10 + i * 9, P.y - 60 - ((t * 40 + i * 13) % 20), 3, 3); }
   if (P.mine) mineSparks(c, P);
+  if (P.gather) pickLeaves(c, P.gather.v, P, P.gather.t / P.gather.max, HERBS[P.gather.v.herb].col);
 }
 
 // искры и каменная крошка в миг удара киркой (каждый удар — своя россыпь)

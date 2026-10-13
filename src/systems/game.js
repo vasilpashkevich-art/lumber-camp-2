@@ -7,9 +7,11 @@ import { TRINKETS } from '../../data/trinkets.js';
 import { NEW_ABILS } from '../../data/talents.js';
 import { hasTal } from './talents.js';
 import { heroStats, addXp, attackOf } from '../entities/hero.js';
-import { rollDrop, makeTrinket, makeItem } from './items.js';
+import { rollDrop, makeTrinket, makeItem, isStackKind, makeStack } from './items.js';
 import { MINE } from '../../data/mining.js';
 import { initVeins, veinNear, startMine, stopMine, mineTick, addStack } from './mining.js';
+import { initPlants, plantNear, startGather, stopGather, herbTick, drinkLast, elixirMods } from './herbs.js';
+import { HERBAL } from '../../data/herbs.js';
 import { moveTo, inCity } from '../world/world.js';
 import { LH, nextWaypoint } from '../world/relief.js';
 import { dist, clamp, money } from '../engine/util.js';
@@ -23,12 +25,12 @@ export function createGame(hero, W, opts = {}) {
       x: start.x, y: start.y, hp: hero.hp == null ? st.maxHp : Math.min(hero.hp, st.maxHp), face: 0, dir: 1,
       cd: 0, acd: {}, potCd: 0, target: null, sit: false, dash: null, atkT: 0, atkDur: 0.35, mvx: 0, mvy: 1, deadT: 0, lastCombat: -99, weak: 0, poison: null, slow: 0,
       whirl: 0, whirlT: 0, volley: 0, swing: 0, shot: 0, dead: false, moving: false, hurt: 0, step: 0,
-      mine: null, auto: null, goal: null, tcd: 0, buf: { stone: 0, rage: 0, wind: 0, thorns: 0, berserk: 0 }, berExt: 0, whirlR: 92, whirlMax: 1.2,
+      mine: null, gather: null, auto: null, goal: null, tcd: 0, buf: { stone: 0, rage: 0, wind: 0, thorns: 0, berserk: 0 }, berExt: 0, whirlR: 92, whirlMax: 1.2,
     },
     mobs: [], shots: [], ev: [], fx: [], corpses: [], corpseSeq: 0, areas: [], traps: [], fxSeq: 1,
   };
   if (G.P.hp <= 0) G.P.hp = Math.round(st.maxHp * 0.5);
-  initVeins(G);
+  initVeins(G); initPlants(G);
   for (const camp of W.camps) for (const s of camp.spawns) {
     const m = spawnMob(G, s, camp);
     const at = hero.dead[s.key];
@@ -93,11 +95,11 @@ export function update(G, dt, I) {
     const m = Math.hypot(mx, my);
     if (m > 1) { mx /= m; my /= m; }
     P.moving = m > 0.05 && !P.dash;
-    if (P.moving || I.attack || I.attackTap || I.ability || I.ability2 || I.ability3 || I.ability4) { P.sit = false; if (P.mine) stopMine(G); }
+    if (P.moving || I.attack || I.attackTap || I.ability || I.ability2 || I.ability3 || I.ability4) { P.sit = false; if (P.mine) stopMine(G); if (P.gather) stopGather(G); }
     if (I.sit) { if (P.sit) P.sit = false; else if (G.t - P.lastCombat < 1.5) emit(G, { k: 'toast', s: 'В бою не присесть', id: 'sit' }); else P.sit = true; }
     if (P.dash) dashTick(G, dt);
     else if (P.moving) {
-      const sp = HERO.speed * (P.slow > 0 && !(P.buf.berserk > 0) ? 0.6 : 1) * (P.whirl > 0 ? 0.8 : 1) * (P.buf.wind > 0 ? 1.5 : 1);
+      const sp = HERO.speed * (P.slow > 0 && !(P.buf.berserk > 0) ? 0.6 : 1) * (P.whirl > 0 ? 0.8 : 1) * (P.buf.wind > 0 ? 1.5 : 1) * elixirMods(G.hero).speed;
       [P.x, P.y] = moveTo(G.W, P.x, P.y, P.x + mx * sp * dt, P.y + my * sp * dt);
       if (Math.abs(mx) > 0.1) P.dir = mx < 0 ? -1 : 1;
       P.step += dt * sp / 40; P.mvx = mx; P.mvy = my;
@@ -116,18 +118,19 @@ export function update(G, dt, I) {
     // удар
     // удар: пробел один раз — автоатака по цели (v68), удержание — как раньше
     if (I.attackTap && !P.dash) startAuto(G);
-    if (P.auto && (!hostile(P.auto) || P.auto.gone || P.target !== P.auto || P.sit || P.mine)) P.auto = null;
+    if (P.auto && (!hostile(P.auto) || P.auto.gone || P.target !== P.auto || P.sit || P.mine || P.gather)) P.auto = null;
     if (P.cd <= 0 && !P.dash && !P.sit) { if (P.auto) autoSwing(G); else if (I.attack) heroAttack(G, false); }
     if (I.ability) useAbility(G, 0);
     if (I.ability2) useAbility(G, 1);
     if (I.ability3) useAbility(G, 2);
     if (I.ability4) useAbility(G, 4);
     if (I.potion) drinkPotion(G);
+    if (I.potion2) drinkLast(G);
     if (I.interact) interact(G);
     if (I.trinket) useTrinket(G);
     if (P.goal) goalArrive(G);
     abilityTick(G, dt);
-    mineTick(G, dt);
+    mineTick(G, dt); herbTick(G, dt);
   }
   for (const mob of G.mobs) mobTick(G, mob, dt);
   if (G.mobs.some(m => m.gone)) G.mobs = G.mobs.filter(m => !m.gone);
@@ -213,7 +216,7 @@ function strike(G, m, base, src, opt = {}) {
   const st = G.st, pen = (st.p ? st.p.pen : 0) / 100;
   let v = opt.flat ? base : base * (0.9 + G.rand() * 0.2) * (G.P.weak > 0 ? HERO.deathWeakMul : 1) * (1 - armorCut(m.armor * (1 - pen), H.lvl) * 0.5);
   if (!opt.flat) v *= heroDmgMul(G, m, opt);
-  let cc = st.crit ?? ITEM.baseCrit;
+  let cc = (st.crit ?? ITEM.baseCrit) + elixirMods(H).crit;
   if (passive(G, 'execute') && m.hp < m.max * (hasTal(H, 'aim') ? 0.5 : ABX(G, 'execute').below)) cc += ABX(G, 'execute').crit;   // Добивание
   const crit = !opt.noCrit && G.rand() < cc / 100; if (crit) { v *= ITEM.critMul; G.fx.push(fx(G, 'critBurst', m.x, m.y, 0.35)); }
   v = Math.max(1, v);
@@ -251,7 +254,7 @@ function killMob(G, m) {
   if (P.target === m) P.target = null;
   sfx(G, 'kill');
   // опыт
-  const xp = Math.round(xpKill(m.lvl, H.lvl, m.D.rare ? 3 : 1) * (G.W.Z.xpMul || 1));
+  const xp = Math.round(xpKill(m.lvl, H.lvl, m.D.rare ? 3 : 1) * (G.W.Z.xpMul || 1) * elixirMods(H).xp);
   if (xp) {
     const up = addXp(H, xp);
     emit(G, { k: 'txt', x: m.x, y: m.y - 46, s: `+${xp} опыта`, col: '#c8a0ff' });
@@ -306,6 +309,7 @@ const fx = (G, k, x, y, dur) => ({ k, x, y, t: dur, max: dur, seed: (G.fxSeq = (
 function heroDmgMul(G, m, opt) {
   let k = 1; const P = G.P, H = G.hero;
   if (P.buf.berserk > 0) k *= 1 + ABX(G, 'berserk').dmg;
+  k *= elixirMods(H).dmg;
   if (m.trapT > 0 && hasTal(H, 'thrill')) k *= 1.25;
   if (opt.fire && hasTal(H, 'frostfire') && (m.chill > 0 || m.frozen > 0)) k *= 2;
   return k;
@@ -488,6 +492,7 @@ export function whatAt(G, x, y, touch = false) {
   if (best) return { k: 'mob', m: best };
   for (const c of G.corpses) if (hasLoot(c) && dist(x, y, c.x, c.y) < 34 + pad) return { k: 'corpse', c, x: c.x, y: c.y };
   for (const v of G.veins || []) if ((!v.at || v.at <= G.t) && dist(x, y, v.x, v.y - 20) < 42 + pad) return { k: 'vein', v, x: v.x, y: v.y };
+  for (const v of G.plants || []) if ((!v.at || v.at <= G.t) && dist(x, y, v.x, v.y - 12) < 30 + pad) return { k: 'plant', v, x: v.x, y: v.y };
   for (const b of G.W.houses) if (b.name && dist(x, y, b.x, b.y - 30) < Math.max(70, (b.col || 50) * 1.4) + pad) return { k: 'b', b, x: b.x, y: b.y };
   for (const e of G.W.exits) if (dist(x, y, e.x, e.y) < 90 + pad) return { k: 'exit', e, x: e.x, y: e.y };
   return { k: 'ground', x, y };
@@ -509,6 +514,7 @@ function goalDest(G, g) {
   if (g.k === 'mob') { const m = g.m; if (m.state === 'dead' || m.state === 'return') return null; return [m.x, m.y, tier(G, P, m) ? Math.max(20, attackOf(G.hero).reach + m.r - 10) : 16]; }
   if (g.k === 'corpse') return hasLoot(g.c) ? [g.c.x, g.c.y, LOOT.lootR - 14] : null;
   if (g.k === 'vein') return [g.v.x, g.v.y, MINE.reach - 8];
+  if (g.k === 'plant') return [g.v.x, g.v.y, HERBAL.reach - 8];
   if (g.k === 'b') return [g.b.x, g.b.y + 40, 60];
   if (g.k === 'exit') return [g.e.x, g.e.y, 150];
   return [g.x, g.y, 10];
@@ -530,6 +536,7 @@ function goalArrive(G) {
   P.goal = null;
   if (g.k === 'corpse') { P.auto = null; emit(G, { k: 'lootOpen', c: g.c }); }
   else if (g.k === 'vein') { if ((!g.v.at || g.v.at <= G.t) && !P.mine) startMine(G, g.v); }
+  else if (g.k === 'plant') { if ((!g.v.at || g.v.at <= G.t) && !P.gather) startGather(G, g.v); }
   else if (g.k === 'b' || g.k === 'exit') doInteract(G, g);
 }
 
@@ -539,6 +546,7 @@ export function interactTarget(G) {
   for (const k of G.corpses) { if (!hasLoot(k)) continue; const d = dist(P.x, P.y, k.x, k.y); if (d < bd) { bd = d; best = k; } }
   if (best) return { k: 'corpse', c: best, x: best.x, y: best.y };
   const v = veinNear(G); if (v) return { k: 'vein', v, x: v.x, y: v.y };
+  const pl = plantNear(G); if (pl) return { k: 'plant', v: pl, x: pl.x, y: pl.y };
   for (const b of G.W.houses) { if (!b.name) continue; if (dist(P.x, P.y, b.x, b.y + 40) < 95) return { k: 'b', b, x: b.x, y: b.y }; }
   for (const e of G.W.exits) if (dist(P.x, P.y, e.x, e.y) < 220) return { k: 'exit', e, x: e.x, y: e.y };
   return null;
@@ -547,7 +555,8 @@ function interact(G) { const t = interactTarget(G); if (t) doInteract(G, t); }
 function doInteract(G, t) {
   if (t.k === 'corpse') { G.P.auto = null; emit(G, { k: 'lootOpen', c: t.c }); return; }
   if (t.k === 'vein') { if (G.P.mine) stopMine(G); else startMine(G, t.v); return; }
-  if (t.k === 'b') { if (t.b.vendor) emit(G, { k: 'vendor', b: t.b }); else if (t.b.bank) emit(G, { k: 'bank', b: t.b }); else if (t.b.mentor) emit(G, { k: 'mentor', b: t.b }); else if (t.b.guild) emit(G, { k: 'guild', b: t.b }); else if (t.b.smelt) emit(G, { k: 'smelt', b: t.b }); else emit(G, { k: 'toast', s: `${t.b.name}. ${t.b.note}`, id: 'bld' }); }
+  if (t.k === 'plant') { if (G.P.gather) stopGather(G); else startGather(G, t.v); return; }
+  if (t.k === 'b') { if (t.b.vendor) emit(G, { k: 'vendor', b: t.b }); else if (t.b.bank) emit(G, { k: 'bank', b: t.b }); else if (t.b.mentor) emit(G, { k: 'mentor', b: t.b }); else if (t.b.alchemy || t.b.brew) emit(G, { k: 'alchemy', b: t.b }); else if (t.b.guild) emit(G, { k: 'guild', b: t.b }); else if (t.b.smelt) emit(G, { k: 'smelt', b: t.b }); else emit(G, { k: 'toast', s: `${t.b.name}. ${t.b.note}`, id: 'bld' }); }
   if (t.k === 'exit') { if (t.e.zone) emit(G, { k: 'zone', e: t.e }); else if (t.e.temple) emit(G, { k: 'toast', s: t.e.door ? 'Врата подземелья заперты — откроются в следующих версиях' : 'Врата Храма квакунов заперты. Внутри тихо — подземелье откроется в следующих версиях', id: 'exit' }); else emit(G, { k: 'toast', s: `Дорога в ${t.e.to} (ур. ${t.e.lvl}) откроется в следующих версиях`, id: 'exit' }); }
 }
 
@@ -559,10 +568,11 @@ function hurtHero(G, v, m, dot) {
     if (p.dodge > 0 && G.rand() < p.dodge / 100) { emit(G, { k: 'txt', x: P.x, y: P.y - 60, s: 'уклонение', col: '#cfeaff' }); P.lastCombat = G.t; return; }
     if (p.block > 0 && G.rand() < p.block / 100) { emit(G, { k: 'txt', x: P.x, y: P.y - 60, s: 'блок', col: '#e8e0cc' }); P.lastCombat = G.t; sfx(G, 'hammer'); return; }
     if (P.buf.stone > 0) v *= 0.5;   // Каменное сердце
+    v *= elixirMods(G.hero).taken;   // Зелье стойкости
     if (P.buf.berserk > 0) v *= hasTal(G.hero, 'iron') ? 0.9 : 1 + ABX(G, 'berserk').taken;   // Ярость: открыт для ударов (Несокрушимость — наоборот)
     v *= (1 - armorCut(G.st.armor, G.hero.lvl)); P.hurt = 0.18; emit(G, { k: 'hdmg', v }); sfx(G, 'hurt');
     if (P.buf.thorns > 0 && m && m.state !== 'dead') strike(G, m, v * 0.3, 'thorns', { sure: true, noCrit: true, flat: true });   // Тотем шипов
-    if (P.mine) stopMine(G, 'Копать помешали');
+    if (P.mine) stopMine(G, 'Копать помешали'); if (P.gather) stopGather(G, 'Собирать помешали');
   }
   P.hp -= v; P.lastCombat = G.t; P.sit = false;
   if (P.hp <= 0) heroDie(G);
@@ -795,7 +805,7 @@ export function unequip(G, slot, pos = null) {
 const bagAt = (H, pos) => H.bag.find(x => x.pos === pos);
 export function freePos(H) { for (let p = 0; p < LOOT.bag; p++) if (!bagAt(H, p)) return p; return -1; }
 /** Положить вещь в сумку: в ячейку pos, если она свободна, иначе в первую свободную. */
-export function bagAdd(H, it, pos = null) { if (it.kind === 'ore' || it.kind === 'bar' || it.kind === 'gem') { addStack(H, it); return; } it.pos = pos != null && pos >= 0 && pos < LOOT.bag && !bagAt(H, pos) ? pos : freePos(H); H.bag.push(it); }
+export function bagAdd(H, it, pos = null) { if (isStackKind(it)) { addStack(H, it); return; } it.pos = pos != null && pos >= 0 && pos < LOOT.bag && !bagAt(H, pos) ? pos : freePos(H); H.bag.push(it); }
 /** Переложить вещь в ячейку pos; если там лежит другая — они меняются местами. */
 export function bagMove(G, it, pos) {
   const H = G.hero; if (!H.bag.includes(it) || pos < 0 || pos >= LOOT.bag || it.pos === pos) return;

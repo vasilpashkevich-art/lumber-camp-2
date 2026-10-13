@@ -3,6 +3,8 @@ import { GEAR_NAMES, MAIN_STAT_TO } from '../../data/classes.js';
 import { RAR_MUL, RAR_IDX, RAR_PROPS, LOOT, ITEM, PROPS } from '../../data/balance.js';
 import { TRINKETS } from '../../data/trinkets.js';
 import { ORES, GEMS } from '../../data/mining.js';
+import { HERBS } from '../../data/herbs.js';
+import { POTIONS, ALCH } from '../../data/alchemy.js';
 import { weighted, uid, rng } from '../engine/util.js';
 import { pickModel, modelOf, itemLook, seedOf } from '../art/gear.js';
 
@@ -112,7 +114,13 @@ export function makeTrinket(cls, ilvl, rar = 'rare', r = Math.random, id = null)
 export const TRINKET = id => TRINKETS.find(t => t.id === id);
 
 /** Руда или слиток стопкой: kind — 'ore' | 'bar', metal — copper/tin. price — за штуку. */
+export const STACK_KINDS = ['ore', 'bar', 'gem', 'herb', 'potion', 'flask'];
+export const isStackKind = it => !!it && STACK_KINDS.includes(it.kind);
 export function makeStack(kind, metal, n = 1) {
+  // v84: травы, зелья и склянки — тоже стопками; metal — id травы или зелья
+  if (kind === 'herb') return { id: uid(), kind, metal, n, name: HERBS[metal].name, rar: HERBS[metal].rare ? 'good' : 'common', price: HERBS[metal].price };
+  if (kind === 'potion') return { id: uid(), kind, metal, n, name: POTIONS[metal].name, rar: POTIONS[metal].req >= 125 ? 'rare' : POTIONS[metal].req >= 50 ? 'good' : 'common', price: POTIONS[metal].price || 0 };
+  if (kind === 'flask') return { id: uid(), kind, metal: 'flask', n, name: 'Пустая склянка', rar: 'common', price: ALCH.flaskSell };
   if (kind === 'gem') return { id: uid(), kind, metal, n, name: GEMS[metal].name, rar: metal === 'emerald' ? 'rare' : metal === 'amethyst' ? 'good' : 'common', price: GEMS[metal].price };
   const O = ORES[metal];
   return { id: uid(), kind, metal, n, name: kind === 'ore' ? O.ore : O.bar, rar: 'common', price: kind === 'ore' ? O.oreP : O.barP };
@@ -146,6 +154,9 @@ export function itemLines(it) {
   if (it.kind === 'bar') return [['t', 'Слиток. Пока его можно продать — позже из слитков будет ковать кузнец'], ['n', `В стопке: ${it.n} из ${LOOT.stack}`]];
   if (it.kind === 'gem') return [['t', 'Самоцвет. Пока его можно продать — позже из самоцветов будут гранить камни для вещей'], ['n', `В стопке: ${it.n} из ${LOOT.stack}`]];
   if (it.kind === 'tool') return [['t', 'Нужна, чтобы копать руду. Достаточно держать в сумке']];
+  if (it.kind === 'herb') { const Hb = HERBS[it.metal]; return [['t', Hb.d], ['w', `Где растёт: ${Hb.where}. Для алхимии`], ['n', `В стопке: ${it.n} из ${LOOT.stack}`]]; }
+  if (it.kind === 'potion') { const Po = POTIONS[it.metal]; return [['ab', Po.d, true], ['k', `${Po.kind === 'battle' ? 'Боевое' : 'Защитное'} зелье — действует по одному каждого рода, новое заменяет прежнее. Клавиша 2 — выпить последнее выбранное`], ['n', `В стопке: ${it.n} из ${LOOT.stack}`]]; }
+  if (it.kind === 'flask') return [['t', 'Пустая склянка — в неё алхимик наливает зелье. Продают все торговцы'], ['n', `В стопке: ${it.n} из ${LOOT.stack}`]];
   if (it.trinket) { const T = TRINKET(it.trinket); return [['ab', T.passive ? `Срабатывает само: ${T.d}` : `Клавиша 1: ${T.d}`, true], ['cd', `Перезарядка ${T.cd >= 120 ? T.cd / 60 + ' мин' : T.cd + ' с'}`], ['ilvl', `Уровень вещи: ${it.ilvl}`]]; }
   const f = v => String(v).replace('.', ',');
   if (it.dmg) L.push(['dmg', `Урон: ${f(it.dmg)}`]);

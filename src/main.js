@@ -11,7 +11,7 @@ import { soundInit, sfx, music, setSound, soundState } from './engine/audio.js';
 import { showSelect } from './ui/select.js';
 import { createHud } from './ui/hud.js';
 import { talentRows, talentFree } from './systems/talents.js';
-import { openChar, openVendor, openMenu, showDeath, hideTip, openLoot, openAbils, openGuild, openSmelt, openBank } from './ui/windows.js';
+import { openChar, openVendor, openMenu, showDeath, hideTip, openLoot, openAbils, openGuild, openSmelt, openBank, openProf } from './ui/windows.js';
 import { openMap, miniZoom, miniZoomLevel, MINI_Z } from './ui/map.js';
 import { doll } from './art/body.js';
 import { spriteClear, spriteStats } from './art/sprites.js';
@@ -22,7 +22,7 @@ import { dist } from './engine/util.js';
 import { $, toast, zoneTitle, TOUCH, T } from './ui/dom.js';
 import { RAR_COL } from '../data/balance.js';
 
-const VERSION = 83;
+const VERSION = 84;
 /** Приближение камеры на шаг: +1 ближе, −1 дальше. */
 let zoomT = 0;
 function zoomBy(d) {
@@ -55,6 +55,7 @@ function boot() {
     if (code === 'Escape') { menu(); return false; }
     if (code === 'KeyI' || code === 'KeyB') { charWin(); return false; }
     if (code === 'KeyK') { mapWin(); return false; }
+    if (code === 'KeyP') { profWin(); return false; }
     if (code === 'Equal' || code === 'NumpadAdd') { zoomBy(1); return false; }
     if (code === 'Minus' || code === 'NumpadSubtract') { zoomBy(-1); return false; }
     if (code === 'KeyM') { setSound(!soundState().on); toast(soundState().on ? 'Звук включён' : 'Звук выключен', '', 'snd'); return false; }
@@ -64,7 +65,7 @@ function boot() {
   const miniBtns = () => { const z = miniZoomLevel(); for (const b of document.querySelectorAll('#miniZ button')) b.disabled = +b.dataset.z > 0 ? z >= MINI_Z.length - 1 : z <= 0; };
   for (const b of document.querySelectorAll('#miniZ button')) b.onclick = e => { e.stopPropagation(); miniZoom(+b.dataset.z); miniBtns(); };
   miniBtns();
-  $('#btnBag').onclick = () => charWin(); $('#btnMenu').onclick = () => menu(); $('#btnMap').onclick = () => mapWin(); $('#mini').onclick = () => mapWin(); $('#pfRing').onclick = () => { if (G && !document.querySelector('.modal')) devWin(); };
+  $('#btnBag').onclick = () => charWin(); $('#btnMenu').onclick = () => menu(); $('#btnMap').onclick = () => mapWin(); $('#btnProf').onclick = () => profWin(); $('#mini').onclick = () => mapWin(); $('#pfRing').onclick = () => { if (G && !document.querySelector('.modal')) devWin(); };
   $('#ver').textContent = 'версия ' + VERSION;
   if (location.hash === '#dev') window.__G = { get G() { return G; }, start, toSelect, R: () => R, rollDrop, makeItem, doll, makeTrinket, makeStack, makePick, addStack, refresh: () => { refreshStats(G); hud.update(); }, spriteStats };
   toSelect();
@@ -111,6 +112,7 @@ function keepShared() { if (G && G.sharedDirty && G.shared) { saveShared(G.share
 
 function charWin() { if (!G) return; openChar(G, () => hud.update()); }
 function mapWin() { if (!G || document.querySelector('.modal')) return; openMap(G); }
+function profWin(opts = {}) { if (!G) return; const m = document.querySelector('.modal'); if (m) { if (m.querySelector('.box').isProf) m.querySelector('.box').close(); return; } openProf(G, () => hud.update(), opts); }
 let lootWin = null;
 function menu() { if (!G) return; paused = true; const m = openMenu({ inGame: true, onExit: () => toSelect() }); const oc = m.onclose; m.onclose = () => { paused = false; oc && oc(); }; }
 
@@ -133,6 +135,7 @@ function frame(now) {
     if (e.k === 'mentor' && !document.querySelector('.modal')) devWin(true);
     if (e.k === 'bank' && !document.querySelector('.modal')) { const bm = openBank(G, () => hud.update()), oc = bm.onclose; bm.onclose = () => { oc && oc(); persist(); }; }
     if (e.k === 'smelt' && !document.querySelector('.modal')) openSmelt(G, () => hud.update());
+    if (e.k === 'alchemy' && !document.querySelector('.modal')) profWin({ teach: !!e.b.alchemy, brew: true, tab: 'alchemy' });
     if (e.k === 'skill') toast(e.s, 'good', 'skill');
     if (e.k === 'zone') { goZone(e.e); break; }
     if (e.k === 'lootOpen' && !document.querySelector('.modal')) { lootWin = openLoot(G, e.c, () => hud.update()); const oc = lootWin.onclose; lootWin.onclose = () => { lootWin = null; oc && oc(); }; }

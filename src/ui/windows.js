@@ -2,8 +2,11 @@
 import { CLASSES, SLOTS, SLOTS_L, SLOTS_R, SLOT_NAME, MAIN_STAT } from '../../data/classes.js';
 import { ORES, MINE, veinColor } from '../../data/mining.js';
 import { learnMining, buyPick, smelt, countOf, miningSkill, hasPick } from '../systems/mining.js';
+import { HERBS, HERBAL } from '../../data/herbs.js';
+import { POTIONS, ALCH, KIND_NAME } from '../../data/alchemy.js';
+import { herbSkill, alchSkill, skillColor, learnHerbal, learnAlchemy, buyFlask, brew, canBrew, drinkElixir } from '../systems/herbs.js';
 import { RAR_COL, RAR_NAME, LOOT, armorCut, PROPS } from '../../data/balance.js';
-import { itemIcon, anyIcon, accIcon, moneyHtml } from './icons.js';
+import { itemIcon, anyIcon, accIcon, moneyHtml, potionIcon } from './icons.js';
 import { itemLines, itemNums, lookOf } from '../systems/items.js';
 import { compareItem } from '../entities/hero.js';
 import { stashPut, stashTake, stashMove, stashSwap, stashMaterials, store } from '../systems/bank.js';
@@ -40,7 +43,7 @@ const num = v => (v > 0 ? '+' : '−') + String(Math.abs(Math.round(v * 10) / 10
 /** Одна карточка вещи (для подсказки). */
 function card(it, G, head = '') {
   const wrong = it.cls !== G.hero.cls ? `<p class="bad">Не для вашего класса</p>` : '';
-  const kind = it.kind === 'ore' ? 'Руда' : it.kind === 'bar' ? 'Слиток' : it.kind === 'gem' ? 'Самоцвет' : it.kind === 'tool' ? 'Инструмент' : `${RAR_NAME[it.rar]} · ${SLOT_NAME[it.slot]}`;
+  const kind = it.kind === 'ore' ? 'Руда' : it.kind === 'bar' ? 'Слиток' : it.kind === 'gem' ? 'Самоцвет' : it.kind === 'tool' ? 'Инструмент' : it.kind === 'herb' ? 'Трава' : it.kind === 'flask' ? 'Склянка' : it.kind === 'potion' ? `Зелье · ${KIND_NAME[POTIONS[it.metal].kind]}` : `${RAR_NAME[it.rar]} · ${SLOT_NAME[it.slot]}`;
   return `<div class="tcard">${head}<b style="color:${RAR_COL[it.rar]}">${it.name}${it.n > 1 ? ` <span class="cnt">× ${it.n}</span>` : ''}</b><small>${kind}</small>${itemLines(it).map(([k, t, prop]) => `<p class="${prop ? 'prop' : ''}">${t}</p>`).join('')}${it.slot ? wrong : ''}${it.cost ? `<p class="gold">Купить: ${moneyHtml(it.cost)}</p>` : ''}${it.price && !it.cost ? `<p class="gold">Цена у торговца: ${moneyHtml(it.price * (it.n || 1))}${it.n > 1 ? ` <small>(${moneyHtml(it.price)} за штуку)</small>` : ''}</p>` : ''}</div>`;
 }
 /** Что изменится, если надеть: построчно и итог. */
@@ -57,7 +60,7 @@ function tip(e, it, G, worn) {
   if (!tipEl) { tipEl = el('div', 'tip'); document.body.append(tipEl); }
   if (!it) { tipEl.hidden = true; return; }
   const cur = it.slot ? G.hero.eq[it.slot] : null, same = cur && cur.id === it.id;
-  const act = worn ? '<p class="hint2">Нажмите, чтобы снять</p>' : '';
+  const act = worn ? '<p class="hint2">Нажмите, чтобы снять</p>' : it.kind === 'potion' ? '<p class="hint2">Нажмите, чтобы выпить</p>' : '';
   const main = card(it, G, act).replace(/<\/div>$/, (same || it.cls !== G.hero.cls ? '' : diffHtml(it, G)) + '</div>');
   const other = !same && cur && it.cls === G.hero.cls ? card(cur, G, '<p class="hint2">Сейчас надето</p>') : '';
   tipEl.innerHTML = main + other; tipEl.classList.toggle('two', !!other);
@@ -96,13 +99,13 @@ export function openChar(G, onChange) {
     const rows = statRows(h, st);
     m.querySelector('.stats').innerHTML = rows.map((r, i) => `<dt>${r.label}${r.help ? `<span class="si" data-i="${i}">i</span>` : ''}</dt><dd>${r.val}</dd>`).join('') + `<dt>Деньги</dt><dd>${moneyHtml(h.gold)}</dd><dt>Зелья</dt><dd>${h.potions}</dd>`;
     for (const b of m.querySelectorAll('.stats .si')) { const r = rows[+b.dataset.i]; if (TOUCH) b.onclick = e => { e.stopPropagation(); helpTip(e, r.label, r.help); }; else { b.onmouseenter = e => helpTip(e, r.label, r.help); b.onmouseleave = hideTip; } }
-    const sk = miningSkill(h);
-    m.querySelector('.skillb').innerHTML = sk ? `<div class="skrow"><span>Горное дело</span><span>${sk} / ${MINE.cap}</span></div><div class="skbar"><i style="width:${sk / MINE.cap * 100}%"></i></div>` : `<p class="hint">Горное дело можно выучить в Гильдии рудокопов в Столице.</p>`;
+    const PR = [['Горное дело', miningSkill(h), MINE.cap], ['Травничество', herbSkill(h), HERBAL.cap], ['Алхимия', alchSkill(h), ALCH.cap]].filter(x => x[1]);
+    m.querySelector('.skillb').innerHTML = PR.length ? PR.map(([n, sk, cap]) => `<div class="skrow"><span>${n}</span><span>${sk} / ${cap}</span></div><div class="skbar"><i style="width:${sk / cap * 100}%"></i></div>`).join('') : `<p class="hint">Профессии учат в Столице: горное дело — в Гильдии рудокопов, травничество и алхимию — у травницы.</p>`;
     m.querySelector('.cnt').textContent = `${h.bag.length} / ${LOOT.bag}`;
     const bag = m.querySelector('.bag'); bag.innerHTML = '';
     for (let i = 0; i < LOOT.bag; i++) {
       const it = h.bag.find(x => x.pos === i), b = cell(it, it ? upMark(it, G) : '');
-      if (it) { hov(b, e => tip(e, it, G)); onItem(b, G, it, it.slot ? 'Надеть' : null, () => { equip(G, it); onChange(); draw(); }); drag(b, { it }); }
+      if (it) { hov(b, e => tip(e, it, G)); onItem(b, G, it, it.slot ? 'Надеть' : it.kind === 'potion' ? 'Выпить' : null, () => { if (it.kind === 'potion') drinkElixir(G, it); else equip(G, it); onChange(); draw(); }); drag(b, { it }); }
       drop(b, src => { if (src.it) bagMove(G, src.it, i); else if (src.eq) { const cur = h.bag.find(x => x.pos === i); if (cur && cur.slot === src.eq) equip(G, cur); else if (!cur) unequip(G, src.eq, i); } });
       bag.append(b);
     }
@@ -169,6 +172,10 @@ export function openVendor(G, onChange, shop = null) {
     const b = el('button', 'ware', `<span class="ic"></span><span><b>Зелье здоровья</b><small>+40% здоровья, снимает яд. У вас: ${h.potions} из 10</small></span><span class="pr">${moneyHtml(p)}</span>`);
     b.querySelector('.ic').innerHTML = `<svg viewBox="0 0 32 32" width="40" height="40"><rect x="13" y="3" width="6" height="6" fill="#c9a06a" stroke="#24180f"/><path d="M12 9h8v4l5 6v6a4 4 0 0 1-4 4H11a4 4 0 0 1-4-4v-6l5-6z" fill="#e8e0cc" stroke="#24180f"/><path d="M8 19h16v6a4 4 0 0 1-4 4H12a4 4 0 0 1-4-4z" fill="#d8323a"/></svg>`;
     b.onclick = () => { buyPotion(G); onChange(); draw(); }; buy.append(b);
+    // v84: пустые склянки для алхимии
+    const fl = el('button', 'ware', `<span class="ic">${accIcon('flask', 'common', 40)}</span><span><b>Пустая склянка</b><small>Для зелий алхимика. У вас: ${countOf(h, 'flask', 'flask')}</small></span><span class="pr">${moneyHtml(ALCH.flaskPrice)} <small>· 5 за ${moneyHtml(ALCH.flaskPrice * 5)}</small></span>`);
+    fl.onclick = () => { buyFlask(G, 1); onChange(); draw(); }; fl.oncontextmenu = e => { e.preventDefault(); buyFlask(G, 5); onChange(); draw(); }; buy.append(fl);
+    const fl5 = el('button', 'btn fl5', 'Купить 5 склянок'); fl5.onclick = () => { buyFlask(G, 5); onChange(); draw(); }; buy.append(fl5);
     // бижутерия: меняется каждые 30 минут игры, синяя — редко
     const S = shop && shopStock(G, shop);
     if (S) {
@@ -346,3 +353,53 @@ export function showDeath(G, onDone) {
 
 // телефон: пояснение к характеристике закрывается касанием в любом другом месте
 if (TOUCH && typeof addEventListener !== 'undefined') addEventListener('pointerdown', e => { if (!(e.target.closest && e.target.closest('.si'))) hideTip(); }, true);
+
+/** Профессии (v84): кнопка P — вкладки по выученным профессиям. opts.teach — у травницы (учит травничество и алхимию), opts.brew — рядом котёл (можно варить), opts.tab — какую открыть. */
+export function openProf(G, onChange, opts = {}) {
+  const h = G.hero, COLN = { none: 'не изучено', red: 'рано', orange: 'оранжевая', yellow: 'жёлтая', green: 'зелёная', gray: 'серая' };
+  const who = opts.teach ? `<p class="who">Травница Агафья: «Трава, путник, растёт у всякой тропы — только знать надо, какую рвать. А выучишься варить — сам себе и лекарь, и силач».</p>` : opts.brew ? `<p class="who">Котёл кипит — можно варить зелья.</p>` : '';
+  const m = modal(`<h2>Профессии</h2>${who}<div class="learn"></div><div class="tabs"></div><div class="pbody"></div>`, 'wide profwin');
+  let tab = opts.tab || null;
+  const skbar = (n, sk, cap) => `<div class="skillb"><div class="skrow"><span>${n}</span><span>${sk} / ${cap}</span></div><div class="skbar"><i style="width:${sk / cap * 100}%"></i></div></div>`;
+  const leg = `<p class="hint">Цвет: ${['orange', 'yellow', 'green', 'gray'].map(c => `<span style="color:${MINE.colorHex[c]}">●</span> ${{ orange: 'оранжевый — навык растёт всегда', yellow: 'жёлтый — часто', green: 'зелёный — редко', gray: 'серый — не растёт' }[c]}`).join(', ')}.</p>`;
+  const draw = () => {
+    const sm = miningSkill(h), sh = herbSkill(h), sa = alchSkill(h);
+    const L = m.querySelector('.learn'); L.innerHTML = '';
+    if (opts.teach && !(TOUCH && sh && sa)) {
+      for (const [id, n, sk, fn, d] of [['herbal', 'Травничество', sh, learnHerbal, 'Собирать травы у троп и опушек. Учу бесплатно.'], ['alchemy', 'Алхимия', sa, learnAlchemy, 'Варить зелья из трав и склянок. Учу бесплатно.']]) {
+        const r = el('div', 'ware2', `${id === 'herbal' ? accIcon('herb_silverleaf', 'common', 44) : potionIcon('strength', 'common', 44)}<div><b>${n}</b><small>${sk ? `Навык: ${sk} / 150` : d}</small></div><button class="btn" ${sk ? 'disabled' : ''}>${sk ? 'Изучено' : 'Выучить'}</button>`);
+        r.querySelector('.btn').onclick = () => { fn(G); onChange(); draw(); }; L.append(r);
+      }
+    }
+    const tabs = [['mining', 'Горное дело', sm], ['herbal', 'Травничество', sh], ['alchemy', 'Алхимия', sa]].filter(t => t[2]);
+    const T_ = m.querySelector('.tabs'), B = m.querySelector('.pbody');
+    if (!tabs.length) { T_.innerHTML = ''; B.innerHTML = `<p class="hint">Профессий пока нет. Горное дело учат в Гильдии рудокопов, травничество и алхимию — у травницы (дом у южных ворот Столицы). Профессии — приработок к охоте: руда, травы и зелья.</p>`; return; }
+    if (!tab || !tabs.some(t => t[0] === tab)) tab = tabs[0][0];
+    T_.innerHTML = tabs.map(t => `<button class="tab ${t[0] === tab ? 'on' : ''}" data-t="${t[0]}">${t[1]} <span class="c1">${t[2]}</span></button>`).join('');
+    for (const b of T_.querySelectorAll('.tab')) b.onclick = () => { tab = b.dataset.t; draw(); };
+    B.innerHTML = '';
+    if (tab === 'mining') {
+      B.innerHTML = skbar('Горное дело', sm, MINE.cap) + `<table class="ores"><tr><th>Руда</th><th>Где</th><th>Нужно</th><th>Сейчас</th></tr>${Object.values(ORES).map(O => { const c = veinColor(sm, O.req).c; return `<tr><td>${O.ore}</td><td>${O.where || 'Сосновый дол'}</td><td>${O.req}</td><td style="color:${MINE.colorHex[c] || '#a89878'}">${COLN[c]}</td></tr>`; }).join('')}</table>` + leg + `<p class="hint">${hasPick(h) ? 'Кирка в сумке.' : 'Кирки нет — её продают в Гильдии рудокопов.'} ${T('Подойдите к жиле и нажмите E — 3 секунды копать.', 'Коснитесь жилы — герой подойдёт и выкопает.')} Плавка 2 руды → слиток — в кузницах и в Гильдии.</p>`;
+    } else if (tab === 'herbal') {
+      B.innerHTML = skbar('Травничество', sh, HERBAL.cap) + `<table class="ores"><tr><th>Трава</th><th>Где</th><th>Нужно</th><th>Сейчас</th><th>В сумке</th></tr>${Object.entries(HERBS).map(([k, Hb]) => { const c = Hb.rare ? 'none' : skillColor(sh, Hb.req).c; return `<tr><td><span style="color:${Hb.col}">●</span> ${Hb.name}</td><td>${Hb.where}</td><td>${Hb.rare ? '—' : Hb.req}</td><td style="color:${MINE.colorHex[c] || '#a89878'}">${Hb.rare ? `${Math.round(HERBAL.rare * 100)}% с любой` : COLN[c]}</td><td>${countOf(h, 'herb', k)}</td></tr>`; }).join('')}</table>` + leg + `<p class="hint">Травы растут кустиками у троп, опушек и во мху — на карте не отмечены, ищите по пути: серебристая искорка видна издалека. ${T('Подойдите и нажмите E — 2 секунды собирать.', 'Коснитесь куста — герой подойдёт и соберёт.')} Собранный куст вырастает через 4–8 минут в другом месте. Инструмент не нужен.</p>`;
+    } else {
+      const fl = countOf(h, 'flask', 'flask');
+      B.innerHTML = skbar('Алхимия', sa, ALCH.cap) + `<p class="hint2">Склянок в сумке: <b>${fl}</b> — продают все торговцы по ${moneyHtml(ALCH.flaskPrice)}. ${opts.brew ? 'Котёл рядом — можно варить.' : '<b>Варить можно у котла</b>: у травницы в Столице или в трактире Хутора Подгорного.'} Зелья: боевое и защитное действуют по одному, новое заменяет прежнее.</p><div class="recipes"></div>` + leg;
+      const R_ = B.querySelector('.recipes');
+      for (const [id, R] of Object.entries(POTIONS)) {
+        const c = skillColor(sa, R.req, ALCH.colors).c, n = canBrew(h, id), ok = sa >= R.req && n > 0 && opts.brew;
+        const mats = Object.entries(R.mats).map(([hb, k]) => { const have = countOf(h, 'herb', hb); return `<span style="color:${have >= k ? '#9ad87a' : '#e07a6a'}">${k} × ${HERBS[hb].name.toLowerCase()} (${have})</span>`; }).join(', ') + `, <span style="color:${fl ? '#9ad87a' : '#e07a6a'}">склянка</span>`;
+        const r = el('div', 'ware2', `${potionIcon(id, R.heal ? 'common' : R.req >= 125 ? 'rare' : R.req >= 50 ? 'good' : 'common', 44)}<div><b style="color:${MINE.colorHex[c] || '#a89878'}">${R.name}</b> <small>${R.heal ? 'лечебное' : KIND_NAME[R.kind]} · алхимия ${R.req}</small><small>${R.d}</small><small>${mats}</small></div><button class="btn" data-x="one" ${ok ? '' : 'disabled'}>Сварить</button><button class="btn" data-x="all" ${ok && n > 1 ? '' : 'disabled'}>Всё (${n})</button>`);
+        r.querySelector('[data-x=one]').onclick = () => { brew(G, id, 1); onChange(); draw(); };
+        r.querySelector('[data-x=all]').onclick = () => { brew(G, id, 999); onChange(); draw(); };
+        R_.append(r);
+      }
+    }
+  };
+  m.isProf = true;
+  const onKey = e => { if (e.code === 'KeyP' && !e.repeat) { e.preventDefault(); e.stopPropagation(); m.close(); } };
+  addEventListener('keydown', onKey, true);
+  const oc = () => removeEventListener('keydown', onKey, true);
+  if (opts.teach || opts.brew) closeOnE(m, oc); else m.onclose = () => { hideTip(); oc(); };
+  draw(); return m;
+}

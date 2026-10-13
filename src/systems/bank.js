@@ -2,10 +2,11 @@
 // (G.shared.items, 32 ячейки; хранится отдельно от героев — save.js). Без рисования: только перекладывание вещей.
 import { LOOT } from '../../data/balance.js';
 import { freePos } from './game.js';
+import { isStackKind } from './items.js';
 
 const emit = (G, e) => G.ev.push(e);
 const sfx = (G, n) => G.ev.push({ k: 'sfx', n });
-export const isStack = it => !!it && (it.kind === 'ore' || it.kind === 'bar' || it.kind === 'gem');
+export const isStack = it => isStackKind(it);
 const sameStack = (a, b) => isStack(a) && isStack(b) && a.kind === b.kind && a.metal === b.metal;
 
 /** Хранилище по имени: 'bank' — личный банк героя, 'shared' — общий сундук. */

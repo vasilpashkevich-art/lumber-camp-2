@@ -70,6 +70,7 @@ function sign(g, x, y, kind) {
   hp(g, () => g.rect(x + 8, y + 2, 26, 22), '#c9a06a', 1.4);
   if (kind === 'mug') { hp(g, () => g.rect(x + 14, y + 8, 11, 12), '#e8d8a8', 1.1); hp(g, () => g.arc(x + 26, y + 14, 4, -1.4, 1.4), null, 1.4); g.fillStyle = '#fff'; g.fillRect(x + 14, y + 6, 11, 3); }
   if (kind === 'pick') { g.strokeStyle = O; g.lineWidth = 2; g.beginPath(); g.moveTo(x + 12, y + 20); g.lineTo(x + 30, y + 6); g.moveTo(x + 30, y + 20); g.lineTo(x + 12, y + 6); g.stroke(); hp(g, () => { g.moveTo(x + 9, y + 9); g.quadraticCurveTo(x + 13, y + 3, x + 18, y + 6); }, null, 2.4); hp(g, () => { g.moveTo(x + 33, y + 9); g.quadraticCurveTo(x + 29, y + 3, x + 24, y + 6); }, null, 2.4); }
+  if (kind === 'leaf') { hp(g, () => { g.moveTo(x + 13, y + 20); g.quadraticCurveTo(x + 10, y + 8, x + 28, y + 5); g.quadraticCurveTo(x + 30, y + 18, x + 13, y + 20); }, '#6ab060', 1); g.strokeStyle = '#c8f0b0'; g.lineWidth = 0.8; g.beginPath(); g.moveTo(x + 14, y + 19); g.lineTo(x + 26, y + 7); g.stroke(); }
   if (kind === 'bed') { hp(g, () => g.rect(x + 12, y + 12, 18, 7), '#e8e0cc', 1); hp(g, () => g.rect(x + 12, y + 9, 6, 5), '#c43a2c', 1); }
 }
 
@@ -244,3 +245,34 @@ export function farmstead(g, burned) {
   hp(g, () => g.rect(-60, 14, 110, 22), '#6a4e30', 1.2); g.fillStyle = '#7ab04a'; for (let k = 0; k < 9; k++) { g.beginPath(); g.arc(-52 + k * 12, 25, 4, 0, 7); g.fill(); }
 }
 /** Стражник города: сине-золотая накидка — рисуется через person() героя (rig), здесь только облик. */
+/** Лавка травницы (v84): бревенчатая изба с зелёной соломенной крышей, пучки трав под стрехой, котёл на треноге у двери, горшки с травами. */
+export function herbal(g) {
+  const w = 180, H = 100;
+  shadow(g, w + 40); stoneBase(g, w);
+  logs(g, -w / 2, -H, w, H - 10, '#7b5634', 17);
+  chimney(g, w * 0.3, -H - 28, 48);
+  gable(g, w, H, 60, 36, '#8aa048', 'thatch');
+  window_(g, 0, -H - 30, 20, 20, null);
+  door(g, -30, 40, 74, '#5a3a22', true);
+  window_(g, 44, -62, 28, 28, '#4a6a3a');
+  // пучки трав под стрехой: на верёвке, вниз головой
+  g.strokeStyle = '#5a3e26'; g.lineWidth = 1.4; g.beginPath(); g.moveTo(-w / 2 + 10, -H + 2); g.lineTo(w / 2 - 10, -H + 2); g.stroke();
+  const r = rnd(5);
+  for (let i = 0; i < 7; i++) { const x = -w / 2 + 22 + i * 22 + (r() - 0.5) * 6, len = 14 + r() * 8, col = ['#9cc4a4', '#8aa060', '#c8a040', '#7ad8c0'][i % 4];
+    g.strokeStyle = O; g.lineWidth = 1; g.beginPath(); g.moveTo(x, -H + 2); g.lineTo(x, -H + 6); g.stroke();
+    for (let k = -2; k <= 2; k++) { hp(g, () => { g.moveTo(x, -H + 6); g.quadraticCurveTo(x + k * 3 + (k ? k : 1) * 1.5, -H + 6 + len * 0.5, x + k * 2.6, -H + 6 + len); g.quadraticCurveTo(x + k * 1, -H + 6 + len * 0.5, x, -H + 6); }, col, 0.9); } }
+  // вывеска: лист
+  sign(g, w / 2 - 4, -84, 'leaf');
+  // котёл на треноге у двери: чёрный, с зелёным варевом и паром
+  g.save(); g.translate(-w / 2 - 34, -4);
+  g.strokeStyle = O; g.lineWidth = 2.4; for (const dx of [-13, 0, 13]) { g.beginPath(); g.moveTo(dx * 1.2, 0); g.lineTo(dx * 0.3, -40); g.stroke(); }
+  g.strokeStyle = '#6a6a6a'; g.lineWidth = 1.2; for (const dx of [-13, 0, 13]) { g.beginPath(); g.moveTo(dx * 1.2, 0); g.lineTo(dx * 0.3, -40); g.stroke(); }
+  g.fillStyle = '#ffb040'; g.beginPath(); g.moveTo(-9, -1); g.quadraticCurveTo(-5, -14, 0, -6); g.quadraticCurveTo(4, -16, 9, -1); g.closePath(); g.fill(); g.fillStyle = '#ffe070'; g.beginPath(); g.moveTo(-4, -1); g.quadraticCurveTo(0, -9, 4, -1); g.closePath(); g.fill();
+  hp(g, () => { g.moveTo(-14, -22); g.quadraticCurveTo(-16, -6, 0, -5); g.quadraticCurveTo(16, -6, 14, -22); g.closePath(); }, '#3a3a3e', 1.5);
+  hp(g, () => g.ellipse(0, -22, 14, 4.5, 0, 0, 7), '#6ab060', 1.3); g.fillStyle = '#a8e090'; for (const [x, y] of [[-5, -23], [4, -21], [8, -24]]) { g.beginPath(); g.arc(x, y, 1.6, 0, 7); g.fill(); }
+  g.strokeStyle = '#5a5a5e'; g.lineWidth = 2; g.beginPath(); g.arc(0, -24, 13, Math.PI, 0); g.stroke(); g.strokeStyle = O; g.lineWidth = 0.8; g.stroke();
+  g.fillStyle = 'rgba(230,240,230,.45)'; for (let i = 0; i < 3; i++) { g.beginPath(); g.ellipse(-4 + i * 4, -34 - i * 9, 5 - i, 3.5 - i * 0.6, 0, 0, 7); g.fill(); }
+  g.restore();
+  // горшки с травами у стены
+  for (const x of [w / 2 - 50, w / 2 - 26]) { hp(g, () => { g.moveTo(x - 8, -14); g.lineTo(x + 8, -14); g.lineTo(x + 6, 0); g.lineTo(x - 6, 0); g.closePath(); }, '#b06a3a', 1.2); for (let k = 0; k < 4; k++) hp(g, () => { g.moveTo(x, -14); g.quadraticCurveTo(x + (k - 1.5) * 5, -24, x + (k - 1.5) * 6, -30); }, null, 1.6); g.strokeStyle = '#7ab860'; g.lineWidth = 1; for (let k = 0; k < 4; k++) { g.beginPath(); g.moveTo(x, -14); g.quadraticCurveTo(x + (k - 1.5) * 5, -24, x + (k - 1.5) * 6, -30); g.stroke(); } }
+}

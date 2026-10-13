@@ -67,6 +67,9 @@ html.sel .clsCard,.clsCard{background:linear-gradient(#2e2014,#1a1008);border:2p
 .box{padding:22px 26px;max-width:min(520px,96vw);max-height:94vh;overflow:auto}
 h2,h3{text-shadow:0 2px 0 #2a1408,0 0 12px rgba(255,200,100,.25);letter-spacing:.01em}
 .box.wide{max-width:min(920px,96vw)}
+/* v84: окно профессий */
+.profwin{width:min(760px,96vw)} .profwin .pbody{max-height:min(62vh,560px);overflow-y:auto;padding-right:4px} .profwin .recipes .ware2 small{display:block;line-height:1.3} .profwin .learn{display:flex;gap:8px;flex-wrap:wrap} .profwin .learn .ware2{flex:1;min-width:280px} .profwin .tab .c1{color:var(--gold);font-weight:normal;font-size:12px} .profwin .skillb{max-width:none;margin-bottom:8px} .fl5{margin:4px 0 8px;width:300px}
+html.touch .profwin .pbody{max-height:calc(96vh - 110px)} html.touch .profwin .who{display:none} html.touch .profwin .learn .ware2{min-width:200px;padding:2px 8px;margin-bottom:4px} html.touch .profwin .learn .ware2>svg{width:30px;height:30px} html.touch .profwin .skillb{display:none} html.touch .profwin .hint2,html.touch .profwin .hint{font-size:12px;margin:2px 0} html.touch .profwin .ware2{padding:4px 8px;margin-bottom:5px} html.touch .profwin h2{margin-bottom:4px}
 .box p{line-height:1.45} .box .hint{color:var(--dim);font-size:13px} .box .err{color:#ff8a7a}
 .box textarea{width:100%;background:#120c08;color:var(--txt);border:1px solid #5a4630;border-radius:6px;padding:8px;font:12px monospace;user-select:text}
 .box input[type=file]{margin:6px 0 10px;color:var(--dim)}
@@ -92,6 +95,10 @@ h2,h3{text-shadow:0 2px 0 #2a1408,0 0 12px rgba(255,200,100,.25);letter-spacing:
 .bar>span{position:relative;display:block;text-align:center;font-size:13px;line-height:18px;white-space:nowrap;color:#fff;text-shadow:0 1px 2px #000}
 #pfXp{height:15px} #pfXp>i{background:linear-gradient(#c8a0ff,#7a4ad8)} #pfXp>span{font-size:11px;line-height:13px}
 .status{font-size:12px;color:#c8c8ff} #pfPoison{color:#8ad84a} #pfFist{color:#ffb347}
+/* v84: действующие зелья — под портретом, значок и время */
+#pfElix{position:fixed;left:14px;top:150px;display:flex;gap:6px} #pfElix .ex{position:relative;width:38px;height:38px;border-radius:7px;overflow:hidden;box-shadow:0 0 0 1.5px #a8782e,0 2px 4px rgba(0,0,0,.5)} #pfElix .ex svg{display:block;width:100%;height:100%;border:none!important;border-radius:0!important} #pfElix .ex i{position:absolute;left:0;right:0;bottom:0;background:rgba(0,0,0,.55);font-size:10px;text-align:center;color:#ffe9a8;font-style:normal;padding:1px 0}
+html.touch #pfElix{left:8px;top:130px} html.touch #pfElix .ex{width:30px;height:30px} html.touch #pfElix .ex i{font-size:9px}
+.act.pot2{border-color:#4a8a3a} .act.pot2.none .ico{opacity:.35}
 #target{position:fixed;left:330px;top:18px;width:220px;display:flex;flex-direction:column;gap:4px}
 #target .top{display:flex;gap:8px;align-items:baseline} #tgLvl{font-weight:bold;text-shadow:0 1px 2px #000} #tgName{color:#ffe9a8;font-weight:bold;text-shadow:0 2px 0 #2a1408,0 0 6px #000}
 #tgHp>i{background:linear-gradient(#e2453a,#8a1a14)} #tgNote{font-size:12px;color:var(--dim)}
@@ -220,7 +227,7 @@ html.touch #actbar .act{position:absolute;pointer-events:auto;width:54px;height:
 html.touch #actbar .act .ico.pic{inset:0;border-radius:50%;overflow:hidden} html.touch #actbar .act .ico.pic img{transform:scale(1.18)}
 html.touch #actAttack{width:96px!important;height:96px!important;margin:-48px 0 0 -48px!important;left:200px;top:186px} html.touch #actAttack .cdt{font-size:26px}
 html.touch #actAbil{left:90px;top:186px} html.touch #actAbil2{left:105px;top:131px} html.touch #actAbil3{left:145px;top:91px} html.touch #actAbil4{left:200px;top:76px}
-html.touch #actPot{left:32px;top:166px;width:46px!important;height:46px!important;margin:-23px 0 0 -23px!important} html.touch #actTrinket{left:52px;top:108px;width:46px!important;height:46px!important;margin:-23px 0 0 -23px!important} html.touch #actSit{left:94px;top:62px;width:46px!important;height:46px!important;margin:-23px 0 0 -23px!important}
+html.touch #actPot{left:32px;top:166px;width:46px!important;height:46px!important;margin:-23px 0 0 -23px!important} html.touch #actPot2{left:26px;top:216px;width:40px!important;height:40px!important;margin:-20px 0 0 -20px!important} html.touch #actTrinket{left:52px;top:108px;width:46px!important;height:46px!important;margin:-23px 0 0 -23px!important} html.touch #actSit{left:94px;top:62px;width:46px!important;height:46px!important;margin:-23px 0 0 -23px!important}
 html.touch #actbar .act .lock b{font-size:10px}
 html.touch .act .cap{position:absolute;left:0;right:0;bottom:2px;font-size:10px;color:var(--dim);text-align:center} html.touch #actSit .ico{padding:6px 8px 12px} html.touch #actSit.on2{border-color:#7fe07f}
 html.touch #actUse{position:fixed;right:262px;bottom:14px;min-width:110px;height:52px;padding:0 18px;align-items:center;justify-content:center;border:2px solid #24130a;border-radius:26px;background:linear-gradient(#7a5226,#4a2e14 55%,#3a2210);color:#ffe9a8;font:bold 17px Georgia,serif;text-shadow:0 2px 0 #1a0c04;box-shadow:0 0 0 2px #f0c050,inset 0 2px 0 rgba(255,220,160,.25),inset 0 -3px 0 rgba(0,0,0,.35),0 4px 0 #1a0c06,0 0 14px rgba(255,211,77,.4)}
@@ -273,6 +280,7 @@ html.touch .map canvas{max-height:62vh;width:auto;max-width:100%}
     <div class="bars"><b id="pfName"></b><div class="bar" id="pfHp"><i></i><span></span></div><div class="bar" id="pfXp"><i></i><span></span></div>
       <span class="status" id="pfWeak" hidden></span><span class="status" id="pfPoison" hidden>отравлен</span><span class="status" id="pfFist" hidden>Без оружия — бьёт кулаками</span></div>
   </div>
+  <div id="pfElix"></div>
   <div id="target" hidden><div class="top"><span id="tgLvl"></span><span id="tgName"></span></div><div class="bar" id="tgHp"><i></i><span></span></div><span id="tgNote"></span></div>
   <div id="topRight"><div id="zoomInd"></div><div id="miniBox"><canvas id="mini" width="400" height="250" title="Карта — K"></canvas><div id="miniZ"><button data-z="1" title="Ближе">+</button><button data-z="-1" title="Дальше">−</button></div></div><div id="zoneName"></div><div id="goldBox" title="Деньги: 100 меди = 1 серебро, 100 серебра = 1 золото"><span id="gold"></span></div></div>
   <div id="actbar">
@@ -282,12 +290,13 @@ html.touch .map canvas{max-height:62vh;width:auto;max-width:100%}
     <button class="act" id="actAbil3"><span class="ico"></span><span class="k">R</span><span class="cd"></span><span class="cdt"></span><span class="lock" hidden><svg viewBox="0 0 32 32"><rect x="9" y="15" width="14" height="11" rx="2" fill="#c9a24a" stroke="#24180f" stroke-width="1.4"/><path d="M12 15v-4a4 4 0 0 1 8 0v4" fill="none" stroke="#24180f" stroke-width="2.4"/></svg><b>10</b></span></button>
     <button class="act" id="actAbil4"><span class="ico"></span><span class="k">F</span><span class="cd"></span><span class="cdt"></span><span class="lock" hidden><svg viewBox="0 0 32 32"><rect x="9" y="15" width="14" height="11" rx="2" fill="#c9a24a" stroke="#24180f" stroke-width="1.4"/><path d="M12 15v-4a4 4 0 0 1 8 0v4" fill="none" stroke="#24180f" stroke-width="2.4"/></svg><b>20</b></span></button>
     <button class="act tr" id="actTrinket" hidden><span class="ico"></span><span class="k">1</span><span class="cd"></span><span class="cdt"></span></button>
+    <button class="act pot2" id="actPot2" hidden><span class="ico"></span><span class="k">2</span><span class="n"></span><span class="cd"></span><span class="cdt"></span></button>
     <button class="act tonly" id="actSit" title="Сесть отдохнуть"><span class="ico"><svg viewBox="0 0 32 32" width="100%" height="100%"><circle cx="15" cy="8" r="3.4" fill="#f0d8b0" stroke="#24180f" stroke-width="1.2"/><path d="M13 12l-1 9h8l3 6" fill="none" stroke="#e8dcc4" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 15l-4 3" stroke="#e8dcc4" stroke-width="2.6" stroke-linecap="round"/><path d="M6 27h20" stroke="#8a6a42" stroke-width="2.4" stroke-linecap="round"/></svg></span><span class="cap">Сесть</span></button>
     <button class="act" id="actPot"><span class="ico"></span><span class="k">Q</span><span class="n"></span><span class="cd"></span><span class="cdt"></span></button>
   </div>
   <button id="actUse" class="tonly" hidden></button>
   <div id="rotate"><div><b>Поверните телефон</b><span>Игра — в лежачем положении экрана</span></div></div>
-  <div id="sideBtns"><button class="sq" id="btnMap" title="Карта — K"></button><button class="sq" id="btnBag" title="Персонаж и сумка — I"></button><button class="sq" id="btnMenu" title="Меню — Esc"></button></div>
+  <div id="sideBtns"><button class="sq" id="btnMap" title="Карта — K"></button><button class="sq" id="btnProf" title="Профессии — P"></button><button class="sq" id="btnBag" title="Персонаж и сумка — I"></button><button class="sq" id="btnMenu" title="Меню — Esc"></button></div>
   <div id="touch"></div>
 </div>
 <div id="toasts"></div>

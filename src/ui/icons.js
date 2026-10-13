@@ -2,6 +2,8 @@
 import { itemLook, W_BY, C_BY, drawHelm, drawRing, drawNeck } from '../art/gear.js';
 import { person } from '../art/body.js';
 import { RAR_COL } from '../../data/balance.js';
+import { HERBS } from '../../data/herbs.js';
+import { POTIONS } from '../../data/alchemy.js';
 
 const O = '#24180f';
 
@@ -47,6 +49,7 @@ export const ABIL_ICON = {
   frost: `<svg viewBox="0 0 32 32"><path d="M4 28 L24 8" stroke="#bfe6ff" stroke-width="3"/><path d="M27 5l-9 3 6 6z" fill="#e8f8ff" stroke="#4a8ac0"/><g stroke="#e8f8ff" stroke-width="1.6"><path d="M9 16l2 7M5 19l7 2M7 26l3-8"/></g><circle cx="9" cy="21" r="5" fill="#9ad0ff" opacity=".35"/></svg>`,
   net: `<svg viewBox="0 0 32 32"><circle cx="16" cy="16" r="12" fill="#3a2a1a" opacity=".35"/><g stroke="#e8dcc0" stroke-width="1.5" fill="none"><path d="M6 8 Q16 13 26 8M5 16 Q16 20 27 16M6 24 Q16 27 26 24M9 5 Q12 16 9 27M16 4v24M23 5 Q20 16 23 27"/></g><g fill="#a8845a"><circle cx="6" cy="8" r="2"/><circle cx="26" cy="8" r="2"/><circle cx="6" cy="24" r="2"/><circle cx="26" cy="24" r="2"/></g></svg>`,
   potion: `<svg viewBox="0 0 32 32"><rect x="13" y="3" width="6" height="6" fill="#c9a06a" stroke="#24180f"/><path d="M12 9h8v4l5 6v6a4 4 0 0 1-4 4H11a4 4 0 0 1-4-4v-6l5-6z" fill="#e8e0cc" stroke="#24180f"/><path d="M8 19h16v6a4 4 0 0 1-4 4H12a4 4 0 0 1-4-4z" fill="#d8323a"/></svg>`,
+  prof: `<svg viewBox="0 0 32 32"><path d="M7 14h18l-2 11a3 3 0 0 1-3 3H12a3 3 0 0 1-3-3z" fill="#3a3a3e" stroke="#24180f" stroke-width="1.5"/><ellipse cx="16" cy="14" rx="9" ry="3" fill="#6ab060" stroke="#24180f" stroke-width="1.3"/><path d="M8 12q8-6 16 0" fill="none" stroke="#5a5a5e" stroke-width="2"/><path d="M13 8q1-4 3-4t3 4M11 5q0-2 2-2" fill="none" stroke="#a8e090" stroke-width="1.4"/><path d="M22 9q4-5 7-3q-3 1-4 5z" fill="#9cc4a4" stroke="#24180f" stroke-width="1"/></svg>`,
   bag: `<svg viewBox="0 0 32 32"><path d="M8 28 Q3 14 12 9 h8 Q29 14 24 28z" fill="#8a6a3a" stroke="#24180f" stroke-width="1.5"/><path d="M12 9 Q16 3 20 9" fill="none" stroke="#24180f" stroke-width="2"/><circle cx="16" cy="18" r="2.5" fill="#ffd34d"/></svg>`,
   map: `<svg viewBox="0 0 32 32"><path d="M4 8l8-3 8 3 8-3v19l-8 3-8-3-8 3z" fill="#d9c79a" stroke="#24180f" stroke-width="1.4"/><path d="M12 5v19M20 8v19" stroke="#8a6a3a" stroke-width="1.2"/><path d="M7 18q4-6 8-2t9-5" fill="none" stroke="#c8323a" stroke-width="1.6" stroke-dasharray="2 2"/></svg>`,
   menu: `<svg viewBox="0 0 32 32"><g fill="#ffe9a8"><rect x="7" y="8" width="18" height="3" rx="1.5"/><rect x="7" y="15" width="18" height="3" rx="1.5"/><rect x="7" y="22" width="18" height="3" rx="1.5"/></g></svg>`,
@@ -89,6 +92,12 @@ export const ACC_ICON = {
   ore_iron: `<path d="M4 23l3-10 8-7 10 3 4 11-6 7-12 1z" fill="#6e6a68" stroke="${O}" stroke-width="1.4"/><path d="M7 13l8-7 10 3-7 5z" fill="#8a8682"/><path d="M25 9l4 11-6 7-5-13z" fill="#4a4644"/><path d="M7 13l11 1 7-5M18 14l5 13M18 14l-7 14" fill="none" stroke="${O}" stroke-width=".7" opacity=".55"/><path d="M6 21l5-3 4 2 5-4 5 1" fill="none" stroke="#4a2010" stroke-width="3.2" stroke-linecap="round"/><path d="M6 21l5-3 4 2 5-4 5 1" fill="none" stroke="#a8502a" stroke-width="1.8" stroke-linecap="round"/><path d="M7 20.6l4-2.4" stroke="#e8904a" stroke-width=".8"/><path d="M12 9l4-2 3 3-3 3-4-1z" fill="#b8c0c8" stroke="${O}" stroke-width=".9"/><path d="M13 9.5l2.6-1.2" stroke="#fff" stroke-width="1"/><path d="M10 25l3-2 2 2-2 2z" fill="#a8502a" stroke="${O}" stroke-width=".8"/><path d="M9 13l4-3" stroke="#fff" stroke-width="1.4" opacity=".8"/>`,
   bar_iron: `<path d="M3 21l7-8h19l-7 8z" fill="#c4ccd2" stroke="${O}" stroke-width="1.4"/><path d="M3 21h19v6H3z" fill="#5a6066" stroke="${O}" stroke-width="1.4"/><path d="M22 21l7-8v6l-7 8z" fill="#8a929a" stroke="${O}" stroke-width="1.4"/><path d="M7 19.5l4.5-5h13.5l-4.5 5z" fill="none" stroke="#9aa2aa" stroke-width=".9"/><path d="M5 23h15" stroke="#ffffff" stroke-width=".9" opacity=".7"/><path d="M11 15.5h10" stroke="#fff" stroke-width="1.5"/><path d="M8 19l2-2" stroke="#fff" stroke-width="1.2" opacity=".8"/><path d="M24.5 18l2-2.4" stroke="#ffffff" stroke-width=".9" opacity=".6"/>`,
   gem_emerald: `<path d="M16 3l9 7-2 16-7 3-7-3-2-16z" fill="#3ac878" stroke="${O}" stroke-width="1.4"/><path d="M7 10h18M16 3v26M9 26l7-16 7 16" fill="none" stroke="#1e7a48" stroke-width="1"/><path d="M11 7l4-2" stroke="#d8ffe8" stroke-width="1.6"/>`,
+  // v84: травы, склянка; зелья — по цвету
+  herb_silverleaf: `<path d="M16 28 Q6 22 8 10 Q16 12 16 28z" fill="#9cc4a4" stroke="${O}" stroke-width="1.3"/><path d="M16 28 Q26 22 24 10 Q16 12 16 28z" fill="#b8d8b8" stroke="${O}" stroke-width="1.3"/><path d="M16 27V13M11 15l5 5M21 15l-5 5" stroke="#f0fff0" stroke-width=".9"/><circle cx="16" cy="8" r="3.2" fill="#fff" stroke="${O}" stroke-width=".9"/><circle cx="16" cy="8" r="1.2" fill="#ffd860"/>`,
+  herb_wormwood: `<path d="M16 29V8" stroke="${O}" stroke-width="3"/><path d="M16 29V8" stroke="#8aa060" stroke-width="1.6"/>${[11, 15, 19, 23].map(y => `<path d="M16 ${y}q-6-1-8-6q6 0 8 6zM16 ${y + 2}q6-1 8-6q-6 0-8 6z" fill="#a8bc78" stroke="${O}" stroke-width=".9"/>`).join('')}<circle cx="16" cy="6" r="1.6" fill="#e8e0a0"/><circle cx="12" cy="8" r="1.2" fill="#e8e0a0"/><circle cx="20" cy="8" r="1.2" fill="#e8e0a0"/>`,
+  herb_glowcap: `<ellipse cx="16" cy="26" rx="12" ry="4" fill="rgba(80,180,150,.4)"/><rect x="10" y="16" width="3.4" height="11" rx="1.6" fill="#d8e8d8" stroke="${O}" stroke-width="1"/><path d="M5 17q6.7-9 13.4 0z" fill="#5ec4a8" stroke="${O}" stroke-width="1.2"/><rect x="18" y="13" width="3.6" height="14" rx="1.8" fill="#d8e8d8" stroke="${O}" stroke-width="1"/><path d="M12 14q7.8-11 15.6 0z" fill="#7ad8c0" stroke="${O}" stroke-width="1.2"/><circle cx="16" cy="9" r="1" fill="#c8fff0"/><circle cx="22" cy="10" r="1" fill="#c8fff0"/><circle cx="9" cy="13" r=".9" fill="#c8fff0"/>`,
+  herb_fireflower: `<path d="M16 29V16" stroke="${O}" stroke-width="2.6"/><path d="M16 29V16" stroke="#6a8a48" stroke-width="1.4"/><path d="M16 24q-7-1-8-7q7 1 8 7z" fill="#a8c880" stroke="${O}" stroke-width=".9"/>${[0, 72, 144, 216, 288].map(a => `<ellipse cx="16" cy="9" rx="3" ry="6" transform="rotate(${a} 16 13)" fill="#ff8a3a" stroke="${O}" stroke-width=".9"/>`).join('')}<circle cx="16" cy="13" r="2.8" fill="#ffe080" stroke="${O}" stroke-width=".8"/>`,
+  flask: `<rect x="13" y="3" width="6" height="5" fill="#c9a06a" stroke="${O}"/><path d="M12 8h8v4l5 6v6a4 4 0 0 1-4 4H11a4 4 0 0 1-4-4v-6l5-6z" fill="rgba(220,235,245,.85)" stroke="${O}" stroke-width="1.3"/><path d="M10 14l2 10" stroke="#fff" stroke-width="1.6" opacity=".8"/>`,
   pickaxe: `<path d="M9 29L19 11" stroke="${O}" stroke-width="4.4" stroke-linecap="round"/><path d="M9 29L19 11" stroke="#8a5a32" stroke-width="2.6" stroke-linecap="round"/><path d="M10.5 26l7-12.5" stroke="#c08a52" stroke-width=".9"/><path d="M4 11Q10 4 17 5Q24 5 29 12L27 13Q23 9 19 9.5L17 11.5L14.5 9.5Q10 9.5 6 12.5z" fill="#a8b0b6" stroke="${O}" stroke-width="1.4"/><path d="M6 11Q11 6 16.5 6.6Q23 6.8 27 11.5" fill="none" stroke="#e8eef2" stroke-width="1.1"/><path d="M14.5 9.5L17 11.5L19 9.5L17 6.8z" fill="#6a7076" stroke="${O}" stroke-width=".9"/><path d="M8 29.5l2 .8" stroke="${O}" stroke-width="2"/>`,
 };
 /** Значок: кольцо/шея (gem — цвет камня), аксессуар по id, руда/слиток/кирка. */
@@ -101,6 +110,15 @@ const GEM = { crit: '#ff6a5a', haste: '#9ad0ff', regen: '#5fd38a', pen: '#e7c35a
 export function anyIcon(it, size = 44) {
   if (it.kind === 'ore' || it.kind === 'bar' || it.kind === 'gem') return accIcon(it.kind + '_' + it.metal, it.rar || 'common', size);
   if (it.kind === 'tool') return accIcon('pickaxe', 'common', size);
+  if (it.kind === 'herb') return accIcon('herb_' + it.metal, it.rar || 'common', size);
+  if (it.kind === 'flask') return accIcon('flask', 'common', size);
+  if (it.kind === 'potion') return potionIcon(it.metal, it.rar || 'common', size);
   if (it.trinket) return accIcon(it.trinket, it.rar, size);
   return itemIcon(it, size);
+}
+
+/** Значок зелья (v84): склянка с жидкостью цвета зелья; лечебное — красное как на рынке. */
+export function potionIcon(id, rar = 'common', size = 40) {
+  const Po = POTIONS[id] || { col: '#d8323a' }, body = `<rect x="13" y="3" width="6" height="6" fill="#c9a06a" stroke="${O}"/><path d="M12 9h8v4l5 6v6a4 4 0 0 1-4 4H11a4 4 0 0 1-4-4v-6l5-6z" fill="#e8e0cc" stroke="${O}" stroke-width="1.3"/><path d="M8 18h16v7a4 4 0 0 1-4 4H12a4 4 0 0 1-4-4z" fill="${Po.col}"/><path d="M10 20q6-2 12 0" stroke="#fff" stroke-width="1.2" opacity=".6" fill="none"/><circle cx="12" cy="24" r="1.2" fill="#fff" opacity=".7"/><circle cx="18" cy="26" r=".9" fill="#fff" opacity=".6"/>`;
+  return box(body, RAR_COL[rar] || '#888', size);
 }
