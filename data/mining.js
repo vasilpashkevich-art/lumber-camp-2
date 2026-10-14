@@ -11,8 +11,8 @@ export const GEMS = {
   amethyst:  { name: 'Аметист', price: 100, col: '#a86ad8', bonus: { stam: 6 } },
   emerald:   { name: 'Изумруд', price: 250, col: '#3ac878', bonus: { crit: 2 } },
 };
-// v92: гнёзда под камни — в оружии, нагруднике, штанах и шее, по одному. Синие и фиолетовые — всегда, зелёные — 30%.
-export const SOCKET = { slots: ['weapon', 'chest', 'legs', 'neck'], good: 0.3 };
+// v92: гнёзда под камни — в оружии, шлеме (v93), нагруднике, штанах и шее, по одному. Синие и фиолетовые — всегда, зелёные — 30%.
+export const SOCKET = { slots: ['weapon', 'head', 'chest', 'legs', 'neck'], good: 0.3 };   // v93: и шлем
 export const MINE = {
   cap: 150,                   // потолок навыка (v65: железо поднимает до 150)
   time: 3,                    // секунд копать одну жилу

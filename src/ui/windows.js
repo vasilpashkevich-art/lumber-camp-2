@@ -50,7 +50,7 @@ function gemConfirm(G, gemIt, target, after) {
 /** Выбор вещи для камня: все вещи с гнездом (надетые и в сумке). */
 function gemPick(G, gemIt, after) {
   const L = socketTargets(G.hero);
-  if (!L.length) { toast('Нет вещей с гнездом. Гнездо бывает у синих и фиолетовых вещей, иногда у зелёных: в оружии, нагруднике, штанах и шее', '', 'gem'); return; }
+  if (!L.length) { toast('Нет вещей с гнездом. Гнездо бывает у синих и фиолетовых вещей, иногда у зелёных: в оружии, шлеме, нагруднике, штанах и шее', '', 'gem'); return; }
   const m = modal(`<h2>Куда вставить ${GEMS[gemIt.metal].name}?</h2><div class="tgs"></div><div class="row"><button class="btn" data-x="no">Отмена</button></div>`, 'gemask');
   const box = m.querySelector('.tgs');
   for (const it of L) { const worn = Object.values(G.hero.eq).includes(it), g = it.gem && GEMS[it.gem]; const r = el('div', 'ware2 tg', `${itemIcon(it, 44)}<div><b style="color:${RAR_COL[it.rar]}">${it.name}</b><small>${worn ? 'надето' : 'в сумке'} · ${g ? `в гнезде ${g.name}` : 'гнездо пустое'}</small></div>`); r.onclick = () => { m.close(); gemConfirm(G, gemIt, it, after); }; box.append(r); }

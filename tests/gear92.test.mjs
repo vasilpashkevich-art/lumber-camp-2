@@ -41,7 +41,7 @@ test('гнёзда: синие и фиолетовые всегда, зелён�
   let good = 0, n = 0;
   for (let s = 1; s <= 400; s++) for (const slot of SOCKET.slots) { const g = makeItem('warrior', slot, 10, 'good', rng(s)); n++; if (hasSocket(g)) good++; assert.ok(hasSocket(makeItem('warrior', slot, 10, 'rare', rng(s)))); assert.ok(!hasSocket(makeItem('warrior', slot, 10, 'common', rng(s)))); }
   assert.ok(good / n > 0.25 && good / n < 0.35, 'зелёных с гнездом ' + good / n);
-  for (const slot of ['head', 'ring']) assert.ok(!hasSocket(makeItem('warrior', slot, 10, 'epic', rng(1))));
+  assert.ok(!hasSocket(makeItem('warrior', 'ring', 10, 'epic', rng(1)))); assert.ok(hasSocket(makeItem('warrior', 'head', 10, 'rare', rng(1))), 'v93: шлем с гнездом');
   const e = makeItem('warrior', 'chest', 10, 'rare', rng(9)); assert.ok(/Пустое гнездо/.test(socketLine(e)[1])); assert.ok(itemLines(e).some(l => l[0] === 'sock'));
 });
 test('камни: вставить из стопки, бонус в характеристиках, замена — старый пропадает, вынуть нельзя', () => {
