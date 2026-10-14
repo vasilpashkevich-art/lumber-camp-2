@@ -4,6 +4,7 @@
 // pose = { walk: 0..1 | -1, atk: 0..1 | -1, hit, dead, t }
 // Вещи рисуются моделями из gear.js — тем же рисунком, что значок в сумке.
 import { O, sh, W_BY, H_BY, C_BY, L_BY, drawHelm, fillMat, palette } from './gear.js';
+import { person as toonPerson } from './toon.js';
 const TAU = Math.PI * 2;
 export const SKIN = '#e6b48a';
 const NAKED = palette('start', 1, 0);
@@ -11,7 +12,9 @@ const NAKED = palette('start', 1, 0);
 /** Цвет штанин (для сидящего героя). */
 export function legColor(L) { const lg = L.legs && L_BY[L.legs.m], P = L.legs && L.legs.P; return !lg ? (L.skin || SKIN) : lg.col ? P[lg.col] : lg.base === 'cloth' ? P.cloth[1] : lg.base === 'leather' ? P.leather : lg.base === 'mail' ? sh(P.metal, -0.08) : P.metal; }
 
-export function person(c, L, view, pose = {}) {
+/** v97: все люди рисуются новой мультяшной куклой (toon.js); прежнее тело — personOld (для сравнения: window.__oldBody = true). */
+export function person(c, L, view, pose = {}) { return (typeof window !== 'undefined' && window.__oldBody) ? personOld(c, L, view, pose) : toonPerson(c, L, view, pose); }
+export function personOld(c, L, view, pose = {}) {
   const bw = (L.broad || 1) * 1.1, skin = L.skin || SKIN, hair = L.hair || '#b8642a', t = pose.t || 0;
   const ch = L.chest && C_BY[L.chest.m], chP = L.chest ? L.chest.P : NAKED;
   const lg = L.legs && L_BY[L.legs.m], lgP = L.legs ? L.legs.P : NAKED;
