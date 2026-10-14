@@ -2,6 +2,7 @@
 import { TOUCH } from '../ui/dom.js';
 import { LOOK } from '../art/look.js';
 import { lairSpr } from '../art/lairs.js';
+import { chestBig } from '../art/chest.js';
 import { NPC_LOOK, questMark, snare, questGlint } from '../art/npc.js';
 import { npcMark } from '../systems/quests.js';
 import { legColor, person } from '../art/body.js';
@@ -18,7 +19,7 @@ import { herbSkill, skillColor } from '../systems/herbs.js';
 import { vein, glint, outcrop } from '../art/ore.js';
 import { BAR_H } from '../art/beasts.js';
 import * as MF from '../art/mobfx.js';
-import { entrance as templeEntrance, interior as templeInterior, column as templeColumn, brazier as templeBrazier, restFire, rubble as templeRubble, chest as templeChest, font as templeFont, throne as templeThrone, portal as templePortal } from '../art/temple.js';
+import { entrance as templeEntrance, interior as templeInterior, column as templeColumn, brazier as templeBrazier, restFire, rubble as templeRubble, font as templeFont, throne as templeThrone, portal as templePortal } from '../art/temple.js';
 import * as FOR from '../art/forest.js';
 import { drawFace, drawRim, drawRampWhole, softGlow, footShadow, TINT, poly as rpoly } from '../art/relief.js';
 import { GIANT, giantBase, giantUpper, giantCrown, giantShade } from '../art/giants.js';
@@ -181,7 +182,7 @@ function buildStatics(W) {
     for (const [x, y] of D.columns || []) S.push({ y, x, oc: occ(col, x, y), draw: g => drawSpr(g, col, x, y) });
     for (const [x, y] of D.braziers || []) S.push({ y, x, draw: (g, t) => templeBrazier(g, x, y, t) });
     for (const [x, y] of D.rubble || []) { const sp = sprite('trub' + x, 100, 50, 50, 40, 2, g => templeRubble(g, 0, 0, 7, x | 0)); S.push({ y, x, draw: g => drawSpr(g, sp, x, y) }); }
-    (D.chests || []).forEach(([x, y], i) => S.push({ y, x, draw: g => templeChest(g, x, y, !!(W.dg && W.dg.chests[i])) }));   // v90: открытый — по состоянию похода
+    (D.chests || []).forEach(([x, y], i) => S.push({ y, x, draw: (g, t) => chestBig(g, x, y, !!(W.dg && W.dg.chests[i]), t) }));   // v96: мультяшный сундук   // v90: открытый — по состоянию похода
     if (D.font) S.push({ y: D.font[1] + D.font[2] * 0.5, x: D.font[0], draw: (g, t) => templeFont(g, D.font[0], D.font[1], D.font[2], t) });
     if (D.throne) S.push({ y: D.throne[1], x: D.throne[0], draw: g => templeThrone(g, D.throne[0], D.throne[1]) });
     if (D.portal) S.push({ y: D.portal[1], x: D.portal[0], draw: (g, t) => { if (W.exits.some(e => e.portal)) templePortal(g, D.portal[0], D.portal[1], t); }, label: 'Портал', lx: D.portal[0], ly: D.portal[1] - 130, when: () => W.exits.some(e => e.portal) });

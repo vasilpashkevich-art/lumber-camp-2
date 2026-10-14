@@ -74,6 +74,7 @@ export function buildWorld(Z) {
   for (const f of Z.farmsteads || []) block(f.x + (f.burned ? 20 : 50), f.y, f.burned ? 80 : 128);
   if (Z.mill) block(Z.mill.x, Z.mill.y, 58);
   for (const [x, y] of (Z.decor && Z.decor.columns) || []) W.blocks.push({ x, y: y - 4, rx: 16, ry: 9 });   // v77: колонны подземелья
+  for (const [x, y] of (Z.decor && Z.decor.chests) || []) W.blocks.push({ rect: true, x0: x - 30, y0: y - 16, x1: x + 30, y1: y + 2 });   // v96: сундук крупный — сквозь него не пройти
   // v76: фасад Храма квакунов — стена по обе стороны от врат, в проём можно войти до порога
   if (Z.temple) { const T = Z.temple; rect(T.x - 370, T.y - 300, T.x - 32, T.y); rect(T.x + 32, T.y - 300, T.x + 370, T.y); rect(T.x - 32, T.y - 300, T.x + 32, T.y - 70); W.temple = { ...T }; }
   // плиточные дорожки столицы (для травы и проверок)
