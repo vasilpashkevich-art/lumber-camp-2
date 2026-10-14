@@ -498,3 +498,5 @@ const scaled = f => (g, a, b) => { g.save(); g.scale(SC, SC); f(g, a, b); g.rest
 export const TBLD = { bank: scaled(bank), house: scaled(house), forge: scaled(forge), tavern: scaled(tavern), enchant: scaled(enchant), miners: scaled(miners), herbal: scaled(herbal), inn: scaled(inn), palace: scaled(palace) };
 /** Посёлок (Хутор Подгорный, хутора): в своих размерах, без ×1,35. */
 export const TVIL = { house: vhouse, inn: vinn, forge: vforge, barn, farmstead, millBase: millBaseT, millBlades: millBladesT };
+/** Общие кисти для мелочей (tprops.js). */
+export const KIT = { sh, ink, rnd, paint, shine, rr, poly, stoneRect, barrelT, woodpileT, hayT, windowSq, chimneyT, roofFill, potT };

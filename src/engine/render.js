@@ -16,6 +16,8 @@ import { cityGround, wallFace as wallFace0, wallTop as wallTop0, wallSide as wal
 import * as TC from '../art/tcity.js';
 import * as TM from '../art/tmarket.js';
 import { TBLD as TB2, TVIL } from '../art/tbld.js';
+import * as TP from '../art/tprops.js';
+const oldProps = () => typeof window !== 'undefined' && window.__oldProps;
 // v101: постройки столицы — в мультяшном стиле по одной (tbld.js); прежние — window.__oldBld = true
 const oldBld = () => typeof window !== 'undefined' && window.__oldBld;
 // v99: стены и башни столицы — в мультяшном стиле (tcity.js); прежние — window.__oldCity = true
@@ -106,11 +108,11 @@ function cityStatics(S, W, c) {
   for (const sd of [-1, 1]) { const x = cx + C.x1 + th + 40, y = cy + C.eastGate + sd * 80; S.push({ y, draw: (g, t) => guard(g, x, y, 'side', -1, t) }); }
   if (K) for (const dx of [-56, 56]) S.push({ y: K.y + 14, draw: (g, t) => guard(g, cx + dx, K.y + 14, 'front', 1, t) });
   // фонтан
-  if (c.fountain) { const fx = cx + c.fountain.x, fy = cy + c.fountain.y; S.push({ y: fy + 30, x: fx, draw: (g, t) => { g.save(); g.translate(fx, fy); g.scale(0.84, 0.84); fountain(g, t, 110); g.restore(); } }); }
+  if (c.fountain) { const fx = cx + c.fountain.x, fy = cy + c.fountain.y; S.push({ y: fy + 30, x: fx, draw: (g, t) => { g.save(); g.translate(fx, fy); g.scale(0.84, 0.84); (oldProps() ? fountain : TP.fountain)(g, t, 110); g.restore(); } }); }
   // дворы и убранство
   for (const d of c.decor || []) {
     const [k, dx, dy, a] = d, x = cx + dx, y = cy + dy;
-    if (k === 'lamp') { const lampSpr = sprite('lamp', 50, 130, 25, 120, 2, g => { g.scale(0.8, 0.8); lamp(g, 0, false); }); S.push({ y, x, draw: g => drawSpr(g, lampSpr, x, y) }); continue; }
+    if (k === 'lamp') { const lampSpr = sprite('lamp', 50, 130, 25, 120, 2, oldProps() ? g => { g.scale(0.8, 0.8); lamp(g, 0, false); } : styled(g => { g.scale(0.8, 0.8); TP.lamp(g, 0, false); })); S.push({ y, x, draw: g => drawSpr(g, lampSpr, x, y) }); continue; }
     const sp = sprite('cd|' + k + '|' + (a || 0), 200, 120, 100, 100, 2, styled(g => drawYardItem(g, [k, 0, 0, a], 0)));
     S.push({ y: y + 1, x, draw: g => drawSpr(g, sp, x, y) });
   }
@@ -153,8 +155,8 @@ function buildStatics(W) {
       for (const [dx, dy] of [[-56, 14], [56, 14], [-150, K.front + 22], [150, K.front + 22]]) S.push({ y: fy + dy, draw: (g, t) => guard(g, cx + dx, fy + dy, 'front', 1, t) });
     }
     // фонтан и фонари
-    if (c.fountain) S.push({ y: c.y + 30, x: c.x, draw: (g, t) => { g.save(); g.translate(c.x, c.y); g.scale(0.84, 0.84); fountain(g, t, 110); g.restore(); } });
-    const lampSpr = sprite('lamp', 50, 130, 25, 120, 2, g => { g.scale(0.8, 0.8); lamp(g, 0, false); });
+    if (c.fountain) S.push({ y: c.y + 30, x: c.x, draw: (g, t) => { g.save(); g.translate(c.x, c.y); g.scale(0.84, 0.84); (oldProps() ? fountain : TP.fountain)(g, t, 110); g.restore(); } });
+    const lampSpr = sprite('lamp', 50, 130, 25, 120, 2, oldProps() ? g => { g.scale(0.8, 0.8); lamp(g, 0, false); } : styled(g => { g.scale(0.8, 0.8); TP.lamp(g, 0, false); }));
     for (const [dx, dy] of c.lamps || []) { const x = c.x + dx, y = c.y + dy; S.push({ y, x, draw: g => drawSpr(g, lampSpr, x, y) }); }
   }
   // постройки столицы и посёлка
@@ -179,13 +181,13 @@ function buildStatics(W) {
     const oc = sp && (sq ? (() => { const [w, d, lh] = FOOT[b.art] || [200, 150, 200]; return { x0: b.x - w / 2 - 10, y0: b.y - lh + 30, x1: b.x + w / 2 + (oldBld() ? d * 0.3 : 0) + 10, y1: b.y }; })() : occ(sp, b.x, b.y));
     S.push({ y: b.y, oc, draw: g => sp && drawSpr(g, sp, b.x, b.y), label: b.name, lx: b.x + (sq && oldBld() ? (FOOT[b.art] || [0, 0])[1] * 0.15 : 0), ly: b.y - (sq ? (FOOT[b.art] || [0, 0, 120])[2] : (!oldBld() && LBLV[b.art]) || LBL[b.art] || 120) });
   }
-  if (W.village) { const v = W.village, sp = v.well !== false ? sprite('well', 70, 80, 35, 66, 2, g => well(g)) : null; S.push({ y: v.y + 10, draw: g => sp && drawSpr(g, sp, v.x, v.y + 10), label: v.name, lx: v.x, ly: v.y - v.R + 30 });
+  if (W.village) { const v = W.village, sp = v.well !== false ? sprite('well', 80, 90, 40, 74, 2, oldProps() ? g => well(g) : styled(g => TP.well(g))) : null; S.push({ y: v.y + 10, draw: g => sp && drawSpr(g, sp, v.x, v.y + 10), label: v.name, lx: v.x, ly: v.y - v.R + 30 });
     if (v.camp) { const fx = v.x + 140, fy = v.y + 120; S.push({ y: fy, fire: true, x: fx, draw: (g, t) => campfire(g, fx, fy, t) }); } }
   // кладбище (у стоянки купца в Грибном лесу его нет — возрождение у тележки)
   const gy = W.graveyard;
   if (!gy.hidden) for (let i = 0; i < 9; i++) {
     const x = gy.x - 110 + (i % 3) * 110 + (r() - 0.5) * 20, y = gy.y - 60 + Math.floor(i / 3) * 60 + (r() - 0.5) * 10, cross = r() < 0.5;
-    const sp = sprite('grave' + (cross ? 1 : 0), 40, 50, 20, 40, 2, g => grave(g, cross));
+    const sp = sprite('grave' + (cross ? 1 : 0), 44, 54, 22, 44, 2, oldProps() ? g => grave(g, cross) : styled(g => TP.grave(g, cross)));
     S.push({ y, draw: g => drawSpr(g, sp, x, y) });
   }
   if (!gy.hidden) S.push({ y: gy.y + 110, label: gy.name, lx: gy.x, ly: gy.y - 110, draw: () => {} });
@@ -205,7 +207,7 @@ function buildStatics(W) {
   if (W.temple) { const T = W.temple, sp = sprite('temple', 760, 400, 380, 320, 1.5, g => templeEntrance(g, 0)); S.push({ y: T.y, x: T.x, oc: occ(sp, T.x, T.y), label: T.name, lx: T.x, ly: T.y - 330, draw: g => drawSpr(g, sp, T.x, T.y) }); }
   for (const e of W.exits) {
     if (e.temple || e.door) continue;
-    const sp = sprite('sign', 120, 110, 60, 90, 2, g => signpost(g));
+    const sp = sprite('sign', 120, 110, 60, 90, 2, oldProps() ? g => signpost(g) : styled(g => TP.signpost(g)));
     S.push({ y: e.y, draw: g => drawSpr(g, sp, e.x - 40, e.y), label: `${e.to} · ${e.lvl}`, lx: e.x - 40, ly: e.y - 100 });
   }
   // приметы логов: нора, логово, лёжка, паутина, шатры; у людей — костёр
@@ -223,7 +225,7 @@ function buildStatics(W) {
     if (p.kind === 'glow') S.push({ y: p.y, x: p.x, draw: (g, t) => { g.save(); g.translate(p.x, p.y); FOR.glowShrooms(g, 4, p.s, t); g.restore(); } });
     if (p.kind === 'reeds') { const sp = sprite('reeds|' + (p.s % 5), 40, 44, 20, 38, 2, g => FOR.reeds(g, 8, p.s % 5 + 2, 0)); S.push({ y: p.y, x: p.x, draw: g => drawSpr(g, sp, p.x, p.y) }); }
   }
-  for (const p of W.props) if (p.kind === 'hay') { const sp = sprite('hay', 80, 80, 40, 66, 2, g => haystack(g)); S.push({ y: p.y, x: p.x, draw: g => drawSpr(g, sp, p.x, p.y) }); }
+  for (const p of W.props) if (p.kind === 'hay') { const sp = sprite('hay', 84, 84, 42, 70, 2, oldProps() ? g => haystack(g) : styled(g => TP.haystack(g))); S.push({ y: p.y, x: p.x, draw: g => drawSpr(g, sp, p.x, p.y) }); }
   for (const f of W.Z.farmsteads || []) { const sp = oldBld() ? sprite('farmst' + (f.burned ? 'B' : ''), 460, 280, 200, 250, 2, g => { g.scale(K, K); farmstead(g, f.burned); }) : sprite('tfarm' + (f.burned ? 'B' : ''), 520, 300, 260, 260, 1.8, styled(g => { g.scale(KV, KV); TVIL.farmstead(g, f.burned); })); S.push({ y: f.y, x: f.x, oc: occ(sp, f.x, f.y), draw: g => drawSpr(g, sp, f.x, f.y) }); if (f.burned) S.push({ y: f.y + 1, x: f.x, draw: (g, t) => smoke(g, f.x + 20, f.y - 60, t) }); }
   if (W.Z.mill) { const m = W.Z.mill, ms = 1.5, nm = !oldBld(), sp = nm ? sprite('tmill', 210, 270, 105, 240, 1.6, styled(g => { g.scale(ms, ms); TVIL.millBase(g); })) : sprite('millbase', 210, 255, 105, 228, 1.6, g => { g.scale(ms, ms); millBase(g, false); }); S.push({ y: m.y, x: m.x, oc: { x0: m.x - 150, y0: m.y - 340, x1: m.x + 150, y1: m.y }, label: 'Старая мельница', lx: m.x, ly: m.y - 300, draw: (g, t) => { drawSpr(g, sp, m.x, m.y); g.save(); g.translate(m.x, m.y - 112 * ms); g.scale(ms, ms); nm ? TVIL.millBlades(g, t * 0.5) : millBlades(g, t * 0.5, false); g.restore(); } }); }
   // скалы и пригорки (v61)
@@ -278,6 +280,7 @@ function signpost(g) {
   g.strokeStyle = 'rgba(36,24,15,.55)'; g.lineWidth = 1.5; g.beginPath(); g.moveTo(-22, -50); g.lineTo(20, -50); g.stroke();
 }
 function campfire(g, x, y, t) {
+  if (!oldProps()) return TP.campfire(g, x, y, t);
   LOOK.use(g);
   g.fillStyle = 'rgba(255,150,50,.18)'; g.beginPath(); g.arc(x, y - 6, 60, 0, 7); g.fill();
   for (let i = 0; i < 8; i++) { const a = i / 8 * 6.283; g.fillStyle = i % 2 ? '#7a776f' : '#8a867d'; g.strokeStyle = '#24180f'; g.lineWidth = 0.8; g.beginPath(); g.ellipse(x + Math.cos(a) * 14, y + Math.sin(a) * 6, 4, 3, 0, 0, 7); g.fill(); g.stroke(); }
@@ -338,7 +341,7 @@ function paintGround(g, W, x0, y0, CW, CH, i, j) {
     if (c.ring) ringPath(g, c.x, c.y, c.ring.r - c.ring.w / 2, c.ring.r + c.ring.w / 2, 5);
     if (c.fountain) roundPlaza(g, c.x, c.y, c.fountain.plaza, 9);
     if (W.castle) paving(g, c.x - W.castle.terrace, W.castle.y - 10, W.castle.terrace * 2, 68, 13, false);
-    for (const [dx, dy, w, h] of c.beds || []) { g.save(); g.translate(c.x + dx, c.y + dy); flowerbed(g, w, h, Math.abs(dx * 3 + dy)); g.restore(); }
+    for (const [dx, dy, w, h] of c.beds || []) { g.save(); g.translate(c.x + dx, c.y + dy); (oldProps() ? flowerbed : TP.flowerbed)(g, w, h, Math.abs(dx * 3 + dy)); g.restore(); }
     g.restore();
   }
   // посёлок: утоптанная земля
@@ -356,8 +359,9 @@ function paintGround(g, W, x0, y0, CW, CH, i, j) {
     g.fillStyle = 'rgba(60,50,35,.45)'; g.beginPath(); g.ellipse(gy.x, gy.y, 200, 110, 0, 0, 7); g.fill();
     // ограда с калиткой — в сторону ближней дороги
     const ga = gateAngle(W, gy);
+    if (!oldProps()) TP.graveFence(g, gy.x, gy.y, 190, 104, ga); else {
     g.strokeStyle = '#4a3a2a'; g.lineWidth = 4; g.setLineDash([10, 8]); g.beginPath(); g.ellipse(gy.x, gy.y, 190, 104, 0, ga + 0.24, ga - 0.24 + Math.PI * 2); g.stroke(); g.setLineDash([]);
-    for (const d of [-0.24, 0.24]) { const x = gy.x + Math.cos(ga + d) * 190, y = gy.y + Math.sin(ga + d) * 104; g.fillStyle = '#5a4630'; g.strokeStyle = '#24180f'; g.lineWidth = 1.2; g.beginPath(); g.rect(x - 4, y - 6, 8, 9); g.fill(); g.stroke(); }
+    for (const d of [-0.24, 0.24]) { const x = gy.x + Math.cos(ga + d) * 190, y = gy.y + Math.sin(ga + d) * 104; g.fillStyle = '#5a4630'; g.strokeStyle = '#24180f'; g.lineWidth = 1.2; g.beginPath(); g.rect(x - 4, y - 6, 8, 9); g.fill(); g.stroke(); } }
   }
   // вытоптанная земля в лагерях
   for (const cp of W.camps) if (Math.abs(cp.x - (x0 + CW / 2)) < 700 && Math.abs(cp.y - (y0 + CH / 2)) < 700) {

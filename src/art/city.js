@@ -2,6 +2,7 @@
 // мощёные улицы с бордюром, площадь с узором вокруг фонтана, дворы построек (заборы, бочки, телеги, дровники, колодец),
 // деревья группами, фонари и лавки вдоль улиц. Мягкий облик, как у людей и зверей (v75): всё рисуется картинками,
 // контур — затемнённая копия со сдвигом, свет слева сверху. Масштаб: 1 рост героя ≈ 42–55.
+import * as TP from './tprops.js';
 import { masonry, paving, lamp, flowerbed, cone } from './castle.js';
 import { BLD2 } from './bld2.js';
 import { well, haystack } from './farmland.js';
@@ -187,6 +188,11 @@ const ART = { ...BLD2 };
 export function drawBuilding(g, b, t = 0) { const f = ART[b.art]; if (f) f(g, b.art === 'house' ? (b.v || 0) : t, t); }
 export function drawYardItem(g, it, t = 0) {
   const [k, x, y, a] = it; g.save(); g.translate(x, y);
+  if (!(typeof window !== 'undefined' && window.__oldProps)) {   // v103: мультяшное убранство
+    if (k === 'fenceH') TP.fence(g, a, true, Math.abs(x)); else if (k === 'fenceV') TP.fence(g, a, false, Math.abs(y));
+    else if (TP[k] && k !== 'lamp') TP[k](g); else if (k === 'lamp') TP.lamp(g, t, false); else if (k === 'tree') treeGroup(g, Math.abs(x * 3 + y), 3);
+    g.restore(); return;
+  }
   if (k === 'fenceH') fence(g, a, true, Math.abs(x)); else if (k === 'fenceV') fence(g, a, false, Math.abs(y));
   else if (k === 'barrel') barrel(g); else if (k === 'crate') crate(g); else if (k === 'woodpile') woodpile(g); else if (k === 'bench') bench(g); else if (k === 'cartWood') cartWood(g);
   else if (k === 'tree') treeGroup(g, Math.abs(x * 3 + y), 3); else if (k === 'lamp') lamp(g, t, false); else if (k === 'haystack') haystack(g); else if (k === 'well') well(g);
