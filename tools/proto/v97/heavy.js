@@ -5,12 +5,12 @@ import { P, paint, capsule, blob, shine, rivet, ink, sh, face, weapon, quiver, H
 const TAU = Math.PI * 2, LW = 0.8;
 
 /** Глянцевая пластина: заливка сверху светлее, тёмный низ, обводка, блик-полоска. */
-function plate(g, path, col, y0, y1, glossX, glossY, gw = 1, gh = 2.2) {
+export function plate(g, path, col, y0, y1, glossX, glossY, gw = 1, gh = 2.2) {
   path(); const gr = g.createLinearGradient(0, y0, 0, y1); gr.addColorStop(0, sh(col, 0.32)); gr.addColorStop(0.5, col); gr.addColorStop(1, sh(col, -0.32)); g.fillStyle = gr; g.fill();
   g.strokeStyle = ink(col); g.lineWidth = LW; g.lineJoin = 'round'; g.stroke();
   if (glossX != null) { g.fillStyle = 'rgba(255,255,255,.55)'; g.beginPath(); g.ellipse(glossX, glossY, gw, gh, -0.35, 0, TAU); g.fill(); }
 }
-const trimLine = (g, col, w = 0.9) => { g.strokeStyle = ink(col); g.lineWidth = w + 0.6; g.stroke(); g.strokeStyle = col; g.lineWidth = w; g.stroke(); };
+export const trimLine = (g, col, w = 0.9) => { g.strokeStyle = ink(col); g.lineWidth = w + 0.6; g.stroke(); g.strokeStyle = col; g.lineWidth = w; g.stroke(); };
 
 export function heavyHero(g, cls, B, gear, t, blink) {
   const A = gear.chest, c = A.c, c2 = A.c2 || sh(c, -0.45), tr = A.trim || '#e8b440', head = gear.head || {}, robe = A.robe, leather = A.leather;
