@@ -1,6 +1,8 @@
 // Значки вещей и умений (SVG), в цветах облика: какой ярус — такой цвет.
 import { itemLook, W_BY, C_BY, drawHelm, drawRing, drawNeck } from '../art/gear.js';
 import { person } from '../art/body.js';
+import { hasSocket } from '../systems/items.js';
+import { GEMS } from '../../data/mining.js';
 import { RAR_COL } from '../../data/balance.js';
 import { HERBS } from '../../data/herbs.js';
 import { POTIONS } from '../../data/alchemy.js';
@@ -33,8 +35,13 @@ export function gearIconUrl(it) {
   return url;
 }
 export function itemIcon(it, size = 40) {
-  const rc = RAR_COL[it.rar] || '#888', glow = it.rar === 'epic' ? `;box-shadow:0 0 6px ${rc}88` : '';
-  return `<img class="gicon" src="${gearIconUrl(it)}" width="${size}" height="${size}" alt="" draggable="false" style="background:radial-gradient(circle at 50% 40%, ${rc}33, #1a120c 70%);border:2px solid ${rc};border-radius:6px${glow}">`;
+  const rc = RAR_COL[it.rar] || '#888', epic = it.rar === 'epic';
+  // v92: фиолетовые — тёмно-фиолетовый фон и золотая кайма внутри рамки, без свечения
+  const bg = epic ? 'radial-gradient(circle at 50% 38%, #6a3aa8 0%, #2a1444 55%, #120a1e 100%)' : `radial-gradient(circle at 50% 40%, ${rc}33, #1a120c 70%)`;
+  const img = `<img class="gicon${epic ? ' epic' : ''}" src="${gearIconUrl(it)}" width="${size}" height="${size}" alt="" draggable="false" style="background:${bg};border:2px solid ${rc};border-radius:6px${epic ? ';box-shadow:inset 0 0 0 1px #e7c35a' : ''}">`;
+  if (!hasSocket(it)) return img;
+  const g = it.gem && GEMS[it.gem], d = Math.max(9, Math.round(size * 0.24));
+  return `<span class="gwrap" style="position:relative;display:inline-block;width:${size}px;height:${size}px;line-height:0">${img}<span class="sock${g ? ' on' : ''}" style="width:${d}px;height:${d}px${g ? `;background:radial-gradient(circle at 35% 35%,#ffffffaa 0 18%,${g.col} 45%,${g.col})` : ''}"></span></span>`;
 }
 
 export const ABIL_ICON = {

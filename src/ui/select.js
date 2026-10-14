@@ -4,7 +4,8 @@ import { heroSpr, drawSpr } from '../art/sprites.js';
 import { CLASSES, NAMES } from '../../data/classes.js';
 import { listHeroes, deleteHero, saveHero, exportAll, importAll, MAX_SLOTS } from '../engine/save.js';
 import { newHero } from '../entities/hero.js';
-import { lookOf, starterLook } from '../systems/items.js';
+import { lookOf, starterLook, fxListOf } from '../systems/items.js';
+import { gearFx } from '../art/gearfx.js';
 import { rng, plural } from '../engine/util.js';
 import { CONTINENT } from '../../data/zones.js';
 import { $, el, modal, toast } from './dom.js';
@@ -44,7 +45,7 @@ export function showSelect({ onEnter, onSettings }) {
     campfire(c, cx + 25 * k, gy - 34 * k, 3.4 * k, t);
     if (sel >= 0) {
       c.fillStyle = 'rgba(0,0,0,.45)'; c.beginPath(); c.ellipse(cx - 150 * k, gy + 16 * k, 86 * k, 17 * k, 0, 0, 7); c.fill();
-      doll(c, cx - 150 * k, gy - 34 * k, 5.8 * k, 1, lookOf(heroes[sel]), t);
+      doll(c, cx - 150 * k, gy - 34 * k, 5.8 * k, 1, lookOf(heroes[sel]), t); gearFx(c, fxListOf(heroes[sel]), cx - 150 * k, gy - 34 * k + 12.6 * 5.8 * k, t, 37 * 5.8 * k);   // v92
       // тёплый отсвет костра на герое
       c.save(); c.globalCompositeOperation = 'source-atop'; c.restore();
     }

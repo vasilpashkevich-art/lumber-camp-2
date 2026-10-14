@@ -2,11 +2,11 @@
 import { GEAR_NAMES, MAIN_STAT_TO } from '../../data/classes.js';
 import { RAR_MUL, RAR_IDX, RAR_PROPS, LOOT, ITEM, PROPS } from '../../data/balance.js';
 import { TRINKETS } from '../../data/trinkets.js';
-import { ORES, GEMS } from '../../data/mining.js';
+import { ORES, GEMS, SOCKET } from '../../data/mining.js';
 import { HERBS } from '../../data/herbs.js';
 import { POTIONS, ALCH } from '../../data/alchemy.js';
 import { weighted, uid, rng } from '../engine/util.js';
-import { pickModel, modelOf, itemLook, seedOf } from '../art/gear.js';
+import { pickModel, modelOf, itemLook, seedOf, isEpicModel, fxOf } from '../art/gear.js';
 
 const ARMOR_SLOT = { head: 0.7, chest: 1.2, legs: 0.9 };
 const CLASS_ARMOR = { warrior: 1.6, archer: 1.0, mage: 0.5 };
@@ -153,7 +153,7 @@ export function itemLines(it) {
   const L = [];
   if (it.kind === 'ore') return [['t', `Руда для плавки: ${2} — на слиток`], ['n', `В стопке: ${it.n} из ${LOOT.stack}`]];
   if (it.kind === 'bar') return [['t', 'Слиток. Пока его можно продать — позже из слитков будет ковать кузнец'], ['n', `В стопке: ${it.n} из ${LOOT.stack}`]];
-  if (it.kind === 'gem') return [['t', 'Самоцвет. Пока его можно продать — позже из самоцветов будут гранить камни для вещей'], ['n', `В стопке: ${it.n} из ${LOOT.stack}`]];
+  if (it.kind === 'gem') return [['t', `Камень для гнезда: ${(() => { const b = (GEMS[it.metal] || {}).bonus || {}; return b.main ? `+${b.main} к главной характеристике` : b.stam ? `+${b.stam} к выносливости` : `+${b.crit}% к криту`; })()}. Вставляется в оружие, нагрудник, штаны или шею с гнездом — насовсем, вынуть нельзя, можно только заменить`], ['n', `В стопке: ${it.n} из ${LOOT.stack}`]];
   if (it.kind === 'tool') return [['t', 'Нужна, чтобы копать руду. Достаточно держать в сумке']];
   if (it.kind === 'herb') { const Hb = HERBS[it.metal]; return [['t', Hb.d], ['w', `Где растёт: ${Hb.where}. Для алхимии`], ['n', `В стопке: ${it.n} из ${LOOT.stack}`]]; }
   if (it.kind === 'potion') { const Po = POTIONS[it.metal]; return [['ab', Po.d, true], ['k', `${Po.kind === 'battle' ? 'Боевое' : 'Защитное'} зелье — действует по одному каждого рода, новое заменяет прежнее. Клавиша 2 — выпить последнее выбранное`], ['n', `В стопке: ${it.n} из ${LOOT.stack}`]]; }
@@ -165,6 +165,7 @@ export function itemLines(it) {
   if (it.main) L.push(['main', `+${it.main} ${MAIN_STAT_TO[it.cls]}`]);
   if (it.stam) L.push(['stam', `+${it.stam} к выносливости`]);
   for (const [k, v] of Object.entries(it.props || {})) L.push(['p:' + k, `+${f(v)}${PROPS[k].unit} ${PROPS[k].name}`, true]);
+  const sk = socketLine(it); if (sk) L.push(sk);   // v92: гнездо
   L.push(['ilvl', `Уровень вещи: ${it.ilvl}`]);
   return L;
 }
@@ -175,4 +176,34 @@ export function itemNums(it) {
   if (it.dmg) o.dmg = it.dmg; if (it.armor) o.armor = it.armor; if (it.main) o.main = it.main; if (it.stam) o.stam = it.stam;
   for (const [k, v] of Object.entries(it.props || {})) o['p:' + k] = v;
   return o;
+}
+
+// ---------------------------------------------------------------- v92: гнёзда под камни и героический облик
+/** Есть ли у вещи гнездо под камень: оружие, нагрудник, штаны, шея; синие и фиолетовые — всегда, зелёные — 30% (по зерну вещи, без хранения). */
+export function hasSocket(it) {
+  if (!it || it.kind || it.trinket || !SOCKET.slots.includes(it.slot)) return false;
+  if (it.rar === 'rare' || it.rar === 'epic') return true;
+  if (it.rar === 'good') return (seedOf(it) % 1000) / 1000 < SOCKET.good;
+  return false;
+}
+/** Строка гнезда для подсказки. */
+export function socketLine(it) {
+  if (!hasSocket(it)) return null;
+  if (!it.gem || !GEMS[it.gem]) return ['sock', '◇ Пустое гнездо — сюда можно вставить камень', false];
+  const G = GEMS[it.gem], b = G.bonus, MS = MAIN_STAT_TO[it.cls] || 'к силе';
+  return ['sock', `◆ ${G.name}: ${b.main ? `+${b.main} ${MS}` : b.stam ? `+${b.stam} к выносливости` : `+${b.crit}% к криту`}`, true, G.col];
+}
+/** Старые фиолетовые вещи получают героическую модель (ярус 5) и новое название. Повторный вызов ничего не меняет. */
+export function epicUpgrade(it) {
+  if (!it || it.rar !== 'epic' || !it.slot || it.trinket || it.kind || !['weapon', 'head', 'chest', 'legs', 'ring', 'neck'].includes(it.slot)) return it;
+  if (it.m && isEpicModel(it.slot, it.m)) return it;
+  it.seed = seedOf(it); it.tier = 5; it.m = pickModel(it.slot, it.cls || 'warrior', 5, it.seed); it.name = itemName(it); return it;
+}
+/** Живые эффекты надетых героических вещей: [[вид, место]] (оружие, голова, грудь). */
+const FXC = new Map();
+export function fxListOf(hero) {
+  const e = hero.eq || {}, key = ['weapon', 'head', 'chest'].map(s => e[s] ? e[s].id + ':' + (e[s].m || '') : '-').join('|');
+  let L = FXC.get(key); if (L) return L;
+  L = ['weapon', 'head', 'chest'].map(s => { const it = e[s]; if (!it || it.rar !== 'epic') return null; const f = fxOf(s, itemLook({ ...it, slot: s }, hero.cls).m); return f ? [f, s] : null; }).filter(Boolean);
+  if (FXC.size > 40) FXC.clear(); FXC.set(key, L); return L;
 }

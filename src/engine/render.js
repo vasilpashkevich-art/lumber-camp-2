@@ -25,7 +25,8 @@ import { ORES, veinColor, MINE } from '../../data/mining.js';
 import { miningSkill } from '../systems/mining.js';
 import { sprite, styled, PEOPLE_K, drawSpr, flashOf, heroSpr, mobSpr, MOB_SCALE, MOB_LOOK, personSpr, beastSpr, drawFrame, GUARD_LOOK, MERCH_LOOK, viewOf, viewOf8, sideways, sprBox, FRAMES, treeSpr, TREE_K, bldSpr, mountainSpr } from '../art/sprites.js';
 import { treesIn, GATE_W } from '../world/world.js';
-import { lookOf } from '../systems/items.js';
+import { lookOf, fxListOf } from '../systems/items.js';
+import { gearFx } from '../art/gearfx.js';
 import { interactTarget, abilsOf } from '../systems/game.js';
 import { hasTal } from '../systems/talents.js';
 import * as V from '../art/vfx.js';
@@ -755,6 +756,7 @@ function drawHero(c, G, look, t) {
   const sp = personSpr(look, view, mode, f), breathe = mode === 'idle' ? Math.sin(t * 2) * 0.4 : 0;
   drawFrame(c, P.hurt > 0 ? flashOf(sp) : sp, P.x - (P.hurt > 0 && view === 'side' ? dir * 2 : 0), P.y + breathe, dir, PEOPLE_K, P.dead ? Math.max(0.35, 1 - P.deadT / 3) : 1);
   if (B.berserk > 0) V.berserkAura(c, P.x, P.y + 3, t + 0.5, Math.min(1, B.berserk / 0.5) * 0.3, 9);
+  if (!P.dead) gearFx(c, fxListOf(G.hero), P.x, P.y + breathe, t, 37 * PEOPLE_K, dir);   // v92: живые эффекты героических вещей
   if (P.poison) { c.fillStyle = 'rgba(120,220,80,.6)'; for (let i = 0; i < 3; i++) c.fillRect(P.x - 10 + i * 9, P.y - 60 - ((t * 40 + i * 13) % 20), 3, 3); }
   if (P.mine) mineSparks(c, P);
   if (P.gather) pickLeaves(c, P.gather.v, P, P.gather.t / P.gather.max, HERBS[P.gather.v.herb].col);

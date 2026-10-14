@@ -1,7 +1,8 @@
 // Герой: создание, характеристики, опыт.
 import { CLASSES, FIST } from '../../data/classes.js';
 import { HERO, MAX_LVL, xpNeed, ITEM, PROPS, armorCut } from '../../data/balance.js';
-import { starterGear } from '../systems/items.js';
+import { starterGear, hasSocket } from '../systems/items.js';
+import { GEMS } from '../../data/mining.js';
 import { uid } from '../engine/util.js';
 
 export const HERO_V = 4; // версия сохранения героя (2 — вещи v59: главный параметр и свойства; 3 — v64: облик вещей моделями; 4 — v71: Грибной лес шире)
@@ -29,6 +30,7 @@ export function heroStats(h, eq = h.eq) {
     armor += it.armor || 0; stam += it.stam || 0;
     if (it.cls === h.cls) { main += it.main || 0; for (const [k, v] of Object.entries(it.props || {})) if (k in p) p[k] += v; }
     if (it.slot === 'weapon') wdmg = it.dmg || 0;
+    if (it.gem && GEMS[it.gem] && hasSocket(it)) { const b = GEMS[it.gem].bonus; main += b.main || 0; stam += b.stam || 0; p.crit += b.crit || 0; }   // v92: камень в гнезде
   }
   if (h.cls === 'archer') p.crit += main / ITEM.agiCrit;
   for (const k in p) p[k] = Math.min(PROPS[k].cap, Math.round(p[k] * 10) / 10);

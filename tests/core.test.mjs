@@ -60,11 +60,11 @@ test('граница зоны не пускает наружу', () => {
 
 test('вещи: стартовые, ярусы облика, цены', () => {
   const g = starterGear('archer'); assert.equal(g.head, null); assert.equal(g.chest.tier, 0); assert.equal(g.weapon.name, 'Короткий лук');
-  assert.equal(visTier(5, 'common'), 1); assert.equal(visTier(5, 'rare'), 3); assert.equal(visTier(40, 'epic'), 4);
+  assert.equal(visTier(5, 'common'), 1); assert.equal(visTier(5, 'rare'), 3); assert.equal(visTier(40, 'epic'), 5);   // v92: фиолетовые — свой ярус
   const it = makeItem('warrior', 'chest', 4, 'good', rng(3)); assert.ok(['Кожаная куртка', 'Кольчуга', 'Чешуйчатый доспех'].some(n => it.name.startsWith(n + ' ')), it.name); assert.ok(it.armor > 0 && it.price > 0 && Object.keys(it.props).length === 1);
   const r = rng(9); for (let i = 0; i < 200; i++) { const d = rollDrop('mage', 3, false, r); assert.equal(d.cls, 'mage'); assert.ok(d.name); }
   const h = newHero('x', 'mage'); h.eq.chest = makeItem('mage', 'chest', 5, 'epic', rng(1)); const L = lookOf(h);
-  assert.ok(['robe_star', 'robe_arch'].includes(L.chest.m), L.chest.m); assert.ok(L.chest.P.glow, 'фиолетовая светится');
+  assert.ok(['astralrobe', 'flamerobe'].includes(L.chest.m), L.chest.m); assert.ok(!L.chest.P.glow, 'v92: без свечения');
 });
 
 test('бой: воин убивает лису, получает опыт, добыча лежит в теле, моб возрождается через 6 минут', () => {

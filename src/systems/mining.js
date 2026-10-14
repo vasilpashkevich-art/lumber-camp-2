@@ -2,7 +2,7 @@
 // Без рисования. Состояние жил хранится в герое (h.veins[зона]), чтобы не появлялись заново при каждом входе.
 import { ORES, MINE, GEMS, veinColor } from '../../data/mining.js';
 import { LOOT } from '../../data/balance.js';
-import { makeStack, makePick, isStackKind } from './items.js';
+import { makeStack, makePick, isStackKind, hasSocket } from './items.js';
 import { dist } from '../engine/util.js';
 
 const emit = (G, e) => G.ev.push(e);
@@ -124,3 +124,13 @@ export function smelt(G, metal, times = 1) {
   if (left) addStack(H, makeStack('ore', metal, left * MINE.smelt));   // не влезло — руда возвращается
   sfx(G, 'smelt'); return can - left;
 }
+
+/** v92: вставить камень (из стопки в сумке) в вещь с гнездом — надетую или в сумке. Старый камень пропадает. Вынуть нельзя. */
+export function insertGem(H, gemIt, target) {
+  if (!gemIt || gemIt.kind !== 'gem' || !GEMS[gemIt.metal] || !hasSocket(target)) return false;
+  if (target.gem === gemIt.metal) return false;
+  if (countOf(H, 'gem', gemIt.metal) < 1) return false;
+  takeStack(H, 'gem', gemIt.metal, 1); target.gem = gemIt.metal; return true;
+}
+/** Куда можно вставить камень: надетые и в сумке, с гнездом. */
+export const socketTargets = H => [...Object.values(H.eq || {}), ...H.bag].filter(it => it && hasSocket(it));

@@ -628,6 +628,7 @@ export function drawRing(c, id, P) {
   if (P.glow) { c.save(); c.globalCompositeOperation = 'lighter'; const gr = c.createRadialGradient(0, -3, 0.5, 0, -3, 9); gr.addColorStop(0, P.glow + '88'); gr.addColorStop(1, P.glow + '00'); c.fillStyle = gr; c.beginPath(); c.arc(0, -3, 9, 0, 7); c.fill(); c.restore(); }
 }
 function gemBig(c, x, y, r, col) {
+  if (!col) return;
   F(c, () => { for (let i = 0; i < 8; i++) { const a = i / 8 * Math.PI * 2 + Math.PI / 8; c.lineTo(x + Math.cos(a) * r, y + Math.sin(a) * r * 0.85); } c.closePath(); }, col, 0.6);
   F(c, () => { for (let i = 0; i < 8; i++) { const a = i / 8 * Math.PI * 2 + Math.PI / 8; c.lineTo(x + Math.cos(a) * r * 0.5, y - r * 0.1 + Math.sin(a) * r * 0.42); } c.closePath(); }, sh(col, 0.3), 0.3);
   c.fillStyle = 'rgba(255,255,255,.85)'; c.beginPath(); c.arc(x - r * 0.35, y - r * 0.35, r * 0.2, 0, 7); c.fill();

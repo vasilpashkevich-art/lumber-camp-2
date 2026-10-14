@@ -1,13 +1,13 @@
 // Окна: «Персонаж» (надетое, сумка, характеристики), «Рынок», меню (Esc), гибель.
 import { CLASSES, SLOTS, SLOTS_L, SLOTS_R, SLOT_NAME, MAIN_STAT } from '../../data/classes.js';
-import { ORES, MINE, veinColor } from '../../data/mining.js';
-import { learnMining, buyPick, smelt, countOf, miningSkill, hasPick } from '../systems/mining.js';
+import { ORES, MINE, veinColor, GEMS } from '../../data/mining.js';
+import { learnMining, buyPick, smelt, countOf, miningSkill, hasPick, insertGem, socketTargets } from '../systems/mining.js';
 import { HERBS, HERBAL } from '../../data/herbs.js';
 import { POTIONS, ALCH, KIND_NAME } from '../../data/alchemy.js';
 import { herbSkill, alchSkill, skillColor, learnHerbal, learnAlchemy, buyFlask, brew, canBrew, drinkElixir } from '../systems/herbs.js';
 import { RAR_COL, RAR_NAME, LOOT, armorCut, PROPS } from '../../data/balance.js';
 import { itemIcon, anyIcon, accIcon, moneyHtml, potionIcon } from './icons.js';
-import { itemLines, itemNums, lookOf, isStackKind } from '../systems/items.js';
+import { itemLines, itemNums, lookOf, isStackKind, hasSocket, fxListOf } from '../systems/items.js';
 import { compareItem } from '../entities/hero.js';
 import { stashPut, stashTake, stashMove, stashSwap, stashMaterials, store } from '../systems/bank.js';
 import { dropItem, equip, unequip, sellItem, buyPotion, shopStock, buyShop, POTION_PRICE, respawnHero, lootTake, hasLoot, bagMove, abilsOf, buyBack } from '../systems/game.js';
@@ -16,6 +16,7 @@ import { iconUrl } from '../art/abicons.js';
 import { playPreview, hasPreview, SW, SH } from './abilpreview.js';
 import { talentRows, talentFree, chooseTalent, resetTalents, resetPrice } from '../systems/talents.js';
 import { doll } from '../art/body.js';
+import { gearFx } from '../art/gearfx.js';
 import { $, el, modal, toast, TOUCH, T } from './dom.js';
 import { DUNGEONS, dgState, dgLeft, dgBosses, fmtLeft } from '../systems/dungeon.js';
 import { makeDnD } from './drag.js';
@@ -38,6 +39,23 @@ function itemSheet(G, it, acts, worn) {
   m.querySelector('[data-x=no]').onclick = () => m.close();
   return m;
 }
+/** v92: вставить камень в вещь — с вопросом (камень насовсем; старый пропадёт). */
+function gemConfirm(G, gemIt, target, after) {
+  const Gm = GEMS[gemIt.metal], old = target.gem && GEMS[target.gem];
+  if (target.gem === gemIt.metal) { toast(`В «${target.name}» уже ${Gm.name}`, '', 'gem'); return; }
+  const m = modal(`<h2>Вставить камень?</h2><p><b style="color:${Gm.col}">${Gm.name}</b> → <b style="color:${RAR_COL[target.rar]}">${target.name}</b></p><p class="hint">Камень вставляется насовсем — вынуть его нельзя, можно только заменить другим.${old ? ` Сейчас там <b style="color:${old.col}">${old.name}</b> — он пропадёт.` : ''}</p><div class="row"><button class="btn main" data-x="yes">Вставить</button><button class="btn" data-x="no">Отмена</button></div>`, 'gemask');
+  m.querySelector('[data-x=yes]').onclick = () => { m.close(); if (insertGem(G.hero, gemIt, target)) { toast(`${Gm.name} вставлен в «${target.name}»`, 'good', 'gem'); after && after(); } };
+  m.querySelector('[data-x=no]').onclick = () => m.close();
+}
+/** Выбор вещи для камня: все вещи с гнездом (надетые и в сумке). */
+function gemPick(G, gemIt, after) {
+  const L = socketTargets(G.hero);
+  if (!L.length) { toast('Нет вещей с гнездом. Гнездо бывает у синих и фиолетовых вещей, иногда у зелёных: в оружии, нагруднике, штанах и шее', '', 'gem'); return; }
+  const m = modal(`<h2>Куда вставить ${GEMS[gemIt.metal].name}?</h2><div class="tgs"></div><div class="row"><button class="btn" data-x="no">Отмена</button></div>`, 'gemask');
+  const box = m.querySelector('.tgs');
+  for (const it of L) { const worn = Object.values(G.hero.eq).includes(it), g = it.gem && GEMS[it.gem]; const r = el('div', 'ware2 tg', `${itemIcon(it, 44)}<div><b style="color:${RAR_COL[it.rar]}">${it.name}</b><small>${worn ? 'надето' : 'в сумке'} · ${g ? `в гнезде ${g.name}` : 'гнездо пустое'}</small></div>`); r.onclick = () => { m.close(); gemConfirm(G, gemIt, it, after); }; box.append(r); }
+  m.querySelector('[data-x=no]').onclick = () => m.close();
+}
 /** v91: выбросить вещь из сумки — зелёные и лучше, а также стопки — с вопросом. */
 function throwAsk(G, it, after) {
   const go = () => { dropItem(G, it); after && after(); };
@@ -54,7 +72,7 @@ const num = v => (v > 0 ? '+' : '−') + String(Math.abs(Math.round(v * 10) / 10
 function card(it, G, head = '') {
   const wrong = it.cls !== G.hero.cls ? `<p class="bad">Не для вашего класса</p>` : '';
   const kind = it.kind === 'ore' ? 'Руда' : it.kind === 'bar' ? 'Слиток' : it.kind === 'gem' ? 'Самоцвет' : it.kind === 'tool' ? 'Инструмент' : it.kind === 'herb' ? 'Трава' : it.kind === 'flask' ? 'Склянка' : it.kind === 'potion' ? `Зелье · ${KIND_NAME[POTIONS[it.metal].kind]}` : `${RAR_NAME[it.rar]} · ${SLOT_NAME[it.slot]}`;
-  return `<div class="tcard">${head}<b style="color:${RAR_COL[it.rar]}">${it.name}${it.n > 1 ? ` <span class="cnt">× ${it.n}</span>` : ''}</b><small>${kind}</small>${itemLines(it).map(([k, t, prop]) => `<p class="${prop ? 'prop' : ''}">${t}</p>`).join('')}${it.slot ? wrong : ''}${it.cost ? `<p class="gold">Купить: ${moneyHtml(it.cost)}</p>` : ''}${it.price && !it.cost ? `<p class="gold">Цена у торговца: ${moneyHtml(it.price * (it.n || 1))}${it.n > 1 ? ` <small>(${moneyHtml(it.price)} за штуку)</small>` : ''}</p>` : ''}</div>`;
+  return `<div class="tcard">${head}<b style="color:${RAR_COL[it.rar]}">${it.name}${it.n > 1 ? ` <span class="cnt">× ${it.n}</span>` : ''}</b><small>${kind}</small>${itemLines(it).map(([k, t, prop, col]) => k === 'sock' ? `<p class="sock${prop ? ' on' : ''}"${col ? ` style="color:${col}"` : ''}>${t}</p>` : `<p class="${prop ? 'prop' : ''}">${t}</p>`).join('')}${it.slot ? wrong : ''}${it.cost ? `<p class="gold">Купить: ${moneyHtml(it.cost)}</p>` : ''}${it.price && !it.cost ? `<p class="gold">Цена у торговца: ${moneyHtml(it.price * (it.n || 1))}${it.n > 1 ? ` <small>(${moneyHtml(it.price)} за штуку)</small>` : ''}</p>` : ''}</div>`;
 }
 /** Что изменится, если надеть: построчно и итог. */
 function diffHtml(it, G) {
@@ -93,16 +111,17 @@ export const hideTip = () => { if (tipEl) tipEl.hidden = true; };
 /** Окно персонажа: слева облик и надетое, справа сумка. Клик по вещи в сумке — надеть, по надетой — снять. */
 export function openChar(G, onChange) {
   const m = modal(`<h2>${G.hero.name}</h2><div class="charwin"><div><div class="dollw"><div class="eq eqL"></div><canvas width="340" height="472"></canvas><div class="eq eqR"></div></div><dl class="stats"></dl><div class="skillb"></div></div><div class="bagside"><h3>Сумка <span class="cnt"></span></h3><div class="bag"></div><p class="hint">${T('Нажмите на вещь в сумке — надеть, на надетую — снять. Вещи можно перетаскивать мышью: по ячейкам сумки, на снаряжение и обратно. Выбросить — правый щелчок или вынести вещь за окно (мешок пролежит на земле 3 минуты). Руда и слитки лежат стопками до 20. Закрыть — I, B или Esc.', 'Коснитесь вещи — увидите, что она даёт, сможете надеть, снять или выбросить. Задержите палец на вещи и ведите — переложите в другую ячейку или на снаряжение. Руда и слитки лежат стопками до 20.')}</p></div></div>`, 'wide');
+  let dollFx = [];   // v92: живые эффекты героических вещей на кукле
   const cell = (it, extra = '') => el('button', 'cell', it ? anyIcon(it, 44) + (it.n > 1 ? `<span class="n">${it.n}</span>` : '') + extra : '');
   const draw = () => {
     const h = G.hero, st = G.st;
-    const g = m.querySelector('canvas').getContext('2d'); g.setTransform(2, 0, 0, 2, 0, 0); g.clearRect(0, 0, 170, 236); doll(g, 85, 184, 3.9, 1, lookOf(h), 0.3);
+    const g = m.querySelector('canvas').getContext('2d'); g.setTransform(2, 0, 0, 2, 0, 0); g.clearRect(0, 0, 170, 236); doll(g, 85, 184, 3.9, 1, lookOf(h), 0.3); dollFx = fxListOf(h);
     for (const [sel, list] of [['.eqL', SLOTS_L], ['.eqR', SLOTS_R]]) {
       const eq = m.querySelector(sel); eq.innerHTML = '';
       for (const s of list) {
         const it = h.eq[s]; const b = it ? cell(it) : el('button', 'cell', `<span class="empty">${SLOT_NAME[s]}</span>`);
         if (it) { hov(b, e => tip(e, it, G, true)); onItem(b, G, it, 'Снять', () => { unequip(G, s); onChange(); draw(); }, true); drag(b, { eq: s }); }
-        drop(b, src => { if (src.it && src.it.slot === s) equip(G, src.it); });
+        drop(b, src => { if (src.it && src.it.kind === 'gem' && it && hasSocket(it)) gemConfirm(G, src.it, it, () => { onChange(); draw(); }); else if (src.it && src.it.slot === s) equip(G, src.it); });
         eq.append(b);
       }
     }
@@ -115,9 +134,9 @@ export function openChar(G, onChange) {
     const bag = m.querySelector('.bag'); bag.innerHTML = '';
     for (let i = 0; i < LOOT.bag; i++) {
       const it = h.bag.find(x => x.pos === i), b = cell(it, it ? upMark(it, G) : '');
-      if (it) { hov(b, e => tip(e, it, G)); onItem(b, G, it, it.slot ? 'Надеть' : it.kind === 'potion' ? 'Выпить' : null, () => { if (it.kind === 'potion') drinkElixir(G, it); else equip(G, it); onChange(); draw(); }, false, [['Выбросить', () => throwAsk(G, it, () => { onChange(); draw(); })]]); drag(b, { it });
+      if (it) { hov(b, e => tip(e, it, G)); onItem(b, G, it, it.slot ? 'Надеть' : it.kind === 'potion' ? 'Выпить' : it.kind === 'gem' ? 'Вставить в вещь' : null, () => { if (it.kind === 'potion') drinkElixir(G, it); else if (it.kind === 'gem') gemPick(G, it, () => { onChange(); draw(); }); else equip(G, it); onChange(); draw(); }, false, [['Выбросить', () => throwAsk(G, it, () => { onChange(); draw(); })]]); drag(b, { it });
         if (!TOUCH) b.oncontextmenu = e => { e.preventDefault(); hideTip(); throwAsk(G, it, () => { onChange(); draw(); }); }; }   // v91: правый щелчок — выбросить
-      drop(b, src => { if (src.it) bagMove(G, src.it, i); else if (src.eq) { const cur = h.bag.find(x => x.pos === i); if (cur && cur.slot === src.eq) equip(G, cur); else if (!cur) unequip(G, src.eq, i); } });
+      drop(b, src => { const cur0 = h.bag.find(x => x.pos === i); if (src.it && src.it.kind === 'gem' && cur0 && cur0 !== src.it && hasSocket(cur0)) { gemConfirm(G, src.it, cur0, () => { onChange(); draw(); }); return; } if (src.it) bagMove(G, src.it, i); else if (src.eq) { const cur = h.bag.find(x => x.pos === i); if (cur && cur.slot === src.eq) equip(G, cur); else if (!cur) unequip(G, src.eq, i); } });
       bag.append(b);
     }
   };
@@ -125,6 +144,7 @@ export function openChar(G, onChange) {
   const { drag, drop } = makeDnD(() => { onChange(); draw(); });
   drop(m.parentElement, src => { if (src.it) throwAsk(G, src.it, () => { onChange(); draw(); }); }, true);   // v91: вынес вещь из окна на землю — выбросить
   m.isChar = true;
+  { const cv = m.querySelector('canvas'); const anim = now => { if (!m.isConnected) return; if (dollFx.length) { const g = cv.getContext('2d'); g.setTransform(2, 0, 0, 2, 0, 0); g.clearRect(0, 0, 170, 236); doll(g, 85, 184, 3.9, 1, lookOf(G.hero), 0.3); gearFx(g, dollFx, 85, 184 + 12.6 * 3.9, now / 1000, 37 * 3.9); } requestAnimationFrame(anim); }; requestAnimationFrame(anim); }
   const onKey = e => { if ((e.code === 'KeyI' || e.code === 'KeyB') && !e.repeat) { e.preventDefault(); e.stopPropagation(); m.close(); } };
   addEventListener('keydown', onKey, true);
   m.onclose = () => { hideTip(); removeEventListener('keydown', onKey, true); }; draw(); return m;
