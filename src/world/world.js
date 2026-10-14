@@ -1,6 +1,7 @@
 // Мир зоны: граница, деревья, дороги, лагеря, столица. Строится из данных зоны и её зерна —
 // у всех одинаковый, от сохранения не зависит.
 import { rng, inPoly, segDist, dist, clamp } from '../engine/util.js';
+import { NPCS, QUESTS } from '../../data/quests.js';
 import { buildRelief, findPath } from './relief.js';
 import { cityBlocks, footRect } from '../art/city.js';
 
@@ -230,6 +231,9 @@ export function buildWorld(Z) {
     for (const [px, py, rx, ry] of PONDS) for (let i = 0; i < 9; i++) { const a = r4() * 6.283, x = px + Math.cos(a) * (rx + 14), y = py + Math.sin(a) * (ry + 10); if (Math.sin(a) < -0.2 && r4() < 0.5) continue; W.props.push({ kind: 'reeds', x, y, s: Math.floor(r4() * 1000) }); }
   }
   if (W.rocks.length) { W.trees = W.trees.filter(t => !W.rocks.some(o => Math.abs(t.x - o.x) < o.w * 0.6 && Math.abs(t.y - o.y) < o.w * 0.3)); W.grid.clear(); const all = W.trees; W.trees = []; for (const t of all) addTree(W, t); }
+  // v95: у жителей с заданиями и у мест предметов заданий деревья не растут (остальные не сдвигаются)
+  { const keep = [...Object.values(NPCS).filter(n => n.zone === Z.id).map(n => [n.x, n.y, 110]), ...Object.values(QUESTS).filter(q => q.zone === Z.id).flatMap(q => q.goals.flatMap(g => (g.spots || []).map(([x, y]) => [x, y, 60])))];
+    if (keep.length && W.trees.some(t => keep.some(([x, y, r]) => dist(t.x, t.y, x, y) < r))) { const all = W.trees.filter(t => !keep.some(([x, y, r]) => dist(t.x, t.y, x, y) < r)); W.grid.clear(); W.trees = []; for (const t of all) addTree(W, t); } }
   return W;
 }
 

@@ -1,4 +1,5 @@
 // Запуск игры: экран выбора героя → мир. Связывает ход игры, рисование, интерфейс и звук.
+import * as Q from './systems/quests.js';
 import { ZONES } from '../data/zones.js';
 import { buildNav } from './world/relief.js';
 import { buildWorld, inCity } from './world/world.js';
@@ -11,7 +12,7 @@ import { soundInit, sfx, music, setSound, soundState } from './engine/audio.js';
 import { showSelect } from './ui/select.js';
 import { createHud } from './ui/hud.js';
 import { talentRows, talentFree } from './systems/talents.js';
-import { openChar, openVendor, openMenu, showDeath, hideTip, openLoot, openAbils, openGuild, openSmelt, openBank, openProf, openDungeons } from './ui/windows.js';
+import { openChar, openVendor, openMenu, showDeath, hideTip, openLoot, openAbils, openGuild, openSmelt, openBank, openProf, openDungeons, openNpc, openJournal } from './ui/windows.js';
 import { dgLeave } from './systems/dungeon.js';
 import { openMap, miniZoom, miniZoomLevel, MINI_Z } from './ui/map.js';
 import { doll } from './art/body.js';
@@ -58,6 +59,7 @@ function boot() {
     if (code === 'KeyK') { mapWin(); return false; }
     if (code === 'KeyP') { profWin(); return false; }
     if (code === 'KeyJ') { dgWin(); return false; }
+    if (code === 'KeyL') { qWin(); return false; }
     if (code === 'Equal' || code === 'NumpadAdd') { zoomBy(1); return false; }
     if (code === 'Minus' || code === 'NumpadSubtract') { zoomBy(-1); return false; }
     if (code === 'KeyM') { setSound(!soundState().on); toast(soundState().on ? 'Звук включён' : 'Звук выключен', '', 'snd'); return false; }
@@ -67,9 +69,9 @@ function boot() {
   const miniBtns = () => { const z = miniZoomLevel(); for (const b of document.querySelectorAll('#miniZ button')) b.disabled = +b.dataset.z > 0 ? z >= MINI_Z.length - 1 : z <= 0; };
   for (const b of document.querySelectorAll('#miniZ button')) b.onclick = e => { e.stopPropagation(); miniZoom(+b.dataset.z); miniBtns(); };
   miniBtns();
-  $('#btnBag').onclick = () => charWin(); $('#btnMenu').onclick = () => menu(); $('#btnMap').onclick = () => mapWin(); $('#btnProf').onclick = () => profWin(); $('#btnDg').onclick = () => dgWin(); $('#mini').onclick = () => mapWin(); $('#pfRing').onclick = () => { if (G && !document.querySelector('.modal')) devWin(); };
+  $('#btnBag').onclick = () => charWin(); $('#btnMenu').onclick = () => menu(); $('#btnMap').onclick = () => mapWin(); $('#btnProf').onclick = () => profWin(); $('#btnDg').onclick = () => dgWin(); $('#btnQuest').onclick = () => qWin(); $('#qtrack').onclick = () => qWin(); $('#mini').onclick = () => mapWin(); $('#pfRing').onclick = () => { if (G && !document.querySelector('.modal')) devWin(); };
   $('#ver').textContent = 'версия ' + VERSION;
-  if (location.hash === '#dev') window.__G = { get G() { return G; }, start, toSelect, R: () => R, rollDrop, makeItem, doll, makeTrinket, makeStack, makePick, addStack, refresh: () => { refreshStats(G); hud.update(); }, spriteStats };
+  if (location.hash === '#dev') window.__G = { get G() { return G; }, start, toSelect, R: () => R, rollDrop, makeItem, doll, makeTrinket, makeStack, makePick, addStack, refresh: () => { refreshStats(G); hud.update(); }, spriteStats, Q };
   toSelect();
 }
 
@@ -115,6 +117,7 @@ function keepShared() { if (G && G.sharedDirty && G.shared) { saveShared(G.share
 
 function charWin() { if (!G) return; openChar(G, () => hud.update()); }
 /** Окно «Подземелья» (v90, J): описание, боссы, время до обновления. */
+function qWin() { if (!G || document.querySelector('.modal')) return; openJournal(G, () => { hud.update(); persist(); }); }
 function dgWin() { if (!G || document.querySelector('.modal')) return; openDungeons(G); }
 function mapWin() { if (!G || document.querySelector('.modal')) return; openMap(G); }
 function profWin(opts = {}) { if (!G) return; const m = document.querySelector('.modal'); if (m) { if (m.querySelector('.box').isProf) m.querySelector('.box').close(); return; } openProf(G, () => hud.update(), opts); }
@@ -136,6 +139,7 @@ function frame(now) {
     if (e.k === 'loot') { toast(`Добыча: <b style="color:${RAR_COL[e.it.rar]}">${e.it.name}</b>`, '', null); sfx('loot'); }
     if (e.k === 'lvl') { toast(`Новый уровень: ${e.L}! Здоровье восстановлено.`, 'good'); const A = abilsOf(G.hero).find(a => a.lvl === e.L); if (A) toast(A.key === 'passive' ? `Новое умение: <b>${A.name}</b> — работает само. ${A.d}` : `Новое умение: <b>${A.name}</b> — ${T('клавиша ' + A.key, 'новая кнопка справа')}. ${A.d}`, 'good'); if (talentRows(G.hero).some(r => r.lvl === e.L)) toast(`Открыт ряд талантов! ${T('Щёлкните', 'Коснитесь')} портрет героя и выберите один.`, 'good'); }
     if (e.k === 'vendor' && !document.querySelector('.modal')) openVendor(G, () => hud.update(), e.b);
+    if (e.k === 'npc' && !document.querySelector('.modal')) openNpc(G, e.id, () => { hud.update(); persist(); });
     if (e.k === 'guild' && !document.querySelector('.modal')) openGuild(G, () => hud.update());
     if (e.k === 'mentor' && !document.querySelector('.modal')) devWin(true);
     if (e.k === 'bank' && !document.querySelector('.modal')) { const bm = openBank(G, () => hud.update()), oc = bm.onclose; bm.onclose = () => { oc && oc(); persist(); }; }

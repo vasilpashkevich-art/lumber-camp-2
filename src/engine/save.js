@@ -49,6 +49,7 @@ export function migrate(h) {
   // v84: травы, зелья
   h.plants = h.plants || {};
   h.dungeons = h.dungeons || {};   // v90: походы по подземельям
+  h.quests = h.quests || { act: {}, done: {}, track: [] };   // v95: задания
   // v85: порядок ячеек панели действий
   { const D = ['attack', 'ab0', 'ab1', 'ab2', 'ab4', 'trinket', 'pot2', 'potion']; h.bar = Array.isArray(h.bar) && h.bar.length === 8 && D.every(a => h.bar.includes(a)) ? h.bar : D.slice(); } h.elixir = Object.assign({ battle: null, guard: null }, h.elixir || {}); h.lastPot = h.lastPot || null; h.shops = h.shops || {}; h.buyback = Array.isArray(h.buyback) ? h.buyback : [];
   h.potions = h.potions ?? 2; h.gold = h.gold || 0; h.worldT = h.worldT || 0; h.zone = h.zone || 'pine';

@@ -2,6 +2,8 @@
 import { TOUCH } from '../ui/dom.js';
 import { LOOK } from '../art/look.js';
 import { lairSpr } from '../art/lairs.js';
+import { NPC_LOOK, questMark, snare, questGlint } from '../art/npc.js';
+import { npcMark } from '../systems/quests.js';
 import { legColor, person } from '../art/body.js';
 import { palette } from '../art/gear.js';
 import { field, river as riverArt, bridge, haystack, millBase, millBlades, well } from '../art/farmland.js';
@@ -589,6 +591,9 @@ export function render(R, G, now) {
   for (const v of G.plants || []) if ((!v.at || v.at <= G.t) && vis(v.x, v.y)) { const sp = sprite('herb|' + v.herb + '|' + (v.s % 4), 60, 50, 30, 40, 2, gg => bush(gg, v.herb, v.s % 4 + 1)); L.push({ y: v.y, x: v.x, draw: (g, t) => { drawSpr(g, sp, v.x, v.y); g.save(); g.translate(v.x, v.y); herbGlint(g, v.herb, t, v.s % 7); g.restore(); } }); }
   for (const v of G.veins || []) if ((!v.at || v.at <= G.t) && vis(v.x, v.y)) { const sp = sprite('vein|' + v.metal + '|' + (v.s % 5), 110, 90, 55, 70, 2, gg => vein(gg, v.metal, v.s % 5 + 1)); L.push({ y: v.y, x: v.x, oc: occ(sp, v.x, v.y), draw: (g, t) => { drawSpr(g, sp, v.x, v.y); g.save(); g.translate(v.x, v.y); glint(g, v.metal, t, v.s % 7); g.restore(); } }); }
   for (const m of G.mobs) if (m.state !== 'dead' && vis(m.x, m.y)) L.push({ y: m.y, mob: m });
+  // v95: жители с заданиями (поворачиваются к герою, знак над головой) и предметы заданий
+  for (const n of G.npcs || []) if (vis(n.x, n.y)) L.push({ y: n.y, x: n.x, draw: (g, tt) => drawNpc(g, G, n, tt) });
+  for (const o of G.qobjs || []) if (vis(o.x, o.y)) L.push({ y: o.y, x: o.x, draw: (g, tt) => { if (o.art === 'snare') drawSpr(g, sprite('qsnare', 80, 40, 40, 30, 2, gg => { gg.scale(1.35, 1.35); snare(gg); }), o.x, o.y); questGlint(g, o.x, o.y - (o.art === 'tent' ? 50 : 0), tt, o.j); } });
   L.push({ y: P.y, hero: true });
   L.sort((a, b) => a.y - b.y);
   const look = lookOf(G.hero);
@@ -611,6 +616,7 @@ export function render(R, G, now) {
     else o.draw(c, t);
     if (hh) c.restore();
   }
+  for (const f of G.qfires || []) if (vis(f.x, f.y)) { const a = Math.min(1, f.t / 3); for (let i = 0; i < 4; i++) V.flame(c, f.x - 30 + i * 20, f.y - 6 - (i % 2) * 18, 46 + (i % 2) * 18, 18, t * 7 + i, a, 0.4); }
   // выстрелы
   const nP = R.parts.length;
   for (const s0 of G.shots) {
@@ -667,7 +673,7 @@ export function render(R, G, now) {
   if (P.goal && P.goal.k === 'ground') { c.strokeStyle = 'rgba(255,233,168,.8)'; c.lineWidth = 2; c.beginPath(); c.ellipse(P.goal.x, P.goal.y - lift(P.goal.x, P.goal.y), 14 + 3 * Math.sin(now / 150), 6, 0, 0, 7); c.stroke(); }
   // подсказка «E»
   const it = !P.dead && interactTarget(G);
-  if (it && !P.mine && !P.gather && !TOUCH) label(c, it.k === 'b' ? `E — ${it.b.name}` : it.k === 'exit' ? (it.e.temple ? 'E — врата' : it.e.portal ? 'E — портал' : it.e.door ? 'E — выход' : 'E — дорога') : it.k === 'vein' ? 'E — копать' : it.k === 'plant' ? 'E — собрать' : it.k === 'chest' ? 'E — открыть сундук' : 'E — обыскать', P.x, P.y - 78 - hP, '#fff2a0', 14);   // на телефоне вместо надписи — кнопка действия
+  if (it && !P.mine && !P.gather && !TOUCH) label(c, it.k === 'npc' ? `E — поговорить: ${it.n.name}` : it.k === 'qobj' ? `E — ${it.o.verb}` : it.k === 'b' ? `E — ${it.b.name}` : it.k === 'exit' ? (it.e.temple ? 'E — врата' : it.e.portal ? 'E — портал' : it.e.door ? 'E — выход' : 'E — дорога') : it.k === 'vein' ? 'E — копать' : it.k === 'plant' ? 'E — собрать' : it.k === 'chest' ? 'E — открыть сундук' : 'E — обыскать', P.x, P.y - 78 - hP, '#fff2a0', 14);   // на телефоне вместо надписи — кнопка действия
   // полоска копания
   if (P.mine) { const q = Math.min(1, P.mine.t / P.mine.max), x = P.x - 40, y = P.y - 86 - hP; c.fillStyle = 'rgba(20,14,8,.9)'; c.fillRect(x - 1, y - 1, 82, 10); c.fillStyle = '#e0a060'; c.fillRect(x, y, 80 * q, 8); label(c, ORES[P.mine.v.metal].ore, P.x, y - 5, '#ffe9a8', 13); }
   if (P.gather) { const q = Math.min(1, P.gather.t / P.gather.max), x = P.x - 40, y = P.y - 86 - hP; c.fillStyle = 'rgba(20,14,8,.9)'; c.fillRect(x - 1, y - 1, 82, 10); c.fillStyle = '#9ad87a'; c.fillRect(x, y, 80 * q, 8); label(c, HERBS[P.gather.v.herb].name, P.x, y - 5, '#ffe9a8', 13); }
@@ -707,6 +713,16 @@ function plate(c, G, m) {
 function mobFrame(kind, view, mode, f) { return MOB_LOOK[kind] ? personSpr(MOB_LOOK[kind], view, mode, f) : beastSpr(kind, view, mode, f); }
 const frameOf = (mode, k) => Math.min(FRAMES[mode] - 1, Math.max(0, Math.floor(k * FRAMES[mode])));
 
+// v95: житель с заданием — то же тело, что у героя; смотрит на героя, когда тот рядом; имя, звание и знак «!»/«?»
+function drawNpc(c, G, n, t) {
+  const P = G.P, L = NPC_LOOK[n.look] || NPC_LOOK.captain, dx = P.x - n.x, dy = P.y - n.y, near = dx * dx + dy * dy < 300 * 300;
+  const view = near ? viewOf8(dx, dy) : (n.face || 'front'), dir = sideways(view) ? (dx < 0 ? -1 : 1) : 1;
+  c.fillStyle = 'rgba(0,0,0,.25)'; c.beginPath(); c.ellipse(n.x, n.y + 2, 15, 5, 0, 0, 7); c.fill();
+  drawFrame(c, personSpr(L, view, 'idle', 0), n.x, n.y + Math.sin(t * 2 + n.x) * 0.4, dir, PEOPLE_K);
+  const top = n.y - 62 * PEOPLE_K / 1.15 - 18;
+  label(c, n.name, n.x, top + 2, '#ffe9a8', 13, true); label(c, `‹${n.title}›`, n.x, top + 16, '#d8ccb0', 11, false);
+  const mk = npcMark(G.hero, n.id); if (mk) { if (UIK !== 1) { around(c, n.x, top - 14); UIK0(() => questMark(c, n.x, top - 14, mk, t)); c.restore(); } else questMark(c, n.x, top - 14, mk, t); }
+}
 function drawMob(c, G, m, t) {
   const hum = !!MOB_LOOK[m.kind], sc = MOB_SCALE[m.kind] || 1;
   let dx = m.mdx, dy = m.mdy;

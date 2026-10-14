@@ -3,6 +3,7 @@
 import { CLASSES } from '../../data/classes.js';
 import { MOBS } from '../../data/mobs.js';
 import { dgState, dgEnter, dgUnsealed, dgDone, chestLoot, bossLoot, NEVER } from './dungeon.js';
+import { qState, qObjs, qOnKill, qTick, qTalk, qUseObj, qObjNear, npcNear, npcsOf } from './quests.js';
 import { bossTick, bossReset, bossCancel, shieldBlocks, hazardsTick, ringBlocks } from './boss.js';
 import { HERO, MOBL, RESPAWN, LEASH, AGGRO, LOOT, ITEM, TRINKET_DROP, SHOP, armorCut, xpKill, lvlColor, xpNeed } from '../../data/balance.js';
 import { TRINKETS } from '../../data/trinkets.js';
@@ -33,6 +34,7 @@ export function createGame(hero, W, opts = {}) {
   };
   if (G.P.hp <= 0) G.P.hp = Math.round(st.maxHp * 0.5);
   initVeins(G); initPlants(G);
+  G.npcs = npcsOf(W.Z.id); G.bagAdd = bagAdd; qState(hero); qObjs(G);   // v95: жители и предметы заданий
   if (W.Z.dungeon) { dgEnter(hero, W.Z); G.dg = dgState(hero, W.Z.id); W.dg = G.dg; if (dgUnsealed(hero, W.Z)) W.unseal(); if (dgDone(hero, W.Z)) openPortal(G); }   // v90: поход по подземелью
   for (const camp of W.camps) for (const s of camp.spawns) {
     const m = spawnMob(G, s, camp);
@@ -136,7 +138,7 @@ export function update(G, dt, I) {
     if (I.trinket) useTrinket(G);
     if (P.goal) goalArrive(G);
     abilityTick(G, dt);
-    mineTick(G, dt); herbTick(G, dt);
+    mineTick(G, dt); herbTick(G, dt); qTick(G, dt);
   }
   for (const mob of G.mobs) mobTick(G, mob, dt);
   if (G.mobs.some(m => m.gone)) G.mobs = G.mobs.filter(m => !m.gone);
@@ -260,6 +262,7 @@ function killMob(G, m) {
   if (m.summon) { m.state = 'dead'; m.gone = true; m.hp = 0; if (P.target === m) P.target = null; sfx(G, 'kill'); const xp = Math.round(xpKill(m.lvl, H.lvl) * 0.3); if (xp) { addXp(H, xp); emit(G, { k: 'txt', x: m.x, y: m.y - 46, s: `+${xp} опыта`, col: '#c8a0ff' }); } return; }
   m.state = 'dead'; m.hp = 0; m.bleed = null; m.burn = null; m.venom = null; m.frozen = 0; m.respawnAt = G.W.Z.dungeon ? NEVER : G.t + (m.D.rare ? RESPAWN.rare : RESPAWN.normal);   // v90: в подземелье не возрождаются до обновления
   H.dead[m.key] = m.respawnAt; H.stats.kills++;
+  qOnKill(G, m);   // v95: задания
   if (m.D.boss && G.dg) { G.dg.bosses[m.kind] = true; emit(G, { k: 'boss', name: m.D.name, final: !!m.D.final }); if (dgUnsealed(H, G.W.Z) && G.W.sealed.size) { G.W.unseal(); emit(G, { k: 'toast', s: 'Запечатанный ход в Тронный зал открыт!', kind: 'good', id: 'seal' }); } if (dgDone(H, G.W.Z)) openPortal(G); }
   if (P.target === m) P.target = null;
   sfx(G, 'kill');
@@ -520,6 +523,8 @@ export function whatAt(G, x, y, touch = false) {
   for (const c of G.corpses) if (hasLoot(c) && dist(x, y, c.x, c.y) < 34 + pad) return { k: 'corpse', c, x: c.x, y: c.y };
   for (const v of G.veins || []) if ((!v.at || v.at <= G.t) && dist(x, y, v.x, v.y - 20) < 42 + pad) return { k: 'vein', v, x: v.x, y: v.y };
   for (const v of G.plants || []) if ((!v.at || v.at <= G.t) && dist(x, y, v.x, v.y - 12) < 30 + pad) return { k: 'plant', v, x: v.x, y: v.y };
+  { const n = npcNear(G, x, y + 30, 40 + pad); if (n) return { k: 'npc', n, x: n.x, y: n.y }; }
+  { const o = qObjNear(G, x, y + 10, pad - 20); if (o) return { k: 'qobj', o, x: o.x, y: o.y }; }
   for (const b of G.W.houses) if (b.name && dist(x, y, b.x, b.y - 30) < Math.max(70, (b.col || 50) * 1.4) + pad) return { k: 'b', b, x: b.x, y: b.y };
   const ch = chestNear(G, x, y + 20, pad - 30); if (ch) return ch;
   for (const e of G.W.exits) if (dist(x, y, e.x, e.y) < 90 + pad) return { k: 'exit', e, x: e.x, y: e.y };
@@ -546,6 +551,8 @@ function goalDest(G, g) {
   if (g.k === 'b') return [g.b.x, g.b.y + 40, 60];
   if (g.k === 'exit') return [g.e.x, g.e.y, g.e.portal ? 90 : 150];
   if (g.k === 'chest') return [g.x, g.y + 10, 60];
+  if (g.k === 'npc') return [g.n.x, g.n.y + 30, 70];
+  if (g.k === 'qobj') return G.qobjs && G.qobjs.includes(g.o) ? [g.o.x, g.o.y + 10, 50] : null;
   return [g.x, g.y, 10];
 }
 function goalStep(G, dt) {
@@ -566,7 +573,7 @@ function goalArrive(G) {
   if (g.k === 'corpse') { P.auto = null; emit(G, { k: 'lootOpen', c: g.c }); }
   else if (g.k === 'vein') { if ((!g.v.at || g.v.at <= G.t) && !P.mine) startMine(G, g.v); }
   else if (g.k === 'plant') { if ((!g.v.at || g.v.at <= G.t) && !P.gather) startGather(G, g.v); }
-  else if (g.k === 'b' || g.k === 'exit' || g.k === 'chest') doInteract(G, g);
+  else if (g.k === 'b' || g.k === 'exit' || g.k === 'chest' || g.k === 'npc' || g.k === 'qobj') doInteract(G, g);
 }
 
 export function interactTarget(G) {
@@ -576,6 +583,8 @@ export function interactTarget(G) {
   if (best) return { k: 'corpse', c: best, x: best.x, y: best.y };
   const v = veinNear(G); if (v) return { k: 'vein', v, x: v.x, y: v.y };
   const pl = plantNear(G); if (pl) return { k: 'plant', v: pl, x: pl.x, y: pl.y };
+  { const o = qObjNear(G); if (o) return { k: 'qobj', o, x: o.x, y: o.y }; }
+  { const n = npcNear(G); if (n) return { k: 'npc', n, x: n.x, y: n.y }; }
   for (const b of G.W.houses) { if (!b.name) continue; if (dist(P.x, P.y, b.x, b.y + 40) < 95) return { k: 'b', b, x: b.x, y: b.y }; }
   const ch = chestNear(G); if (ch) return ch;
   for (const e of G.W.exits) if (dist(P.x, P.y, e.x, e.y) < (e.portal ? 110 : 220)) return { k: 'exit', e, x: e.x, y: e.y };
@@ -604,6 +613,8 @@ function interact(G) { const t = interactTarget(G); if (t) doInteract(G, t); }
 function doInteract(G, t) {
   if (t.k === 'corpse') { G.P.auto = null; emit(G, { k: 'lootOpen', c: t.c }); return; }
   if (t.k === 'chest') { G.P.auto = null; openChest(G, t.i); return; }
+  if (t.k === 'npc') { G.P.auto = null; qTalk(G, t.n.id); return; }
+  if (t.k === 'qobj') { qUseObj(G, t.o); return; }
   if (t.k === 'vein') { if (G.P.mine) stopMine(G); else startMine(G, t.v); return; }
   if (t.k === 'plant') { if (G.P.gather) stopGather(G); else startGather(G, t.v); return; }
   if (t.k === 'b') { if (t.b.vendor) emit(G, { k: 'vendor', b: t.b }); else if (t.b.bank) emit(G, { k: 'bank', b: t.b }); else if (t.b.mentor) emit(G, { k: 'mentor', b: t.b }); else if (t.b.alchemy || t.b.brew) emit(G, { k: 'alchemy', b: t.b }); else if (t.b.guild) emit(G, { k: 'guild', b: t.b }); else if (t.b.smelt) emit(G, { k: 'smelt', b: t.b }); else emit(G, { k: 'toast', s: `${t.b.name}. ${t.b.note}`, id: 'bld' }); }

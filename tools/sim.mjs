@@ -78,6 +78,7 @@ function via(W, P, tx, ty) {
 const toward = (I, P, x, y) => { const a = Math.atan2(y - P.y, x - P.x); I.mx = Math.cos(a); I.my = Math.sin(a); };
 
 import { dodge } from './dodge.mjs';
+import * as Q from '../src/systems/quests.js';
 export function runBot(cls, minutes, seed = 1, log = false, zone = 'pine', lvl = 1) {
   const W = buildWorld(ZONES[zone]), H = newHero('Бот', cls); H.zone = zone; if (lvl > 1) { H.lvl = lvl; for (const sl of ['head', 'chest', 'legs', 'weapon', 'ring', 'neck']) H.eq[sl] = makeItem(cls, sl, lvl, process.env.SIM_RAR || 'common', rng(seed + 3)); if (process.env.SIM_RAR) H.potions = 5; }   // SIM_RAR=good — в зелёном с зельями
   const G = createGame(H, W, { rand: rng(seed) });
@@ -89,6 +90,8 @@ export function runBot(cls, minutes, seed = 1, log = false, zone = 'pine', lvl =
     else {
       // таланты: бот берёт первый в каждом открытом ряду
       if (NEW) for (const r of talentRows(H)) if (H.lvl >= r.lvl && !(H.talents || {})[r.lvl]) chooseTalent(H, r.lvl, r.opts[+(process.env.SIM_TAL || 0)].id);
+      // v95: задания (SIM_Q=1) — бот берёт и сдаёт издали, разведку/разговоры/предметы засчитывает сам (без ходьбы — оценка сверху)
+      if (process.env.SIM_Q && (i % 100) === 0) { const S = Q.qState(H); for (const id of Object.keys(Q.QUESTS)) { const st = Q.qStatus(H, id); if (st === 'avail' && Q.QUESTS[id].zone === zone) Q.qAccept(G, id); } for (const id of Object.keys(S.act)) { Q.QUESTS[id].goals.forEach((g, gi) => { if (g.k !== 'kill' && g.k !== 'loot') S.act[id].n[gi] = Q.goalNeed(g); }); if (Q.qReady(H, id)) Q.qTurnIn(G, id, 0); } G.ev.length = 0; }
       // снаряжение
       for (const it of H.bag.slice()) { const c = compareItem(H, it); if (c && c.score > 0) equip(G, it); }
       if (H.potions === 0 && H.gold >= POTION_PRICE(H.lvl) && W.houses.some(b => b.vendor)) shopping = true;   // в подземелье торговца нет

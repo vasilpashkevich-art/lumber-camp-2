@@ -22,6 +22,8 @@ import { DUNGEONS, dgState, dgLeft, dgBosses, fmtLeft } from '../systems/dungeon
 import { MOBS } from '../../data/mobs.js';
 import { makeDnD } from './drag.js';
 import { DEFAULT_BAR } from '../engine/input.js';
+import { NPCS, QUESTS, Q_MAX, qState, qStatus, npcQuests, goalText, goalDone, qReward, qChoice, qAccept, qTurnIn, qAbandon, qTrack } from '../systems/quests.js';
+import { NPC_LOOK } from '../art/npc.js';
 import { soundState, setSound, setVol } from '../engine/audio.js';
 import { fmt1 } from '../engine/util.js';
 import { statRows } from './stathelp.js';
@@ -459,5 +461,83 @@ export function openDungeons(G) {
   const iv = setInterval(draw, 1000);
   m.querySelector('[data-x=ok]').onclick = () => m.close();
   const oc = m.onclose; m.onclose = () => { clearInterval(iv); oc && oc(); };
+  return m;
+}
+
+// ---------------------------------------------------------------- v95: задания — разговор с жителем и журнал
+/** Портрет жителя: голова и плечи в рамке. */
+function npcFace(cv, lookKey) {
+  const g = cv.getContext('2d'), L = NPC_LOOK[lookKey] || NPC_LOOK.captain;
+  g.clearRect(0, 0, cv.width, cv.height); doll(g, cv.width / 2, cv.height * 1.16, cv.width / 26, 1, L, 0.3);   // как портрет героя: голова и плечи
+}
+const markHtml = st => st === 'ready' ? '<b class="qm gold">?</b>' : st === 'avail' ? '<b class="qm gold">!</b>' : st === 'active' ? '<b class="qm grey">?</b>' : st === 'low' ? '<b class="qm grey">!</b>' : '';
+/** Цели задания списком с галочками. */
+function goalsHtml(h, id) {
+  const st = qStatus(h, id), Q = QUESTS[id];
+  return `<ul class="qgoals">${Q.goals.map((g, i) => { const ok = st === 'ready' || st === 'done' || goalDone(h, id, i); const t = st === 'avail' || st === 'low' ? goalText(h, id, i).replace(/: 0\/(\d+)$/, ': $1') : goalText(h, id, i); return `<li class="${ok ? 'ok' : ''}">${ok ? '✔' : '◇'} ${t}</li>`; }).join('')}</ul>`;
+}
+/** Награда: опыт, деньги, вещи на выбор (выбранная подсвечена). */
+function rewardHtml(G, id, pick) {
+  const R = qReward(G.hero, id), C = qChoice(G.hero, id);
+  return `<div class="qrew"><b>Награда:</b> <span class="xp">${R.xp} опыта</span> · ${moneyHtml(R.money)}${C.length ? `<div class="qch"><small>${pick === undefined ? 'Вещь на выбор:' : 'Выберите одну вещь:'}</small><div class="qitems">${C.map((it, i) => `<div class="cell qit${pick === i ? ' sel' : ''}" data-ci="${i}">${itemIcon(it, 44)}</div>`).join('')}</div></div>` : ''}</div>`;
+}
+/** Окно разговора с жителем: приветствие и список его заданий; задание — текст, цели, награда, «Взять»/«Сдать». */
+export function openNpc(G, npcId, onChange) {
+  const h = G.hero, N = NPCS[npcId];
+  const m = modal(`<div class="qhead"><canvas class="qface" width="128" height="128"></canvas><div><h2>${N.name}</h2><small>‹${N.title}›</small></div></div><div class="qbody"></div><div class="row qrow"></div>`, 'qwin');
+  npcFace(m.querySelector('.qface'), N.look);
+  const body = m.querySelector('.qbody'), row = m.querySelector('.qrow');
+  const btn = (t, fn, cls = '') => { const b = el('button', 'btn ' + cls, t); b.onclick = fn; row.append(b); return b; };
+  const list = () => {
+    const r = npcQuests(h, npcId), ids = [...r.turn, ...r.give, ...r.prog.filter(x => !r.turn.includes(x))];
+    if (!ids.length && !r.low.length) { body.innerHTML = `<p class="qtext">${N.hi}</p><p class="hint">Заданий у меня пока нет.</p>`; }
+    else body.innerHTML = `<p class="qtext">${N.hi}</p><div class="qlist">${ids.map(id => `<div class="ware2 qli" data-q="${id}">${markHtml(qStatus(h, id))}<b>${QUESTS[id].name}</b><small>${qStatus(h, id) === 'ready' ? 'готово — сдать' : qStatus(h, id) === 'active' ? 'в работе' : `задание ур. ${QUESTS[id].lvl || QUESTS[id].min}`}</small></div>`).join('')}${r.low.map(id => `<div class="ware2 qli off">${markHtml('low')}<b>${QUESTS[id].name}</b><small>с ${QUESTS[id].min}-го уровня</small></div>`).join('')}</div>`;
+    row.innerHTML = ''; btn('До свидания', () => m.close(), 'main');
+    body.querySelectorAll('[data-q]').forEach(b => b.onclick = () => show(b.dataset.q));
+    hideTip();
+  };
+  const show = id => {
+    const Q = QUESTS[id], st = qStatus(h, id); let pick = st === 'ready' ? null : undefined; const C = qChoice(h, id);
+    const draw = () => {
+      const txt = st === 'ready' ? Q.done : st === 'active' ? (Q.prog || Q.text) : Q.text;
+      body.innerHTML = `<h3 class="qname">${Q.name}</h3><p class="qtext">${txt}</p>${st === 'ready' ? '' : goalsHtml(h, id)}${rewardHtml(G, id, pick)}`;
+      body.querySelectorAll('[data-ci]').forEach(c => { const it = C[+c.dataset.ci]; hov(c, e => tip(e, it, G)); c.onclick = () => { hideTip(); if (st === 'ready') { pick = +c.dataset.ci; draw(); } else if (TOUCH) itemSheet(G, it, []); }; });
+      row.innerHTML = '';
+      if (st === 'avail') btn('Взять', () => { if (qAccept(G, id)) { onChange && onChange(); list(); } }, 'main');
+      if (st === 'ready') { const b = btn('Сдать', () => { if (qTurnIn(G, id, pick)) { onChange && onChange(); list(); } }, 'main'); if (C.length && pick == null) b.disabled = true; }
+      btn('Назад', list);
+    };
+    draw();
+  };
+  // сразу в задание, если оно одно и его можно взять или сдать
+  const r = npcQuests(h, npcId), one = [...r.turn, ...r.give];
+  if (one.length === 1 && r.prog.filter(x => !r.turn.includes(x)).length === 0) show(one[0]); else list();
+  const oc = m.onclose; m.onclose = () => { hideTip(); oc && oc(); };
+  return m;
+}
+/** Журнал заданий (L): слева список по краям, справа — выбранное: текст, цели, награда, следить, бросить. */
+export function openJournal(G, onChange) {
+  const h = G.hero, S = qState(h);
+  const m = modal(`<h2>Журнал заданий <small class="cnt"></small></h2><div class="jwin"><div class="jlist"></div><div class="jdet"></div></div><div class="row"><button class="btn main" data-x="ok">Закрыть${T(' (L)', '')}</button></div>`, 'wide jwinbox');
+  const listEl = m.querySelector('.jlist'), det = m.querySelector('.jdet'); let cur = null;
+  const ZN = { pine: 'Сосновый дол', farms: 'Хуторские угодья', shroom: 'Грибной лес', temple: 'Храм квакунов' };
+  const draw = () => {
+    const ids = Object.keys(S.act); m.querySelector('.cnt').textContent = `${ids.length} из ${Q_MAX}`;
+    if (!ids.length) { listEl.innerHTML = `<p class="hint">Заданий нет. Ищите жителей со знаком <b class="qm gold">!</b> над головой — в Столице капитан стражи Гордей у южных ворот.</p>`; det.innerHTML = ''; return; }
+    if (!cur || !S.act[cur]) cur = ids[0];
+    const byZ = {}; for (const id of ids) (byZ[QUESTS[id].zone] = byZ[QUESTS[id].zone] || []).push(id);
+    listEl.innerHTML = Object.entries(byZ).map(([z, L]) => `<h4>${ZN[z] || z}</h4>${L.map(id => `<div class="ware2 jq${id === cur ? ' sel' : ''}" data-q="${id}">${markHtml(qStatus(h, id))}<b>${QUESTS[id].name}</b>${S.track.includes(id) ? '<span class="trk" title="Отслеживается">◉</span>' : ''}</div>`).join('')}`).join('');
+    listEl.querySelectorAll('[data-q]').forEach(b => b.onclick = () => { cur = b.dataset.q; draw(); if (TOUCH) det.scrollIntoView({ block: 'start' }); });
+    const Q = QUESTS[cur], st = qStatus(h, cur), N = NPCS[Q.turn || Q.giver];
+    det.innerHTML = `<h3 class="qname">${Q.name}</h3>${st === 'ready' ? `<p class="qready">Готово! Вернитесь: <b>${N.name}</b>, ${N.title}.</p>` : ''}<p class="qtext">${Q.text}</p>${goalsHtml(h, cur)}${rewardHtml(G, cur)}<div class="row"><button class="btn" data-x="trk">${S.track.includes(cur) ? 'Не следить' : 'Следить'}</button><button class="btn danger" data-x="ab">Бросить</button></div>`;
+    det.querySelectorAll('[data-ci]').forEach(c => { const it = qChoice(h, cur)[+c.dataset.ci]; hov(c, e => tip(e, it, G)); c.onclick = () => { hideTip(); if (TOUCH) itemSheet(G, it, []); }; });
+    det.querySelector('[data-x=trk]').onclick = () => { qTrack(G, cur); onChange && onChange(); draw(); };
+    det.querySelector('[data-x=ab]').onclick = () => { const id = cur, a = modal(`<h2>Бросить задание?</h2><p><b>${QUESTS[id].name}</b> — собранное пропадёт. Взять заново можно у того же жителя.</p><div class="row"><button class="btn danger" data-x="y">Бросить</button><button class="btn main" data-x="n">Оставить</button></div>`, 'throwask'); a.querySelector('[data-x=y]').onclick = () => { a.close(); qAbandon(G, id); onChange && onChange(); draw(); }; a.querySelector('[data-x=n]').onclick = () => a.close(); };
+  };
+  draw();
+  m.querySelector('[data-x=ok]').onclick = () => m.close();
+  const onKey = e => { if (e.code === 'KeyL') { e.preventDefault(); e.stopPropagation(); m.close(); } };
+  addEventListener('keydown', onKey, true);
+  const oc = m.onclose; m.onclose = () => { removeEventListener('keydown', onKey, true); hideTip(); oc && oc(); };
   return m;
 }

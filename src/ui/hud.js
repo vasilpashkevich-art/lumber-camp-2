@@ -12,6 +12,7 @@ import { drawMini } from './map.js';
 import { attackOf } from '../entities/hero.js';
 import { $, TOUCH } from './dom.js';
 import { interactTarget, abilsOf } from '../systems/game.js';
+import { NPCS, QUESTS, qState, qReady, goalDone, goalText } from '../systems/quests.js';
 import { iconUrl } from '../art/abicons.js';
 import { talentFree } from '../systems/talents.js';
 import { makeDnD } from './drag.js';
@@ -37,7 +38,7 @@ export function createHud(In) {
     H.G = G; H.portraitKey = ''; H.mini = null; H.miniKey = null; H.goldK = null;
     const C = CLASSES[cls()];
     H.slotK = []; H.lockLvl = -1; H.elixK = null;
-    $('#btnBag').innerHTML = ABIL_ICON.bag; $('#btnMap').innerHTML = ABIL_ICON.map; $('#btnProf').innerHTML = ABIL_ICON.prof; $('#btnDg').innerHTML = ABIL_ICON.dg; $('#btnMenu').innerHTML = ABIL_ICON.menu;
+    $('#btnBag').innerHTML = ABIL_ICON.bag; $('#btnMap').innerHTML = ABIL_ICON.map; $('#btnProf').innerHTML = ABIL_ICON.prof; $('#btnDg').innerHTML = ABIL_ICON.dg; $('#btnQuest').innerHTML = ABIL_ICON.quest; H.qK = null; $('#btnMenu').innerHTML = ABIL_ICON.menu;
     $('#pfName').textContent = G.hero.name;
     $('#pfRing').style.borderColor = C.color;
     $('#zoneName').textContent = G.W.Z.name;
@@ -83,10 +84,13 @@ export function createHud(In) {
     // умение открылось на новом уровне — его кнопка мигает
     if (H.lockLvl !== h.lvl) { if (H.lockLvl > 0) bar.forEach((a, i) => { if (a in AB_IDX && AL[AB_IDX[a]].lvl > H.lockLvl && AL[AB_IDX[a]].lvl <= h.lvl) { const b = $(SLOTS[i]); b.classList.add('ready'); setTimeout(() => b.classList.remove('ready'), 5000); } }); H.lockLvl = h.lvl; }
     // телефон: кнопка действия рядом с тем, что можно сделать (вместо клавиши E)
-    if (TOUCH) { const it = !P.dead && !P.mine && !P.gather && interactTarget(G), u = $('#actUse'), lab = it ? (it.k === 'corpse' ? 'Обыскать' : it.k === 'vein' ? 'Копать' : it.k === 'plant' ? 'Собрать' : it.k === 'chest' ? 'Открыть' : it.k === 'exit' ? (it.e.temple ? 'Врата' : it.e.portal ? 'Портал' : it.e.door ? 'Выход' : 'В путь') : it.b.vendor ? 'Торговать' : it.b.bank ? 'Банк' : it.b.mentor ? 'Наставник' : it.b.alchemy ? 'Травница' : it.b.guild || it.b.smelt || it.b.brew ? 'Войти' : 'Осмотреть') : '';
+    if (TOUCH) { const it = !P.dead && !P.mine && !P.gather && interactTarget(G), u = $('#actUse'), lab = it ? (it.k === 'npc' ? 'Говорить' : it.k === 'qobj' ? (it.o.fire ? 'Поджечь' : 'Взять') : it.k === 'corpse' ? 'Обыскать' : it.k === 'vein' ? 'Копать' : it.k === 'plant' ? 'Собрать' : it.k === 'chest' ? 'Открыть' : it.k === 'exit' ? (it.e.temple ? 'Врата' : it.e.portal ? 'Портал' : it.e.door ? 'Выход' : 'В путь') : it.b.vendor ? 'Торговать' : it.b.bank ? 'Банк' : it.b.mentor ? 'Наставник' : it.b.alchemy ? 'Травница' : it.b.guild || it.b.smelt || it.b.brew ? 'Войти' : 'Осмотреть') : '';
       u.hidden = !it; if (u.textContent !== lab) u.textContent = lab; $('#actSit').classList.toggle('on2', !!P.sit); }
     const E = h.elixir || {}, ek = ['battle', 'guard'].map(k => E[k] ? E[k].id + ':' + Math.ceil(E[k].t / 5) : '').join('|');
     if (ek !== H.elixK) { H.elixK = ek; $('#pfElix').innerHTML = ['battle', 'guard'].map(k => { const e = E[k]; if (!e) return ''; const tt = Math.ceil(e.t), m = Math.floor(tt / 60), sec = tt % 60; return `<div class="ex" title="${POTIONS[e.id].name}: ${POTIONS[e.id].d}">${potionIcon(e.id, 'common', 38)}<i>${tt >= 60 ? m + ':' + String(sec).padStart(2, '0') : sec + ' с'}</i></div>`; }).join(''); }
+    // v95: отслеживание заданий под мини-картой (перестраивается только при изменении)
+    { const S = qState(h), qk = S.track.map(id => id + ':' + (S.act[id] ? S.act[id].n.join(',') : '') + (qReady(h, id) ? 'R' : '')).join('|');
+      if (qk !== H.qK) { H.qK = qk; $('#qtrack').hidden = !S.track.length; $('#qtrack').innerHTML = S.track.filter(id => S.act[id]).map(id => { const Q = QUESTS[id], rd = qReady(h, id), N = NPCS[Q.turn || Q.giver]; return `<div class="qt${rd ? ' rd' : ''}"><b>${Q.name}</b>${rd ? `<span class="ok">✔ Вернитесь: ${N.name}</span>` : Q.goals.map((g, i) => `<span class="${goalDone(h, id, i) ? 'ok' : ''}">${goalDone(h, id, i) ? '✔' : '–'} ${goalText(h, id, i, true)}</span>`).join('')}</div>`; }).join(''); } }
     const gk = h.gold; if (gk !== H.goldK) { H.goldK = gk; $('#gold').innerHTML = moneyHtml(gk); }
     $('#pfFist').hidden = !st.unarmed;
     drawMini($('#mini'), G, H);

@@ -1,5 +1,6 @@
 // Карта зоны: одна отрисовка для большой карты (K) и мини-карты.
 // Логова показываются областью с названием и уровнями; самих мобов на карте нет.
+import { qState, qAreas, npcMark, npcsOf, QUESTS } from '../systems/quests.js';
 import { TOUCH } from './dom.js';
 import { lvlColor } from '../../data/balance.js';
 import { modal } from './dom.js';
@@ -89,6 +90,19 @@ function text(g, s, x, y, col, size, bold = true) {
 }
 const lvTxt = cp => cp.lvl[0] === cp.lvl[1] ? `ур. ${cp.lvl[0]}` : `ур. ${cp.lvl[0]}–${cp.lvl[1]}`;
 
+// v95: задания на карте — области целей (золотая штриховка) и знаки жителей
+function questLayer(g, G, k, big, q = 1) {
+  const S = qState(G.hero), W = G.W;
+  for (const id of Object.keys(S.act)) for (const a of qAreas(W, G.hero, id)) {
+    if (a.npc) continue; const x = a.x * k, y = a.y * k, r = Math.max(big ? 14 : 5 * q, a.r * k);
+    g.save(); g.beginPath(); g.arc(x, y, r, 0, 7); g.fillStyle = 'rgba(255,210,60,.16)'; g.fill(); g.clip();
+    g.strokeStyle = 'rgba(255,214,90,.45)'; g.lineWidth = big ? 1.5 : q; for (let d = -r * 2; d < r * 2; d += big ? 7 : 4 * q) { g.beginPath(); g.moveTo(x + d - r, y - r); g.lineTo(x + d + r, y + r); g.stroke(); }
+    g.restore(); g.strokeStyle = 'rgba(255,214,90,.8)'; g.lineWidth = big ? 1.6 : q; g.beginPath(); g.arc(x, y, r, 0, 7); g.stroke();
+    if (big) text(g, QUESTS[id].name, x, y - r - 4, '#ffd96a', 12);
+  }
+  for (const n of npcsOf(W.Z.id)) { const mk = npcMark(G.hero, n.id); if (!mk) continue; const gold = mk === '!' || mk === '?'; text(g, mk === '?' || mk === 'wait' ? '?' : '!', n.x * k, n.y * k + (big ? 6 : 4 * q), gold ? '#ffd23a' : '#b8b0a0', big ? 20 : 13 * q); if (big) text(g, n.name, n.x * k, n.y * k + 20, '#fff2d8', 11, false); }
+}
+
 function heroMark(g, P, k, s) {
   g.save(); g.translate(P.x * k, P.y * k); g.scale(s, s);
   g.fillStyle = 'rgba(255,255,255,.25)'; g.beginPath(); g.arc(0, 0, 9, 0, 7); g.fill();
@@ -118,6 +132,7 @@ export function drawMini(cv, G, cache) {
   // ближайшее логово — подпись
   let near = null, nd = 900; for (const cp of W.camps) { const d = Math.hypot(cp.x - P.x, cp.y - P.y) - cp.r; if (d < nd) { nd = d; near = cp; } }
   if (near) { const tx = Math.max(40 * q - ox, Math.min(w - 40 * q - ox, near.x * k)), ty = Math.max(11 * q - oy, near.y * k - 8 * q * Math.min(2, mz)); text(c, near.name, tx, ty, lvlColor(near.lvl[1], G.hero.lvl), 10 * q); }
+  questLayer(c, G, k, false, q);
   heroMark(c, P, k, 0.7 * q);
   const V = G.view || { w: 1150, h: 1150 * innerHeight / innerWidth };
   c.strokeStyle = 'rgba(255,255,255,.5)'; c.lineWidth = q; c.strokeRect(P.x * k - V.w * k / 2, P.y * k - V.h * k / 2, V.w * k, V.h * k);
@@ -127,7 +142,7 @@ export function drawMini(cv, G, cache) {
 /** Большая карта зоны поверх игры. Закрывается по K, Esc или кнопке. */
 export function openMap(G) {
   const W = G.W, CW = 1100, CH = Math.round(CW * W.H / W.W);
-  const m = modal(`<h2>${W.Z.name} <small style="font-size:15px;color:#a89878">ур. ${W.Z.lvl[0]}–${W.Z.lvl[1]}</small></h2><canvas width="${CW * 2}" height="${CH * 2}"></canvas><p class="hint">Цвет подписи — насколько опасно для вас: зелёный — легко, жёлтый — по силам, оранжевый и красный — опасно. Жёлтые кружки на краю — дороги в другие края.</p><div class="row"><button class="btn main" data-x="ok">Закрыть${TOUCH ? '' : ' (K)'}</button></div>`, 'map');
+  const m = modal(`<h2>${W.Z.name} <small style="font-size:15px;color:#a89878">ур. ${W.Z.lvl[0]}–${W.Z.lvl[1]}</small></h2><canvas width="${CW * 2}" height="${CH * 2}"></canvas><p class="hint">Цвет подписи — насколько опасно для вас: зелёный — легко, жёлтый — по силам, оранжевый и красный — опасно. Жёлтые кружки на краю — дороги в другие края. Золотая штриховка — где искать цели ваших заданий, «!» и «?» — жители с заданиями.</p><div class="row"><button class="btn main" data-x="ok">Закрыть${TOUCH ? '' : ' (K)'}</button></div>`, 'map');
   const cv = m.querySelector('canvas'), g = cv.getContext('2d'), k = CW / W.W;
   const draw = () => {
     g.setTransform(2, 0, 0, 2, 0, 0); g.clearRect(0, 0, CW, CH);
@@ -141,6 +156,7 @@ export function openMap(G) {
     const c = W.town; if (c) text(g, c.name, c.x * k, c.y * k + 5, '#ffe9a8', W.cap ? 17 : 15);
     if (!W.graveyard.hidden) text(g, W.graveyard.name, W.graveyard.x * k, W.graveyard.y * k + 22, '#e8e0cc', 12, false);
     for (const e of W.exits) { const ex = Math.min(CW - 70, e.x * k), ey = Math.min(CH - 24, e.y * k - 12); text(g, `${e.to} · ${e.lvl}`, ex, ey, '#ffd34d', 12); }
+    questLayer(g, G, k, true);
     heroMark(g, G.P, k, 1.6); text(g, 'Вы', G.P.x * k, G.P.y * k - 16, '#fff', 12);
   };
   draw();
