@@ -17,6 +17,8 @@ import * as TC from '../art/tcity.js';
 import * as TM from '../art/tmarket.js';
 import { TBLD as TB2, TVIL } from '../art/tbld.js';
 import * as TP from '../art/tprops.js';
+import * as TL from '../art/tlairs.js';
+const oldLairs = () => typeof window !== 'undefined' && window.__oldLairs;
 const oldProps = () => typeof window !== 'undefined' && window.__oldProps;
 // v101: постройки столицы — в мультяшном стиле по одной (tbld.js); прежние — window.__oldBld = true
 const oldBld = () => typeof window !== 'undefined' && window.__oldBld;
@@ -217,7 +219,7 @@ function buildStatics(W) {
     if (cp.lair === 'bandit' || cp.lair === 'ataman' || cp.lair === 'burned') { const fx = cp.x + (cp.lair === 'ataman' ? -140 : 0), fy = cp.y + (cp.lair === 'ataman' ? 46 : 40); S.push({ y: fy, fire: true, x: fx, draw: (g, t) => campfire(g, fx, fy, t) }); }
   }
   // Хуторские угодья: мосты, стога, хутора, мельница
-  if (W.river) for (const b of W.river.bridgeAt) { const len = Math.round(b.len), sp = sprite('bridge' + len, 110, len + 40, 55, len / 2 + 20, 2, g => bridge(g, len)); S.push({ y: b.y - len / 2 + 6, x: b.x, draw: g => { g.save(); g.translate(b.x, b.y); g.rotate(b.ra - Math.PI / 2); drawSpr(g, sp, 0, 0); g.restore(); } }); }
+  if (W.river) for (const b of W.river.bridgeAt) { const len = Math.round(b.len), sp = sprite('bridge' + len, 110, len + 40, 55, len / 2 + 20, 2, oldLairs() ? g => bridge(g, len) : styled(g => TL.bridge(g, len))); S.push({ y: b.y - len / 2 + 6, x: b.x, draw: g => { g.save(); g.translate(b.x, b.y); g.rotate(b.ra - Math.PI / 2); drawSpr(g, sp, 0, 0); g.restore(); } }); }
   // Грибной лес: поваленные стволы, папоротники, светящиеся грибочки, камыш у прудов
   for (const p of W.props) {
     if (p.kind === 'log') { const L = Math.round(p.len / 10) * 10, sp = sprite('log|' + L + '|' + (p.s % 4), L + 40, 50, L / 2 + 20, 34, 2, g => FOR.fallenLog(g, L, p.s % 4 + 1)); S.push({ y: p.y, x: p.x, oc: occ(sp, p.x, p.y), draw: g => drawSpr(g, sp, p.x, p.y) }); }
@@ -229,7 +231,7 @@ function buildStatics(W) {
   for (const f of W.Z.farmsteads || []) { const sp = oldBld() ? sprite('farmst' + (f.burned ? 'B' : ''), 460, 280, 200, 250, 2, g => { g.scale(K, K); farmstead(g, f.burned); }) : sprite('tfarm' + (f.burned ? 'B' : ''), 520, 300, 260, 260, 1.8, styled(g => { g.scale(KV, KV); TVIL.farmstead(g, f.burned); })); S.push({ y: f.y, x: f.x, oc: occ(sp, f.x, f.y), draw: g => drawSpr(g, sp, f.x, f.y) }); if (f.burned) S.push({ y: f.y + 1, x: f.x, draw: (g, t) => smoke(g, f.x + 20, f.y - 60, t) }); }
   if (W.Z.mill) { const m = W.Z.mill, ms = 1.5, nm = !oldBld(), sp = nm ? sprite('tmill', 210, 270, 105, 240, 1.6, styled(g => { g.scale(ms, ms); TVIL.millBase(g); })) : sprite('millbase', 210, 255, 105, 228, 1.6, g => { g.scale(ms, ms); millBase(g, false); }); S.push({ y: m.y, x: m.x, oc: { x0: m.x - 150, y0: m.y - 340, x1: m.x + 150, y1: m.y }, label: 'Старая мельница', lx: m.x, ly: m.y - 300, draw: (g, t) => { drawSpr(g, sp, m.x, m.y); g.save(); g.translate(m.x, m.y - 112 * ms); g.scale(ms, ms); nm ? TVIL.millBlades(g, t * 0.5) : millBlades(g, t * 0.5, false); g.restore(); } }); }
   // скалы и пригорки (v61)
-  for (const o of W.rocks || []) { const sp = sprite('rock|' + o.s + '|' + Math.round(o.w), o.w * 1.5 + 40, o.h * 1.4 + 50, o.w * 0.75 + 20, o.h * 1.3 + 20, 1.6, g => outcrop(g, o.w, o.h, o.s)); S.push({ y: o.y, x: o.x, oc: occ(sp, o.x, o.y), draw: g => drawSpr(g, sp, o.x, o.y) }); }
+  for (const o of W.rocks || []) { const sp = sprite('rock|' + o.s + '|' + Math.round(o.w), o.w * 1.5 + 40, o.h * 1.4 + 50, o.w * 0.75 + 20, o.h * 1.3 + 20, 1.6, oldLairs() ? g => outcrop(g, o.w, o.h, o.s) : styled(g => TL.outcrop(g, o.w, o.h, o.s))); S.push({ y: o.y, x: o.x, oc: occ(sp, o.x, o.y), draw: g => drawSpr(g, sp, o.x, o.y) }); }
   // горы за краем зоны (там, где они есть)
   const mt = [], ridges = W.Z.ridges || [];
   for (let i = 0; i < W.edge.length; i++) {
@@ -612,7 +614,7 @@ export function render(R, G, now) {
   for (const k of G.corpses) if (vis(k.x, k.y)) L.push({ y: k.y - 1, corpse: k });
   for (const gi of W.giants || []) if (vis(gi.x, gi.y, 300)) { const Gd = GIANT[gi.kind], sp = sprite('gbase|' + gi.kind + '|' + gi.s, Gd.trunkW * 4, Gd.low + 40, Gd.trunkW * 2, Gd.low + 20, 1.6, g => giantBase(g, gi.kind, gi.s)); L.push({ y: gi.y, x: gi.x, draw: g => drawSpr(g, sp, gi.x, gi.y) }); }
   for (const v of G.plants || []) if ((!v.at || v.at <= G.t) && vis(v.x, v.y)) { const sp = sprite('herb|' + v.herb + '|' + (v.s % 4), 60, 50, 30, 40, 2, gg => bush(gg, v.herb, v.s % 4 + 1)); L.push({ y: v.y, x: v.x, draw: (g, t) => { drawSpr(g, sp, v.x, v.y); g.save(); g.translate(v.x, v.y); herbGlint(g, v.herb, t, v.s % 7); g.restore(); } }); }
-  for (const v of G.veins || []) if ((!v.at || v.at <= G.t) && vis(v.x, v.y)) { const sp = sprite('vein|' + v.metal + '|' + (v.s % 5), 110, 90, 55, 70, 2, gg => vein(gg, v.metal, v.s % 5 + 1)); L.push({ y: v.y, x: v.x, oc: occ(sp, v.x, v.y), draw: (g, t) => { drawSpr(g, sp, v.x, v.y); g.save(); g.translate(v.x, v.y); glint(g, v.metal, t, v.s % 7); g.restore(); } }); }
+  for (const v of G.veins || []) if ((!v.at || v.at <= G.t) && vis(v.x, v.y)) { const sp = sprite('vein|' + v.metal + '|' + (v.s % 5), 110, 90, 55, 70, 2, oldLairs() ? gg => vein(gg, v.metal, v.s % 5 + 1) : styled(gg => TL.vein(gg, v.metal, v.s % 5 + 1))); L.push({ y: v.y, x: v.x, oc: occ(sp, v.x, v.y), draw: (g, t) => { drawSpr(g, sp, v.x, v.y); g.save(); g.translate(v.x, v.y); glint(g, v.metal, t, v.s % 7); g.restore(); } }); }
   for (const m of G.mobs) if (m.state !== 'dead' && vis(m.x, m.y)) L.push({ y: m.y, mob: m });
   // v95: жители с заданиями (поворачиваются к герою, знак над головой) и предметы заданий
   for (const n of G.npcs || []) if (vis(n.x, n.y)) L.push({ y: n.y, x: n.x, draw: (g, tt) => drawNpc(g, G, n, tt) });

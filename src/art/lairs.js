@@ -1,6 +1,7 @@
 // Приметы логов в мире: по ним место узнаётся без карты. Рисуются один раз готовыми картинками.
 // Начало координат — точка на земле в середине приметы.
-import { sprite } from './sprites.js';
+import { sprite, styled } from './sprites.js';
+import { TLAIRS } from './tlairs.js';
 import * as FOR from './forest.js';
 
 const O = '#24180f';
@@ -166,6 +167,8 @@ const ART = {
   kennel: [120, 80, 60, 64, kennel], crowfield: [100, 130, 50, 110, crowfield], scarefield: [130, 70, 65, 46, scarefield], pasture: [150, 70, 75, 46, pasture], burned: [140, 90, 70, 74, burned], den: [140, 70, 70, 56, den], wolf: [150, 80, 75, 64, wolf], boar: [160, 70, 80, 36, boar], web: [140, 110, 70, 92, web], bandit: [420, 170, 210, 140, bandit], ataman: [260, 170, 130, 150, ataman] };
 /** Готовая картинка приметы логова. */
 export function lairSpr(kind) {
+  const t = !(typeof window !== 'undefined' && window.__oldLairs) && TLAIRS[kind];   // v104: мультяшные приметы
+  if (t) return sprite('tlair|' + kind, t[0], t[1], t[2], t[3], 2, styled(t[4]));
   const a = ART[kind]; if (!a) return null;
   return sprite('lair|' + kind, a[0], a[1], a[2], a[3], 2, a[4]);
 }
