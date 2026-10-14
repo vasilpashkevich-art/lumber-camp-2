@@ -41,7 +41,7 @@ const URL = 'file://' + path.resolve(__dirname, '../../index.html') + '#dev';
   await p.touchscreen.tap(sx, sy); await p.waitForTimeout(1600); const mining = await ev(() => !!window.__G.G.P.mine); console.log('копает:', mining); if (!mining) errs.push('касание жилы не начало копать');
   await shot('mine'); await p.waitForTimeout(3500);
   // моб: касание — цель, автоатака, подходит
-  await ev(() => { const G = window.__G.G, P = G.P; P.x = 2900; P.y = 3600; const m = G.mobs.find(m => m.kind === 'wolf'); m.state = 'idle'; m.hp = m.max = 60; m.respawnAt = 0; m.x = m.hx = P.x + 330; m.y = m.hy = P.y; m.aggroOff = 1; window.__m = m; });
+  await ev(() => { const G = window.__G.G, P = G.P; P.x = 2900; P.y = 3600; const m = G.mobs.find(m => m.kind === 'wolf'); m.state = 'idle'; m.hp = m.max = 60; m.respawnAt = 0; m.x = m.hx = P.x + 220; m.y = m.hy = P.y - 60; m.aggroOff = 1; window.__m = m; });
   await p.waitForTimeout(300); [sx, sy] = await toScreen(await ev(() => [window.__m.x, window.__m.y - 14]));
   await p.touchscreen.tap(sx, sy); await p.waitForTimeout(400);
   const auto = await ev(() => window.__G.G.P.auto === window.__m); console.log('автоатака по касанию:', auto); if (!auto) errs.push('касание моба не включило автоатаку');
