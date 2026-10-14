@@ -1,0 +1,10 @@
+const { chromium } = require('playwright'); const path = require('path'), fs = require('fs');
+const OUT = path.join(__dirname, '../../../tests/browser/out');
+(async () => { const b = await chromium.launch(); const p = await b.newPage(); const errs = []; p.on('pageerror', e => errs.push(e.message + ' ' + (e.stack || '').split('\n')[1]));
+  await p.goto('file://' + path.resolve(__dirname, 'weaptest.html'));
+  const save = (n, u) => fs.writeFileSync(`${OUT}/v98-${n}.png`, Buffer.from(u.split(',')[1], 'base64'));
+  const G = { warrior: ['hatchet', 'bearded', 'battleaxe', 'crescent', 'double', 'shortsword', 'sword', 'falchion', 'broadsword', 'greatsword', 'mace', 'flanged', 'morning', 'warhammer', 'maul'], mage: ['stick', 'wand', 'crook', 'orb', 'serpent', 'rune', 'moon', 'root', 'arch'], archer: ['shortbow', 'hunt', 'recurve', 'long', 'horn', 'war', 'wind'], epic: ['flameblade', 'runeaxe', 'thunder', 'starfall', 'phoenix', 'glacier', 'stagbow', 'sunbow', 'nightbow'], npc: ['pick', 'torch', 'sickle', 'spear', 'cleaver'] };
+  const SC = +(process.env.SC || 5);
+  for (const [n, ids] of Object.entries(G)) save(n, await p.evaluate(([ids, SC]) => { const cv = document.createElement('canvas'); window.sheet(cv, ids, SC, 5); return cv.toDataURL(); }, [ids, SC]));
+  if (process.env.HANDS) save('hands', await p.evaluate(ids => { const cv = document.createElement('canvas'); window.hands(cv, ids, 3); return cv.toDataURL(); }, process.env.HANDS.split(',')));
+  console.log(errs.length ? errs.join('\n') : 'ошибок нет'); await b.close(); })();
