@@ -15,6 +15,7 @@ const STAM_SLOT = { head: 0.8, chest: 1.2, legs: 1.0, weapon: 0.5, neck: 0.7, ri
 /** Ярус облика и названия 1..4: растёт с уровнем вещи (каждые 8) и цветом. */
 export function visTier(ilvl, rar) {
   if (rar === 'start') return 0;
+  if (rar === 'epic') return 5;   // v92: фиолетовые — свой героический ярус
   return Math.max(1, Math.min(4, RAR_IDX[rar] + Math.floor(ilvl / 8)));
 }
 

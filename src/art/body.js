@@ -94,6 +94,7 @@ export function person(c, L, view, pose = {}) {
     c.save(); c.beginPath(); fn(); c.clip();
     if (ch.panel && !back) { c.fillStyle = chP.cloth[1]; c.fillRect(sideV ? 1.6 : -1.6, -2, sideV ? 3.4 : 3.2, 16 + D); c.strokeStyle = chP.acc; c.lineWidth = 0.4; c.strokeRect(sideV ? 1.6 : -1.6, -2, sideV ? 3.4 : 3.2, 16 + D); }
     if (ch.stars) starsIn(sideV);
+    if (ch.flames) for (let i = 0; i < (sideV ? 6 : 9); i++) { const x = (sideV ? -5 : -7.2) + i * 1.8, h = 3.6 + (i % 3) * 1.6; for (const [col, k] of [['#c83a1a', 1], ['#ff8a2a', 0.7], ['#ffd060', 0.4]]) { c.fillStyle = col; c.beginPath(); c.moveTo(x - 1.1 * k, 12.4 + D); c.quadraticCurveTo(x - 0.7 * k, 12 + D - h * k * 0.6, x, 12 + D - h * k); c.quadraticCurveTo(x + 0.7 * k, 12 + D - h * k * 0.6, x + 1.1 * k, 12.4 + D); c.closePath(); c.fill(); } }   // v92: подол в языках пламени
     if (ch.trim) { c.strokeStyle = chP.acc; c.lineWidth = 0.8; c.beginPath(); sideV ? (c.moveTo(-5.4, 11 + D), c.quadraticCurveTo(0, 12 + D, 5.2, 10.9 + D)) : (c.moveTo(-7.4, 11 + D), c.quadraticCurveTo(0, 12.2 + D, 7.4, 11 + D)); c.stroke(); }
     c.restore();
   }
@@ -109,6 +110,10 @@ export function person(c, L, view, pose = {}) {
     // латы: рёбра жёсткости и юбка из полос
     if (ch && ch.base === 'plate') { if (!sideV && !back) { c.strokeStyle = sh(chP.metal, -0.35); c.lineWidth = 0.45; c.beginPath(); c.moveTo(0, -12.4); c.lineTo(0, -1.4); c.stroke(); c.strokeStyle = chP.acc; c.lineWidth = 0.55; c.beginPath(); c.moveTo(-4.4, -3.6); c.quadraticCurveTo(0, -1.4, 4.4, -3.6); c.stroke(); if (chP.gem) gemS(0, -8, 0.9, chP.gem); }
       for (let i = 0; i < 2; i++) F(() => c.roundRect(sideV ? -3.2 : -5 - i * 0.3, 1.2 + i * 1.6, sideV ? 6.4 : 10 + i * 0.6, 1.8, 0.5), sh(chP.metal, -0.05 * i), 0.5); }
+    // v92: героические — ворот (горжет), золотая скань на латах, языки пламени понизу
+    if (ch && ch.filigree && !back && !sideV) { c.strokeStyle = chP.acc; c.lineWidth = 0.45; for (const sx of [-1, 1]) { c.beginPath(); c.moveTo(sx * 0.9, -11); c.bezierCurveTo(sx * 3.6, -11, sx * 4.4, -8.6, sx * 2.6, -7.2); c.bezierCurveTo(sx * 1.6, -6.4, sx * 2.6, -5.2, sx * 3.8, -5.6); c.stroke(); } gemS(0, -8.6, 1, chP.gem); }
+    if (ch && ch.flames && !robe) { c.save(); c.beginPath(); path(); c.clip(); for (let i = 0; i < (sideV ? 4 : 7); i++) { const x = (sideV ? -2.6 : -5.2) + i * 1.75, h = 2.6 + (i % 2) * 1.6; for (const [col, k] of [['#c83a1a', 1], ['#ff8a2a', 0.65]]) { c.fillStyle = col; c.beginPath(); c.moveTo(x - 0.9 * k, 2.6); c.quadraticCurveTo(x - 0.6 * k, 2.6 - h * k * 0.6, x, 2.6 - h * k); c.quadraticCurveTo(x + 0.6 * k, 2.6 - h * k * 0.6, x + 0.9 * k, 2.6); c.closePath(); c.fill(); } } c.restore(); }
+    if (ch && ch.gorget && !sideV) { F(() => c.ellipse(0, -12.8, 3.9 * bw, 1.7, 0, 0, 7), ch.base === 'scale' ? chP.leaf || chP.metal : chP.metal, 0.5); c.strokeStyle = chP.acc; c.lineWidth = 0.45; c.beginPath(); c.ellipse(0, -12.6, 3.5 * bw, 1.3, 0, 0.1, Math.PI - 0.1); c.stroke(); }
     // заклёпки
     if (ch && ch.studs && !back) for (let y = -11; y < -1; y += 2.4) for (const x of sideV ? [-1.4, 1.2] : [-3, -1, 1, 3]) { c.fillStyle = chP.acc; c.beginPath(); c.arc(x, y, 0.35, 0, 7); c.fill(); }
     // пояс
@@ -129,6 +134,21 @@ export function person(c, L, view, pose = {}) {
     if (k === 'fur') { F(() => c.ellipse(x, y + 0.2, 2.8, 2, 0, 0, 7), '#c8b090', 0.5); return; }
     if (k === 'mantle') { F(() => { c.moveTo(x - sx * 2.6, y - 1.6); c.quadraticCurveTo(x + sx * 2.6, y - 2.6, x + sx * 3.6, y + 2.6); c.lineTo(x - sx * 0.6, y + 3); c.closePath(); }, P.cloth[1], 0.5); c.strokeStyle = P.acc; c.lineWidth = 0.5; c.beginPath(); c.moveTo(x + sx * 3.4, y + 2.4); c.lineTo(x - sx * 0.6, y + 2.8); c.stroke(); return; }
     if (k === 'scale') { const col = ch.col ? P[ch.col] : P.metal; F(() => { c.ellipse(x, y + 0.4, 2.8, 2.4, 0, Math.PI, 0); c.closePath(); }, col, 0.55); for (const dy of [-0.8, 0.6]) { c.strokeStyle = sh(col, -0.35); c.lineWidth = 0.3; c.beginPath(); c.ellipse(x, y + dy + 0.6, 2.4, 1.2, 0, Math.PI, 0); c.stroke(); } return; }
+    if (k === 'wing') {   // v92: маг — наплечники перьями, с золотой каймой, концы вверх-наружу
+      for (let i = 0; i < 4; i++) { const yy = y - 1.2 + i * 1.3, L = 4.6 - i * 0.5; F(() => { c.moveTo(x - sx * 1.4, yy); c.quadraticCurveTo(x + sx * L * 0.6, yy - 2.4 + i * 0.3, x + sx * L, yy - 2.8 + i * 0.6); c.quadraticCurveTo(x + sx * L * 0.7, yy + 0.4, x - sx * 0.8, yy + 1.4); c.closePath(); }, sh(P.cloth[0], 0.1 - i * 0.08), 0.45); c.strokeStyle = P.acc; c.lineWidth = 0.35; c.beginPath(); c.moveTo(x - sx * 0.6, yy + 0.2); c.quadraticCurveTo(x + sx * L * 0.6, yy - 1.6 + i * 0.3, x + sx * L * 0.95, yy - 2.6 + i * 0.6); c.stroke(); }
+      gemS(x, y - 1.4, 0.7, P.gem); return; }
+    if (k === 'antler') {   // v92: лучник — листовые наплечники с оленьим отростком
+      for (let i = 2; i >= 0; i--) F(() => c.ellipse(x + sx * i * 0.6, y + i * 0.9, 3 - i * 0.3, 1.8, sx * (0.35 + i * 0.1), 0, 7), sh(P.leaf, -0.08 * i), 0.45);
+      c.strokeStyle = sh(P.leaf, -0.4); c.lineWidth = 0.3; c.beginPath(); c.moveTo(x - sx * 2.2, y - 0.3); c.lineTo(x + sx * 2.2, y + 0.6); c.stroke();
+      if (!sideV) { c.strokeStyle = O; c.lineWidth = 1.1; c.beginPath(); c.moveTo(x + sx * 1.6, y - 1); c.quadraticCurveTo(x + sx * 3.6, y - 3, x + sx * 3, y - 5.4); c.moveTo(x + sx * 2.8, y - 2.4); c.lineTo(x + sx * 4.6, y - 3.4); c.stroke(); c.strokeStyle = '#ece2c8'; c.lineWidth = 0.55; c.stroke(); }
+      gemS(x, y - 0.4, 0.55, P.gem); return; }
+    if (k === 'hero' || k === 'spike') {   // v92: воин — большие слоёные наплечники с золотой каймой; hero — завиток-рог и камень, spike — три шипа
+      const rx = 4.4, ry = 3.6;
+      for (let i = 3; i >= 0; i--) { const yy = y + i * 1.2; F(() => { c.ellipse(x + sx * i * 0.2, yy, rx - i * 0.25, ry - i * 0.35, 0, Math.PI, Math.PI * 2); c.closePath(); }, sh(P.metal, -0.07 * i), 0.55); c.strokeStyle = P.acc; c.lineWidth = 0.4; c.beginPath(); c.ellipse(x + sx * i * 0.2, yy, rx - i * 0.25 - 0.2, ry - i * 0.35 - 0.2, 0, Math.PI * 1.05, Math.PI * 1.95); c.stroke(); }
+      c.fillStyle = 'rgba(255,255,255,.35)'; c.beginPath(); c.ellipse(x - rx * 0.35, y - ry * 0.55, rx * 0.3, ry * 0.18, -0.3, 0, 7); c.fill();
+      if (k === 'spike') { if (!sideV) for (const d of [-1.6, 0, 1.6]) F(() => { c.moveTo(x + d - 0.55, y - ry + 0.5); c.lineTo(x + d * 1.5 + sx * 0.6, y - ry - 2.8 - (d === 0 ? 0.8 : 0)); c.lineTo(x + d + 0.55, y - ry + 0.5); c.closePath(); }, '#2a2226', 0.4); }
+      else if (!sideV) { F(() => { c.moveTo(x + sx * 1, y - ry + 0.6); c.bezierCurveTo(x + sx * 3.4, y - ry - 1.4, x + sx * 5.4, y - ry - 0.4, x + sx * 4.6, y - ry - 3.4); c.quadraticCurveTo(x + sx * 4, y - ry - 1.6, x + sx * 2.6, y - ry - 0.8); c.lineTo(x + sx * 1.8, y - ry + 1); c.closePath(); }, P.acc, 0.45); }
+      gemS(x, y - ry * 0.4, 0.85, P.gem); return; }
     const big = k === 'big', rx = big ? 3.7 : 3, ry = big ? 3.1 : 2.4;
     for (let i = 2; i >= 0; i--) { const yy = y + i * (big ? 1.25 : 1); F(() => { c.ellipse(x + sx * i * 0.15, yy, rx - i * 0.2, ry - i * 0.3, 0, Math.PI * 1.0, Math.PI * 2.0); c.closePath(); }, sh(P.metal, -0.08 * i), 0.55); }
     c.strokeStyle = P.acc; c.lineWidth = 0.55; c.beginPath(); c.ellipse(x, y, rx - 0.3, ry - 0.3, 0, Math.PI * 1.08, Math.PI * 1.92); c.stroke();
@@ -145,6 +165,7 @@ export function person(c, L, view, pose = {}) {
       if (!robe) { limb(lx * 1.08, 1.6, kx * 1.08, ky, 3.9, legCol); limb(kx * 1.08, ky, fx, fy - 1.2, 3.4, legCol); }
       boot(fx, fy, back, ky, turn ? 0.7 : 0);
       if (!robe && lg && lg.knee) F(() => c.ellipse(kx * 1.08, ky, 1.5, 1.2, 0, 0, 7), lg.base === 'plate' ? lgP.metal : lg.col ? lgP[lg.col] : lgP.leather, 0.45);
+      if (!robe && lg && lg.spikeKnee) { F(() => { c.moveTo(kx * 1.08 - 0.6, ky - 0.4); c.lineTo(kx * 1.08, ky - 2.6); c.lineTo(kx * 1.08 + 0.6, ky - 0.4); c.closePath(); }, lgP.acc, 0.35); c.strokeStyle = lgP.acc; c.lineWidth = 0.35; c.beginPath(); c.ellipse(kx * 1.08, ky, 1.3, 1, 0, 0, 7); c.stroke(); }
     }
     if (robe) { robeSkirt(back, false); return; }
     // юбка куртки поверх бёдер
