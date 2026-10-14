@@ -2,7 +2,8 @@
 // Проекция как в bld2.js: x — вдоль лица, y — в глубину (вверх-вправо), z — вверх; P(x,y,z) → экран. Всё ×1,35 (SC), как BLD2.
 // Камни-подушки, толстые карнизы, пухлая черепица «чешуйками», круглые колонны, двери с железом, окна с глянцем.
 const TAU = Math.PI * 2, SC = 1.35;
-const KX = 0.3, KY = 0.5, P = (x, y, z) => [x + y * KX, -z - y * KY];
+// v101: вид прямо спереди и чуть сверху (как сундук, стены и рынок): лицо целиком, крыша видна сверху, боковых стен нет
+const KX = 0, KY = 0.5, P = (x, y, z) => [x + y * KX, -z - y * KY];
 const sh = (hex, k) => { const n = parseInt(hex.slice(1), 16), f = v => Math.max(0, Math.min(255, Math.round(k > 0 ? v + (255 - v) * k : v * (1 + k)))); return '#' + [(n >> 16) & 255, (n >> 8) & 255, n & 255].map(v => f(v).toString(16).padStart(2, '0')).join(''); };
 const ink = col => sh(col, -0.6);
 const rnd = s => { s = Math.abs(s | 0) || 1; return () => { s = (s * 16807) % 2147483647; return s / 2147483647; }; };
@@ -27,13 +28,13 @@ function stoneWall(g, pts, m, w, h, col, seed, row = 14) {
 /** Корпус: лицо и правая стена камнями-подушками, цоколь. */
 export function walls(g, w, d, H, col, seed) {
   const s = [P(w / 2, 0, 0), P(w / 2, d, 0), P(w / 2, d, H), P(w / 2, 0, H)], f = [P(-w / 2, 0, 0), P(w / 2, 0, 0), P(w / 2, 0, H), P(-w / 2, 0, H)];
-  const o = P(w / 2, 0, 0); stoneWall(g, s, [KX, -KY, 0, 1, o[0], o[1]], d, H, sh(col, -0.2), seed + 1);
+  const o = P(w / 2, 0, 0); if (KX) stoneWall(g, s, [KX, -KY, 0, 1, o[0], o[1]], d, H, sh(col, -0.2), seed + 1);
   stoneWall(g, f, [1, 0, 0, 1, -w / 2, 0], w, H, col, seed);
   const cb = [P(-w / 2 - 2, 0, 0), P(w / 2 + 2, 0, 0), P(w / 2 + 2, 0, 12), P(-w / 2 - 2, 0, 12)]; poly(g, cb); paint(g, sh(col, -0.25), 1.4, -12, 0);
-  const sb = [P(w / 2 + 2, 0, 0), P(w / 2 + 2, d, 0), P(w / 2 + 2, d, 12), P(w / 2 + 2, 0, 12)]; poly(g, sb); paint(g, sh(col, -0.4), 1.3);
+  if (KX) { const sb = [P(w / 2 + 2, 0, 0), P(w / 2 + 2, d, 0), P(w / 2 + 2, d, 12), P(w / 2 + 2, 0, 12)]; poly(g, sb); paint(g, sh(col, -0.4), 1.3); }
   // карниз под крышей
   const kf = [P(-w / 2 - 4, -3, H - 2), P(w / 2 + 4, -3, H - 2), P(w / 2 + 4, -3, H + 6), P(-w / 2 - 4, -3, H + 6)]; poly(g, kf); paint(g, sh(col, 0.12), 1.5);
-  const ks = [P(w / 2 + 4, -3, H - 2), P(w / 2 + 4, d + 3, H - 2), P(w / 2 + 4, d + 3, H + 6), P(w / 2 + 4, -3, H + 6)]; poly(g, ks); paint(g, sh(col, -0.15), 1.3);
+  if (KX) { const ks = [P(w / 2 + 4, -3, H - 2), P(w / 2 + 4, d + 3, H - 2), P(w / 2 + 4, d + 3, H + 6), P(w / 2 + 4, -3, H + 6)]; poly(g, ks); paint(g, sh(col, -0.15), 1.3); }
 }
 /** Черепица «чешуйками» в четырёхугольнике (a,b — край свеса, c,d — к коньку). */
 function scales(g, quad, col, k = 0, plain = false) {
@@ -49,15 +50,37 @@ function scales(g, quad, col, k = 0, plain = false) {
   const ys = quad.map(p => p[1]); const gr = g.createLinearGradient(0, Math.min(...ys), 0, Math.max(...ys)); gr.addColorStop(0, 'rgba(255,255,255,.16)'); gr.addColorStop(1, 'rgba(0,0,20,.08)'); g.fillStyle = gr; poly(g, quad); g.fill();
   g.restore(); poly(g, quad); g.strokeStyle = ink(col); g.lineWidth = 1.8; g.stroke();
 }
+/** Черепица «чешуйками» горизонтальными рядами в любом многоугольнике (вид спереди-сверху). */
+function scalesH(g, pts, col, k = 0, rh = 10, sw = 14) {
+  const base = sh(col, k), ys = pts.map(p => p[1]), xs = pts.map(p => p[0]), y0 = Math.min(...ys), y1 = Math.max(...ys), x0 = Math.min(...xs), x1 = Math.max(...xs);
+  g.save(); poly(g, pts); g.clip(); g.fillStyle = sh(base, -0.3); g.fillRect(x0 - 2, y0 - 2, x1 - x0 + 4, y1 - y0 + 4);
+  const nr = Math.ceil((y1 - y0) / rh) + 2;
+  for (let i = nr; i >= 0; i--) { const y = y0 - rh + i * rh, off = i % 2 ? sw / 2 : 0, t = (y - y0) / Math.max(1, y1 - y0);
+    for (let x = x0 - sw + off; x < x1 + sw; x += sw) { const hw = sw / 2 + 0.4; g.beginPath(); g.moveTo(x - hw, y - rh); g.lineTo(x - hw, y); g.quadraticCurveTo(x - hw, y + rh * 0.85, x, y + rh * 0.88); g.quadraticCurveTo(x + hw, y + rh * 0.85, x + hw, y); g.lineTo(x + hw, y - rh); g.closePath();
+      g.fillStyle = sh(base, (((x / sw | 0) + i) % 3 === 0 ? 0.08 : 0) + (0.5 - t) * 0.12); g.fill(); g.strokeStyle = ink(base); g.lineWidth = 0.9; g.stroke(); } }
+  g.restore(); poly(g, pts); g.strokeStyle = ink(col); g.lineWidth = 1.8; g.stroke();
+}
 /** Вальмовая крыша пухлой черепицей, конёк с шарами. */
 export function hipRoof(g, w, d, H, rh, col, e = 14) {
   const inset = Math.min(w * 0.3, 60);
+  if (!KX) {   // вид спереди-сверху: крыша — трапеция, бока-вальмы темнее; верх — на высоте ската и половине глубины
+    const top = -H - rh - d * KY * 0.45, fa = [-w / 2 - e, -H + 2], fb = [w / 2 + e, -H + 2], r0 = [-w / 2 + inset, top], r1 = [w / 2 - inset, top];
+    scalesH(g, [fa, r0, [-w / 2 + inset * 0.55, -H + 2]], col, -0.04);
+    scalesH(g, [fb, r1, [w / 2 - inset * 0.55, -H + 2]], col, -0.26);
+    scalesH(g, [[-w / 2 + inset * 0.55, -H + 2], r0, r1, [w / 2 - inset * 0.55, -H + 2]], col, 0.04);
+    poly(g, [fa, r0, r1, fb]); g.strokeStyle = ink(col); g.lineWidth = 2; g.stroke();
+    for (const [a, b] of [[r0, [-w / 2 + inset * 0.55, -H + 2]], [r1, [w / 2 - inset * 0.55, -H + 2]]]) { g.beginPath(); g.moveTo(a[0], a[1]); g.lineTo(b[0], b[1]); g.strokeStyle = ink(col); g.lineWidth = 3.4; g.stroke(); g.strokeStyle = sh(col, 0.2); g.lineWidth = 1.6; g.stroke(); }
+    g.beginPath(); g.moveTo(r0[0], r0[1]); g.lineTo(r1[0], r1[1]); g.strokeStyle = ink(col); g.lineWidth = 6.4; g.lineCap = 'round'; g.stroke(); g.strokeStyle = sh(col, 0.2); g.lineWidth = 4; g.stroke();
+    for (const p of [r0, r1]) { g.beginPath(); g.arc(p[0], p[1] - 3, 4, 0, TAU); paint(g, TB.gold, 1.2); shine(g, p[0] - 1.2, p[1] - 4.4, 1.4, 1, 0.8); }
+    g.beginPath(); g.moveTo(fa[0] - 1, fa[1] - 2); g.lineTo(fb[0] + 1, fb[1] - 2); g.lineTo(fb[0] + 1, fb[1] + 5); g.lineTo(fa[0] - 1, fa[1] + 5); g.closePath(); paint(g, sh(col, -0.35), 1.4);
+    return { r0, r1 };
+  }
   const r0 = P(-w / 2 + inset, d / 2, H + rh), r1 = P(w / 2 - inset, d / 2, H + rh);
   const fa = P(-w / 2 - e, -e * 0.6, H + 2), fb = P(w / 2 + e, -e * 0.6, H + 2), ba = P(-w / 2 - e, d + e * 0.6, H + 2), bb = P(w / 2 + e, d + e * 0.6, H + 2);
-  scales(g, [ba, bb, r1, r0], col, -0.2);
-  scales(g, [fb, bb, r1, r1], col, -0.28, true);
-  scales(g, [ba, fa, r0, r0], col, -0.08, true);
-  scales(g, [fa, fb, r1, r0], col, 0);
+  scalesH(g, [ba, bb, r1, r0], col, -0.2);
+  scalesH(g, [fb, bb, r1], col, -0.24);
+  scalesH(g, [fa, ba, r0], col, -0.06);
+  scalesH(g, [fa, fb, r1, r0], col, 0.02);
   g.beginPath(); g.moveTo(r0[0], r0[1]); g.lineTo(r1[0], r1[1]); g.strokeStyle = ink(col); g.lineWidth = 6.4; g.lineCap = 'round'; g.stroke(); g.strokeStyle = sh(col, 0.15); g.lineWidth = 4; g.stroke();
   for (const p of [r0, r1]) { g.beginPath(); g.arc(p[0], p[1] - 3, 4, 0, TAU); paint(g, TB.gold, 1.2); shine(g, p[0] - 1.2, p[1] - 4.4, 1.4, 1, 0.8); }
   // толстый свес спереди
@@ -106,7 +129,7 @@ export function lampT(g, x, y, lit = false) {
 /** Куст в кадке. */
 function shrub(g, x, y) { rr(g, x - 9, y - 13, 18, 13, 3); paint(g, '#b06a3a', 1.3, y - 13, y); g.strokeStyle = '#7a4420'; g.lineWidth = 1; g.beginPath(); g.moveTo(x - 9, y - 9); g.lineTo(x + 9, y - 9); g.stroke(); for (const [dx, dy, r] of [[-5, -18, 7], [5, -18, 7], [0, -25, 8]]) { g.beginPath(); g.arc(x + dx, y + dy, r, 0, TAU); paint(g, '#5f9a44', 1.2, y + dy - r, y + dy + r); } shine(g, x - 3, y - 28, 3, 1.6, 0.35); }
 /** Тень у постройки (слабая: мягкий контур её усиливает). */
-function shadowAt(g, w, d) { const a = P(-w / 2, 0, 0), b = P(w / 2, 0, 0), c = P(w / 2, d, 0), e = P(-w / 2, d, 0); g.fillStyle = 'rgba(20,12,6,.06)'; g.beginPath(); g.moveTo(a[0] - 12, a[1] + 10); g.lineTo(b[0] + 18, b[1] + 10); g.lineTo(c[0] + 18, c[1]); g.lineTo(e[0] - 12, e[1]); g.closePath(); g.fill(); }
+function shadowAt(g, w, d) { if (!KX) { g.fillStyle = 'rgba(20,12,6,.05)'; g.beginPath(); g.ellipse(6, 2, w * 0.62, 14, 0, 0, TAU); g.fill(); return; } const a = P(-w / 2, 0, 0), b = P(w / 2, 0, 0), c = P(w / 2, d, 0), e = P(-w / 2, d, 0); g.fillStyle = 'rgba(20,12,6,.06)'; g.beginPath(); g.moveTo(a[0] - 12, a[1] + 10); g.lineTo(b[0] + 18, b[1] + 10); g.lineTo(c[0] + 18, c[1]); g.lineTo(e[0] - 12, e[1]); g.closePath(); g.fill(); }
 
 // ---------------------------------------------------------------- банк
 /** Банк: светлый камень, синяя черепица вальмой, портик из 4 колонн с фронтоном и золотой монетой, широкие ступени,
@@ -116,7 +139,6 @@ function bank(g, t = 0) {
   shadowAt(g, w, d);
   walls(g, w, d, H, stone, 31);
   // окно на правой стене (в перспективе)
-  const sw = P(w / 2 + 0.5, d * 0.5, 64); g.save(); g.translate(sw[0], sw[1]); g.transform(KX, -KY, 0, 1, 0, 0); windowT(g, 0, 0, 24, 36, { bars: true }); g.restore();
   hipRoof(g, w, d, H, 46, '#3e6aa8');
   // окна по бокам портика
   for (const x of [-52, 52]) windowT(g, x, -30, 24, 40, { bars: true, flowers: true });
