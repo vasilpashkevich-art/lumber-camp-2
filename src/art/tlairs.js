@@ -157,8 +157,7 @@ export function bridge(g, len) {
     for (let y = -len / 2; y <= len / 2 + 1; y += len / 4) { g.beginPath(); g.arc(sx * w / 2, y, 7, 0, TAU); paint(g, '#7a4e2a', 1.3); g.beginPath(); g.arc(sx * w / 2, y, 3.6, 0, TAU); paint(g, '#c8a070', 0.8); } }
 }
 
-// ---------------------------------------------------------------- скалы и жилы: пухлые валуны
-const METAL = { copper: { rock: '#9a9286', ore: '#d8783a', hi: '#ffb070' }, tin: { rock: '#948c80', ore: '#c8d0da', hi: '#ffffff' }, iron: { rock: '#7e7a76', ore: '#b05a30', hi: '#f0a060' } };
+// ---------------------------------------------------------------- скалы: пухлые валуны (рудные жилы остаются прежними, с острыми гранями — ore.js)
 /** Скала у края: большой валун и два поменьше, мох, камешки. */
 export function outcrop(g, w = 170, h = 110, seed = 5, moss = true) {
   const r = rnd(seed); shadow(g, w * 0.62, w * 0.14, w * 0.08);
@@ -166,15 +165,4 @@ export function outcrop(g, w = 170, h = 110, seed = 5, moss = true) {
   boulder(g, 0, 0, w, h, '#9a9286', moss, seed);
   boulder(g, -w * 0.34, 10, w * 0.42, h * 0.42, '#948c80', moss && r() < 0.5, seed + 7);
   for (let i = 0; i < 6; i++) { const x = (r() - 0.5) * w * 1.2, y = 10 + r() * 10, s = 3 + r() * 4; g.beginPath(); g.ellipse(x, y, s, s * 0.7, 0, 0, TAU); paint(g, '#a8a094', 1); }
-}
-/** Рудная жила: валун с крупными гранёными самородками и жилками; выкопанная — щебень. */
-export function vein(g, metal, seed = 3, left = 1) {
-  const M = METAL[metal] || METAL.copper, r = rnd(seed + 11);
-  if (left <= 0) { shadow(g, 40, 10); for (let i = 0; i < 12; i++) { const x = (r() - 0.5) * 70, y = (r() - 0.5) * 12, s = 3.5 + r() * 5; g.beginPath(); g.ellipse(x, y, s, s * 0.7, 0, 0, TAU); paint(g, sh(M.rock, (r() - 0.5) * 0.2), 1); } return; }
-  shadow(g, 46, 11); boulder(g, 0, 0, 80, 52, M.rock, false, seed);
-  g.save(); g.beginPath(); g.ellipse(0, -24, 38, 26, 0, 0, TAU); g.clip();
-  for (let i = 0; i < 2; i++) { let x = -26 + i * 14, y = -12 - r() * 8; const pts = [[x, y]]; for (let k = 0; k < 3; k++) { x += 9 + r() * 6; y -= 4 + r() * 6; pts.push([x, y]); } g.lineCap = g.lineJoin = 'round'; for (const [lw, c] of [[5.4, ink(M.ore)], [3.6, M.ore], [1.2, M.hi]]) { g.strokeStyle = c; g.lineWidth = lw; g.beginPath(); pts.forEach((p, k) => k ? g.lineTo(p[0], p[1]) : g.moveTo(p[0], p[1])); g.stroke(); } }
-  g.restore();
-  for (let i = 0; i < 4; i++) { const x = -20 + r() * 40, y = -14 - r() * 26, s = 4 + r() * 3; g.beginPath(); g.moveTo(x - s, y + s * 0.3); g.lineTo(x - s * 0.4, y - s); g.lineTo(x + s * 0.8, y - s * 0.6); g.lineTo(x + s, y + s * 0.5); g.lineTo(x, y + s); g.closePath(); paint(g, M.ore, 1.2, y - s, y + s, 0.25); shine(g, x - s * 0.3, y - s * 0.4, s * 0.3, s * 0.18, 0.7); }
-  for (let i = 0; i < 4; i++) { const x = (r() - 0.5) * 90, y = 3 + r() * 6, s = 3 + r() * 3; g.beginPath(); g.ellipse(x, y, s, s * 0.7, 0, 0, TAU); paint(g, sh(M.rock, 0.1), 1); }
 }
