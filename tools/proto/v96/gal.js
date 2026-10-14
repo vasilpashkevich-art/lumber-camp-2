@@ -9,7 +9,7 @@ export function gallery(root) {
   const mk = (w, h, title, note) => { const s = document.createElement('section'); s.innerHTML = `<h2>${title}</h2>${note ? `<p>${note}</p>` : ''}`; const cv = document.createElement('canvas'); cv.width = w; cv.height = h; s.append(cv); root.append(s); return cv; };
   const L = lookOf(newHero('Герой', 'warrior'));
   const a = mk(1200, 420, 'В масштабе игры (приближение ×2,4)', 'Слева — как было, справа — новый. Герой рядом для сравнения роста: сундук по пояс, шире героя в плечах.');
-  const b = mk(1200, 520, 'Крупно (×6)', 'Закрытый: выпуклая крышка, кованые полосы и уголки, ножки, висячий замок. Открытый: крышка откинута на петлях и стоит за ящиком, замок висит отомкнутый, внутри монеты, самоцвет, кубок и свет.');
+  const b = mk(1200, 600, 'Крупно (×6)', 'Закрытый: пухлый свод, толстые полосы с заклёпками, круглые ножки и уголки, висячий замок. Открытый: крышка стоит за ящиком изнанкой к нам, толстый борт вокруг нутра, горка золота, самоцвет, кубок, свет.');
   const tick = now => {
     const t = now / 1000;
     { const g = a.getContext('2d'), K = 2.4; g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, a.width, a.height); g.save(); g.scale(K, K); floor(g, 0, 0, a.width / K, a.height / K, 3, 40, false);
@@ -18,8 +18,8 @@ export function gallery(root) {
       g.restore(); g.font = '16px Georgia'; g.fillStyle = '#e9dfc8'; g.textAlign = 'center';
       for (const [x, s] of [[90, 'Было: закрытый · открытый'], [335, 'Стало: закрытый · открытый']]) g.fillText(s, x * K, 395); }
     { const g = b.getContext('2d'), K = 6; g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, b.width, b.height); g.save(); g.scale(K, K); floor(g, 0, 0, b.width / K, b.height / K, 5, 30, false);
-      chestBig(g, 52, 66, false, t); chestBig(g, 145, 66, true, t); g.restore();
-      g.font = '18px Georgia'; g.fillStyle = '#e9dfc8'; g.textAlign = 'center'; g.fillText('Закрытый', 52 * K, 500); g.fillText('Открытый', 145 * K, 500); }
+      chestBig(g, 52, 82, false, t); chestBig(g, 145, 82, true, t); g.restore();
+      g.font = '18px Georgia'; g.fillStyle = '#e9dfc8'; g.textAlign = 'center'; g.fillText('Закрытый', 52 * K, 585); g.fillText('Открытый', 145 * K, 585); }
     requestAnimationFrame(tick);
   };
   requestAnimationFrame(tick);
