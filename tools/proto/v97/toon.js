@@ -3,22 +3,23 @@
 // Вещи слоями: head (шлем/капюшон/шляпа), chest (рубаха, кольчуга, латы, куртка, мантия), legs, weapon — у каждой своя расцветка.
 const TAU = Math.PI * 2;
 export const sh = (hex, k) => { const n = parseInt(hex.slice(1), 16), f = v => Math.max(0, Math.min(255, Math.round(k > 0 ? v + (255 - v) * k : v * (1 + k)))); return '#' + [(n >> 16) & 255, (n >> 8) & 255, n & 255].map(v => f(v).toString(16).padStart(2, '0')).join(''); };
-const ink = col => sh(col, -0.62);
+export const ink = col => sh(col, -0.62);
 const LW = 0.75;
-function paint(g, fill, lw = LW, y0, y1) {
+export function paint(g, fill, lw = LW, y0, y1) {
   if (y0 != null) { const gr = g.createLinearGradient(0, y0, 0, y1); gr.addColorStop(0, sh(fill, 0.16)); gr.addColorStop(1, sh(fill, -0.16)); g.fillStyle = gr; } else g.fillStyle = fill;
   g.fill(); g.strokeStyle = ink(fill); g.lineWidth = lw; g.lineJoin = 'round'; g.lineCap = 'round'; g.stroke();
 }
-function capsule(g, x1, y1, x2, y2, w, col) {
+export function capsule(g, x1, y1, x2, y2, w, col) {
   g.lineCap = 'round'; g.strokeStyle = ink(col); g.lineWidth = w + LW * 2; g.beginPath(); g.moveTo(x1, y1); g.lineTo(x2, y2); g.stroke();
   g.strokeStyle = col; g.lineWidth = w; g.stroke();
   g.strokeStyle = 'rgba(255,255,255,.2)'; g.lineWidth = w * 0.28; g.beginPath(); g.moveTo(x1 - w * 0.22, y1 + 0.4); g.lineTo(x2 - w * 0.22, y2 - 0.4); g.stroke();
 }
-const blob = (g, x, y, rx, ry, col) => { g.beginPath(); g.ellipse(x, y, rx, ry, 0, 0, TAU); paint(g, col, LW, y - ry, y + ry); };
-const shine = (g, x, y, rx, ry, a = 0.32) => { g.fillStyle = `rgba(255,255,255,${a})`; g.beginPath(); g.ellipse(x, y, rx, ry, -0.4, 0, TAU); g.fill(); };
-const rivet = (g, x, y, r = 0.45) => { g.fillStyle = '#e8ecf2'; g.beginPath(); g.arc(x, y, r, 0, TAU); g.fill(); };
+export const blob = (g, x, y, rx, ry, col) => { g.beginPath(); g.ellipse(x, y, rx, ry, 0, 0, TAU); paint(g, col, LW, y - ry, y + ry); };
+export const shine = (g, x, y, rx, ry, a = 0.32) => { g.fillStyle = `rgba(255,255,255,${a})`; g.beginPath(); g.ellipse(x, y, rx, ry, -0.4, 0, TAU); g.fill(); };
+export const rivet = (g, x, y, r = 0.45) => { g.fillStyle = '#e8ecf2'; g.beginPath(); g.arc(x, y, r, 0, TAU); g.fill(); };
 
-const P = { head: 4.7, hy: -35.3, top: -29.6, hip: -18.6, sw: 5.6, hw: 4.4, leg: 3.7, arm: 3.1, hand: 1.9 };
+export const P = { head: 4.7, hy: -35.3, top: -29.6, hip: -18.6, sw: 5.6, hw: 4.4, leg: 3.7, arm: 3.1, hand: 1.9 };
+export const HEAVY = { draw: null };   // тяжёлые глянцевые латы — heavy.js
 export const BASE = {
   warrior: { skin: '#e8b48a', hair: '#9a4a24', beard: 'full', scar: true },
   mage: { skin: '#e8b48a', hair: '#cfc8bc', beard: 'long', long: true },
@@ -32,6 +33,7 @@ export function toonHero(g, cls, gear = {}, t = 0) {
   g.save(); g.lineJoin = 'round'; g.lineCap = 'round';
   g.fillStyle = 'rgba(0,0,0,.25)'; g.beginPath(); g.ellipse(0, 0.6, 10, 2.6, 0, 0, TAU); g.fill();
   g.translate(0, br);
+  if (chest.m === 'heavy' && HEAVY.draw) { HEAVY.draw(g, cls, B, gear, t, blink); g.restore(); return; }
   const robe = chest.m === 'robe' || chest.m === 'battlerobe';
   // сзади: длинные волосы, плащ, колчан
   if (gear.cape) { g.beginPath(); g.moveTo(-P.sw - 0.5, P.top + 1); g.quadraticCurveTo(-P.sw - 3.5, -10, -P.sw - 2.5, -1.5); g.lineTo(P.sw + 2.5, -1.5); g.quadraticCurveTo(P.sw + 3.5, -10, P.sw + 0.5, P.top + 1); g.closePath(); paint(g, gear.cape, LW, P.top, 0); }
@@ -125,7 +127,7 @@ function pauldron(g, sx, ch) {
 }
 
 /** Лицо: суровое. Нахмуренные брови, узкие глаза с тёмной радужкой, сжатый рот; борода, щетина, шрам. */
-function face(g, B, head, blink) {
+export function face(g, B, head, blink) {
   const R = P.head, hy = P.hy, sk = B.skin;
   capsule(g, 0, hy + R * 0.7, 0, P.top + 0.5, R * 0.64, sk);
   for (const sx of [-1, 1]) blob(g, sx * R * 0.94, hy + R * 0.1, R * 0.2, R * 0.28, sk);
@@ -166,7 +168,7 @@ function face(g, B, head, blink) {
 }
 
 /** Голова сверху: волосы или головной убор. */
-function hat(g, h, B) {
+export function hat(g, h, B) {
   const R = P.head, hy = P.hy, m = h.m, c = h.c || '#8a929e';
   const hair = () => { g.beginPath(); g.moveTo(-R * 0.98, hy + R * 0.02); g.bezierCurveTo(-R * 1.1, hy - R * 1.28, R * 1.1, hy - R * 1.28, R * 0.98, hy + R * 0.02); g.quadraticCurveTo(R * 0.9, hy - R * 0.5, R * 0.55, hy - R * 0.62); g.lineTo(R * 0.3, hy - R * 0.42); g.lineTo(R * 0.05, hy - R * 0.66); g.lineTo(-R * 0.22, hy - R * 0.44); g.lineTo(-R * 0.5, hy - R * 0.66); g.quadraticCurveTo(-R * 0.9, hy - R * 0.5, -R * 0.98, hy + R * 0.02); g.closePath(); paint(g, B.hair, LW, hy - R, hy); shine(g, -R * 0.35, hy - R * 0.8, R * 0.28, R * 0.11, 0.3); };
   if (!m) { hair(); if (B.tail) { g.beginPath(); g.ellipse(R * 0.95, hy - R * 0.5, R * 0.24, R * 0.2, 0.5, 0, TAU); paint(g, '#7a2a20'); } return; }
@@ -203,13 +205,13 @@ function hat(g, h, B) {
   if (m === 'feathercap') { hair(); g.beginPath(); g.moveTo(-R * 1.0, hy - R * 0.5); g.bezierCurveTo(-R * 0.9, hy - R * 1.5, R * 0.9, hy - R * 1.55, R * 1.25, hy - R * 0.62); g.quadraticCurveTo(0, hy - R * 0.75, -R * 1.0, hy - R * 0.5); g.closePath(); paint(g, c, LW, hy - R * 1.4, hy - R * 0.5); g.beginPath(); g.moveTo(R * 0.4, hy - R * 1.0); g.quadraticCurveTo(R * 1.9, hy - R * 1.9, R * 2.2, hy - R * 2.6); g.quadraticCurveTo(R * 1.2, hy - R * 1.4, R * 0.4, hy - R * 1.0); g.closePath(); paint(g, h.c2 || '#c84a3a', 0.6); return; }
 }
 
-function quiver(g, col) {
+export function quiver(g, col) {
   g.save(); g.translate(P.sw - 1, P.top + 1); g.rotate(0.35); g.beginPath(); g.roundRect(-2, -9, 4.2, 12, 1.6); paint(g, col, LW, -9, 3);
   for (let i = 0; i < 3; i++) { g.strokeStyle = '#d8d0bc'; g.lineWidth = 0.7; g.beginPath(); g.moveTo(-1 + i * 1.3, -9); g.lineTo(-1.6 + i * 1.3, -12); g.stroke(); g.fillStyle = '#b8b0a0'; g.beginPath(); g.moveTo(-1.6 + i * 1.3, -12); g.lineTo(-0.6 + i * 1.3, -13.5); g.lineTo(-2.4 + i * 1.3, -13.2); g.closePath(); g.fill(); }
   g.restore();
 }
 
-function weapon(g, w, x, y, t, cls, handCol) {
+export function weapon(g, w, x, y, t, cls, handCol) {
   const m = w.m, c = w.c || '#b8c0cc', hand = () => blob(g, x, y, P.hand, P.hand * 0.95, handCol);
   if (m === 'axe' || m === 'battleaxe') {
     capsule(g, x, y + 5, x + 0.4, y - 13, 1.5, w.wood || '#6e4626');

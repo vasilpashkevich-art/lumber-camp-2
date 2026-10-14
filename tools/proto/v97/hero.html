@@ -1,7 +1,7 @@
 <title>Мультяшный герой</title><style>
 :root{color-scheme:dark}body{margin:0;background:#1d1a16;color:#e9dfc8;font:15px Georgia,serif;padding-block:16px;padding-inline:16px}h1{font-size:24px;margin:0 0 4px}h2{font-size:19px;color:#f0c24a;margin:18px 0 4px}p{max-width:72ch;color:#b9ad94}
 canvas{display:block;max-width:100%;height:auto;border-radius:8px}
-</style><body><h1>Мультяшный герой — эскиз, проба 2</h1><p>Вариант А (пропорции как сейчас) в стиле сундука, но суровее: тяжёлые брови, узкие глаза, сжатый рот, щетина, шрамы — эти люди воюют. И в разных вещах: шлемы, доспехи, мантии, оружие разных ярусов. Пока вид спереди и стоя.</p><div id="root"></div><script>(() => {
+</style><body><h1>Мультяшный герой — эскиз, проба 3</h1><p>Вариант А с суровыми лицами. Синие и фиолетовые вещи — тяжёлые глянцевые латы в духе присланных картинок, но свои: огромные наплечники в два слоя, золотая кайма, юбка из пластин, крупные наколенники, большие шлемы (бараньи рога, крылья, загнутые рога с огнём в прорези, гребень), щиты с гербами. Пока вид спереди и стоя.</p><div id="root"></div><script>(() => {
   // data/classes.js
   var RING = ["", "\u041C\u0435\u0434\u043D\u043E\u0435 \u043A\u043E\u043B\u044C\u0446\u043E", "\u0421\u0435\u0440\u0435\u0431\u0440\u044F\u043D\u043E\u0435 \u043A\u043E\u043B\u044C\u0446\u043E", "\u0417\u043E\u043B\u043E\u0442\u043E\u0435 \u043A\u043E\u043B\u044C\u0446\u043E", "\u041F\u0435\u0440\u0441\u0442\u0435\u043D\u044C \u0421\u0442\u0440\u0430\u0436\u0430"];
   var NECK = ["", "\u041E\u0431\u0435\u0440\u0435\u0433", "\u0410\u043C\u0443\u043B\u0435\u0442", "\u041C\u0435\u0434\u0430\u043B\u044C\u043E\u043D", "\u041E\u0436\u0435\u0440\u0435\u043B\u044C\u0435 \u043F\u0440\u0435\u0434\u043A\u043E\u0432"];
@@ -6047,6 +6047,7 @@ canvas{display:block;max-width:100%;height:auto;border-radius:8px}
     g.fill();
   };
   var P = { head: 4.7, hy: -35.3, top: -29.6, hip: -18.6, sw: 5.6, hw: 4.4, leg: 3.7, arm: 3.1, hand: 1.9 };
+  var HEAVY = { draw: null };
   var BASE = {
     warrior: { skin: "#e8b48a", hair: "#9a4a24", beard: "full", scar: true },
     mage: { skin: "#e8b48a", hair: "#cfc8bc", beard: "long", long: true },
@@ -6063,6 +6064,11 @@ canvas{display:block;max-width:100%;height:auto;border-radius:8px}
     g.ellipse(0, 0.6, 10, 2.6, 0, 0, TAU6);
     g.fill();
     g.translate(0, br);
+    if (chest.m === "heavy" && HEAVY.draw) {
+      HEAVY.draw(g, cls, B, gear, t, blink);
+      g.restore();
+      return;
+    }
     const robe = chest.m === "robe" || chest.m === "battlerobe";
     if (gear.cape) {
       g.beginPath();
@@ -6878,28 +6884,478 @@ canvas{display:block;max-width:100%;height:auto;border-radius:8px}
     hand();
   }
 
+  // tools/proto/v97/heavy.js
+  var TAU7 = Math.PI * 2;
+  var LW2 = 0.8;
+  function plate(g, path, col, y0, y1, glossX, glossY, gw = 1, gh = 2.2) {
+    path();
+    const gr = g.createLinearGradient(0, y0, 0, y1);
+    gr.addColorStop(0, sh5(col, 0.32));
+    gr.addColorStop(0.5, col);
+    gr.addColorStop(1, sh5(col, -0.32));
+    g.fillStyle = gr;
+    g.fill();
+    g.strokeStyle = ink(col);
+    g.lineWidth = LW2;
+    g.lineJoin = "round";
+    g.stroke();
+    if (glossX != null) {
+      g.fillStyle = "rgba(255,255,255,.55)";
+      g.beginPath();
+      g.ellipse(glossX, glossY, gw, gh, -0.35, 0, TAU7);
+      g.fill();
+    }
+  }
+  var trimLine = (g, col, w = 0.9) => {
+    g.strokeStyle = ink(col);
+    g.lineWidth = w + 0.6;
+    g.stroke();
+    g.strokeStyle = col;
+    g.lineWidth = w;
+    g.stroke();
+  };
+  function heavyHero(g, cls, B, gear, t, blink) {
+    const A = gear.chest, c2 = A.c, c22 = A.c2 || sh5(c2, -0.45), tr = A.trim || "#e8b440", head = gear.head || {}, robe = A.robe, leather = A.leather;
+    g.translate(0, Math.sin(t * 2.2) * 0.2);
+    if (gear.cape) {
+      g.beginPath();
+      g.moveTo(-P.sw - 1.5, P.top + 1);
+      g.quadraticCurveTo(-P.sw - 5, -12, -P.sw - 3.5, -1.2);
+      g.quadraticCurveTo(0, 0.6, P.sw + 3.5, -1.2);
+      g.quadraticCurveTo(P.sw + 5, -12, P.sw + 1.5, P.top + 1);
+      g.closePath();
+      paint(g, gear.cape, LW2, P.top, 0);
+    }
+    if (cls === "archer") quiver(g, gear.quiver || "#6a4022");
+    for (const sx of [-1, 1]) {
+      const lx = sx * 2.9;
+      if (!robe) {
+        capsule(g, lx, P.hip + 1, lx, -9, 4.4, c22);
+        plate(g, () => {
+          g.beginPath();
+          g.moveTo(lx - 2.3, -9.5);
+          g.quadraticCurveTo(lx - 2.8, -4.5, lx - 2.6, -3);
+          g.lineTo(lx + 2.6, -3);
+          g.quadraticCurveTo(lx + 2.8, -4.5, lx + 2.3, -9.5);
+          g.closePath();
+        }, c2, -10, -3, lx - 1, -7, 0.5, 1.4);
+        plate(g, () => {
+          g.beginPath();
+          g.ellipse(lx, -10.4, 2.9, 2.4, 0, 0, TAU7);
+        }, c2, -12.8, -8, lx - 0.9, -11.3, 0.8, 0.6);
+        g.beginPath();
+        g.arc(lx, -10.4, 1.1, 0, TAU7);
+        g.fillStyle = tr;
+        g.fill();
+      }
+      plate(g, () => {
+        g.beginPath();
+        g.moveTo(lx - 3, -3.4);
+        g.quadraticCurveTo(lx - 3.6, 0.6, lx + sx * 0.6, 0.6);
+        g.quadraticCurveTo(lx + 3.8 * 1, 0.6, lx + 3, -3.4);
+        g.closePath();
+      }, robe ? sh5(c22, 0.1) : c2, -3.6, 0.6, lx - 1.2, -2.2, 0.9, 0.5);
+    }
+    if (robe) {
+      g.beginPath();
+      g.moveTo(-P.sw, P.hip - 2);
+      g.quadraticCurveTo(-P.sw - 2, -8, -P.sw - 3, -2.4);
+      g.quadraticCurveTo(0, -0.6, P.sw + 3, -2.4);
+      g.quadraticCurveTo(P.sw + 2, -8, P.sw, P.hip - 2);
+      g.closePath();
+      paint(g, robe, LW2, P.hip, 0);
+      g.strokeStyle = tr;
+      g.lineWidth = 1.1;
+      g.beginPath();
+      g.moveTo(-P.sw - 2.6, -2.8);
+      g.quadraticCurveTo(0, -1, P.sw + 2.6, -2.8);
+      g.stroke();
+      g.beginPath();
+      g.moveTo(0, P.hip);
+      g.lineTo(0, -1.6);
+      g.stroke();
+    }
+    const petal = (x, w, h, col) => plate(g, () => {
+      g.beginPath();
+      g.moveTo(x - w / 2, P.hip - 0.6);
+      g.lineTo(x + w / 2, P.hip - 0.6);
+      g.quadraticCurveTo(x + w / 2 + 0.4, P.hip + h * 0.7, x, P.hip + h);
+      g.quadraticCurveTo(x - w / 2 - 0.4, P.hip + h * 0.7, x - w / 2, P.hip - 0.6);
+      g.closePath();
+    }, col, P.hip, P.hip + h, x - w * 0.18, P.hip + h * 0.35, 0.5, h * 0.22);
+    for (const [x, w, h] of [[-4.8, 4.2, 5.6], [4.8, 4.2, 5.6], [-1.9, 4.2, 6.6], [1.9, 4.2, 6.6]]) petal(x, w, h, leather ? sh5(c2, -0.08) : c2);
+    g.beginPath();
+    g.roundRect(-P.sw, P.top - 0.5, P.sw * 2, P.hip - P.top + 1, 3);
+    paint(g, c22, LW2, P.top, P.hip);
+    plate(g, () => {
+      g.beginPath();
+      g.moveTo(-P.sw - 0.6, P.top + 1.2);
+      g.quadraticCurveTo(-P.sw - 1.2, P.top + 8, -2.4, P.hip - 1.6);
+      g.quadraticCurveTo(0, P.hip - 0.6, 2.4, P.hip - 1.6);
+      g.quadraticCurveTo(P.sw + 1.2, P.top + 8, P.sw + 0.6, P.top + 1.2);
+      g.quadraticCurveTo(0, P.top - 0.4, -P.sw - 0.6, P.top + 1.2);
+      g.closePath();
+    }, c2, P.top, P.hip, -2.8, P.top + 3.6, 1.1, 2.4);
+    g.strokeStyle = "rgba(255,255,255,.35)";
+    g.lineWidth = 0.5;
+    g.beginPath();
+    g.moveTo(0, P.top + 1.4);
+    g.quadraticCurveTo(0.3, P.top + 6, 0, P.hip - 1.4);
+    g.stroke();
+    g.strokeStyle = ink(c2);
+    g.lineWidth = 0.45;
+    g.beginPath();
+    g.moveTo(0.4, P.top + 1.4);
+    g.quadraticCurveTo(0.7, P.top + 6, 0.4, P.hip - 1.4);
+    g.stroke();
+    g.beginPath();
+    g.moveTo(-3.6, P.top + 1.6);
+    g.quadraticCurveTo(0, P.top + 0.8, 3.6, P.top + 1.6);
+    g.quadraticCurveTo(1.4, P.top + 2.4, 0, P.top + 4.6);
+    g.quadraticCurveTo(-1.4, P.top + 2.4, -3.6, P.top + 1.6);
+    g.closePath();
+    paint(g, tr, 0.6, P.top, P.top + 4.6);
+    if (A.emblem) {
+      g.beginPath();
+      g.arc(0, P.top + 7.2, 1.3, 0, TAU7);
+      paint(g, A.emblem, 0.5);
+      shine(g, -0.4, P.top + 6.8, 0.4, 0.3, 0.7);
+    }
+    g.beginPath();
+    g.roundRect(-P.sw + 0.2, P.hip - 2.4, P.sw * 2 - 0.4, 2.2, 1.1);
+    paint(g, tr, 0.6, P.hip - 2.4, P.hip);
+    g.beginPath();
+    g.roundRect(-1.4, P.hip - 2.7, 2.8, 2.8, 0.7);
+    paint(g, sh5(tr, -0.2), 0.5);
+    g.beginPath();
+    g.ellipse(0, P.top + 0.2, 3.6, 1.6, 0, 0, TAU7);
+    paint(g, sh5(c22, 0.15));
+    const fist = sh5(c22, 0.05);
+    for (const sx of [-1, 1]) {
+      const sx0 = sx * (P.sw + 0.8), ex = sx * (P.sw + 2.2), ey = P.top + 7.4, hx = sx * (P.sw + 2), hy2 = P.hip + 0.6;
+      capsule(g, sx0, P.top + 2, ex, ey, 3.6, c22);
+      plate(g, () => {
+        g.beginPath();
+        g.moveTo(ex - 1.9, ey + 0.6);
+        g.lineTo(hx - 2.3, hy2 - 2.6);
+        g.quadraticCurveTo(hx, hy2 - 1.6, hx + 2.3, hy2 - 2.6);
+        g.lineTo(ex + 1.9, ey + 0.6);
+        g.closePath();
+      }, c2, ey, hy2, hx - 0.8 * sx, ey + 2.6, 0.45, 1.3);
+      plate(g, () => {
+        g.beginPath();
+        g.ellipse(ex, ey, 2.1, 1.9, 0, 0, TAU7);
+      }, c2, ey - 2, ey + 2, ex - 0.6, ey - 0.6, 0.6, 0.5);
+      g.beginPath();
+      g.ellipse(hx, hy2 - 2.4, 2.4, 0.8, 0, 0, TAU7);
+      paint(g, tr, 0.5);
+    }
+    for (const sx of [-1, 1]) {
+      const x = sx * (P.sw + 1.2), y = P.top + 1.6, R = A.big || 4.9;
+      if (A.one && sx > 0) continue;
+      plate(g, () => {
+        g.beginPath();
+        g.moveTo(x - R, y + 1.4);
+        g.quadraticCurveTo(x - R - 0.4, y + 4.2, x, y + 4.4);
+        g.quadraticCurveTo(x + R + 0.4, y + 4.2, x + R, y + 1.4);
+        g.closePath();
+      }, c2, y, y + 4.4, null);
+      g.beginPath();
+      g.moveTo(x - R + 0.2, y + 3.4);
+      g.quadraticCurveTo(x, y + 5.2, x + R - 0.2, y + 3.4);
+      trimLine(g, tr, 0.8);
+      plate(g, () => {
+        g.beginPath();
+        g.moveTo(x - R - 0.3, y + 1.6);
+        g.bezierCurveTo(x - R - 0.6, y - R * 0.9, x + R + 0.6, y - R * 0.9, x + R + 0.3, y + 1.6);
+        g.quadraticCurveTo(x, y + 3.4, x - R - 0.3, y + 1.6);
+        g.closePath();
+      }, c2, y - R, y + 2.4, x - sx * 0.2 - 1.4, y - 2, 1.5, 0.9);
+      g.beginPath();
+      g.moveTo(x - R, y + 1.7);
+      g.quadraticCurveTo(x, y + 3.4, x + R, y + 1.7);
+      trimLine(g, tr, 1);
+      for (const k of [-0.5, 0.5]) rivet3(g, x + k * R, y + 1.9, 0.5);
+      if (A.spikes) for (const k of [-0.35, 0.35]) {
+        g.beginPath();
+        g.moveTo(x + k * R * 1.6 - 0.8, y - R * 0.55);
+        g.lineTo(x + k * R * 1.6 + sx * 0.9, y - R * 0.55 - 3.4);
+        g.lineTo(x + k * R * 1.6 + 0.8, y - R * 0.55);
+        g.closePath();
+        paint(g, A.spikes, 0.5);
+      }
+    }
+    if (head.m === "helm_ram" || head.m === "helm_horns" || head.m === "helm_crest") closedHelm(g, head, t);
+    else {
+      face(g, B, head, blink);
+      openHelm(g, head, B, t);
+    }
+    const hy = P.hip + 0.6;
+    if (gear.shield) shield(g, gear.shield, P.sw + 3.2, hy - 6);
+    else if (cls === "archer" || cls === "mage") {
+    }
+    weapon(g, gear.weapon || {}, -(P.sw + 2), hy, t, cls, fist);
+    if (gear.shield) blob(g, P.sw + 2, hy, 2.1, 2, fist);
+    else if (cls !== "archer") blob(g, P.sw + 2, hy, 2.1, 2, fist);
+  }
+  function closedHelm(g, h, t) {
+    const R = P.head + 0.9, hy = P.hy, c2 = h.c, tr = h.trim || "#e8b440";
+    if (h.m === "helm_horns") for (const sx of [-1, 1]) {
+      g.beginPath();
+      g.moveTo(sx * R * 0.7, hy - R * 0.55);
+      g.bezierCurveTo(sx * R * 1.8, hy - R * 0.9, sx * R * 1.5, hy - R * 2.1, sx * R * 0.65, hy - R * 2.5);
+      g.quadraticCurveTo(sx * R * 1.1, hy - R * 1.6, sx * R * 0.85, hy - R * 0.1);
+      g.closePath();
+      plate(g, () => {
+      }, h.horn || "#b02a24", hy - R * 2.5, hy, null);
+      g.strokeStyle = ink(h.horn || "#b02a24");
+      g.lineWidth = LW2;
+      g.stroke();
+      g.fillStyle = "rgba(255,255,255,.35)";
+      g.beginPath();
+      g.ellipse(sx * R * 1.15, hy - R * 1.3, 0.35, 1.4, sx * 0.4, 0, TAU7);
+      g.fill();
+    }
+    if (h.m === "helm_crest") {
+      g.beginPath();
+      g.moveTo(-R * 0.25, hy - R * 0.95);
+      g.bezierCurveTo(-R * 0.3, hy - R * 2.1, R * 1.4, hy - R * 2.4, R * 1.8, hy - R * 1);
+      g.quadraticCurveTo(R * 0.9, hy - R * 1.5, R * 0.3, hy - R * 0.9);
+      g.closePath();
+      paint(g, h.crest || "#c83a2a", LW2, hy - R * 2.2, hy - R);
+    }
+    plate(g, () => {
+      g.beginPath();
+      g.moveTo(-R, hy + R * 0.85);
+      g.lineTo(-R, hy - R * 0.1);
+      g.bezierCurveTo(-R, hy - R * 1.25, R, hy - R * 1.25, R, hy - R * 0.1);
+      g.lineTo(R, hy + R * 0.85);
+      g.quadraticCurveTo(0, hy + R * 1.15, -R, hy + R * 0.85);
+      g.closePath();
+    }, c2, hy - R, hy + R, -R * 0.45, hy - R * 0.55, R * 0.18, R * 0.32);
+    plate(g, () => {
+      g.beginPath();
+      g.moveTo(-R * 0.72, hy - R * 0.32);
+      g.quadraticCurveTo(0, hy - R * 0.5, R * 0.72, hy - R * 0.32);
+      g.lineTo(R * 0.6, hy + R * 0.85);
+      g.quadraticCurveTo(0, hy + R * 1.05, -R * 0.6, hy + R * 0.85);
+      g.closePath();
+    }, sh5(c2, 0.08), hy - R * 0.5, hy + R, null);
+    g.fillStyle = "#0e0c12";
+    g.beginPath();
+    g.roundRect(-R * 0.6, hy - R * 0.12, R * 1.2, R * 0.22, R * 0.1);
+    g.fill();
+    if (h.eyes) {
+      const p = 0.7 + 0.3 * Math.sin(t * 5);
+      g.fillStyle = h.eyes;
+      g.globalAlpha = p;
+      for (const sx of [-1, 1]) {
+        g.beginPath();
+        g.ellipse(sx * R * 0.26, hy - R * 0.01, R * 0.13, R * 0.06, 0, 0, TAU7);
+        g.fill();
+      }
+      g.globalAlpha = 1;
+    }
+    if (h.m === "helm_ram" || h.m === "helm_crest") {
+      g.fillStyle = "#0e0c12";
+      for (const xx of [-0.3, -0.1, 0.1, 0.3]) {
+        g.beginPath();
+        g.roundRect(R * xx - R * 0.04, hy + R * 0.28, R * 0.08, R * 0.34, 0.2);
+        g.fill();
+      }
+    }
+    g.beginPath();
+    g.moveTo(-R * 0.72, hy - R * 0.32);
+    g.quadraticCurveTo(0, hy - R * 0.5, R * 0.72, hy - R * 0.32);
+    trimLine(g, tr, 0.9);
+    g.beginPath();
+    g.moveTo(0, hy - R * 1.06);
+    g.lineTo(0, hy - R * 0.45);
+    trimLine(g, tr, 0.8);
+    if (h.m === "helm_ram") for (const sx of [-1, 1]) {
+      const cx = sx * R * 1.05, cy = hy - R * 0.2, col = h.horn || "#efe2c4";
+      g.lineCap = "round";
+      g.strokeStyle = ink(col);
+      g.lineWidth = 3.4;
+      g.beginPath();
+      for (let i = 0; i <= 26; i++) {
+        const a = -Math.PI * 0.6 + i / 26 * Math.PI * 1.7, r = R * (0.95 - i / 26 * 0.55);
+        const px = cx + sx * Math.cos(a) * r * 0.9, py = cy + Math.sin(a) * r * 0.8 - R * 0.1;
+        i ? g.lineTo(px, py) : g.moveTo(px, py);
+      }
+      g.stroke();
+      g.strokeStyle = col;
+      g.lineWidth = 2.2;
+      g.stroke();
+      g.strokeStyle = "rgba(120,90,50,.45)";
+      g.lineWidth = 0.4;
+      g.setLineDash([0.6, 0.9]);
+      g.stroke();
+      g.setLineDash([]);
+    }
+  }
+  function openHelm(g, h, B, t) {
+    const R = P.head, hy = P.hy, c2 = h.c || "#a83a2a", tr = h.trim || "#e8b440";
+    if (h.m === "helm_wings") {
+      for (const sx of [-1, 1]) for (let i = 0; i < 4; i++) {
+        const a = -0.4 - i * 0.28;
+        g.save();
+        g.translate(sx * R * 0.9, hy - R * 0.55);
+        g.scale(sx, 1);
+        g.rotate(a);
+        g.beginPath();
+        g.ellipse(R * 0.9, 0, R * 0.95 - i * 0.12 * R, R * 0.22, 0, 0, TAU7);
+        paint(g, "#f2eee4", 0.6);
+        g.restore();
+      }
+      plate(g, () => {
+        g.beginPath();
+        g.moveTo(-R * 1.02, hy + R * 0.55);
+        g.lineTo(-R * 1.02, hy - R * 0.35);
+        g.bezierCurveTo(-R * 1.02, hy - R * 1.4, -R * 0.3, hy - R * 1.9, 0, hy - R * 2.1);
+        g.bezierCurveTo(R * 0.3, hy - R * 1.9, R * 1.02, hy - R * 1.4, R * 1.02, hy - R * 0.35);
+        g.lineTo(R * 1.02, hy + R * 0.55);
+        g.lineTo(R * 0.76, hy + R * 0.55);
+        g.quadraticCurveTo(R * 0.8, hy - R * 0.3, R * 0.5, hy - R * 0.38);
+        g.quadraticCurveTo(0, hy - R * 0.62, -R * 0.5, hy - R * 0.38);
+        g.quadraticCurveTo(-R * 0.8, hy - R * 0.3, -R * 0.76, hy + R * 0.55);
+        g.closePath();
+      }, c2, hy - R * 2, hy + R * 0.5, -R * 0.45, hy - R * 1.2, R * 0.16, R * 0.34);
+      g.beginPath();
+      g.moveTo(-R * 0.62, hy - R * 0.4);
+      g.quadraticCurveTo(0, hy - R * 0.68, R * 0.62, hy - R * 0.4);
+      trimLine(g, tr, 0.9);
+      g.beginPath();
+      g.moveTo(0, hy - R * 2.05);
+      g.quadraticCurveTo(R * 0.15, hy - R * 1.2, 0, hy - R * 0.6);
+      trimLine(g, tr, 0.8);
+      return;
+    }
+    if (h.m === "magecollar") {
+      g.save();
+      g.globalCompositeOperation = "destination-over";
+      g.beginPath();
+      g.moveTo(-R * 1.3, hy + R * 1.4);
+      g.quadraticCurveTo(-R * 1.9, hy - R * 0.6, -R * 0.9, hy - R * 1.6);
+      g.lineTo(R * 0.9, hy - R * 1.6);
+      g.quadraticCurveTo(R * 1.9, hy - R * 0.6, R * 1.3, hy + R * 1.4);
+      g.closePath();
+      paint(g, c2, LW2, hy - R * 1.6, hy + R);
+      g.restore();
+      hatCirclet(g, R, hy, tr, h.gem || "#58e0ff", t);
+      return;
+    }
+    if (h.m === "maskhood") {
+      g.beginPath();
+      g.moveTo(-R * 1.15, hy + R * 0.95);
+      g.bezierCurveTo(-R * 1.35, hy - R * 1.1, -R * 0.4, hy - R * 1.6, R * 0.1, hy - R * 1.5);
+      g.bezierCurveTo(R * 1.2, hy - R * 1.3, R * 1.3, hy - R * 0.2, R * 1.15, hy + R * 0.95);
+      g.quadraticCurveTo(R * 0.9, hy + R * 0.2, R * 0.78, hy - R * 0.2);
+      g.quadraticCurveTo(0, hy - R * 0.95, -R * 0.78, hy - R * 0.2);
+      g.quadraticCurveTo(-R * 0.9, hy + R * 0.2, -R * 1.15, hy + R * 0.95);
+      g.closePath();
+      paint(g, c2, LW2, hy - R * 1.5, hy + R);
+      plate(g, () => {
+        g.beginPath();
+        g.moveTo(-R * 0.8, hy + R * 0.18);
+        g.quadraticCurveTo(0, hy + R * 0.05, R * 0.8, hy + R * 0.18);
+        g.lineTo(R * 0.7, hy + R * 0.85);
+        g.quadraticCurveTo(0, hy + R * 1.2, -R * 0.7, hy + R * 0.85);
+        g.closePath();
+      }, h.mask || "#2a2a30", hy, hy + R * 1.2, -R * 0.3, hy + R * 0.4, R * 0.18, R * 0.08);
+      g.beginPath();
+      g.moveTo(-R * 0.8, hy + R * 0.18);
+      g.quadraticCurveTo(0, hy + R * 0.05, R * 0.8, hy + R * 0.18);
+      trimLine(g, tr, 0.6);
+      return;
+    }
+  }
+  function hatCirclet(g, R, hy, tr, gem2, t) {
+    g.beginPath();
+    g.moveTo(-R * 0.95, hy - R * 0.5);
+    g.quadraticCurveTo(0, hy - R * 0.9, R * 0.95, hy - R * 0.5);
+    g.lineTo(R * 0.95, hy - R * 0.28);
+    g.quadraticCurveTo(0, hy - R * 0.68, -R * 0.95, hy - R * 0.28);
+    g.closePath();
+    paint(g, tr, 0.55);
+    for (const k of [-0.55, 0, 0.55]) {
+      g.beginPath();
+      g.moveTo(R * k - R * 0.12, hy - R * (0.66 + (k ? 0 : 0.08)));
+      g.lineTo(R * k, hy - R * (1.05 + (k ? 0 : 0.3)));
+      g.lineTo(R * k + R * 0.12, hy - R * (0.66 + (k ? 0 : 0.08)));
+      g.closePath();
+      paint(g, tr, 0.5);
+    }
+    const p = 0.75 + 0.25 * Math.sin(t * 4);
+    g.save();
+    g.globalCompositeOperation = "lighter";
+    g.fillStyle = `rgba(120,230,255,${0.35 * p})`;
+    g.beginPath();
+    g.arc(0, hy - R * 0.72, R * 0.4, 0, TAU7);
+    g.fill();
+    g.restore();
+    g.beginPath();
+    g.ellipse(0, hy - R * 0.72, R * 0.16, R * 0.2, 0, 0, TAU7);
+    paint(g, gem2, 0.5);
+    shine(g, -R * 0.05, hy - R * 0.78, R * 0.05, R * 0.07, 0.9);
+  }
+  function shield(g, s, x, y) {
+    const w = 7.2, h = 12;
+    plate(g, () => {
+      g.beginPath();
+      g.ellipse(x, y, w, h, 0.12, 0, TAU7);
+    }, s.rim || "#e8b440", y - h, y + h, null);
+    plate(g, () => {
+      g.beginPath();
+      g.ellipse(x, y, w - 1.4, h - 1.6, 0.12, 0, TAU7);
+    }, s.c, y - h, y + h, x - 2.4, y - 5, 1.1, 3.2);
+    if (s.sign === "sun") {
+      g.beginPath();
+      g.arc(x + 0.3, y, 2.4, 0, TAU7);
+      paint(g, s.rim || "#e8b440", 0.6);
+      for (let i = 0; i < 8; i++) {
+        const a = i / 8 * TAU7;
+        g.beginPath();
+        g.moveTo(x + 0.3 + Math.cos(a) * 3, y + Math.sin(a) * 3);
+        g.lineTo(x + 0.3 + Math.cos(a) * 4.6, y + Math.sin(a) * 4.6);
+        trimLine(g, s.rim || "#e8b440", 0.7);
+      }
+    }
+    if (s.sign === "wolf") {
+      g.beginPath();
+      g.moveTo(x - 2.6, y - 3);
+      g.lineTo(x - 1.4, y - 1);
+      g.lineTo(x + 1.6, y - 1.2);
+      g.lineTo(x + 2.8, y - 3.2);
+      g.lineTo(x + 2.4, y + 0.6);
+      g.quadraticCurveTo(x + 0.2, y + 4.4, x, y + 4.4);
+      g.quadraticCurveTo(x - 0.2, y + 4.4, x - 2.4, y + 0.6);
+      g.closePath();
+      paint(g, s.rim || "#e8b440", 0.6);
+    }
+  }
+  HEAVY.draw = heavyHero;
+
   // tools/proto/v97/gal.js
   var SETS = {
     warrior: [
-      ["\u041D\u0430\u0447\u0430\u043B\u043E", {}],
       ["\u0417\u0435\u043B\u0451\u043D\u044B\u0435: \u0448\u0430\u043F\u0435\u043B\u044C, \u043A\u043E\u043B\u044C\u0447\u0443\u0433\u0430, \u043C\u0435\u0447", { head: { m: "kettle", c: "#9aa2ae" }, chest: { m: "mail", c: "#3e6a3a", sign: "#d8c070" }, legs: { m: "mail", c: "#7a828e" }, boots: "#4a3020", weapon: { m: "sword", c: "#c8d0da", c2: "#8a6a3a" } }],
-      ["\u0421\u0438\u043D\u0438\u0435: \u0440\u043E\u0433\u0430\u0442\u044B\u0439 \u0448\u043B\u0435\u043C, \u043B\u0430\u0442\u044B, \u0441\u0435\u043A\u0438\u0440\u0430", { head: { m: "horned", c: "#8a929e", c2: "#3a6ab0" }, chest: { m: "plate", c: "#3a6ab0", c2: "#a8b2c0", pauldron: true }, legs: { m: "plate", c: "#5a6270", c2: "#a8b2c0" }, boots: "#3e4450", weapon: { m: "battleaxe", c: "#c8d0da", c2: "#3a6ab0" } }],
-      ["\u0421\u0438\u043D\u0438\u0435: \u0448\u043B\u0435\u043C, \u043A\u043E\u043B\u044C\u0447\u0443\u0433\u0430, \u043C\u043E\u043B\u043E\u0442", { head: { m: "kettle", c: "#6a7280", c2: "#a83a2a" }, chest: { m: "mail", c: "#a83a2a", sign: "#e8d090" }, legs: { m: "pants", c: "#5a3a24" }, boots: "#3a2818", weapon: { m: "hammer", c: "#9aa2ae", c2: "#c8a040" }, cape: "#7a2a20" }],
-      ["\u0424\u0438\u043E\u043B\u0435\u0442\u043E\u0432\u044B\u0435: \u041B\u0430\u0442\u044B \u041F\u043B\u0430\u043C\u0435\u043D\u0438, \u041A\u043B\u0438\u043D\u043E\u043A \u041F\u043B\u0430\u043C\u0435\u043D\u0438", { head: { m: "greathelm", c: "#3a2a2a", c2: "#e0a030", crest: "#c83a20" }, chest: { m: "plate", c: "#c84a20", c2: "#4a3a3a", pauldron: "spike" }, legs: { m: "plate", c: "#3a2a2a", c2: "#5a4848" }, boots: "#2a1e1e", weapon: { m: "flamesword", c: "#f0d0a0", c2: "#e0a030" }, cape: "#8a2018" }]
+      ["\u0421\u0438\u043D\u0438\u0435: \u0411\u0430\u0440\u0430\u043D\u044C\u0438 \u043B\u0430\u0442\u044B", { chest: { m: "heavy", c: "#3a78c8", c2: "#22406e", emblem: "#e8b440" }, head: { m: "helm_ram", c: "#3a78c8" }, weapon: { m: "sword", c: "#d8e0ea", c2: "#e8b440" }, shield: { c: "#2a5ea8", sign: "sun" } }],
+      ["\u0421\u0438\u043D\u0438\u0435: \u0410\u043B\u044B\u0439 \u0441\u0442\u0440\u0430\u0436", { chest: { m: "heavy", c: "#c8382c", c2: "#6a1a16" }, head: { m: "helm_wings", c: "#c8382c" }, weapon: { m: "sword", c: "#d8e0ea", c2: "#e8b440" }, shield: { c: "#a82a22", sign: "wolf" } }],
+      ["\u0424\u0438\u043E\u043B\u0435\u0442\u043E\u0432\u044B\u0435: \u0427\u0451\u0440\u043D\u044B\u0439 \u043F\u043E\u043B\u043A\u043E\u0432\u043E\u0434\u0435\u0446", { chest: { m: "heavy", c: "#3e3e48", c2: "#1c1c22", trim: "#c8382c", spikes: "#d8d0c8", emblem: "#ff5030" }, head: { m: "helm_horns", c: "#3e3e48", trim: "#c8382c", horn: "#b02a24", eyes: "#ff5a30" }, weapon: { m: "battleaxe", c: "#5a5a66", c2: "#c8382c", wood: "#2a1a16" }, cape: "#6a1810" }],
+      ["\u0424\u0438\u043E\u043B\u0435\u0442\u043E\u0432\u044B\u0435: \u0421\u0432\u0435\u0442\u043B\u044B\u0439 \u043A\u0440\u0435\u0441\u0442\u043E\u043D\u043E\u0441\u0435\u0446", { chest: { m: "heavy", c: "#e4dccb", c2: "#5a6a8a", emblem: "#3a78c8" }, head: { m: "helm_crest", c: "#e4dccb", crest: "#3a6ab0" }, weapon: { m: "hammer", c: "#e4dccb", c2: "#e8b440", glow: true, wood: "#3a2a20" }, cape: "#2a4a8a" }]
     ],
     mage: [
-      ["\u041D\u0430\u0447\u0430\u043B\u043E", {}],
       ["\u0417\u0435\u043B\u0451\u043D\u044B\u0435: \u043A\u0430\u043F\u044E\u0448\u043E\u043D, \u043C\u0430\u043D\u0442\u0438\u044F, \u043F\u043E\u0441\u043E\u0445", { head: { m: "hood", c: "#4a5a8a" }, chest: { m: "robe", c: "#4a5a8a", c2: "#c8b070" }, boots: "#2a2a3a", weapon: { m: "staff" } }],
       ["\u0421\u0438\u043D\u0438\u0435: \u0448\u043B\u044F\u043F\u0430, \u043C\u0430\u043D\u0442\u0438\u044F, \u043F\u043E\u0441\u043E\u0445 \u043E\u0433\u043D\u044F", { head: { m: "wizard", c: "#8a2a2a", c2: "#e0b040" }, chest: { m: "robe", c: "#8a2a2a", c2: "#e0b040" }, boots: "#3a1e1e", weapon: { m: "firestaff" } }],
-      ["\u0421\u0438\u043D\u0438\u0435: \u043A\u0430\u043F\u044E\u0448\u043E\u043D-\u043D\u0430\u043A\u0438\u0434\u043A\u0430, \u0431\u043E\u0435\u0432\u0430\u044F \u043C\u0430\u043D\u0442\u0438\u044F", { head: { m: "cowl", c: "#2e4a6a", c2: "#1e3248" }, chest: { m: "battlerobe", c: "#2e4a6a", c2: "#a8c8e0", c3: "#1e3248" }, boots: "#1e2a38", weapon: { m: "staff", wood: "#3a2a20" } }],
-      ["\u0424\u0438\u043E\u043B\u0435\u0442\u043E\u0432\u044B\u0435: \u0412\u0435\u043D\u0435\u0446 \u0417\u0432\u0435\u0437\u0434\u043E\u0447\u0451\u0442\u0430, \u043A\u0440\u0438\u0441\u0442\u0430\u043B\u043B", { head: { m: "circlet", c: "#e0b040", gem: "#b070ff" }, chest: { m: "battlerobe", c: "#5a2a8a", c2: "#e0b040", c3: "#3a1a5a" }, boots: "#2a1a3a", weapon: { m: "crystal", c2: "#e0b040", wood: "#2a1e30" }, cape: "#3a1a5a" }]
+      ["\u0421\u0438\u043D\u0438\u0435: \u041B\u0435\u0434\u044F\u043D\u043E\u0439 \u0447\u0430\u0440\u043E\u0434\u0435\u0439", { chest: { m: "heavy", c: "#4a8ac8", c2: "#1e3a66", robe: "#2a4a86", big: 4.3, emblem: "#8ae0ff" }, head: { m: "magecollar", c: "#1e3a66", gem: "#8ae0ff" }, weapon: { m: "staff", wood: "#2a2a3a" } }],
+      ["\u0424\u0438\u043E\u043B\u0435\u0442\u043E\u0432\u044B\u0435: \u0417\u0432\u0451\u0437\u0434\u043D\u044B\u0439 \u0430\u0440\u0445\u0438\u043C\u0430\u0433", { chest: { m: "heavy", c: "#7a3ab0", c2: "#3a1a5a", robe: "#4a1e70", big: 4.6, emblem: "#ffd060" }, head: { m: "magecollar", c: "#3a1a5a", gem: "#c8a0ff" }, weapon: { m: "crystal", c2: "#e8b440", wood: "#2a1e30" }, cape: "#2a1240" }]
     ],
     archer: [
-      ["\u041D\u0430\u0447\u0430\u043B\u043E", {}],
       ["\u0417\u0435\u043B\u0451\u043D\u044B\u0435: \u043A\u0430\u043F\u044E\u0448\u043E\u043D, \u043A\u0443\u0440\u0442\u043A\u0430, \u043B\u0443\u043A", { head: { m: "hood", c: "#3e6a32" }, chest: { m: "leather", c: "#6a4a2c", c2: "#3e6a32" }, legs: { m: "pants", c: "#5a4430" }, boots: "#3e2a18", weapon: { m: "bow", c: "#9a6a34" } }],
       ["\u0421\u0438\u043D\u0438\u0435: \u0448\u0430\u043F\u043A\u0430 \u0441 \u043F\u0435\u0440\u043E\u043C, \u043A\u043B\u0451\u043F\u0430\u043D\u0430\u044F \u043A\u0443\u0440\u0442\u043A\u0430", { head: { m: "feathercap", c: "#3a5a7a", c2: "#d84a3a" }, chest: { m: "leather", c: "#4a3a2a", c2: "#3a5a7a", studs: true }, legs: { m: "pants", c: "#3a3a44" }, boots: "#2a2018", weapon: { m: "longbow", c: "#7a4a24" } }],
-      ["\u0421\u0438\u043D\u0438\u0435: \u043D\u0430\u043A\u0438\u0434\u043A\u0430, \u0434\u043B\u0438\u043D\u043D\u044B\u0439 \u043B\u0443\u043A", { head: { m: "cowl", c: "#5a4a3a", c2: "#3a2e24" }, chest: { m: "leather", c: "#5a4a3a", c2: "#4a3a2c", studs: true }, legs: { m: "pants", c: "#4a3e30" }, boots: "#2e2218", weapon: { m: "longbow", c: "#5a3a20" }, cape: "#3e5a32" }],
-      ["\u0424\u0438\u043E\u043B\u0435\u0442\u043E\u0432\u044B\u0435: \u0421\u043E\u043B\u043D\u0435\u0447\u043D\u044B\u0439 \u043B\u0443\u043A, \u0411\u0435\u043B\u044B\u0439 \u041E\u043B\u0435\u043D\u044C", { head: { m: "hood", c: "#e8e0cc" }, chest: { m: "leather", c: "#e0d6bc", c2: "#8a6a3a", studs: true }, legs: { m: "pants", c: "#6a5a42" }, boots: "#4a3a28", weapon: { m: "goldbow" }, cape: "#2e5a3a", quiver: "#e0b040" }]
+      ["\u0421\u0438\u043D\u0438\u0435: \u041B\u0435\u0441\u043D\u043E\u0439 \u0441\u043B\u0435\u0434\u043E\u043F\u044B\u0442", { chest: { m: "heavy", c: "#5a7a3a", c2: "#3a2a1e", leather: true, one: true, big: 4.4, trim: "#c8a060" }, head: { m: "maskhood", c: "#3e5a32", mask: "#2a2a2a", trim: "#c8a060" }, weapon: { m: "longbow", c: "#6a3e1e" } }],
+      ["\u0424\u0438\u043E\u043B\u0435\u0442\u043E\u0432\u044B\u0435: \u0411\u0435\u043B\u044B\u0439 \u041E\u043B\u0435\u043D\u044C", { chest: { m: "heavy", c: "#ece4d0", c2: "#5a4630", leather: true, one: true, big: 4.6, emblem: "#4ac080" }, head: { m: "maskhood", c: "#f4f0e6", mask: "#3a3a44" }, weapon: { m: "goldbow" }, cape: "#2e5a3a", quiver: "#e0b040" }]
     ]
   };
   var NAME = { warrior: "\u0412\u043E\u0438\u043D", mage: "\u041C\u0430\u0433", archer: "\u041B\u0443\u0447\u043D\u0438\u043A" };
@@ -6914,7 +7370,7 @@ canvas{display:block;max-width:100%;height:auto;border-radius:8px}
       root.append(s);
       return cv;
     };
-    const rows = ["warrior", "mage", "archer"].map((cls) => ({ cls, cv: mk(1200, 470, NAME[cls], cls === "warrior" ? "\u0421\u043B\u0435\u0432\u0430 \u043D\u044B\u043D\u0435\u0448\u043D\u0438\u0439 \u0433\u0435\u0440\u043E\u0439 \u0434\u043B\u044F \u0441\u0440\u0430\u0432\u043D\u0435\u043D\u0438\u044F, \u0434\u0430\u043B\u044C\u0448\u0435 \u2014 \u043D\u043E\u0432\u044B\u0439 \u0432 \u0440\u0430\u0437\u043D\u044B\u0445 \u0432\u0435\u0449\u0430\u0445: \u043D\u0430\u0447\u0430\u043B\u044C\u043D\u044B\u0435, \u0437\u0435\u043B\u0451\u043D\u044B\u0435, \u0441\u0438\u043D\u0438\u0435, \u0444\u0438\u043E\u043B\u0435\u0442\u043E\u0432\u044B\u0435. \u041B\u0438\u0446\u0430 \u0441\u0443\u0440\u043E\u0432\u044B\u0435: \u0442\u044F\u0436\u0451\u043B\u044B\u0435 \u0431\u0440\u043E\u0432\u0438, \u0443\u0437\u043A\u0438\u0435 \u0433\u043B\u0430\u0437\u0430, \u0441\u0436\u0430\u0442\u044B\u0439 \u0440\u043E\u0442, \u0443 \u0412\u043E\u0438\u043D\u0430 \u0448\u0440\u0430\u043C, \u0443 \u041B\u0443\u0447\u043D\u0438\u043A\u0430 \u0449\u0435\u0442\u0438\u043D\u0430." : "") }));
+    const rows = ["warrior", "mage", "archer"].map((cls) => ({ cls, cv: mk(1200, 470, NAME[cls], cls === "warrior" ? "\u0421\u043B\u0435\u0432\u0430 \u043D\u044B\u043D\u0435\u0448\u043D\u0438\u0439 \u0433\u0435\u0440\u043E\u0439, \u0434\u0430\u043B\u044C\u0448\u0435 \u043D\u043E\u0432\u044B\u0439: \u043D\u0430\u0447\u0430\u043B\u044C\u043D\u044B\u0435 \u0438 \u0437\u0435\u043B\u0451\u043D\u044B\u0435 \u0432\u0435\u0449\u0438 \u2014 \u043A\u0430\u043A \u0432 \u043F\u0440\u043E\u0448\u043B\u043E\u0439 \u043F\u0440\u043E\u0431\u0435; \u0441\u0438\u043D\u0438\u0435 \u0438 \u0444\u0438\u043E\u043B\u0435\u0442\u043E\u0432\u044B\u0435 \u2014 \u0442\u044F\u0436\u0451\u043B\u044B\u0435 \u0433\u043B\u044F\u043D\u0446\u0435\u0432\u044B\u0435 \u043B\u0430\u0442\u044B: \u043E\u0433\u0440\u043E\u043C\u043D\u044B\u0435 \u043D\u0430\u043F\u043B\u0435\u0447\u043D\u0438\u043A\u0438 \u0432 \u0434\u0432\u0430 \u0441\u043B\u043E\u044F, \u0437\u043E\u043B\u043E\u0442\u0430\u044F \u043A\u0430\u0439\u043C\u0430, \u044E\u0431\u043A\u0430 \u0438\u0437 \u043F\u043B\u0430\u0441\u0442\u0438\u043D, \u043A\u0440\u0443\u043F\u043D\u044B\u0435 \u043D\u0430\u043A\u043E\u043B\u0435\u043D\u043D\u0438\u043A\u0438, \u0431\u043E\u043B\u044C\u0448\u0438\u0435 \u0448\u043B\u0435\u043C\u044B, \u0449\u0438\u0442\u044B." : "") }));
     const scene = mk(1200, 380, "\u0412 \u043C\u0430\u0441\u0448\u0442\u0430\u0431\u0435 \u0438\u0433\u0440\u044B (\u043F\u0440\u0438\u0431\u043B\u0438\u0436\u0435\u043D\u0438\u0435 \xD72,4) \u0440\u044F\u0434\u043E\u043C \u0441 \u043D\u043E\u0432\u044B\u043C \u0441\u0443\u043D\u0434\u0443\u043A\u043E\u043C", "\u041D\u044B\u043D\u0435\u0448\u043D\u0438\u0439 \u0412\u043E\u0438\u043D \u0441\u043B\u0435\u0432\u0430, \u0434\u0430\u043B\u044C\u0448\u0435 \u043D\u043E\u0432\u044B\u0435 \u2014 \u043F\u043E \u043E\u0434\u043D\u043E\u043C\u0443 \u043A\u043E\u043C\u043F\u043B\u0435\u043A\u0442\u0443 \u043A\u0430\u0436\u0434\u043E\u0433\u043E \u043A\u043B\u0430\u0441\u0441\u0430.");
     const L = { warrior: lookOf(newHero("\u0412", "warrior")), mage: lookOf(newHero("\u041C", "mage")), archer: lookOf(newHero("\u041B", "archer")) };
     const tick = (now) => {
@@ -6933,15 +7389,15 @@ canvas{display:block;max-width:100%;height:auto;border-radius:8px}
         g.ellipse(70, y + 2, 32, 8, 0, 0, 7);
         g.fill();
         drawFrame(g, personSpr(L[cls], "front", "idle", 0), 70, y - 12.6 * KC, 1, KC);
-        SETS[cls].forEach(([lab, gear], i) => {
-          const x = 230 + i * 210;
+        [["\u041D\u0430\u0447\u0430\u043B\u043E", {}], ...SETS[cls]].forEach(([lab, gear], i) => {
+          const x = 205 + i * (cls === "warrior" ? 165 : 195);
           g.save();
           g.translate(x, y);
           g.scale(KT, KT);
           toonHero(g, cls, gear, t + i * 0.7);
           g.restore();
           g.font = "13px Georgia";
-          g.fillStyle = i === 4 ? "#d8b8ff" : "#e9dfc8";
+          g.fillStyle = lab.startsWith("\u0424\u0438\u043E\u043B") ? "#d8b8ff" : lab.startsWith("\u0421\u0438\u043D") ? "#8ab8ff" : "#e9dfc8";
           g.textAlign = "center";
           const [l1, l2] = lab.split(": ");
           g.fillText(l1, x, 440);
@@ -6976,12 +7432,12 @@ canvas{display:block;max-width:100%;height:auto;border-radius:8px}
           g.restore();
         };
         put(90, "warrior", 1);
-        put(140, "warrior", 4);
+        put(140, "warrior", 3);
         chestBig(g, 215, y, true, t);
         put(290, "mage", 2);
-        put(340, "mage", 4);
-        put(395, "archer", 1);
-        put(445, "archer", 4);
+        put(340, "mage", 3);
+        put(395, "archer", 2);
+        put(445, "archer", 3);
         g.restore();
       }
       requestAnimationFrame(tick);
