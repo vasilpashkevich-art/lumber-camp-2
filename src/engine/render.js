@@ -12,7 +12,12 @@ import { BLD } from '../art/bld.js';
 import { castle, stairs, brazierFire, paving, roundPlaza, ringPath, fountain, lamp, flowerbed, terrace, wallSeg, roundTower, merlons, cone } from '../art/castle.js';
 import { house, inn, tavern, enchant, barn, miners, forge, farmstead, bank, herbal } from '../art/houses.js';
 import { bush, herbGlint, pickLeaves, herbBurst, drinkFx } from '../art/herbs.js';
-import { cityGround, wallFace, wallTop, wallSide, tower as cityTower, gatehouse, drawYardItem, FOOT } from '../art/city.js';
+import { cityGround, wallFace as wallFace0, wallTop as wallTop0, wallSide as wallSide0, tower as cityTower0, gatehouse as gatehouse0, drawYardItem, FOOT } from '../art/city.js';
+import * as TC from '../art/tcity.js';
+// v99: стены и башни столицы — в мультяшном стиле (tcity.js); прежние — window.__oldCity = true
+const oldCity = () => typeof window !== 'undefined' && window.__oldCity;
+const wallFace = (...a) => (oldCity() ? wallFace0 : TC.wallFace)(...a), wallTop = (...a) => (oldCity() ? wallTop0 : TC.wallTop)(...a), wallSide = (...a) => (oldCity() ? wallSide0 : TC.wallSide)(...a);
+const cityTower = (...a) => (oldCity() ? cityTower0 : TC.tower)(...a), gatehouse = (...a) => (oldCity() ? gatehouse0 : TC.gatehouse)(...a);
 import { BLD2 } from '../art/bld2.js';
 import { HERBS, HERBAL } from '../../data/herbs.js';
 import { herbSkill, skillColor } from '../systems/herbs.js';
