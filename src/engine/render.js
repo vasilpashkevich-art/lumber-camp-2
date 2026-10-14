@@ -15,6 +15,9 @@ import { bush, herbGlint, pickLeaves, herbBurst, drinkFx } from '../art/herbs.js
 import { cityGround, wallFace as wallFace0, wallTop as wallTop0, wallSide as wallSide0, tower as cityTower0, gatehouse as gatehouse0, drawYardItem, FOOT } from '../art/city.js';
 import * as TC from '../art/tcity.js';
 import * as TM from '../art/tmarket.js';
+import { TBLD as TB2 } from '../art/tbld.js';
+// v101: постройки столицы — в мультяшном стиле по одной (tbld.js); прежние — window.__oldBld = true
+const oldBld = () => typeof window !== 'undefined' && window.__oldBld;
 // v99: стены и башни столицы — в мультяшном стиле (tcity.js); прежние — window.__oldCity = true
 const oldCity = () => typeof window !== 'undefined' && window.__oldCity;
 const wallFace = (...a) => (oldCity() ? wallFace0 : TC.wallFace)(...a), wallTop = (...a) => (oldCity() ? wallTop0 : TC.wallTop)(...a), wallSide = (...a) => (oldCity() ? wallSide0 : TC.wallSide)(...a);
@@ -163,7 +166,7 @@ function buildStatics(W) {
     house: v => big('house' + v, g => house(g, v)), herbal: () => big('herbal', herbal),
   };
   // v86: объёмные постройки столицы (мягкий облик), размер картинки — по основанию
-  const B2 = (key, v) => { if (key === 'stall' && !oldMarket()) return tStallSpr(); const [w, d, lh] = FOOT[key] || [200, 150, 200]; const pw = w + d * 0.3 + 160, ph = lh + 220; return sprite('b2|' + key + (v || 0), pw, ph, w / 2 + 80, ph - 60, 1.6, styled(g => { if (key === 'stall') { g.save(); g.translate(0, -44); g.scale(PEOPLE_K, PEOPLE_K); person(g, MERCH_LOOK, 'front', {}); g.restore(); } BLD2[key](g, v || 0, 0.4); })); };
+  const B2 = (key, v) => { if (key === 'stall' && !oldMarket()) return tStallSpr(); const [w, d, lh] = FOOT[key] || [200, 150, 200]; const pw = w + d * 0.3 + 160, ph = lh + 220; return sprite('b2|' + key + (v || 0), pw, ph, w / 2 + 80, ph - 60, 1.6, styled(g => { if (key === 'stall') { g.save(); g.translate(0, -44); g.scale(PEOPLE_K, PEOPLE_K); person(g, MERCH_LOOK, 'front', {}); g.restore(); } ((!oldBld() && TB2[key]) || BLD2[key])(g, v || 0, 0.4); })); };
   const LBL = { herbal: 185, bank: 205, castle: 455, market: 195, stall: 195, cart: 150, forge: 170, tavern: 210, miners: 200, enchant: 210, inn: 230, barn: 190 };
   for (const b of W.houses) {
     const sq = c && c.square && BLD2[b.art];
