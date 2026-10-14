@@ -14,6 +14,7 @@ import { house, inn, tavern, enchant, barn, miners, forge, farmstead, bank, herb
 import { bush, herbGlint, pickLeaves, herbBurst, drinkFx } from '../art/herbs.js';
 import { cityGround, wallFace as wallFace0, wallTop as wallTop0, wallSide as wallSide0, tower as cityTower0, gatehouse as gatehouse0, drawYardItem, FOOT } from '../art/city.js';
 import * as TC from '../art/tcity.js';
+import * as TM from '../art/tmarket.js';
 // v99: стены и башни столицы — в мультяшном стиле (tcity.js); прежние — window.__oldCity = true
 const oldCity = () => typeof window !== 'undefined' && window.__oldCity;
 const wallFace = (...a) => (oldCity() ? wallFace0 : TC.wallFace)(...a), wallTop = (...a) => (oldCity() ? wallTop0 : TC.wallTop)(...a), wallSide = (...a) => (oldCity() ? wallSide0 : TC.wallSide)(...a);
@@ -162,8 +163,8 @@ function buildStatics(W) {
     house: v => big('house' + v, g => house(g, v)), herbal: () => big('herbal', herbal),
   };
   // v86: объёмные постройки столицы (мягкий облик), размер картинки — по основанию
-  const B2 = (key, v) => { const [w, d, lh] = FOOT[key] || [200, 150, 200]; const pw = w + d * 0.3 + 160, ph = lh + 220; return sprite('b2|' + key + (v || 0), pw, ph, w / 2 + 80, ph - 60, 1.6, styled(g => { if (key === 'stall') { g.save(); g.translate(0, -44); g.scale(PEOPLE_K, PEOPLE_K); person(g, MERCH_LOOK, 'front', {}); g.restore(); } BLD2[key](g, v || 0, 0.4); })); };
-  const LBL = { herbal: 185, bank: 205, castle: 455, market: 105, stall: 105, cart: 110, forge: 170, tavern: 210, miners: 200, enchant: 210, inn: 230, barn: 190 };
+  const B2 = (key, v) => { if (key === 'stall' && !oldMarket()) return tStallSpr(); const [w, d, lh] = FOOT[key] || [200, 150, 200]; const pw = w + d * 0.3 + 160, ph = lh + 220; return sprite('b2|' + key + (v || 0), pw, ph, w / 2 + 80, ph - 60, 1.6, styled(g => { if (key === 'stall') { g.save(); g.translate(0, -44); g.scale(PEOPLE_K, PEOPLE_K); person(g, MERCH_LOOK, 'front', {}); g.restore(); } BLD2[key](g, v || 0, 0.4); })); };
+  const LBL = { herbal: 185, bank: 205, castle: 455, market: 195, stall: 195, cart: 150, forge: 170, tavern: 210, miners: 200, enchant: 210, inn: 230, barn: 190 };
   for (const b of W.houses) {
     const sq = c && c.square && BLD2[b.art];
     const sp = sq ? B2(b.art, b.v) : ART[b.art] ? ART[b.art](b.v || 0) : null;
@@ -237,8 +238,13 @@ function hides(o, pts) { const b = o.oc; if (!b) return false;
   if (o.soft != null) { let a = 1; for (const [x, y] of pts) if (y < o.y - 4 && y > b.y0 + 10) a = Math.min(a, 0.42 + 0.58 * Math.max(0, Math.min(1, (Math.abs(x - o.soft) - 50) / 150))); return a; }
   for (const [x, y] of pts) if (y < o.y - 4 && x > b.x0 + 14 && x < b.x1 - 14 && y > b.y0 + 10) return 0.42; return 1; }
 // прилавок рынка с купцом за стойкой (v65) и тележка купца с купцом рядом
-function stallSpr() { return sprite('stallM', 120, 110, 60, 100, 2.2, g => { g.save(); g.translate(0, -7); g.scale(1.2, 1.2); person(g, MERCH_LOOK, 'front', {}); g.restore(); FOR.stallFront(g); FOR.stallTop(g); }); }
-function cartSpr() { return sprite('cartM', 170, 115, 85, 101, 2.2, g => { FOR.cart(g, 0); g.save(); g.translate(46, 6); g.scale(1.25, 1.25); person(g, MERCH_LOOK, 'front', {}); g.restore(); }); }
+// v100: рынок и тележка — в мультяшном стиле (tmarket.js); прежние — window.__oldMarket = true
+const oldMarket = () => typeof window !== 'undefined' && window.__oldMarket;
+const merchant = g => { g.translate(0, -12.6 * PEOPLE_K); g.scale(PEOPLE_K, PEOPLE_K); person(g, MERCH_LOOK, 'front', {}); };
+const tStallSpr = () => sprite('tstall', 280, 260, 140, 225, 1.8, styled(g => TM.stall(g, 0.4, merchant)));
+const tCartSpr = () => sprite('tcart', 260, 220, 125, 175, 1.8, styled(g => TM.cart(g, 0.4, merchant)));
+function stallSpr() { if (!oldMarket()) return tStallSpr(); return sprite('stallM', 120, 110, 60, 100, 2.2, g => { g.save(); g.translate(0, -7); g.scale(1.2, 1.2); person(g, MERCH_LOOK, 'front', {}); g.restore(); FOR.stallFront(g); FOR.stallTop(g); }); }
+function cartSpr() { if (!oldMarket()) return tCartSpr(); return sprite('cartM', 170, 115, 85, 101, 2.2, g => { FOR.cart(g, 0); g.save(); g.translate(46, 6); g.scale(1.25, 1.25); person(g, MERCH_LOOK, 'front', {}); g.restore(); }); }
 // городской стражник в полный рост (как герой), чуть дышит
 function guard(g, x, y, view, dir, t) {
   g.fillStyle = 'rgba(0,0,0,.25)'; g.beginPath(); g.ellipse(x, y + 2, 14, 5, 0, 0, 7); g.fill();
