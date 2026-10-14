@@ -9,7 +9,7 @@ async function run(b, old, tag, vw = 1440, vh = 860, mobile = false) {
   await p.click('#selNew', { noWaitAfter: true }); await p.waitForSelector('#newName'); await p.waitForTimeout(150); await p.click('.clsCard[data-c=warrior]'); await p.evaluate(() => { document.querySelector('#newName').value = 'Зодчий'; document.querySelector('[data-x=ok]').click(); }); await p.waitForSelector('.modal', { state: 'detached' }); await p.waitForTimeout(200);
   await p.click('.slot:nth-child(1)'); await p.click('#selEnter'); await p.waitForTimeout(900);
   const C = await p.evaluate(() => { const c = window.__G.G.W.Z.capital; return { x: c.x, y: c.y, s: c.square }; });
-  const spots = { gate: [C.x + C.s.southGate + 150, C.y + C.s.y1 + C.s.th + 100], corner: [C.x + C.s.x1 + 60, C.y + C.s.y1 + 120], north: [C.x + 400, C.y + C.s.y0 + 90], east: [C.x + C.s.x1 + C.s.th + 120, C.y + C.s.eastGate + 60] };
+  const spots = process.env.BACK ? { nw: [C.x + C.s.x0 + 260, C.y + C.s.y0 + 260], ne: [C.x + C.s.x1 - 260, C.y + C.s.y0 + 260], west: [C.x + C.s.x0 - 200, C.y + 100] } : { gate: [C.x + C.s.southGate + 150, C.y + C.s.y1 + C.s.th + 100], corner: [C.x + C.s.x1 + 60, C.y + C.s.y1 + 120], north: [C.x + 400, C.y + C.s.y0 + 90], east: [C.x + C.s.x1 + C.s.th + 120, C.y + C.s.eastGate + 60] };
   for (const [n, [x, y]] of Object.entries(spots)) { await p.evaluate(([x, y]) => { const G = window.__G.G; G.st.maxHp = G.P.hp = 99999; G.mobs.forEach(m => { m.state = 'dead'; m.respawnAt = 1e12; }); G.P.x = x; G.P.y = y; }, [x, y]); await p.waitForTimeout(700); await p.screenshot({ path: `${OUT}/v99-${tag}-${n}.png` }); }
   if (errs.length) console.log(tag, errs); await ctx.close();
 }
