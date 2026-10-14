@@ -118,7 +118,7 @@ export const FARMS = {
       { id: 'inn', name: 'Постоялый двор', dx: -170, dy: -110, col: 96, art: 'inn', brew: true, note: 'Отдых: здоровье восстанавливается быстро. В трактире есть котёл — варить зелья' },
       { id: 'market', name: 'Лавка', dx: 190, dy: -70, col: 60, art: 'stall', vendor: true, jewel: { good: 1800, rare: 5000 } },
       { id: 'barn', name: 'Амбар', dx: 110, dy: 200, col: 92, art: 'barn', note: 'Здесь хутор держит зерно и сено' },
-      { id: 'house1', dx: 330, dy: 175, col: 68, art: 'house', v: 1 },
+      { id: 'house1', dx: 370, dy: 175, col: 68, art: 'house', v: 1 },
       { id: 'house2', dx: -300, dy: 150, col: 68, art: 'house', v: 0 },
       { id: 'smithy', name: 'Кузня', dx: -430, dy: -20, col: 90, art: 'forge', smelt: true, note: 'Плавка руды' },
     ],

@@ -15,7 +15,7 @@ import { bush, herbGlint, pickLeaves, herbBurst, drinkFx } from '../art/herbs.js
 import { cityGround, wallFace as wallFace0, wallTop as wallTop0, wallSide as wallSide0, tower as cityTower0, gatehouse as gatehouse0, drawYardItem, FOOT } from '../art/city.js';
 import * as TC from '../art/tcity.js';
 import * as TM from '../art/tmarket.js';
-import { TBLD as TB2 } from '../art/tbld.js';
+import { TBLD as TB2, TVIL } from '../art/tbld.js';
 // v101: постройки столицы — в мультяшном стиле по одной (tbld.js); прежние — window.__oldBld = true
 const oldBld = () => typeof window !== 'undefined' && window.__oldBld;
 // v99: стены и башни столицы — в мультяшном стиле (tcity.js); прежние — window.__oldCity = true
@@ -165,15 +165,19 @@ function buildStatics(W) {
     enchant: () => big('enchant', enchant), inn: () => big('inn', inn), barn: () => big('barn', barn), bank: () => big('bank', bank),
     house: v => big('house' + v, g => house(g, v)), herbal: () => big('herbal', herbal),
   };
+  // v102: посёлок мультяшными постройками (вид спереди-сверху), ×1,15 — двери 1,2–1,3 роста героя
+  const KV = 1.15, vil = (key, fn) => sprite('v|' + key, 460, 440, 230, 400, 1.8, styled(g => { g.scale(KV, KV); fn(g); }));
+  if (!oldBld()) Object.assign(ART, { house: v => vil('house' + v, g => TVIL.house(g, v)), inn: () => vil('inn', TVIL.inn), barn: () => vil('barn', TVIL.barn), forge: () => vil('forge', TVIL.forge) });
+  const LBLV = { inn: 290, barn: 200, house: 170, forge: 170 };
   // v86: объёмные постройки столицы (мягкий облик), размер картинки — по основанию
-  const B2 = (key, v) => { if (key === 'stall' && !oldMarket()) return tStallSpr(); const [w, d, lh] = FOOT[key] || [200, 150, 200]; const pw = w + d * 0.3 + 160, ph = lh + 220; return sprite('b2|' + key + (v || 0), pw, ph, w / 2 + 80, ph - 60, 1.6, styled(g => { if (key === 'stall') { g.save(); g.translate(0, -44); g.scale(PEOPLE_K, PEOPLE_K); person(g, MERCH_LOOK, 'front', {}); g.restore(); } ((!oldBld() && TB2[key]) || BLD2[key])(g, v || 0, 0.4); })); };
+  const B2 = (key, v) => { if (key === 'stall' && !oldMarket()) return tStallSpr(); const [w, d, lh] = FOOT[key] || [200, 150, 200]; const pw = w + d * 0.3 + 280, ph = lh + 220; return sprite('b2|' + key + (v || 0), pw, ph, w / 2 + 140, ph - 60, 1.6, styled(g => { if (key === 'stall') { g.save(); g.translate(0, -44); g.scale(PEOPLE_K, PEOPLE_K); person(g, MERCH_LOOK, 'front', {}); g.restore(); } ((!oldBld() && TB2[key]) || BLD2[key])(g, v || 0, 0.4); })); };
   const LBL = { herbal: 185, bank: 205, castle: 455, market: 195, stall: 195, cart: 150, forge: 170, tavern: 210, miners: 200, enchant: 210, inn: 230, barn: 190 };
   for (const b of W.houses) {
     const sq = c && c.square && BLD2[b.art];
     const sp = sq ? B2(b.art, b.v) : ART[b.art] ? ART[b.art](b.v || 0) : null;
     // у объёмных построек рамка заслона — по стенам и крыше, без дыма из трубы (иначе герой на улице перед домом «прячется» за ним)
-    const oc = sp && (sq ? (() => { const [w, d, lh] = FOOT[b.art] || [200, 150, 200]; return { x0: b.x - w / 2 - 10, y0: b.y - lh + 30, x1: b.x + w / 2 + d * 0.3 + 10, y1: b.y }; })() : occ(sp, b.x, b.y));
-    S.push({ y: b.y, oc, draw: g => sp && drawSpr(g, sp, b.x, b.y), label: b.name, lx: b.x + (sq ? (FOOT[b.art] || [0, 0])[1] * 0.15 : 0), ly: b.y - (sq ? (FOOT[b.art] || [0, 0, 120])[2] : LBL[b.art] || 120) });
+    const oc = sp && (sq ? (() => { const [w, d, lh] = FOOT[b.art] || [200, 150, 200]; return { x0: b.x - w / 2 - 10, y0: b.y - lh + 30, x1: b.x + w / 2 + (oldBld() ? d * 0.3 : 0) + 10, y1: b.y }; })() : occ(sp, b.x, b.y));
+    S.push({ y: b.y, oc, draw: g => sp && drawSpr(g, sp, b.x, b.y), label: b.name, lx: b.x + (sq && oldBld() ? (FOOT[b.art] || [0, 0])[1] * 0.15 : 0), ly: b.y - (sq ? (FOOT[b.art] || [0, 0, 120])[2] : (!oldBld() && LBLV[b.art]) || LBL[b.art] || 120) });
   }
   if (W.village) { const v = W.village, sp = v.well !== false ? sprite('well', 70, 80, 35, 66, 2, g => well(g)) : null; S.push({ y: v.y + 10, draw: g => sp && drawSpr(g, sp, v.x, v.y + 10), label: v.name, lx: v.x, ly: v.y - v.R + 30 });
     if (v.camp) { const fx = v.x + 140, fy = v.y + 120; S.push({ y: fy, fire: true, x: fx, draw: (g, t) => campfire(g, fx, fy, t) }); } }
@@ -220,8 +224,8 @@ function buildStatics(W) {
     if (p.kind === 'reeds') { const sp = sprite('reeds|' + (p.s % 5), 40, 44, 20, 38, 2, g => FOR.reeds(g, 8, p.s % 5 + 2, 0)); S.push({ y: p.y, x: p.x, draw: g => drawSpr(g, sp, p.x, p.y) }); }
   }
   for (const p of W.props) if (p.kind === 'hay') { const sp = sprite('hay', 80, 80, 40, 66, 2, g => haystack(g)); S.push({ y: p.y, x: p.x, draw: g => drawSpr(g, sp, p.x, p.y) }); }
-  for (const f of W.Z.farmsteads || []) { const sp = sprite('farmst' + (f.burned ? 'B' : ''), 460, 280, 200, 250, 2, g => { g.scale(K, K); farmstead(g, f.burned); }); S.push({ y: f.y, x: f.x, oc: occ(sp, f.x, f.y), draw: g => drawSpr(g, sp, f.x, f.y) }); if (f.burned) S.push({ y: f.y + 1, x: f.x, draw: (g, t) => smoke(g, f.x + 20, f.y - 60, t) }); }
-  if (W.Z.mill) { const m = W.Z.mill, ms = 1.5, sp = sprite('millbase', 210, 255, 105, 228, 1.6, g => { g.scale(ms, ms); millBase(g, false); }); S.push({ y: m.y, x: m.x, oc: { x0: m.x - 150, y0: m.y - 340, x1: m.x + 150, y1: m.y }, label: 'Старая мельница', lx: m.x, ly: m.y - 300, draw: (g, t) => { drawSpr(g, sp, m.x, m.y); g.save(); g.translate(m.x, m.y - 112 * ms); g.scale(ms, ms); millBlades(g, t * 0.5, false); g.restore(); } }); }
+  for (const f of W.Z.farmsteads || []) { const sp = oldBld() ? sprite('farmst' + (f.burned ? 'B' : ''), 460, 280, 200, 250, 2, g => { g.scale(K, K); farmstead(g, f.burned); }) : sprite('tfarm' + (f.burned ? 'B' : ''), 520, 300, 260, 260, 1.8, styled(g => { g.scale(KV, KV); TVIL.farmstead(g, f.burned); })); S.push({ y: f.y, x: f.x, oc: occ(sp, f.x, f.y), draw: g => drawSpr(g, sp, f.x, f.y) }); if (f.burned) S.push({ y: f.y + 1, x: f.x, draw: (g, t) => smoke(g, f.x + 20, f.y - 60, t) }); }
+  if (W.Z.mill) { const m = W.Z.mill, ms = 1.5, nm = !oldBld(), sp = nm ? sprite('tmill', 210, 270, 105, 240, 1.6, styled(g => { g.scale(ms, ms); TVIL.millBase(g); })) : sprite('millbase', 210, 255, 105, 228, 1.6, g => { g.scale(ms, ms); millBase(g, false); }); S.push({ y: m.y, x: m.x, oc: { x0: m.x - 150, y0: m.y - 340, x1: m.x + 150, y1: m.y }, label: 'Старая мельница', lx: m.x, ly: m.y - 300, draw: (g, t) => { drawSpr(g, sp, m.x, m.y); g.save(); g.translate(m.x, m.y - 112 * ms); g.scale(ms, ms); nm ? TVIL.millBlades(g, t * 0.5) : millBlades(g, t * 0.5, false); g.restore(); } }); }
   // скалы и пригорки (v61)
   for (const o of W.rocks || []) { const sp = sprite('rock|' + o.s + '|' + Math.round(o.w), o.w * 1.5 + 40, o.h * 1.4 + 50, o.w * 0.75 + 20, o.h * 1.3 + 20, 1.6, g => outcrop(g, o.w, o.h, o.s)); S.push({ y: o.y, x: o.x, oc: occ(sp, o.x, o.y), draw: g => drawSpr(g, sp, o.x, o.y) }); }
   // горы за краем зоны (там, где они есть)

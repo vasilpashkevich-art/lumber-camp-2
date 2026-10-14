@@ -219,4 +219,4 @@ export function cityBlocks(C) {
   return { rects: R, ells: E };
 }
 /** Прямоугольник основания постройки: [x0, y0, x1, y1] относительно середины лица (x, y). */
-export function footRect(art, x, y) { const [w, d] = FOOT[art] || [120, 100]; return [x - w / 2, y - d * 0.5, x + w / 2 + d * 0.3, y]; }
+export function footRect(art, x, y) { const [w, d] = FOOT[art] || [120, 100]; return [x - w / 2, y - d * 0.5, x + w / 2, y]; } // v102: вид спереди — основание без скоса
