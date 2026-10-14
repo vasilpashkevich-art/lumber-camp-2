@@ -406,6 +406,7 @@ function shroom(S, view, p, W, bite, t) {
 export const SNAKES = {
   snake: { body: '#4a6a3a', dark: '#26381e', belly: '#d8c890', mark: '#c8a040', eye: '#f0c030' },
   boss_aspid: { body: '#2e2e36', dark: '#121216', belly: '#b8a070', mark: '#c8402a', eye: '#e8c040', hood: true },
+  viper: { body: '#5a5a3a', dark: '#2a2a18', belly: '#c8b880', mark: '#1e1e14', eye: '#e0c040' },   // v90: храмовая гадюка — мелкая, в Змеиных ямах
 };
 let SNAKE = SNAKES.snake;
 function snakeSpine(view, p, W, bite, t) { // точки позвоночника от хвоста к голове
@@ -534,7 +535,7 @@ export function beast(ctx, kind, view, pose = {}) {
 export const NAMES = { fox: 'Лиса', wolf: 'Волк', dog: 'Дикий пёс', boar: 'Кабан', bull: 'Бешеный бык', spider: 'Лесной паук', crow: 'Ворона', scarecrow: 'Пугало', kvakun: 'Квакун-копейщик', kvak_shaman: 'Квакун-шаман', gribo: 'Грибоед', sporo: 'Споровик', weaver: 'Тенепряд', broodmother: 'Паучиха-мать', snake: 'Великий Полоз' };
 
 // высота полоски здоровья над землёй и размер готового кадра [w, h, ox, oy] для каждого существа
-export const BAR_H = { kvak_guard: 40, kvak_priest: 40, temple_frog: 26, boss_bulk: 60, boss_priestess: 42, boss_aspid: 84, boss_king: 56, boss_toad: 96, fox: 26, wolf: 36, dog: 32, boar: 40, bull: 56, spider: 24, crow: 40, scarecrow: 48, kvakun: 38, kvak_shaman: 44, gribo: 36, sporo: 30, weaver: 30, broodmother: 42, snake: 80 };
-export const BOX = { boss_toad: [220, 150, 110, 130], boss_aspid: [250, 130, 150, 110], boss_bulk: [150, 130, 75, 110], boss_priestess: [120, 90, 60, 72], boss_king: [150, 120, 75, 100], bull: [170, 110, 85, 92], snake: [250, 130, 150, 110], broodmother: [150, 90, 75, 72], weaver: [120, 70, 60, 56], boar: [130, 80, 65, 66] };
+export const BAR_H = { viper: 40, kvak_priest: 40, temple_frog: 26, boss_bulk: 60, boss_priestess: 42, boss_aspid: 84, boss_king: 56, boss_toad: 96, fox: 26, wolf: 36, dog: 32, boar: 40, bull: 56, spider: 24, crow: 40, scarecrow: 48, kvakun: 38, kvak_shaman: 44, gribo: 36, sporo: 30, weaver: 30, broodmother: 42, snake: 80 };
+export const BOX = { viper: [150, 80, 90, 66], boss_toad: [220, 150, 110, 130], boss_aspid: [250, 130, 150, 110], boss_bulk: [150, 130, 75, 110], boss_priestess: [120, 90, 60, 72], boss_king: [150, 120, 75, 100], bull: [170, 110, 85, 92], snake: [250, 130, 150, 110], broodmother: [150, 90, 75, 72], weaver: [120, 70, 60, 56], boar: [130, 80, 65, 66] };
 /** Совместимость: старый вызов «зверь сбоку» (фаза шага, укус). */
 export const BEASTS = Object.fromEntries(KINDS.map(k => [k, (g, a, bite) => beast(g, k, 'side', bite ? { atk: 0.5 } : { walk: a })]));

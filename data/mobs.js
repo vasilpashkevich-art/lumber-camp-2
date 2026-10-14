@@ -135,4 +135,30 @@ export const MOBS = {
     hp: 1.8, dmg: 1.0, speed: 175, reach: 60, cd: 1.3,
     trait: 'poison', poisonSay: 'язык', gold: 2,
   },
+  viper: {
+    name: 'Храмовая гадюка', art: 'viper', r: 16,
+    hp: 1.6, dmg: 1.1, speed: 160, reach: 46, cd: 1.5,
+    trait: 'poison', gold: 2.5,
+  },
+  // v90: боссы Храма квакунов — пока простые (одно умение, гарантированная синяя вещь); фазы — следующими версиями
+  boss_bulk: {
+    name: 'Воевода Бульк', art: 'boss_bulk', r: 24, boss: true, humanoid: true,
+    hp: 9, dmg: 1.6, speed: 125, reach: 60, cd: 1.8,
+    smash: { every: 8, wind: 1.0, r: 130, mul: 2.2, say: 'заносит трезубец!' }, gold: 14,
+  },
+  boss_priestess: {
+    name: 'Жрица Квакша', art: 'boss_priestess', r: 18, boss: true, humanoid: true,
+    hp: 6.5, dmg: 1.4, speed: 120, reach: 300, cd: 2.0,
+    trait: 'caster', curseSay: 'тина вяжет', summon: { kind: 'temple_frog', n: 2, max: 2, every: 12, say: 'зовёт головастиков!' }, gold: 14,
+  },
+  boss_aspid: {
+    name: 'Храмовый аспид', art: 'boss_aspid', r: 28, boss: true,
+    hp: 8, dmg: 1.5, speed: 150, reach: 56, cd: 1.6,
+    trait: 'poison', smash: { every: 7, wind: 0.9, r: 150, mul: 2.2, say: 'сворачивает кольца!', style: 'coil' }, gold: 14,
+  },
+  boss_king: {
+    name: 'Король квакунов', art: 'boss_king', r: 26, boss: true, humanoid: true, final: true,
+    hp: 14, dmg: 1.8, speed: 125, reach: 64, cd: 1.8,
+    smash: { every: 9, wind: 1.1, r: 160, mul: 2.4, say: 'КВАК!' }, summon: { kind: 'temple_frog', n: 2, max: 3, every: 20, say: 'зовёт головастиков!' }, gold: 30,
+  },
 };

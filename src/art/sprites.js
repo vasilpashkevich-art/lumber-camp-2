@@ -138,7 +138,7 @@ export const GUARD_LOOK = { key: 'npc-guard', hair: '#6a4a2a', beard: 'full', ch
 // люди-мобы — в том же масштабе, что герой (1,15), вожаки крупнее
 /** v87: люди крупнее на четверть (герой был мал рядом с дверями и зверями): герой, стража, купец — PEOPLE_K; люди-мобы — в MOB_SCALE уже с учётом. */
 export const PEOPLE_K = 1.45;
-export const MOB_SCALE = { kvak_guard: 1.15, kvak_priest: 1.05, temple_frog: 1.2, boss_bulk: 1.65, boss_priestess: 1.35, boss_king: 1.8, boss_aspid: 1.1, boss_toad: 1.5, ataman: 1.8, bandit: 1.45, bandit_archer: 1.45, robber: 1.5, firestarter: 1.4, miller: 1.65 };
+export const MOB_SCALE = { viper: 0.55, kvak_guard: 1.15, kvak_priest: 1.05, temple_frog: 1.2, boss_bulk: 1.65, boss_priestess: 1.35, boss_king: 1.8, boss_aspid: 1.1, boss_toad: 1.5, ataman: 1.8, bandit: 1.45, bandit_archer: 1.45, robber: 1.5, firestarter: 1.4, miller: 1.65 };
 
 /** Моб: звери с кадрами шага, люди — облик героя. */
 export function mobSpr(kind, dir, frame, bite) {

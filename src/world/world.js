@@ -215,6 +215,7 @@ export function buildWorld(Z) {
     const x = 400 + r3() * (Z.W - 800), y = 400 + r3() * (Z.H - 800), w = 90 + r3() * 60;
     if (!rockOk(x, y, w * 0.5) || edgeDist(x, y) < 500) continue; W.rocks.push({ x, y, w, h: w * (0.55 + r3() * 0.15), s: Math.floor(r3() * 1000) }); i++;
   }
+  if (Z.interior) { W.rocks = []; W.trees = []; W.grid.clear(); }   // v90: в подземелье снаружи комнат — только скала, ни деревьев, ни камней
   for (const o of W.rocks) W.blocks.push({ x: o.x, y: o.y - 4, rx: o.w * 0.48, ry: o.w * 0.16 });
   // Грибной лес (v65): поваленные стволы (обходить), рощи грибов-великанов, папоротники, светящиеся грибочки, камыш у прудов — отдельным зерном
   if (Z.moss) {
