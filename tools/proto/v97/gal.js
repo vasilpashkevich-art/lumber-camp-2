@@ -1,4 +1,4 @@
-// Эскиз v97: мультяшный герой рядом с нынешним, два варианта пропорций, и в масштабе игры рядом с новым сундуком.
+// Эскиз v97, проба 2: суровый мультяшный герой (вариант А) в разных вещах — по 5 комплектов на класс; и в масштабе игры с сундуком.
 import { lookOf } from '../../../src/systems/items.js';
 import { newHero } from '../../../src/entities/hero.js';
 import { personSpr, drawFrame, PEOPLE_K } from '../../../src/art/sprites.js';
@@ -6,29 +6,49 @@ import { floor } from '../../../src/art/temple.js';
 import { chestBig } from '../../../src/art/chest.js';
 import { toonHero } from './toon.js';
 
+const SETS = {
+  warrior: [
+    ['Начало', {}],
+    ['Зелёные: шапель, кольчуга, меч', { head: { m: 'kettle', c: '#9aa2ae' }, chest: { m: 'mail', c: '#3e6a3a', sign: '#d8c070' }, legs: { m: 'mail', c: '#7a828e' }, boots: '#4a3020', weapon: { m: 'sword', c: '#c8d0da', c2: '#8a6a3a' } }],
+    ['Синие: рогатый шлем, латы, секира', { head: { m: 'horned', c: '#8a929e', c2: '#3a6ab0' }, chest: { m: 'plate', c: '#3a6ab0', c2: '#a8b2c0', pauldron: true }, legs: { m: 'plate', c: '#5a6270', c2: '#a8b2c0' }, boots: '#3e4450', weapon: { m: 'battleaxe', c: '#c8d0da', c2: '#3a6ab0' } }],
+    ['Синие: шлем, кольчуга, молот', { head: { m: 'kettle', c: '#6a7280', c2: '#a83a2a' }, chest: { m: 'mail', c: '#a83a2a', sign: '#e8d090' }, legs: { m: 'pants', c: '#5a3a24' }, boots: '#3a2818', weapon: { m: 'hammer', c: '#9aa2ae', c2: '#c8a040' }, cape: '#7a2a20' }],
+    ['Фиолетовые: Латы Пламени, Клинок Пламени', { head: { m: 'greathelm', c: '#3a2a2a', c2: '#e0a030', crest: '#c83a20' }, chest: { m: 'plate', c: '#c84a20', c2: '#4a3a3a', pauldron: 'spike' }, legs: { m: 'plate', c: '#3a2a2a', c2: '#5a4848' }, boots: '#2a1e1e', weapon: { m: 'flamesword', c: '#f0d0a0', c2: '#e0a030' }, cape: '#8a2018' }],
+  ],
+  mage: [
+    ['Начало', {}],
+    ['Зелёные: капюшон, мантия, посох', { head: { m: 'hood', c: '#4a5a8a' }, chest: { m: 'robe', c: '#4a5a8a', c2: '#c8b070' }, boots: '#2a2a3a', weapon: { m: 'staff' } }],
+    ['Синие: шляпа, мантия, посох огня', { head: { m: 'wizard', c: '#8a2a2a', c2: '#e0b040' }, chest: { m: 'robe', c: '#8a2a2a', c2: '#e0b040' }, boots: '#3a1e1e', weapon: { m: 'firestaff' } }],
+    ['Синие: капюшон-накидка, боевая мантия', { head: { m: 'cowl', c: '#2e4a6a', c2: '#1e3248' }, chest: { m: 'battlerobe', c: '#2e4a6a', c2: '#a8c8e0', c3: '#1e3248' }, boots: '#1e2a38', weapon: { m: 'staff', wood: '#3a2a20' } }],
+    ['Фиолетовые: Венец Звездочёта, кристалл', { head: { m: 'circlet', c: '#e0b040', gem: '#b070ff' }, chest: { m: 'battlerobe', c: '#5a2a8a', c2: '#e0b040', c3: '#3a1a5a' }, boots: '#2a1a3a', weapon: { m: 'crystal', c2: '#e0b040', wood: '#2a1e30' }, cape: '#3a1a5a' }],
+  ],
+  archer: [
+    ['Начало', {}],
+    ['Зелёные: капюшон, куртка, лук', { head: { m: 'hood', c: '#3e6a32' }, chest: { m: 'leather', c: '#6a4a2c', c2: '#3e6a32' }, legs: { m: 'pants', c: '#5a4430' }, boots: '#3e2a18', weapon: { m: 'bow', c: '#9a6a34' } }],
+    ['Синие: шапка с пером, клёпаная куртка', { head: { m: 'feathercap', c: '#3a5a7a', c2: '#d84a3a' }, chest: { m: 'leather', c: '#4a3a2a', c2: '#3a5a7a', studs: true }, legs: { m: 'pants', c: '#3a3a44' }, boots: '#2a2018', weapon: { m: 'longbow', c: '#7a4a24' } }],
+    ['Синие: накидка, длинный лук', { head: { m: 'cowl', c: '#5a4a3a', c2: '#3a2e24' }, chest: { m: 'leather', c: '#5a4a3a', c2: '#4a3a2c', studs: true }, legs: { m: 'pants', c: '#4a3e30' }, boots: '#2e2218', weapon: { m: 'longbow', c: '#5a3a20' }, cape: '#3e5a32' }],
+    ['Фиолетовые: Солнечный лук, Белый Олень', { head: { m: 'hood', c: '#e8e0cc' }, chest: { m: 'leather', c: '#e0d6bc', c2: '#8a6a3a', studs: true }, legs: { m: 'pants', c: '#6a5a42' }, boots: '#4a3a28', weapon: { m: 'goldbow' }, cape: '#2e5a3a', quiver: '#e0b040' }],
+  ],
+};
 const NAME = { warrior: 'Воин', mage: 'Маг', archer: 'Лучник' };
+
 export function gallery(root) {
   const mk = (w, h, title, note) => { const s = document.createElement('section'); s.innerHTML = `<h2>${title}</h2>${note ? `<p>${note}</p>` : ''}`; const cv = document.createElement('canvas'); cv.width = w; cv.height = h; s.append(cv); root.append(s); return cv; };
-  const big = mk(1200, 560, 'Крупно: сейчас · вариант А · вариант Б', 'А — пропорции как сейчас (≈4,3 головы), только мультяшная рисовка: круглые формы, мягкий объём, обводка в цвет детали, крупные глаза с бликом. Б — мультяшнее: голова больше (≈3,2 головы), ноги короче и толще.');
-  const scene = mk(1200, 380, 'В масштабе игры (приближение ×2,4) рядом с новым сундуком', 'Слева направо: нынешний Воин, вариант А, вариант Б, сундук, Маг А и Б, Лучник А и Б.');
-  const H = { warrior: lookOf(newHero('В', 'warrior')), mage: lookOf(newHero('М', 'mage')), archer: lookOf(newHero('Л', 'archer')) };
+  const rows = ['warrior', 'mage', 'archer'].map(cls => ({ cls, cv: mk(1200, 470, NAME[cls], cls === 'warrior' ? 'Слева нынешний герой для сравнения, дальше — новый в разных вещах: начальные, зелёные, синие, фиолетовые. Лица суровые: тяжёлые брови, узкие глаза, сжатый рот, у Воина шрам, у Лучника щетина.' : '') }));
+  const scene = mk(1200, 380, 'В масштабе игры (приближение ×2,4) рядом с новым сундуком', 'Нынешний Воин слева, дальше новые — по одному комплекту каждого класса.');
+  const L = { warrior: lookOf(newHero('В', 'warrior')), mage: lookOf(newHero('М', 'mage')), archer: lookOf(newHero('Л', 'archer')) };
   const tick = now => {
     const t = now / 1000;
-    { const g = big.getContext('2d'); g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, big.width, big.height); g.save(); g.scale(2, 2); floor(g, 0, 0, 600, 280, 3, 36, false); g.restore();
-      ['warrior', 'mage', 'archer'].forEach((cls, i) => {
-        const x0 = 75 + i * 395, y = 500, KC = 6.8, KT = KC * 39 / 40;
-        g.fillStyle = 'rgba(0,0,0,.25)'; g.beginPath(); g.ellipse(x0, y + 2, 34, 9, 0, 0, 7); g.fill();
-        drawFrame(g, personSpr(H[cls], 'front', 'idle', 0), x0, y - 12.6 * KC, 1, KC);
-        g.save(); g.translate(x0 + 125, y); g.scale(KT, KT); toonHero(g, cls, 'A', t + i); g.restore();
-        g.save(); g.translate(x0 + 255, y); g.scale(KT, KT); toonHero(g, cls, 'B', t + i + 1); g.restore();
-        g.font = '15px Georgia'; g.fillStyle = '#e9dfc8'; g.textAlign = 'center';
-        g.fillText(NAME[cls] + ': сейчас', x0, 545); g.fillText('А', x0 + 125, 545); g.fillText('Б', x0 + 255, 545);
-      }); }
+    for (const { cls, cv } of rows) {
+      const g = cv.getContext('2d'); g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, cv.width, cv.height); g.save(); g.scale(2, 2); floor(g, 0, 0, 600, 235, cls.length, 36, false); g.restore();
+      const KC = 6.4, KT = KC * 39 / 40, y = 405;
+      g.fillStyle = 'rgba(0,0,0,.25)'; g.beginPath(); g.ellipse(70, y + 2, 32, 8, 0, 0, 7); g.fill(); drawFrame(g, personSpr(L[cls], 'front', 'idle', 0), 70, y - 12.6 * KC, 1, KC);
+      SETS[cls].forEach(([lab, gear], i) => { const x = 230 + i * 210; g.save(); g.translate(x, y); g.scale(KT, KT); toonHero(g, cls, gear, t + i * 0.7); g.restore(); g.font = '13px Georgia'; g.fillStyle = i === 4 ? '#d8b8ff' : '#e9dfc8'; g.textAlign = 'center'; const [l1, l2] = lab.split(': '); g.fillText(l1, x, 440); if (l2) { g.fillStyle = '#b9ad94'; g.fillText(l2, x, 458); } });
+      g.font = '14px Georgia'; g.fillStyle = '#b9ad94'; g.textAlign = 'center'; g.fillText('сейчас', 70, 440);
+    }
     { const g = scene.getContext('2d'), K = 2.4, s = 39 / 40 * PEOPLE_K; g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, scene.width, scene.height); g.save(); g.scale(K, K); floor(g, 0, 0, 500, 160, 4, 40, false);
-      const y = 130;
-      g.fillStyle = 'rgba(0,0,0,.25)'; g.beginPath(); g.ellipse(45, y + 2, 15, 5, 0, 0, 7); g.fill(); drawFrame(g, personSpr(H.warrior, 'front', 'idle', 0), 45, y - 12.6 * PEOPLE_K, 1, PEOPLE_K);
-      const put = (x, cls, p) => { g.save(); g.translate(x, y); g.scale(s, s); toonHero(g, cls, p, t + x); g.restore(); };
-      put(100, 'warrior', 'A'); put(150, 'warrior', 'B'); chestBig(g, 220, y, true, t); put(290, 'mage', 'A'); put(335, 'mage', 'B'); put(390, 'archer', 'A'); put(440, 'archer', 'B');
+      const y = 130; g.fillStyle = 'rgba(0,0,0,.25)'; g.beginPath(); g.ellipse(40, y + 2, 15, 5, 0, 0, 7); g.fill(); drawFrame(g, personSpr(L.warrior, 'front', 'idle', 0), 40, y - 12.6 * PEOPLE_K, 1, PEOPLE_K);
+      const put = (x, cls, i) => { g.save(); g.translate(x, y); g.scale(s, s); toonHero(g, cls, SETS[cls][i][1], t + x); g.restore(); };
+      put(90, 'warrior', 1); put(140, 'warrior', 4); chestBig(g, 215, y, true, t); put(290, 'mage', 2); put(340, 'mage', 4); put(395, 'archer', 1); put(445, 'archer', 4);
       g.restore(); }
     requestAnimationFrame(tick);
   };

@@ -1,7 +1,7 @@
 <title>Мультяшный герой</title><style>
 :root{color-scheme:dark}body{margin:0;background:#1d1a16;color:#e9dfc8;font:15px Georgia,serif;padding-block:16px;padding-inline:16px}h1{font-size:24px;margin:0 0 4px}h2{font-size:19px;color:#f0c24a;margin:18px 0 4px}p{max-width:72ch;color:#b9ad94}
 canvas{display:block;max-width:100%;height:auto;border-radius:8px}
-</style><body><h1>Мультяшный герой — эскиз</h1><p>Герой в том же стиле, что новый сундук: круглые формы, мягкий объём, обводка в цвет детали вместо чёрной. Пока только вид спереди и стоя — на утверждение стиля и пропорций.</p><div id="root"></div><script>(() => {
+</style><body><h1>Мультяшный герой — эскиз, проба 2</h1><p>Вариант А (пропорции как сейчас) в стиле сундука, но суровее: тяжёлые брови, узкие глаза, сжатый рот, щетина, шрамы — эти люди воюют. И в разных вещах: шлемы, доспехи, мантии, оружие разных ярусов. Пока вид спереди и стоя.</p><div id="root"></div><script>(() => {
   // data/classes.js
   var RING = ["", "\u041C\u0435\u0434\u043D\u043E\u0435 \u043A\u043E\u043B\u044C\u0446\u043E", "\u0421\u0435\u0440\u0435\u0431\u0440\u044F\u043D\u043E\u0435 \u043A\u043E\u043B\u044C\u0446\u043E", "\u0417\u043E\u043B\u043E\u0442\u043E\u0435 \u043A\u043E\u043B\u044C\u0446\u043E", "\u041F\u0435\u0440\u0441\u0442\u0435\u043D\u044C \u0421\u0442\u0440\u0430\u0436\u0430"];
   var NECK = ["", "\u041E\u0431\u0435\u0440\u0435\u0433", "\u0410\u043C\u0443\u043B\u0435\u0442", "\u041C\u0435\u0434\u0430\u043B\u044C\u043E\u043D", "\u041E\u0436\u0435\u0440\u0435\u043B\u044C\u0435 \u043F\u0440\u0435\u0434\u043A\u043E\u0432"];
@@ -86,20 +86,20 @@ canvas{display:block;max-width:100%;height:auto;border-radius:8px}
   var pick = (r, a) => a[Math.floor(r() * a.length)];
   function palette(rar, seed, tier = 1) {
     const r = rng(seed * 7 + 3);
-    const P = {
+    const P2 = {
       start: { metal: "#8a7a6a", acc: "#6a5a48", wood: "#7a5a38", wrap: "#6b4a2c", cloth: ["#cdbb94", "#bfae88"], leather: "#7a5230", gem: null, glow: null, etch: null },
       common: { metal: pick(r, ["#8f969b", "#868d93", "#979c9f"]), acc: "#5d6369", wood: pick(r, ["#7a5230", "#6b4428", "#84603a"]), wrap: pick(r, ["#5a3418", "#4a3020", "#6b4a2c"]), cloth: pick(r, [["#7c6a4c", "#6a5a40"], ["#6b5a46", "#5a4a38"], ["#8a7a5a", "#766848"]]), leather: pick(r, ["#7a5230", "#6b4428"]), gem: null, glow: null, etch: null },
       good: { metal: pick(r, ["#b4bdc4", "#aeb8c0"]), acc: pick(r, ["#b8783a", "#c08a3e", "#a8703a"]), wood: pick(r, ["#6b4428", "#5a3a22", "#7a5230"]), wrap: pick(r, ["#3d6b3a", "#7a2e22", "#2e4a6e", "#5a3418"]), cloth: pick(r, [["#3d6b3a", "#2e5430"], ["#7a2e22", "#5e2219"], ["#2e4a6e", "#22385a"]]), leather: pick(r, ["#6b4428", "#5a3a22"]), gem: null, glow: null, etch: null },
       rare: { metal: pick(r, ["#cdd7de", "#b9c8d6", "#c4ccd2"]), acc: pick(r, ["#e0b84a", "#e8eef2"]), wood: pick(r, ["#3a2416", "#4a2a1a"]), wrap: pick(r, ["#24406e", "#7a2222", "#2a2a40"]), cloth: pick(r, [["#24406e", "#1a2f52"], ["#7a2222", "#5a1818"], ["#2a5a5a", "#1e4444"]]), leather: "#4a2e1a", gem: pick(r, ["#4a9eff", "#e04848", "#3fd0a0"]), glow: null, etch: "#7ec8ff" },
       epic: { metal: pick(r, ["#5b5470", "#4e5068"]), acc: "#e7c35a", wood: "#2a1a2a", wrap: pick(r, ["#3a1f5a", "#1a1a2a"]), cloth: pick(r, [["#3a1f5a", "#2a1444"], ["#1e1a40", "#14122e"]]), leather: "#2a1a24", gem: "#c58bff", glow: null, etch: "#d6b0ff" }
     }[rar] || {};
-    P.leaf = { start: "#6b7a4a", common: pick(r, ["#5a7a46", "#6b7a4a"]), good: pick(r, ["#4aa870", "#5a9a50"]), rare: pick(r, ["#2f8a6a", "#3a7aa0"]), epic: pick(r, ["#2a8a72", "#3a5aa0"]) }[rar] || "#5a7a46";
-    P.orb = P.gem || { start: "#c8b070", common: "#9ad0ff", good: "#9affc8" }[rar] || "#9ad0ff";
-    P.edge = sh(P.metal || "#999999", 0.45);
-    P.dark = sh(P.metal || "#999999", -0.35);
-    P.rar = rar;
-    P.tier = tier;
-    return P;
+    P2.leaf = { start: "#6b7a4a", common: pick(r, ["#5a7a46", "#6b7a4a"]), good: pick(r, ["#4aa870", "#5a9a50"]), rare: pick(r, ["#2f8a6a", "#3a7aa0"]), epic: pick(r, ["#2a8a72", "#3a5aa0"]) }[rar] || "#5a7a46";
+    P2.orb = P2.gem || { start: "#c8b070", common: "#9ad0ff", good: "#9affc8" }[rar] || "#9ad0ff";
+    P2.edge = sh(P2.metal || "#999999", 0.45);
+    P2.dark = sh(P2.metal || "#999999", -0.35);
+    P2.rar = rar;
+    P2.tier = tier;
+    return P2;
   }
   function F(c2, fn, fill, lw = 0.7) {
     c2.beginPath();
@@ -121,10 +121,10 @@ canvas{display:block;max-width:100%;height:auto;border-radius:8px}
     pts.forEach((p, i) => i ? c2.lineTo(p[0], p[1]) : c2.moveTo(p[0], p[1]));
     c2.stroke();
   }
-  function metal(c2, fn, P, col = P.metal) {
-    if (P.glow) {
+  function metal(c2, fn, P2, col = P2.metal) {
+    if (P2.glow) {
       c2.save();
-      c2.shadowColor = P.glow;
+      c2.shadowColor = P2.glow;
       c2.shadowBlur = 4;
       F(c2, fn, col, 0);
       c2.restore();
@@ -156,11 +156,11 @@ canvas{display:block;max-width:100%;height:auto;border-radius:8px}
     c2.lineWidth = 0.25;
     c2.stroke();
   }
-  function haft(c2, b, top, w, P, w0 = 2.4, w1 = -2.4, metalHaft = false) {
-    F(c2, () => c2.roundRect(-w / 2, top, w, b - top, w / 2), metalHaft ? P.dark : P.wood, 0.7);
+  function haft(c2, b, top, w, P2, w0 = 2.4, w1 = -2.4, metalHaft = false) {
+    F(c2, () => c2.roundRect(-w / 2, top, w, b - top, w / 2), metalHaft ? P2.dark : P2.wood, 0.7);
     line(c2, [[-w / 2 + 0.45, b - 0.4], [-w / 2 + 0.45, top + 0.4]], "rgba(255,240,210,.35)", 0.4);
     if (w0 > w1) {
-      F(c2, () => c2.rect(-w / 2 - 0.15, w1, w + 0.3, w0 - w1), P.wrap, 0.5);
+      F(c2, () => c2.rect(-w / 2 - 0.15, w1, w + 0.3, w0 - w1), P2.wrap, 0.5);
       c2.strokeStyle = "rgba(0,0,0,.35)";
       c2.lineWidth = 0.3;
       for (let y = w1 + 0.7; y < w0; y += 0.9) {
@@ -171,13 +171,13 @@ canvas{display:block;max-width:100%;height:auto;border-radius:8px}
       }
     }
   }
-  function runes(c2, P, pts) {
-    if (!P.etch) return;
+  function runes(c2, P2, pts) {
+    if (!P2.etch) return;
     c2.save();
-    c2.strokeStyle = P.etch;
+    c2.strokeStyle = P2.etch;
     c2.lineWidth = 0.35;
-    if (P.glow) {
-      c2.shadowColor = P.glow;
+    if (P2.glow) {
+      c2.shadowColor = P2.glow;
       c2.shadowBlur = 2;
     }
     for (const [x, y] of pts) {
@@ -189,12 +189,12 @@ canvas{display:block;max-width:100%;height:auto;border-radius:8px}
     }
     c2.restore();
   }
-  var edgeHi = (c2, P, pts) => line(c2, pts, P.edge, 0.55);
-  function tipGlow(c2, x, y, r, P, o, lamp) {
-    const k = o && o.glow || 0, R = r * (1.6 + k * 1.6), col = P.glow || P.orb;
-    if (P.rar === "start" && !k) return;
+  var edgeHi = (c2, P2, pts) => line(c2, pts, P2.edge, 0.55);
+  function tipGlow(c2, x, y, r, P2, o, lamp) {
+    const k = o && o.glow || 0, R = r * (1.6 + k * 1.6), col = P2.glow || P2.orb;
+    if (P2.rar === "start" && !k) return;
     const g = c2.createRadialGradient(x, y, 0.3, x, y, R);
-    g.addColorStop(0, col + (k > 0.3 || P.glow ? "cc" : "88"));
+    g.addColorStop(0, col + (k > 0.3 || P2.glow ? "cc" : "88"));
     g.addColorStop(1, col + "00");
     c2.fillStyle = g;
     c2.beginPath();
@@ -208,8 +208,8 @@ canvas{display:block;max-width:100%;height:auto;border-radius:8px}
     c2.arc(x - r * 0.35, y - r * 0.35, r * 0.32, 0, 7);
     c2.fill();
   }
-  function bowDraw(c2, P, o = {}, bh, kind) {
-    const pull = o.pull || 0, col = [P.wood, P.wood, sh(P.wood, -0.1), P.wood, "#d8c8a0", sh(P.wood, -0.25), P.leaf][kind];
+  function bowDraw(c2, P2, o = {}, bh, kind) {
+    const pull = o.pull || 0, col = [P2.wood, P2.wood, sh(P2.wood, -0.1), P2.wood, "#d8c8a0", sh(P2.wood, -0.25), P2.leaf][kind];
     const limb2 = (s) => {
       c2.beginPath();
       c2.moveTo(0.4, 0);
@@ -244,13 +244,13 @@ canvas{display:block;max-width:100%;height:auto;border-radius:8px}
         c2.stroke();
         c2.setLineDash([]);
       }
-      if (kind === 5 || kind >= 3) F(c2, () => c2.arc(tips, s * bh, 0.65, 0, 7), kind === 5 ? P.metal : P.acc, 0.35);
+      if (kind === 5 || kind >= 3) F(c2, () => c2.arc(tips, s * bh, 0.65, 0, 7), kind === 5 ? P2.metal : P2.acc, 0.35);
       if (kind === 6) {
         c2.save();
-        c2.strokeStyle = P.etch || P.orb;
+        c2.strokeStyle = P2.etch || P2.orb;
         c2.lineWidth = 0.4;
-        if (P.glow) {
-          c2.shadowColor = P.glow;
+        if (P2.glow) {
+          c2.shadowColor = P2.glow;
           c2.shadowBlur = 3;
         }
         limb2(s);
@@ -258,8 +258,8 @@ canvas{display:block;max-width:100%;height:auto;border-radius:8px}
         c2.restore();
       }
     }
-    F(c2, () => c2.roundRect(-0.4, -2.2, 2.2, 4.4, 0.6), kind === 0 ? sh(P.wood, -0.2) : P.wrap, 0.5);
-    if (kind >= 5 && P.gem) gem(c2, 2.4, 0, 0.8, P.gem);
+    F(c2, () => c2.roundRect(-0.4, -2.2, 2.2, 4.4, 0.6), kind === 0 ? sh(P2.wood, -0.2) : P2.wrap, 0.5);
+    if (kind >= 5 && P2.gem) gem(c2, 2.4, 0, 0.8, P2.gem);
     if (o.arrow && pull > 0.05) {
       c2.strokeStyle = O;
       c2.lineWidth = 1.2;
@@ -285,20 +285,20 @@ canvas{display:block;max-width:100%;height:auto;border-radius:8px}
     }
   }
   var WEAPONS = [
-    { id: "hatchet", name: "\u0422\u043E\u043F\u043E\u0440\u0438\u043A", tiers: [0, 1, 2], hands: 1, box: [-3, -16, 7, 5], draw(c2, P) {
-      haft(c2, 4.2, -14.6, 1.7, P, 2.2, -1.8);
+    { id: "hatchet", name: "\u0422\u043E\u043F\u043E\u0440\u0438\u043A", tiers: [0, 1, 2], hands: 1, box: [-3, -16, 7, 5], draw(c2, P2) {
+      haft(c2, 4.2, -14.6, 1.7, P2, 2.2, -1.8);
       metal(c2, () => {
         c2.moveTo(0.7, -14.6);
         c2.lineTo(3.8, -15.6);
         c2.quadraticCurveTo(5.9, -12.2, 4.3, -8.4);
         c2.lineTo(0.7, -10.6);
         c2.closePath();
-      }, P);
-      edgeHi(c2, P, [[4.1, -15.1], [5.1, -12.2], [4.2, -9]]);
-      F(c2, () => c2.rect(-1.8, -14.2, 1.4, 3), P.dark, 0.6);
+      }, P2);
+      edgeHi(c2, P2, [[4.1, -15.1], [5.1, -12.2], [4.2, -9]]);
+      F(c2, () => c2.rect(-1.8, -14.2, 1.4, 3), P2.dark, 0.6);
     } },
-    { id: "bearded", name: "\u0411\u043E\u0440\u043E\u0434\u043E\u0432\u0438\u0434\u043D\u044B\u0439 \u0442\u043E\u043F\u043E\u0440", tiers: [2, 3], hands: 1, box: [-3, -18, 8, 5], draw(c2, P) {
-      haft(c2, 4.4, -16.4, 1.8, P, 2.4, -2);
+    { id: "bearded", name: "\u0411\u043E\u0440\u043E\u0434\u043E\u0432\u0438\u0434\u043D\u044B\u0439 \u0442\u043E\u043F\u043E\u0440", tiers: [2, 3], hands: 1, box: [-3, -18, 8, 5], draw(c2, P2) {
+      haft(c2, 4.4, -16.4, 1.8, P2, 2.4, -2);
       metal(c2, () => {
         c2.moveTo(0.8, -16.2);
         c2.lineTo(5, -17.2);
@@ -306,68 +306,68 @@ canvas{display:block;max-width:100%;height:auto;border-radius:8px}
         c2.lineTo(5.2, -6.8);
         c2.quadraticCurveTo(3.4, -10, 0.8, -11.2);
         c2.closePath();
-      }, P);
-      edgeHi(c2, P, [[5.3, -16.6], [6.6, -12.6], [6.1, -8]]);
-      F(c2, () => c2.rect(-1.2, -16.6, 2.4, 6), P.acc, 0.5);
-      rivet(c2, 0, -15.4, P.edge);
-      rivet(c2, 0, -12.2, P.edge);
-      runes(c2, P, [[3.2, -13.6], [4.4, -12.1], [3.6, -10.4]]);
+      }, P2);
+      edgeHi(c2, P2, [[5.3, -16.6], [6.6, -12.6], [6.1, -8]]);
+      F(c2, () => c2.rect(-1.2, -16.6, 2.4, 6), P2.acc, 0.5);
+      rivet(c2, 0, -15.4, P2.edge);
+      rivet(c2, 0, -12.2, P2.edge);
+      runes(c2, P2, [[3.2, -13.6], [4.4, -12.1], [3.6, -10.4]]);
     } },
-    { id: "battleaxe", name: "\u0411\u043E\u0435\u0432\u043E\u0439 \u0442\u043E\u043F\u043E\u0440", tiers: [2, 3], hands: 1, box: [-6, -21, 10, 5], draw(c2, P) {
-      haft(c2, 4.4, -18.2, 1.9, P, 2.4, -2.2);
+    { id: "battleaxe", name: "\u0411\u043E\u0435\u0432\u043E\u0439 \u0442\u043E\u043F\u043E\u0440", tiers: [2, 3], hands: 1, box: [-6, -21, 10, 5], draw(c2, P2) {
+      haft(c2, 4.4, -18.2, 1.9, P2, 2.4, -2.2);
       F(c2, () => {
         c2.moveTo(-0.9, -18.2);
         c2.lineTo(0, -21.2);
         c2.lineTo(0.9, -18.2);
         c2.closePath();
-      }, P.edge, 0.5);
+      }, P2.edge, 0.5);
       metal(c2, () => {
         c2.moveTo(0.9, -17.6);
         c2.quadraticCurveTo(4.2, -17.8, 6.6, -20.4);
         c2.quadraticCurveTo(9.4, -14, 6.6, -7.8);
         c2.quadraticCurveTo(4, -10.6, 0.9, -11);
         c2.closePath();
-      }, P);
-      edgeHi(c2, P, [[6.9, -19.6], [8.6, -14], [6.9, -8.6]]);
+      }, P2);
+      edgeHi(c2, P2, [[6.9, -19.6], [8.6, -14], [6.9, -8.6]]);
       metal(c2, () => {
         c2.moveTo(-0.9, -16.6);
         c2.lineTo(-4.2, -16);
         c2.lineTo(-4.6, -13.6);
         c2.lineTo(-0.9, -12.4);
         c2.closePath();
-      }, P, P.dark);
-      F(c2, () => c2.rect(-1.25, -17.8, 2.5, 7.4), P.acc, 0.5);
-      gem(c2, 0, -14.2, 0.9, P.gem);
-      runes(c2, P, [[3.6, -15.6], [4.8, -14], [4.2, -12.2]]);
+      }, P2, P2.dark);
+      F(c2, () => c2.rect(-1.25, -17.8, 2.5, 7.4), P2.acc, 0.5);
+      gem(c2, 0, -14.2, 0.9, P2.gem);
+      runes(c2, P2, [[3.6, -15.6], [4.8, -14], [4.2, -12.2]]);
     } },
-    { id: "crescent", name: "\u0421\u0435\u043A\u0438\u0440\u0430", tiers: [3, 4], hands: 2, box: [-4, -29, 14, 8], draw(c2, P) {
-      haft(c2, 7.4, -24.6, 2, P, 2.4, -2.4);
-      F(c2, () => c2.rect(-1.3, 3.6, 2.6, 3.8), P.wrap, 0.5);
-      F(c2, () => c2.roundRect(-1.4, 7, 2.8, 1.6, 0.6), P.acc, 0.5);
+    { id: "crescent", name: "\u0421\u0435\u043A\u0438\u0440\u0430", tiers: [3, 4], hands: 2, box: [-4, -29, 14, 8], draw(c2, P2) {
+      haft(c2, 7.4, -24.6, 2, P2, 2.4, -2.4);
+      F(c2, () => c2.rect(-1.3, 3.6, 2.6, 3.8), P2.wrap, 0.5);
+      F(c2, () => c2.roundRect(-1.4, 7, 2.8, 1.6, 0.6), P2.acc, 0.5);
       metal(c2, () => {
         c2.moveTo(0.9, -23.6);
         c2.quadraticCurveTo(6, -23.6, 9.4, -28.4);
         c2.quadraticCurveTo(14.4, -19.6, 9.4, -9.6);
         c2.quadraticCurveTo(6, -14.6, 0.9, -15);
         c2.closePath();
-      }, P);
-      edgeHi(c2, P, [[9.8, -27.4], [12.6, -19.4], [9.8, -10.6]]);
+      }, P2);
+      edgeHi(c2, P2, [[9.8, -27.4], [12.6, -19.4], [9.8, -10.6]]);
       F(c2, () => c2.arc(5.4, -19.4, 1.6, 0, 7), "rgba(0,0,0,0)", 0.5);
-      F(c2, () => c2.rect(-1.3, -24.6, 2.6, 10.8), P.acc, 0.5);
-      rivet(c2, 0, -22.8, P.edge);
-      rivet(c2, 0, -16, P.edge);
-      gem(c2, 0, -19.4, 1.1, P.gem);
-      runes(c2, P, [[7, -22], [8.4, -19.4], [7, -16.8]]);
+      F(c2, () => c2.rect(-1.3, -24.6, 2.6, 10.8), P2.acc, 0.5);
+      rivet(c2, 0, -22.8, P2.edge);
+      rivet(c2, 0, -16, P2.edge);
+      gem(c2, 0, -19.4, 1.1, P2.gem);
+      runes(c2, P2, [[7, -22], [8.4, -19.4], [7, -16.8]]);
     } },
-    { id: "double", name: "\u0414\u0432\u043E\u0439\u043D\u0430\u044F \u0441\u0435\u043A\u0438\u0440\u0430", tiers: [4], hands: 2, box: [-12, -31, 12, 8], draw(c2, P) {
-      haft(c2, 7.6, -26.4, 2.1, P, 2.6, -2.6);
-      F(c2, () => c2.roundRect(-1.5, 7.2, 3, 1.8, 0.6), P.acc, 0.5);
+    { id: "double", name: "\u0414\u0432\u043E\u0439\u043D\u0430\u044F \u0441\u0435\u043A\u0438\u0440\u0430", tiers: [4], hands: 2, box: [-12, -31, 12, 8], draw(c2, P2) {
+      haft(c2, 7.6, -26.4, 2.1, P2, 2.6, -2.6);
+      F(c2, () => c2.roundRect(-1.5, 7.2, 3, 1.8, 0.6), P2.acc, 0.5);
       F(c2, () => {
         c2.moveTo(-1, -26.2);
         c2.lineTo(0, -30.6);
         c2.lineTo(1, -26.2);
         c2.closePath();
-      }, P.edge, 0.5);
+      }, P2.edge, 0.5);
       for (const s of [1, -1]) {
         c2.save();
         c2.scale(s, 1);
@@ -377,18 +377,18 @@ canvas{display:block;max-width:100%;height:auto;border-radius:8px}
           c2.quadraticCurveTo(12.6, -21, 8.4, -12.8);
           c2.quadraticCurveTo(5.4, -16.4, 1, -16.6);
           c2.closePath();
-        }, P);
-        edgeHi(c2, P, [[8.8, -27.6], [11.2, -21], [8.8, -13.8]]);
-        runes(c2, P, [[5.6, -22.4], [6.8, -20.4], [5.6, -18.6]]);
+        }, P2);
+        edgeHi(c2, P2, [[8.8, -27.6], [11.2, -21], [8.8, -13.8]]);
+        runes(c2, P2, [[5.6, -22.4], [6.8, -20.4], [5.6, -18.6]]);
         c2.restore();
       }
-      F(c2, () => c2.rect(-1.5, -26, 3, 11), P.acc, 0.5);
-      gem(c2, 0, -20.6, 1.3, P.gem || P.acc);
+      F(c2, () => c2.rect(-1.5, -26, 3, 11), P2.acc, 0.5);
+      gem(c2, 0, -20.6, 1.3, P2.gem || P2.acc);
     } },
-    { id: "shortsword", name: "\u041A\u043E\u0440\u043E\u0442\u043A\u0438\u0439 \u043C\u0435\u0447", tiers: [0, 1, 2], hands: 1, box: [-4, -17, 4, 5], draw(c2, P) {
-      F(c2, () => c2.arc(0, 3.4, 1.1, 0, 7), P.acc, 0.6);
-      haft(c2, 2.6, -2.2, 1.5, P, 2.6, -2.2);
-      F(c2, () => c2.roundRect(-3.4, -3.2, 6.8, 1.2, 0.5), P.acc, 0.6);
+    { id: "shortsword", name: "\u041A\u043E\u0440\u043E\u0442\u043A\u0438\u0439 \u043C\u0435\u0447", tiers: [0, 1, 2], hands: 1, box: [-4, -17, 4, 5], draw(c2, P2) {
+      F(c2, () => c2.arc(0, 3.4, 1.1, 0, 7), P2.acc, 0.6);
+      haft(c2, 2.6, -2.2, 1.5, P2, 2.6, -2.2);
+      F(c2, () => c2.roundRect(-3.4, -3.2, 6.8, 1.2, 0.5), P2.acc, 0.6);
       metal(c2, () => {
         c2.moveTo(-1.2, -3.2);
         c2.lineTo(-1.1, -14);
@@ -396,14 +396,14 @@ canvas{display:block;max-width:100%;height:auto;border-radius:8px}
         c2.lineTo(1.1, -14);
         c2.lineTo(1.2, -3.2);
         c2.closePath();
-      }, P);
-      line(c2, [[0, -4], [0, -13.4]], P.dark, 0.35);
-      edgeHi(c2, P, [[-0.7, -4], [-0.65, -13.8]]);
+      }, P2);
+      line(c2, [[0, -4], [0, -13.4]], P2.dark, 0.35);
+      edgeHi(c2, P2, [[-0.7, -4], [-0.65, -13.8]]);
     } },
-    { id: "sword", name: "\u041C\u0435\u0447", tiers: [2, 3], hands: 1, box: [-5, -21, 5, 5], draw(c2, P) {
-      F(c2, () => c2.arc(0, 3.6, 1.25, 0, 7), P.acc, 0.6);
-      gem(c2, 0, 3.6, 0.6, P.gem);
-      haft(c2, 2.7, -2.4, 1.5, P, 2.7, -2.4);
+    { id: "sword", name: "\u041C\u0435\u0447", tiers: [2, 3], hands: 1, box: [-5, -21, 5, 5], draw(c2, P2) {
+      F(c2, () => c2.arc(0, 3.6, 1.25, 0, 7), P2.acc, 0.6);
+      gem(c2, 0, 3.6, 0.6, P2.gem);
+      haft(c2, 2.7, -2.4, 1.5, P2, 2.7, -2.4);
       F(c2, () => {
         c2.moveTo(-4.6, -2.1);
         c2.quadraticCurveTo(-2, -3.6, 0, -3.4);
@@ -412,7 +412,7 @@ canvas{display:block;max-width:100%;height:auto;border-radius:8px}
         c2.quadraticCurveTo(2, -4.6, 0, -4.4);
         c2.quadraticCurveTo(-2, -4.6, -4.4, -3.3);
         c2.closePath();
-      }, P.acc, 0.55);
+      }, P2.acc, 0.55);
       metal(c2, () => {
         c2.moveTo(-1.3, -4.2);
         c2.lineTo(-1.15, -17.6);
@@ -420,15 +420,15 @@ canvas{display:block;max-width:100%;height:auto;border-radius:8px}
         c2.lineTo(1.15, -17.6);
         c2.lineTo(1.3, -4.2);
         c2.closePath();
-      }, P);
-      line(c2, [[0, -5], [0, -16.6]], P.dark, 0.4);
-      edgeHi(c2, P, [[-0.75, -5], [-0.7, -17.4]]);
-      runes(c2, P, [[0, -7], [0, -9], [0, -11]]);
+      }, P2);
+      line(c2, [[0, -5], [0, -16.6]], P2.dark, 0.4);
+      edgeHi(c2, P2, [[-0.75, -5], [-0.7, -17.4]]);
+      runes(c2, P2, [[0, -7], [0, -9], [0, -11]]);
     } },
-    { id: "falchion", name: "\u041F\u0430\u043B\u0430\u0448", tiers: [2, 3], hands: 1, box: [-4, -20, 6, 5], draw(c2, P) {
-      F(c2, () => c2.arc(0, 3.4, 1.1, 0, 7), P.acc, 0.6);
-      haft(c2, 2.6, -2.2, 1.5, P, 2.6, -2.2);
-      F(c2, () => c2.roundRect(-3.2, -3.2, 6.4, 1.2, 0.5), P.acc, 0.6);
+    { id: "falchion", name: "\u041F\u0430\u043B\u0430\u0448", tiers: [2, 3], hands: 1, box: [-4, -20, 6, 5], draw(c2, P2) {
+      F(c2, () => c2.arc(0, 3.4, 1.1, 0, 7), P2.acc, 0.6);
+      haft(c2, 2.6, -2.2, 1.5, P2, 2.6, -2.2);
+      F(c2, () => c2.roundRect(-3.2, -3.2, 6.4, 1.2, 0.5), P2.acc, 0.6);
       F(c2, () => {
         c2.moveTo(-3.2, -2.6);
         c2.quadraticCurveTo(-4.6, -1, -3.6, 1.4);
@@ -439,21 +439,21 @@ canvas{display:block;max-width:100%;height:auto;border-radius:8px}
         c2.quadraticCurveTo(0, -19.2, 2.6, -18.8);
         c2.quadraticCurveTo(3.4, -13, 1.4, -3.2);
         c2.closePath();
-      }, P);
-      edgeHi(c2, P, [[2.3, -18.2], [2.8, -13.2], [1.3, -4]]);
-      line(c2, [[-0.4, -4], [-0.4, -15.6]], P.dark, 0.35);
-      runes(c2, P, [[0.6, -8], [0.8, -10.4], [1, -12.8]]);
+      }, P2);
+      edgeHi(c2, P2, [[2.3, -18.2], [2.8, -13.2], [1.3, -4]]);
+      line(c2, [[-0.4, -4], [-0.4, -15.6]], P2.dark, 0.35);
+      runes(c2, P2, [[0.6, -8], [0.8, -10.4], [1, -12.8]]);
     } },
-    { id: "broadsword", name: "\u0428\u0438\u0440\u043E\u043A\u0438\u0439 \u043C\u0435\u0447", tiers: [3, 4], hands: 1, box: [-6, -22, 6, 6], draw(c2, P) {
+    { id: "broadsword", name: "\u0428\u0438\u0440\u043E\u043A\u0438\u0439 \u043C\u0435\u0447", tiers: [3, 4], hands: 1, box: [-6, -22, 6, 6], draw(c2, P2) {
       F(c2, () => {
         c2.moveTo(0, 2.6);
         c2.lineTo(1.4, 3.8);
         c2.lineTo(0, 5.2);
         c2.lineTo(-1.4, 3.8);
         c2.closePath();
-      }, P.acc, 0.6);
-      gem(c2, 0, 3.9, 0.55, P.gem);
-      haft(c2, 2.8, -2.4, 1.6, P, 2.8, -2.4);
+      }, P2.acc, 0.6);
+      gem(c2, 0, 3.9, 0.55, P2.gem);
+      haft(c2, 2.8, -2.4, 1.6, P2, 2.8, -2.4);
       F(c2, () => {
         c2.moveTo(-5.6, -1.4);
         c2.quadraticCurveTo(-5, -3.4, -2.6, -3);
@@ -463,8 +463,8 @@ canvas{display:block;max-width:100%;height:auto;border-radius:8px}
         c2.lineTo(-3, -1.8);
         c2.quadraticCurveTo(-4.6, -2.2, -5.6, -1.4);
         c2.closePath();
-      }, P.acc, 0.55);
-      gem(c2, 0, -2.4, 0.8, P.gem || P.acc);
+      }, P2.acc, 0.55);
+      gem(c2, 0, -2.4, 0.8, P2.gem || P2.acc);
       metal(c2, () => {
         c2.moveTo(-1.9, -3);
         c2.lineTo(-1.6, -18.4);
@@ -472,23 +472,23 @@ canvas{display:block;max-width:100%;height:auto;border-radius:8px}
         c2.lineTo(1.6, -18.4);
         c2.lineTo(1.9, -3);
         c2.closePath();
-      }, P);
-      line(c2, [[0, -4], [0, -17.4]], P.dark, 0.6);
-      edgeHi(c2, P, [[-1.15, -4], [-1, -18.2]]);
-      runes(c2, P, [[0, -6], [0, -8.4], [0, -10.8], [0, -13.2]]);
+      }, P2);
+      line(c2, [[0, -4], [0, -17.4]], P2.dark, 0.6);
+      edgeHi(c2, P2, [[-1.15, -4], [-1, -18.2]]);
+      runes(c2, P2, [[0, -6], [0, -8.4], [0, -10.8], [0, -13.2]]);
     } },
-    { id: "greatsword", name: "\u0414\u0432\u0443\u0440\u0443\u0447\u043D\u044B\u0439 \u043C\u0435\u0447", tiers: [4], hands: 2, box: [-7, -30, 7, 9], draw(c2, P) {
-      F(c2, () => c2.arc(0, 7.6, 1.4, 0, 7), P.acc, 0.6);
-      gem(c2, 0, 7.6, 0.7, P.gem);
-      haft(c2, 6.6, -2.6, 1.7, P, 6.4, -2.6);
+    { id: "greatsword", name: "\u0414\u0432\u0443\u0440\u0443\u0447\u043D\u044B\u0439 \u043C\u0435\u0447", tiers: [4], hands: 2, box: [-7, -30, 7, 9], draw(c2, P2) {
+      F(c2, () => c2.arc(0, 7.6, 1.4, 0, 7), P2.acc, 0.6);
+      gem(c2, 0, 7.6, 0.7, P2.gem);
+      haft(c2, 6.6, -2.6, 1.7, P2, 6.4, -2.6);
       F(c2, () => {
         c2.moveTo(-6.6, -2.4);
         c2.lineTo(-6.6, -4);
         c2.lineTo(6.6, -4);
         c2.lineTo(6.6, -2.4);
         c2.closePath();
-      }, P.acc, 0.6);
-      for (const s of [-1, 1]) F(c2, () => c2.arc(s * 6.9, -3.2, 0.9, 0, 7), P.acc, 0.5);
+      }, P2.acc, 0.6);
+      for (const s of [-1, 1]) F(c2, () => c2.arc(s * 6.9, -3.2, 0.9, 0, 7), P2.acc, 0.5);
       metal(c2, () => {
         c2.moveTo(-1.6, -4);
         c2.lineTo(-1.6, -7);
@@ -500,34 +500,34 @@ canvas{display:block;max-width:100%;height:auto;border-radius:8px}
         c2.lineTo(1.6, -7);
         c2.lineTo(1.6, -4);
         c2.closePath();
-      }, P);
-      line(c2, [[0, -8], [0, -25]], P.dark, 0.55);
-      edgeHi(c2, P, [[-1.3, -8], [-1.15, -25.6]]);
-      runes(c2, P, [[0, -10], [0, -12.6], [0, -15.2], [0, -17.8], [0, -20.4]]);
+      }, P2);
+      line(c2, [[0, -8], [0, -25]], P2.dark, 0.55);
+      edgeHi(c2, P2, [[-1.3, -8], [-1.15, -25.6]]);
+      runes(c2, P2, [[0, -10], [0, -12.6], [0, -15.2], [0, -17.8], [0, -20.4]]);
     } },
-    { id: "mace", name: "\u0411\u0443\u043B\u0430\u0432\u0430", tiers: [0, 1, 2], hands: 1, box: [-4, -17, 4, 5], draw(c2, P) {
-      haft(c2, 4.2, -11, 1.8, P, 2.4, -2);
-      metal(c2, () => c2.ellipse(0, -13.4, 2.8, 3, 0, 0, 7), P);
-      for (const [x, y] of [[-2.6, -13.4], [2.6, -13.4], [0, -16.3], [-1.6, -15.6], [1.6, -15.6]]) F(c2, () => c2.arc(x, y, 0.7, 0, 7), P.dark, 0.4);
-      F(c2, () => c2.rect(-1.3, -11.2, 2.6, 1), P.acc, 0.5);
+    { id: "mace", name: "\u0411\u0443\u043B\u0430\u0432\u0430", tiers: [0, 1, 2], hands: 1, box: [-4, -17, 4, 5], draw(c2, P2) {
+      haft(c2, 4.2, -11, 1.8, P2, 2.4, -2);
+      metal(c2, () => c2.ellipse(0, -13.4, 2.8, 3, 0, 0, 7), P2);
+      for (const [x, y] of [[-2.6, -13.4], [2.6, -13.4], [0, -16.3], [-1.6, -15.6], [1.6, -15.6]]) F(c2, () => c2.arc(x, y, 0.7, 0, 7), P2.dark, 0.4);
+      F(c2, () => c2.rect(-1.3, -11.2, 2.6, 1), P2.acc, 0.5);
     } },
-    { id: "flanged", name: "\u0428\u0435\u0441\u0442\u043E\u043F\u0451\u0440", tiers: [2, 3], hands: 1, box: [-5, -19, 5, 5], draw(c2, P) {
-      haft(c2, 4.2, -12, 1.6, P, 2.6, -2.4, true);
-      F(c2, () => c2.arc(0, 4.6, 0.9, 0, 7), P.acc, 0.5);
+    { id: "flanged", name: "\u0428\u0435\u0441\u0442\u043E\u043F\u0451\u0440", tiers: [2, 3], hands: 1, box: [-5, -19, 5, 5], draw(c2, P2) {
+      haft(c2, 4.2, -12, 1.6, P2, 2.6, -2.4, true);
+      F(c2, () => c2.arc(0, 4.6, 0.9, 0, 7), P2.acc, 0.5);
       metal(c2, () => {
         c2.moveTo(-0.9, -11.6);
         c2.lineTo(-4.2, -13.4);
         c2.lineTo(-4.2, -16.6);
         c2.lineTo(-0.9, -18.2);
         c2.closePath();
-      }, P);
+      }, P2);
       metal(c2, () => {
         c2.moveTo(0.9, -11.6);
         c2.lineTo(4.2, -13.4);
         c2.lineTo(4.2, -16.6);
         c2.lineTo(0.9, -18.2);
         c2.closePath();
-      }, P, P.dark);
+      }, P2, P2.dark);
       metal(c2, () => {
         c2.moveTo(-1.1, -11.4);
         c2.lineTo(1.1, -11.4);
@@ -535,13 +535,13 @@ canvas{display:block;max-width:100%;height:auto;border-radius:8px}
         c2.lineTo(0, -19.4);
         c2.lineTo(-1.2, -18.6);
         c2.closePath();
-      }, P, P.edge);
-      F(c2, () => c2.rect(-1.3, -11.8, 2.6, 1), P.acc, 0.5);
-      gem(c2, 0, -15, 0.7, P.gem);
+      }, P2, P2.edge);
+      F(c2, () => c2.rect(-1.3, -11.8, 2.6, 1), P2.acc, 0.5);
+      gem(c2, 0, -15, 0.7, P2.gem);
     } },
-    { id: "morning", name: "\u041C\u043E\u0440\u0433\u0435\u043D\u0448\u0442\u0435\u0440\u043D", tiers: [3, 4], hands: 1, box: [-6, -21, 6, 5], draw(c2, P) {
-      haft(c2, 4.4, -11.6, 1.9, P, 2.6, -2.2);
-      F(c2, () => c2.rect(-1.4, -12.4, 2.8, 1.4), P.acc, 0.5);
+    { id: "morning", name: "\u041C\u043E\u0440\u0433\u0435\u043D\u0448\u0442\u0435\u0440\u043D", tiers: [3, 4], hands: 1, box: [-6, -21, 6, 5], draw(c2, P2) {
+      haft(c2, 4.4, -11.6, 1.9, P2, 2.6, -2.2);
+      F(c2, () => c2.rect(-1.4, -12.4, 2.8, 1.4), P2.acc, 0.5);
       for (let i = 0; i < 8; i++) {
         const a = i / 8 * Math.PI * 2, x = Math.cos(a), y = Math.sin(a);
         F(c2, () => {
@@ -549,71 +549,71 @@ canvas{display:block;max-width:100%;height:auto;border-radius:8px}
           c2.lineTo(x * 5.4, -15.4 + y * 5.4);
           c2.lineTo(x * 2.6 + y * 0.8, -15.4 + y * 2.6 - x * 0.8);
           c2.closePath();
-        }, P.edge, 0.45);
+        }, P2.edge, 0.45);
       }
-      metal(c2, () => c2.arc(0, -15.4, 3.3, 0, 7), P);
-      gem(c2, 0, -15.4, 0.9, P.gem);
+      metal(c2, () => c2.arc(0, -15.4, 3.3, 0, 7), P2);
+      gem(c2, 0, -15.4, 0.9, P2.gem);
       c2.fillStyle = "rgba(255,255,255,.4)";
       c2.beginPath();
       c2.arc(-1.2, -16.6, 0.9, 0, 7);
       c2.fill();
     } },
-    { id: "warhammer", name: "\u0411\u043E\u0435\u0432\u043E\u0439 \u043C\u043E\u043B\u043E\u0442", tiers: [2, 3], hands: 1, box: [-6, -20, 6, 5], draw(c2, P) {
-      haft(c2, 4.4, -16, 1.8, P, 2.6, -2.2, P.rar !== "common");
+    { id: "warhammer", name: "\u0411\u043E\u0435\u0432\u043E\u0439 \u043C\u043E\u043B\u043E\u0442", tiers: [2, 3], hands: 1, box: [-6, -20, 6, 5], draw(c2, P2) {
+      haft(c2, 4.4, -16, 1.8, P2, 2.6, -2.2, P2.rar !== "common");
       metal(c2, () => {
         c2.moveTo(-0.6, -18.4);
         c2.lineTo(-5.6, -16.6);
         c2.lineTo(-0.6, -14.8);
         c2.closePath();
-      }, P, P.dark);
-      metal(c2, () => c2.roundRect(-1.6, -19.2, 6.4, 5.2, 0.6), P);
-      F(c2, () => c2.rect(4.2, -19.6, 1.2, 6), P.edge, 0.5);
+      }, P2, P2.dark);
+      metal(c2, () => c2.roundRect(-1.6, -19.2, 6.4, 5.2, 0.6), P2);
+      F(c2, () => c2.rect(4.2, -19.6, 1.2, 6), P2.edge, 0.5);
       F(c2, () => {
         c2.moveTo(-0.9, -19.2);
         c2.lineTo(0, -21);
         c2.lineTo(0.9, -19.2);
         c2.closePath();
-      }, P.edge, 0.45);
-      F(c2, () => c2.rect(-1.6, -17, 6.4, 0.9), P.acc, 0.4);
-      gem(c2, 1.6, -16.6, 0.8, P.gem);
+      }, P2.edge, 0.45);
+      F(c2, () => c2.rect(-1.6, -17, 6.4, 0.9), P2.acc, 0.4);
+      gem(c2, 1.6, -16.6, 0.8, P2.gem);
     } },
-    { id: "maul", name: "\u041A\u0443\u0432\u0430\u043B\u0434\u0430", tiers: [4], hands: 2, box: [-7, -28, 7, 8], draw(c2, P) {
-      haft(c2, 7.4, -20.4, 2.1, P, 2.6, -2.6, true);
-      F(c2, () => c2.roundRect(-1.5, 7, 3, 1.8, 0.6), P.acc, 0.5);
-      metal(c2, () => c2.roundRect(-6, -27.2, 12, 7.4, 1.2), P);
-      for (const x of [-6.2, 5]) F(c2, () => c2.rect(x, -27.6, 1.2, 8.2), P.acc, 0.5);
-      F(c2, () => c2.rect(-1.6, -20.4, 3.2, 2.6), P.acc, 0.5);
-      gem(c2, 0, -23.5, 1.4, P.gem || P.acc);
-      runes(c2, P, [[-3.4, -23.5], [3.4, -23.5]]);
+    { id: "maul", name: "\u041A\u0443\u0432\u0430\u043B\u0434\u0430", tiers: [4], hands: 2, box: [-7, -28, 7, 8], draw(c2, P2) {
+      haft(c2, 7.4, -20.4, 2.1, P2, 2.6, -2.6, true);
+      F(c2, () => c2.roundRect(-1.5, 7, 3, 1.8, 0.6), P2.acc, 0.5);
+      metal(c2, () => c2.roundRect(-6, -27.2, 12, 7.4, 1.2), P2);
+      for (const x of [-6.2, 5]) F(c2, () => c2.rect(x, -27.6, 1.2, 8.2), P2.acc, 0.5);
+      F(c2, () => c2.rect(-1.6, -20.4, 3.2, 2.6), P2.acc, 0.5);
+      gem(c2, 0, -23.5, 1.4, P2.gem || P2.acc);
+      runes(c2, P2, [[-3.4, -23.5], [3.4, -23.5]]);
       c2.fillStyle = "rgba(255,255,255,.3)";
       c2.fillRect(-5.2, -26.6, 9.6, 1);
     } },
     // ---------------------------------------------------------------- Маг: посохи и жезлы (вершина — tip, туда собирается свет при заклинании)
-    { id: "stick", name: "\u041F\u0430\u043B\u043A\u0430", cls: ["mage"], tiers: [0, 1], hands: 1, swing: "cast", tip: [0.6, -23], draw(c2, P, o) {
+    { id: "stick", name: "\u041F\u0430\u043B\u043A\u0430", cls: ["mage"], tiers: [0, 1], hands: 1, swing: "cast", tip: [0.6, -23], draw(c2, P2, o) {
       F(c2, () => {
         c2.moveTo(-0.9, 10);
         c2.quadraticCurveTo(-1.6, -6, 0, -22.6);
         c2.lineTo(1.4, -22.4);
         c2.quadraticCurveTo(0.2, -6, 0.9, 10);
         c2.closePath();
-      }, P.wood, 0.7);
-      for (const y of [-4, -12, 4]) F(c2, () => c2.ellipse(-0.6, y, 0.9, 0.6, 0.3, 0, 7), sh(P.wood, -0.25), 0.4);
+      }, P2.wood, 0.7);
+      for (const y of [-4, -12, 4]) F(c2, () => c2.ellipse(-0.6, y, 0.9, 0.6, 0.3, 0, 7), sh(P2.wood, -0.25), 0.4);
       F(c2, () => c2.ellipse(2.4, -19.6, 1.6, 0.8, -0.6, 0, 7), "#5a8a3a", 0.4);
       F(c2, () => c2.ellipse(-1.6, -17.6, 1.4, 0.7, 0.6, 0, 7), "#6a9a44", 0.4);
-      tipGlow(c2, 0.6, -23, 2, P, o);
+      tipGlow(c2, 0.6, -23, 2, P2, o);
     } },
-    { id: "wand", name: "\u0416\u0435\u0437\u043B", cls: ["mage"], tiers: [1, 2], hands: 1, swing: "cast", tip: [0, -13.4], draw(c2, P, o) {
-      haft(c2, 3.2, -10.6, 1.3, P, 3.2, -1.8);
-      F(c2, () => c2.rect(-1.1, -11.4, 2.2, 1.2), P.acc, 0.45);
+    { id: "wand", name: "\u0416\u0435\u0437\u043B", cls: ["mage"], tiers: [1, 2], hands: 1, swing: "cast", tip: [0, -13.4], draw(c2, P2, o) {
+      haft(c2, 3.2, -10.6, 1.3, P2, 3.2, -1.8);
+      F(c2, () => c2.rect(-1.1, -11.4, 2.2, 1.2), P2.acc, 0.45);
       F(c2, () => {
         c2.moveTo(-1, -11.4);
         c2.lineTo(0, -15);
         c2.lineTo(1, -11.4);
         c2.closePath();
-      }, P.orb, 0.5);
-      tipGlow(c2, 0, -13.4, 1.8, P, o);
+      }, P2.orb, 0.5);
+      tipGlow(c2, 0, -13.4, 1.8, P2, o);
     } },
-    { id: "crook", name: "\u041F\u043E\u0441\u043E\u0445-\u043A\u043B\u044E\u043A\u0430", cls: ["mage"], tiers: [1, 2], hands: 1, swing: "cast", tip: [4, -24.6], draw(c2, P, o) {
+    { id: "crook", name: "\u041F\u043E\u0441\u043E\u0445-\u043A\u043B\u044E\u043A\u0430", cls: ["mage"], tiers: [1, 2], hands: 1, swing: "cast", tip: [4, -24.6], draw(c2, P2, o) {
       F(c2, () => {
         c2.moveTo(-0.8, 10);
         c2.lineTo(-0.8, -22);
@@ -624,38 +624,38 @@ canvas{display:block;max-width:100%;height:auto;border-radius:8px}
         c2.quadraticCurveTo(0.8, -26, 0.8, -22);
         c2.lineTo(0.8, 10);
         c2.closePath();
-      }, P.wood, 0.7);
-      F(c2, () => c2.rect(-1.1, -6, 2.2, 3), P.wrap, 0.45);
+      }, P2.wood, 0.7);
+      F(c2, () => c2.rect(-1.1, -6, 2.2, 3), P2.wrap, 0.45);
       F(c2, () => {
         c2.moveTo(5.3, -23.4);
         c2.lineTo(5.3, -21.8);
       }, null, 0.5);
-      F(c2, () => c2.roundRect(4.2, -21.8, 2.2, 2.8, 0.6), P.acc, 0.45);
-      tipGlow(c2, 5.3, -20.4, 1.8, P, o, true);
+      F(c2, () => c2.roundRect(4.2, -21.8, 2.2, 2.8, 0.6), P2.acc, 0.45);
+      tipGlow(c2, 5.3, -20.4, 1.8, P2, o, true);
     } },
-    { id: "orb", name: "\u041F\u043E\u0441\u043E\u0445 \u0441 \u043A\u0440\u0438\u0441\u0442\u0430\u043B\u043B\u043E\u043C", cls: ["mage"], tiers: [2, 3], hands: 1, swing: "cast", tip: [0, -25.6], draw(c2, P, o) {
-      haft(c2, 10, -21.6, 1.7, P, 1.6, -3);
-      F(c2, () => c2.rect(-1.2, -22.2, 2.4, 1.2), P.acc, 0.45);
+    { id: "orb", name: "\u041F\u043E\u0441\u043E\u0445 \u0441 \u043A\u0440\u0438\u0441\u0442\u0430\u043B\u043B\u043E\u043C", cls: ["mage"], tiers: [2, 3], hands: 1, swing: "cast", tip: [0, -25.6], draw(c2, P2, o) {
+      haft(c2, 10, -21.6, 1.7, P2, 1.6, -3);
+      F(c2, () => c2.rect(-1.2, -22.2, 2.4, 1.2), P2.acc, 0.45);
       for (const s of [-1, 0, 1]) F(c2, () => {
         c2.moveTo(s * 0.6, -21.4);
         c2.quadraticCurveTo(s * 3.4, -24, s * 2, -28.4);
         c2.lineTo(s * 1.6, -27.6);
         c2.quadraticCurveTo(s * 2.4, -24.4, s * 0.1 - 0.3 * s, -21.6);
         c2.closePath();
-      }, P.acc, 0.4);
-      tipGlow(c2, 0, -25.6, 2.5, P, o);
-      orbBall(c2, 0, -25.6, 2.2, P.orb);
+      }, P2.acc, 0.4);
+      tipGlow(c2, 0, -25.6, 2.5, P2, o);
+      orbBall(c2, 0, -25.6, 2.2, P2.orb);
     } },
-    { id: "serpent", name: "\u0417\u043C\u0435\u0438\u043D\u044B\u0439 \u043F\u043E\u0441\u043E\u0445", cls: ["mage"], tiers: [2, 3], hands: 1, swing: "cast", tip: [3.4, -27.6], draw(c2, P, o) {
+    { id: "serpent", name: "\u0417\u043C\u0435\u0438\u043D\u044B\u0439 \u043F\u043E\u0441\u043E\u0445", cls: ["mage"], tiers: [2, 3], hands: 1, swing: "cast", tip: [3.4, -27.6], draw(c2, P2, o) {
       c2.strokeStyle = O;
       c2.lineWidth = 2.6;
       c2.beginPath();
       for (let y = 10; y >= -24; y -= 1) c2.lineTo(Math.sin(y * 0.45) * 0.9, y);
       c2.stroke();
-      c2.strokeStyle = P.wood;
+      c2.strokeStyle = P2.wood;
       c2.lineWidth = 1.5;
       c2.stroke();
-      c2.strokeStyle = P.leaf;
+      c2.strokeStyle = P2.leaf;
       c2.lineWidth = 1;
       c2.beginPath();
       for (let y = 6; y >= -22; y -= 0.5) c2.lineTo(Math.sin(y * 0.45 + 1.6) * 1.4, y);
@@ -667,8 +667,8 @@ canvas{display:block;max-width:100%;height:auto;border-radius:8px}
         c2.quadraticCurveTo(3.4, -26.6, 2.2, -26.8);
         c2.quadraticCurveTo(1.2, -26, 1.2, -24);
         c2.closePath();
-      }, P.leaf, 0.55);
-      c2.fillStyle = P.orb;
+      }, P2.leaf, 0.55);
+      c2.fillStyle = P2.orb;
       c2.beginPath();
       c2.arc(2.6, -27.9, 0.45, 0, 7);
       c2.fill();
@@ -680,11 +680,11 @@ canvas{display:block;max-width:100%;height:auto;border-radius:8px}
       c2.moveTo(5.9, -26.8);
       c2.lineTo(6.5, -27.4);
       c2.stroke();
-      tipGlow(c2, 3.4, -27.6, 2, P, o);
+      tipGlow(c2, 3.4, -27.6, 2, P2, o);
     } },
-    { id: "rune", name: "\u0420\u0443\u043D\u043D\u044B\u0439 \u043F\u043E\u0441\u043E\u0445", cls: ["mage"], tiers: [3, 4], hands: 1, swing: "cast", tip: [0, -28.4], draw(c2, P, o) {
-      haft(c2, 10, -23.4, 1.8, P, 1.8, -3);
-      for (const y of [-20, -10, 4]) F(c2, () => c2.rect(-1.2, y, 2.4, 1), P.acc, 0.4);
+    { id: "rune", name: "\u0420\u0443\u043D\u043D\u044B\u0439 \u043F\u043E\u0441\u043E\u0445", cls: ["mage"], tiers: [3, 4], hands: 1, swing: "cast", tip: [0, -28.4], draw(c2, P2, o) {
+      haft(c2, 10, -23.4, 1.8, P2, 1.8, -3);
+      for (const y of [-20, -10, 4]) F(c2, () => c2.rect(-1.2, y, 2.4, 1), P2.acc, 0.4);
       F(c2, () => {
         c2.moveTo(-1.2, -23.4);
         c2.lineTo(-2.6, -24.6);
@@ -692,7 +692,7 @@ canvas{display:block;max-width:100%;height:auto;border-radius:8px}
         c2.lineTo(2.6, -24.6);
       }, null, 0.6);
       const fy = -28.4 + (o && o.t ? Math.sin(o.t * 2) * 0.4 : 0);
-      tipGlow(c2, 0, fy, 3, P, o);
+      tipGlow(c2, 0, fy, 3, P2, o);
       F(c2, () => {
         c2.moveTo(0, fy - 3);
         c2.lineTo(1.5, fy);
@@ -700,10 +700,10 @@ canvas{display:block;max-width:100%;height:auto;border-radius:8px}
         c2.lineTo(-1.5, fy);
         c2.closePath();
       }, "#8a8a9a", 0.55);
-      runes(c2, { ...P, etch: P.etch || P.orb }, [[0, fy - 0.6]]);
+      runes(c2, { ...P2, etch: P2.etch || P2.orb }, [[0, fy - 0.6]]);
     } },
-    { id: "moon", name: "\u041F\u043E\u0441\u043E\u0445 \u043F\u043E\u043B\u0443\u043C\u0435\u0441\u044F\u0446\u0430", cls: ["mage"], tiers: [3, 4], hands: 1, swing: "cast", tip: [0, -26.6], draw(c2, P, o) {
-      haft(c2, 10, -22, 1.7, P, 1.6, -3, P.rar === "epic");
+    { id: "moon", name: "\u041F\u043E\u0441\u043E\u0445 \u043F\u043E\u043B\u0443\u043C\u0435\u0441\u044F\u0446\u0430", cls: ["mage"], tiers: [3, 4], hands: 1, swing: "cast", tip: [0, -26.6], draw(c2, P2, o) {
+      haft(c2, 10, -22, 1.7, P2, 1.6, -3, P2.rar === "epic");
       metal(c2, () => {
         c2.moveTo(-0.8, -22);
         c2.quadraticCurveTo(-5.6, -23, -4.6, -29.6);
@@ -711,23 +711,23 @@ canvas{display:block;max-width:100%;height:auto;border-radius:8px}
         c2.quadraticCurveTo(3.4, -25.2, 4.6, -29.6);
         c2.quadraticCurveTo(5.6, -23, 0.8, -22);
         c2.closePath();
-      }, P, P.acc);
-      tipGlow(c2, 0, -27.4, 2.6, P, o);
-      orbBall(c2, 0, -27.4, 1.6, P.orb);
+      }, P2, P2.acc);
+      tipGlow(c2, 0, -27.4, 2.6, P2, o);
+      orbBall(c2, 0, -27.4, 1.6, P2.orb);
     } },
-    { id: "root", name: "\u041F\u043E\u0441\u043E\u0445 \u0434\u0440\u0443\u0438\u0434\u0430", cls: ["mage"], tiers: [3, 4], hands: 1, swing: "cast", tip: [0, -25], draw(c2, P, o) {
+    { id: "root", name: "\u041F\u043E\u0441\u043E\u0445 \u0434\u0440\u0443\u0438\u0434\u0430", cls: ["mage"], tiers: [3, 4], hands: 1, swing: "cast", tip: [0, -25], draw(c2, P2, o) {
       for (const k of [-1, 1, 0]) {
         c2.strokeStyle = O;
         c2.lineWidth = 1.9;
         c2.beginPath();
         for (let y = 10; y >= -22; y -= 1) c2.lineTo(Math.sin(y * 0.32 + k * 2.1) * 1.1, y);
         c2.stroke();
-        c2.strokeStyle = sh(P.wood, k * 0.12);
+        c2.strokeStyle = sh(P2.wood, k * 0.12);
         c2.lineWidth = 1;
         c2.stroke();
       }
-      tipGlow(c2, 0, -25, 2.8, P, o);
-      orbBall(c2, 0, -25, 1.8, P.orb);
+      tipGlow(c2, 0, -25, 2.8, P2, o);
+      orbBall(c2, 0, -25, 1.8, P2.orb);
       for (const s of [-1, 1]) {
         c2.strokeStyle = O;
         c2.lineWidth = 1.5;
@@ -735,59 +735,59 @@ canvas{display:block;max-width:100%;height:auto;border-radius:8px}
         c2.moveTo(s * 0.8, -21.6);
         c2.quadraticCurveTo(s * 3.2, -24.6, s * 1.2, -28);
         c2.stroke();
-        c2.strokeStyle = P.wood;
+        c2.strokeStyle = P2.wood;
         c2.lineWidth = 0.8;
         c2.stroke();
       }
-      F(c2, () => c2.ellipse(2.8, -21.4, 1.4, 0.7, -0.5, 0, 7), P.leaf, 0.35);
+      F(c2, () => c2.ellipse(2.8, -21.4, 1.4, 0.7, -0.5, 0, 7), P2.leaf, 0.35);
     } },
-    { id: "arch", name: "\u041F\u043E\u0441\u043E\u0445 \u0410\u0440\u0445\u0438\u043C\u0430\u0433\u0430", cls: ["mage"], tiers: [4], hands: 1, swing: "cast", tip: [0, -28.6], draw(c2, P, o) {
-      haft(c2, 10.4, -23, 1.9, P, 1.8, -3.2, true);
-      for (const y of [-14, -4, 6]) F(c2, () => c2.rect(-1.3, y, 2.6, 1.1), P.acc, 0.4);
+    { id: "arch", name: "\u041F\u043E\u0441\u043E\u0445 \u0410\u0440\u0445\u0438\u043C\u0430\u0433\u0430", cls: ["mage"], tiers: [4], hands: 1, swing: "cast", tip: [0, -28.6], draw(c2, P2, o) {
+      haft(c2, 10.4, -23, 1.9, P2, 1.8, -3.2, true);
+      for (const y of [-14, -4, 6]) F(c2, () => c2.rect(-1.3, y, 2.6, 1.1), P2.acc, 0.4);
       for (const s of [-1, 1]) F(c2, () => {
         c2.moveTo(s * 1, -23);
         c2.quadraticCurveTo(s * 5.4, -23.6, s * 6.4, -28.4);
         c2.quadraticCurveTo(s * 4.2, -26.4, s * 3.2, -26.8);
         c2.quadraticCurveTo(s * 3.8, -25, s * 1, -24.8);
         c2.closePath();
-      }, P.acc, 0.5);
-      tipGlow(c2, 0, -28.6, 3.4, P, o);
-      gemBig(c2, 0, -28.6, 2.2, P.orb);
+      }, P2.acc, 0.5);
+      tipGlow(c2, 0, -28.6, 3.4, P2, o);
+      gemBig(c2, 0, -28.6, 2.2, P2.orb);
     } },
     // ---------------------------------------------------------------- Лучник: луки (хват в (0,0), плечи вверх-вниз, тетива слева; o.pull — натяжение)
-    { id: "shortbow", name: "\u041A\u043E\u0440\u043E\u0442\u043A\u0438\u0439 \u043B\u0443\u043A", cls: ["archer"], tiers: [0, 1], swing: "bow", draw(c2, P, o) {
-      bowDraw(c2, P, o, 12, 0);
+    { id: "shortbow", name: "\u041A\u043E\u0440\u043E\u0442\u043A\u0438\u0439 \u043B\u0443\u043A", cls: ["archer"], tiers: [0, 1], swing: "bow", draw(c2, P2, o) {
+      bowDraw(c2, P2, o, 12, 0);
     } },
-    { id: "hunt", name: "\u041E\u0445\u043E\u0442\u043D\u0438\u0447\u0438\u0439 \u043B\u0443\u043A", cls: ["archer"], tiers: [1, 2], swing: "bow", draw(c2, P, o) {
-      bowDraw(c2, P, o, 14, 1);
+    { id: "hunt", name: "\u041E\u0445\u043E\u0442\u043D\u0438\u0447\u0438\u0439 \u043B\u0443\u043A", cls: ["archer"], tiers: [1, 2], swing: "bow", draw(c2, P2, o) {
+      bowDraw(c2, P2, o, 14, 1);
     } },
-    { id: "recurve", name: "\u0418\u0437\u043E\u0433\u043D\u0443\u0442\u044B\u0439 \u043B\u0443\u043A", cls: ["archer"], tiers: [2, 3], swing: "bow", draw(c2, P, o) {
-      bowDraw(c2, P, o, 14.5, 2);
+    { id: "recurve", name: "\u0418\u0437\u043E\u0433\u043D\u0443\u0442\u044B\u0439 \u043B\u0443\u043A", cls: ["archer"], tiers: [2, 3], swing: "bow", draw(c2, P2, o) {
+      bowDraw(c2, P2, o, 14.5, 2);
     } },
-    { id: "long", name: "\u0414\u043B\u0438\u043D\u043D\u044B\u0439 \u043B\u0443\u043A", cls: ["archer"], tiers: [2, 3], swing: "bow", draw(c2, P, o) {
-      bowDraw(c2, P, o, 18, 3);
+    { id: "long", name: "\u0414\u043B\u0438\u043D\u043D\u044B\u0439 \u043B\u0443\u043A", cls: ["archer"], tiers: [2, 3], swing: "bow", draw(c2, P2, o) {
+      bowDraw(c2, P2, o, 18, 3);
     } },
-    { id: "horn", name: "\u0420\u043E\u0433\u043E\u0432\u043E\u0439 \u043B\u0443\u043A", cls: ["archer"], tiers: [3], swing: "bow", draw(c2, P, o) {
-      bowDraw(c2, P, o, 14, 4);
+    { id: "horn", name: "\u0420\u043E\u0433\u043E\u0432\u043E\u0439 \u043B\u0443\u043A", cls: ["archer"], tiers: [3], swing: "bow", draw(c2, P2, o) {
+      bowDraw(c2, P2, o, 14, 4);
     } },
-    { id: "war", name: "\u0411\u043E\u0435\u0432\u043E\u0439 \u043B\u0443\u043A", cls: ["archer"], tiers: [3, 4], swing: "bow", draw(c2, P, o) {
-      bowDraw(c2, P, o, 16.5, 5);
+    { id: "war", name: "\u0411\u043E\u0435\u0432\u043E\u0439 \u043B\u0443\u043A", cls: ["archer"], tiers: [3, 4], swing: "bow", draw(c2, P2, o) {
+      bowDraw(c2, P2, o, 16.5, 5);
     } },
-    { id: "wind", name: "\u041B\u0443\u043A \u0432\u0435\u0442\u0440\u0430", cls: ["archer"], tiers: [4], swing: "bow", draw(c2, P, o) {
-      bowDraw(c2, P, o, 16, 6);
+    { id: "wind", name: "\u041B\u0443\u043A \u0432\u0435\u0442\u0440\u0430", cls: ["archer"], tiers: [4], swing: "bow", draw(c2, P2, o) {
+      bowDraw(c2, P2, o, 16, 6);
     } },
     // ---------------------------------------------------------------- v92: фиолетовые (героические) — только ярус 5, свой облик и расцветка (theme), живой эффект (fx)
-    { id: "flameblade", name: "\u041A\u043B\u0438\u043D\u043E\u043A \u041F\u043B\u0430\u043C\u0435\u043D\u0438", tiers: [5], hands: 1, box: [-7, -27, 7, 6], fx: "fire", theme: { metal: "#8a8490", acc: "#e8b040", cloth: ["#8a1a14", "#5a120e"], gem: "#ff6a2a", etch: "#ff8a3a", wrap: "#5a120e" }, draw(c2, P) {
-      F(c2, () => c2.arc(0, 4, 1.5, 0, 7), P.acc, 0.6);
-      gemBig(c2, 0, 4, 0.9, P.gem);
-      haft(c2, 3, -2.6, 1.6, P, 3, -2.6);
+    { id: "flameblade", name: "\u041A\u043B\u0438\u043D\u043E\u043A \u041F\u043B\u0430\u043C\u0435\u043D\u0438", tiers: [5], hands: 1, box: [-7, -27, 7, 6], fx: "fire", theme: { metal: "#8a8490", acc: "#e8b040", cloth: ["#8a1a14", "#5a120e"], gem: "#ff6a2a", etch: "#ff8a3a", wrap: "#5a120e" }, draw(c2, P2) {
+      F(c2, () => c2.arc(0, 4, 1.5, 0, 7), P2.acc, 0.6);
+      gemBig(c2, 0, 4, 0.9, P2.gem);
+      haft(c2, 3, -2.6, 1.6, P2, 3, -2.6);
       for (const s of [-1, 1]) F(c2, () => {
         c2.moveTo(0, -2.6);
         c2.quadraticCurveTo(s * 3.4, -2.2, s * 6.6, -5.6);
         c2.quadraticCurveTo(s * 5, -3.4, s * 6.2, -2.6);
         c2.quadraticCurveTo(s * 3, -1.4, 0, -1.4);
         c2.closePath();
-      }, P.acc, 0.6);
+      }, P2.acc, 0.6);
       const blade = () => {
         c2.moveTo(-1.8, -3.4);
         for (let y = -3.4; y > -22; y -= 1) c2.lineTo(-1.8 - Math.sin(y * 0.55) * 0.55 + (y < -18 ? (y + 18) * 0.12 : 0), y);
@@ -796,7 +796,7 @@ canvas{display:block;max-width:100%;height:auto;border-radius:8px}
         for (let y = -22; y < -3.4; y += 1) c2.lineTo(1.8 + Math.sin(y * 0.55 + 1.6) * 0.55 + (y < -18 ? -(y + 18) * 0.12 : 0), y);
         c2.closePath();
       };
-      metal(c2, blade, P);
+      metal(c2, blade, P2);
       c2.save();
       c2.beginPath();
       blade();
@@ -812,21 +812,21 @@ canvas{display:block;max-width:100%;height:auto;border-radius:8px}
       blade();
       c2.stroke();
       c2.restore();
-      line(c2, [[0, -4.6], [0, -21]], P.etch, 0.55);
-      edgeHi(c2, P, [[-1.2, -5], [-1.1, -20.4]]);
-      F(c2, () => c2.rect(-1.5, -4, 3, 1.4), P.acc, 0.5);
-      gemBig(c2, 0, -3.3, 0.8, P.gem);
+      line(c2, [[0, -4.6], [0, -21]], P2.etch, 0.55);
+      edgeHi(c2, P2, [[-1.2, -5], [-1.1, -20.4]]);
+      F(c2, () => c2.rect(-1.5, -4, 3, 1.4), P2.acc, 0.5);
+      gemBig(c2, 0, -3.3, 0.8, P2.gem);
     } },
-    { id: "runeaxe", name: "\u0421\u0435\u043A\u0438\u0440\u0430 \u0420\u0443\u043D\u043D\u043E\u0433\u043E \u041A\u043E\u0440\u043E\u043B\u044F", tiers: [5], hands: 2, box: [-14, -34, 14, 9], fx: "rune", theme: { metal: "#5a6274", acc: "#e0b84a", cloth: ["#1e3050", "#14203a"], gem: "#6ad0ff", etch: "#7ee0ff", wrap: "#1e3050", wood: "#2a2028" }, draw(c2, P) {
-      haft(c2, 8, -28, 2.2, P, 3, -3, true);
-      F(c2, () => c2.roundRect(-1.7, 7.6, 3.4, 2.2, 0.8), P.acc, 0.5);
-      gemBig(c2, 0, 8.7, 0.8, P.gem);
+    { id: "runeaxe", name: "\u0421\u0435\u043A\u0438\u0440\u0430 \u0420\u0443\u043D\u043D\u043E\u0433\u043E \u041A\u043E\u0440\u043E\u043B\u044F", tiers: [5], hands: 2, box: [-14, -34, 14, 9], fx: "rune", theme: { metal: "#5a6274", acc: "#e0b84a", cloth: ["#1e3050", "#14203a"], gem: "#6ad0ff", etch: "#7ee0ff", wrap: "#1e3050", wood: "#2a2028" }, draw(c2, P2) {
+      haft(c2, 8, -28, 2.2, P2, 3, -3, true);
+      F(c2, () => c2.roundRect(-1.7, 7.6, 3.4, 2.2, 0.8), P2.acc, 0.5);
+      gemBig(c2, 0, 8.7, 0.8, P2.gem);
       F(c2, () => {
         c2.moveTo(-1.1, -28);
         c2.lineTo(0, -34);
         c2.lineTo(1.1, -28);
         c2.closePath();
-      }, P.acc, 0.5);
+      }, P2.acc, 0.5);
       for (const s of [1, -1]) {
         c2.save();
         c2.scale(s, 1);
@@ -838,22 +838,22 @@ canvas{display:block;max-width:100%;height:auto;border-radius:8px}
           c2.quadraticCurveTo(8.4, -14.4, 5, -15);
           c2.lineTo(1.1, -16.4);
           c2.closePath();
-        }, P);
+        }, P2);
         F(c2, () => {
           c2.moveTo(10.4, -32.6);
           c2.lineTo(12.4, -34.6);
           c2.lineTo(11.2, -30.8);
           c2.closePath();
-        }, P.edge, 0.4);
-        edgeHi(c2, P, [[11, -31.4], [13.6, -22.6], [11, -13.4]]);
+        }, P2.edge, 0.4);
+        edgeHi(c2, P2, [[11, -31.4], [13.6, -22.6], [11, -13.4]]);
         F(c2, () => {
           c2.moveTo(2, -26.4);
           c2.lineTo(6.4, -28);
           c2.lineTo(6.4, -16.6);
           c2.lineTo(2, -17.4);
           c2.closePath();
-        }, P.acc, 0.45);
-        c2.strokeStyle = P.etch;
+        }, P2.acc, 0.45);
+        c2.strokeStyle = P2.etch;
         c2.lineWidth = 0.55;
         c2.beginPath();
         c2.moveTo(8.6, -27.6);
@@ -864,22 +864,22 @@ canvas{display:block;max-width:100%;height:auto;border-radius:8px}
         c2.stroke();
         c2.restore();
       }
-      F(c2, () => c2.rect(-1.7, -28, 3.4, 13.4), P.acc, 0.5);
-      gemBig(c2, 0, -22, 1.5, P.gem);
+      F(c2, () => c2.rect(-1.7, -28, 3.4, 13.4), P2.acc, 0.5);
+      gemBig(c2, 0, -22, 1.5, P2.gem);
     } },
-    { id: "thunder", name: "\u041C\u043E\u043B\u043E\u0442 \u0413\u0440\u043E\u043C\u0430", tiers: [5], hands: 2, box: [-9, -32, 9, 9], fx: "spark", theme: { metal: "#6a7484", acc: "#e0b84a", cloth: ["#24406e", "#1a2e50"], gem: "#5ab0ff", etch: "#bfe6ff", wrap: "#24406e", wood: "#3a2416" }, draw(c2, P) {
-      haft(c2, 8, -22, 2.2, P, 3, -3);
-      F(c2, () => c2.roundRect(-1.7, 7.6, 3.4, 2.2, 0.8), P.acc, 0.5);
-      metal(c2, () => c2.roundRect(-8.4, -31.6, 16.8, 10.4, 1.4), P);
-      for (const x of [-8.4, 6.6]) F(c2, () => c2.rect(x, -31.6, 1.8, 10.4), P.acc, 0.45);
-      F(c2, () => c2.rect(-1.9, -32.4, 3.8, 12), P.acc, 0.5);
+    { id: "thunder", name: "\u041C\u043E\u043B\u043E\u0442 \u0413\u0440\u043E\u043C\u0430", tiers: [5], hands: 2, box: [-9, -32, 9, 9], fx: "spark", theme: { metal: "#6a7484", acc: "#e0b84a", cloth: ["#24406e", "#1a2e50"], gem: "#5ab0ff", etch: "#bfe6ff", wrap: "#24406e", wood: "#3a2416" }, draw(c2, P2) {
+      haft(c2, 8, -22, 2.2, P2, 3, -3);
+      F(c2, () => c2.roundRect(-1.7, 7.6, 3.4, 2.2, 0.8), P2.acc, 0.5);
+      metal(c2, () => c2.roundRect(-8.4, -31.6, 16.8, 10.4, 1.4), P2);
+      for (const x of [-8.4, 6.6]) F(c2, () => c2.rect(x, -31.6, 1.8, 10.4), P2.acc, 0.45);
+      F(c2, () => c2.rect(-1.9, -32.4, 3.8, 12), P2.acc, 0.5);
       for (const s of [-1, 1]) F(c2, () => {
         c2.moveTo(s * 8.4, -28.6);
         c2.lineTo(s * 11, -26.4);
         c2.lineTo(s * 8.4, -24.2);
         c2.closePath();
-      }, P.edge, 0.4);
-      c2.strokeStyle = P.etch;
+      }, P2.edge, 0.4);
+      c2.strokeStyle = P2.etch;
       c2.lineWidth = 0.6;
       c2.beginPath();
       c2.moveTo(-5.6, -29.6);
@@ -891,13 +891,13 @@ canvas{display:block;max-width:100%;height:auto;border-radius:8px}
       c2.lineTo(5.4, -26.6);
       c2.lineTo(3.8, -23.4);
       c2.stroke();
-      gemBig(c2, 0, -26.4, 2, P.gem);
+      gemBig(c2, 0, -26.4, 2, P2.gem);
       c2.fillStyle = "rgba(255,255,255,.3)";
       c2.fillRect(-7.6, -30.8, 14, 1);
     } },
-    { id: "starfall", name: "\u041F\u043E\u0441\u043E\u0445 \u0417\u0432\u0435\u0437\u0434\u043E\u043F\u0430\u0434\u0430", cls: ["mage"], tiers: [5], hands: 1, swing: "cast", tip: [0, -29], fx: "arcane", theme: { metal: "#5b5470", acc: "#e7c35a", wood: "#2a1a3a", cloth: ["#3a1f5a", "#2a1444"], gem: "#c8a0ff", orb: "#c8a0ff", etch: "#d8b8ff", wrap: "#3a1f5a" }, draw(c2, P, o) {
-      haft(c2, 10.4, -23.6, 1.9, P, 1.8, -3.2, true);
-      for (const y of [-16, -6, 5]) F(c2, () => c2.rect(-1.3, y, 2.6, 1.1), P.acc, 0.4);
+    { id: "starfall", name: "\u041F\u043E\u0441\u043E\u0445 \u0417\u0432\u0435\u0437\u0434\u043E\u043F\u0430\u0434\u0430", cls: ["mage"], tiers: [5], hands: 1, swing: "cast", tip: [0, -29], fx: "arcane", theme: { metal: "#5b5470", acc: "#e7c35a", wood: "#2a1a3a", cloth: ["#3a1f5a", "#2a1444"], gem: "#c8a0ff", orb: "#c8a0ff", etch: "#d8b8ff", wrap: "#3a1f5a" }, draw(c2, P2, o) {
+      haft(c2, 10.4, -23.6, 1.9, P2, 1.8, -3.2, true);
+      for (const y of [-16, -6, 5]) F(c2, () => c2.rect(-1.3, y, 2.6, 1.1), P2.acc, 0.4);
       for (const s of [-1, 1]) F(c2, () => {
         c2.moveTo(s * 0.9, -23.4);
         c2.quadraticCurveTo(s * 5, -24.6, s * 4.8, -29.4);
@@ -906,9 +906,9 @@ canvas{display:block;max-width:100%;height:auto;border-radius:8px}
         c2.quadraticCurveTo(s * 3.4, -32.4, s * 3.6, -29.4);
         c2.quadraticCurveTo(s * 3.8, -25.4, s * 0.9, -24.8);
         c2.closePath();
-      }, P.acc, 0.5);
+      }, P2.acc, 0.5);
       const fy = -29 + (o && o.t ? Math.sin(o.t * 2.2) * 0.6 : 0);
-      tipGlow(c2, 0, fy, 3.2, P, o);
+      tipGlow(c2, 0, fy, 3.2, P2, o);
       F(c2, () => {
         for (let i = 0; i < 10; i++) {
           const r = i % 2 ? 1.1 : 2.8, a = i * Math.PI / 5 - Math.PI / 2;
@@ -916,11 +916,11 @@ canvas{display:block;max-width:100%;height:auto;border-radius:8px}
         }
         c2.closePath();
       }, "#f4e8ff", 0.5);
-      F(c2, () => c2.arc(0, fy, 0.9, 0, 7), P.orb, 0.3);
+      F(c2, () => c2.arc(0, fy, 0.9, 0, 7), P2.orb, 0.3);
     } },
-    { id: "phoenix", name: "\u041F\u043E\u0441\u043E\u0445 \u0424\u0435\u043D\u0438\u043A\u0441\u0430", cls: ["mage"], tiers: [5], hands: 1, swing: "cast", tip: [0, -28], fx: "fire", theme: { metal: "#6a3a2a", acc: "#e8b040", wood: "#4a1e14", cloth: ["#8a1a14", "#5a120e"], gem: "#ff7a2a", orb: "#ffb347", etch: "#ff8a3a", wrap: "#8a1a14" }, draw(c2, P, o) {
-      haft(c2, 10.4, -22.6, 1.9, P, 1.8, -3.2);
-      for (const y of [-12, 2]) F(c2, () => c2.rect(-1.3, y, 2.6, 1.1), P.acc, 0.4);
+    { id: "phoenix", name: "\u041F\u043E\u0441\u043E\u0445 \u0424\u0435\u043D\u0438\u043A\u0441\u0430", cls: ["mage"], tiers: [5], hands: 1, swing: "cast", tip: [0, -28], fx: "fire", theme: { metal: "#6a3a2a", acc: "#e8b040", wood: "#4a1e14", cloth: ["#8a1a14", "#5a120e"], gem: "#ff7a2a", orb: "#ffb347", etch: "#ff8a3a", wrap: "#8a1a14" }, draw(c2, P2, o) {
+      haft(c2, 10.4, -22.6, 1.9, P2, 1.8, -3.2);
+      for (const y of [-12, 2]) F(c2, () => c2.rect(-1.3, y, 2.6, 1.1), P2.acc, 0.4);
       for (const s of [-1, 1]) {
         F(c2, () => {
           c2.moveTo(s * 0.8, -22.4);
@@ -930,8 +930,8 @@ canvas{display:block;max-width:100%;height:auto;border-radius:8px}
           c2.quadraticCurveTo(s * 4, -26.6, s * 3.8, -25);
           c2.quadraticCurveTo(s * 2.4, -24.6, s * 0.8, -24.4);
           c2.closePath();
-        }, P.acc, 0.5);
-        c2.strokeStyle = sh(P.acc, -0.35);
+        }, P2.acc, 0.5);
+        c2.strokeStyle = sh(P2.acc, -0.35);
         c2.lineWidth = 0.3;
         c2.beginPath();
         c2.moveTo(s * 2.2, -23.6);
@@ -939,7 +939,7 @@ canvas{display:block;max-width:100%;height:auto;border-radius:8px}
         c2.stroke();
       }
       const t = o && o.t || 0, f = Math.sin(t * 9) * 0.5;
-      tipGlow(c2, 0, -28, 3.4, P, o);
+      tipGlow(c2, 0, -28, 3.4, P2, o);
       for (const [col, w, h] of [["#ff5a1a", 2.6, 7.4], ["#ffa030", 1.8, 5.4], ["#fff2a0", 0.9, 3.2]]) {
         c2.fillStyle = col;
         c2.beginPath();
@@ -950,10 +950,10 @@ canvas{display:block;max-width:100%;height:auto;border-radius:8px}
         c2.fill();
       }
     } },
-    { id: "glacier", name: "\u041B\u0435\u0434\u044F\u043D\u043E\u0439 \u0441\u043A\u0438\u043F\u0435\u0442\u0440", cls: ["mage"], tiers: [5], hands: 1, swing: "cast", tip: [0, -29], fx: "frost", theme: { metal: "#b8c8d8", acc: "#e8f4ff", wood: "#4a5a70", cloth: ["#2a4a6e", "#1a3050"], gem: "#bfe6ff", orb: "#bfe6ff", etch: "#e8f8ff", wrap: "#2a4a6e" }, draw(c2, P, o) {
-      haft(c2, 10.4, -22.6, 1.8, P, 1.8, -3.2, true);
-      for (const y of [-14, -4, 6]) F(c2, () => c2.rect(-1.25, y, 2.5, 1.1), P.acc, 0.4);
-      tipGlow(c2, 0, -28, 3.4, P, o);
+    { id: "glacier", name: "\u041B\u0435\u0434\u044F\u043D\u043E\u0439 \u0441\u043A\u0438\u043F\u0435\u0442\u0440", cls: ["mage"], tiers: [5], hands: 1, swing: "cast", tip: [0, -29], fx: "frost", theme: { metal: "#b8c8d8", acc: "#e8f4ff", wood: "#4a5a70", cloth: ["#2a4a6e", "#1a3050"], gem: "#bfe6ff", orb: "#bfe6ff", etch: "#e8f8ff", wrap: "#2a4a6e" }, draw(c2, P2, o) {
+      haft(c2, 10.4, -22.6, 1.8, P2, 1.8, -3.2, true);
+      for (const y of [-14, -4, 6]) F(c2, () => c2.rect(-1.25, y, 2.5, 1.1), P2.acc, 0.4);
+      tipGlow(c2, 0, -28, 3.4, P2, o);
       const cr = (x, y, a, L, w, col) => {
         c2.save();
         c2.translate(x, y);
@@ -979,10 +979,10 @@ canvas{display:block;max-width:100%;height:auto;border-radius:8px}
       cr(-0.6, -22.8, -0.22, 8.6, 1.6, "#bfe6ff");
       cr(0.6, -22.8, 0.22, 8.6, 1.6, "#bfe6ff");
       cr(0, -23, 0, 11.4, 2, "#e0f4ff");
-      F(c2, () => c2.rect(-1.6, -23.4, 3.2, 1.4), P.acc, 0.45);
+      F(c2, () => c2.rect(-1.6, -23.4, 3.2, 1.4), P2.acc, 0.45);
     } },
-    { id: "stagbow", name: "\u041B\u0443\u043A \u0411\u0435\u043B\u043E\u0433\u043E \u041E\u043B\u0435\u043D\u044F", cls: ["archer"], tiers: [5], swing: "bow", fx: "leaf", theme: { metal: "#c8b890", acc: "#e0b84a", wood: "#ece2c8", cloth: ["#2f6a3a", "#1e4a28"], leather: "#4a3a24", gem: "#5fd38a", leaf: "#4aa870", wrap: "#2f6a3a" }, draw(c2, P, o) {
-      bowDraw(c2, P, o, 17.5, 3);
+    { id: "stagbow", name: "\u041B\u0443\u043A \u0411\u0435\u043B\u043E\u0433\u043E \u041E\u043B\u0435\u043D\u044F", cls: ["archer"], tiers: [5], swing: "bow", fx: "leaf", theme: { metal: "#c8b890", acc: "#e0b84a", wood: "#ece2c8", cloth: ["#2f6a3a", "#1e4a28"], leather: "#4a3a24", gem: "#5fd38a", leaf: "#4aa870", wrap: "#2f6a3a" }, draw(c2, P2, o) {
+      bowDraw(c2, P2, o, 17.5, 3);
       for (const s of [-1, 1]) for (const [x, y, a] of [[3.4, 0.45, -0.9], [2.4, 0.7, -0.6], [0.4, 0.9, -0.35]]) {
         const px = x, py = s * 17.5 * y;
         c2.strokeStyle = O;
@@ -995,11 +995,11 @@ canvas{display:block;max-width:100%;height:auto;border-radius:8px}
         c2.lineWidth = 0.7;
         c2.stroke();
       }
-      for (const s of [-1, 1]) F(c2, () => c2.ellipse(1.6, s * 3.2, 1.6, 0.8, s * 0.5, 0, 7), P.leaf, 0.35);
-      gemBig(c2, 2.4, 0, 1, P.gem);
+      for (const s of [-1, 1]) F(c2, () => c2.ellipse(1.6, s * 3.2, 1.6, 0.8, s * 0.5, 0, 7), P2.leaf, 0.35);
+      gemBig(c2, 2.4, 0, 1, P2.gem);
     } },
-    { id: "sunbow", name: "\u0421\u043E\u043B\u043D\u0435\u0447\u043D\u044B\u0439 \u043B\u0443\u043A", cls: ["archer"], tiers: [5], swing: "bow", fx: "spark", theme: { metal: "#d8a838", acc: "#fff0a0", wood: "#d8a838", cloth: ["#8a2a14", "#5a1a0e"], leather: "#5a3418", gem: "#ffd34a", leaf: "#e8c040", wrap: "#8a2a14" }, draw(c2, P, o) {
-      bowDraw(c2, P, o, 17, 5);
+    { id: "sunbow", name: "\u0421\u043E\u043B\u043D\u0435\u0447\u043D\u044B\u0439 \u043B\u0443\u043A", cls: ["archer"], tiers: [5], swing: "bow", fx: "spark", theme: { metal: "#d8a838", acc: "#fff0a0", wood: "#d8a838", cloth: ["#8a2a14", "#5a1a0e"], leather: "#5a3418", gem: "#ffd34a", leaf: "#e8c040", wrap: "#8a2a14" }, draw(c2, P2, o) {
+      bowDraw(c2, P2, o, 17, 5);
       c2.save();
       c2.translate(3, 0);
       for (let i = 0; i < 12; i++) {
@@ -1009,14 +1009,14 @@ canvas{display:block;max-width:100%;height:auto;border-radius:8px}
           c2.lineTo(Math.cos(a) * (i % 2 ? 4 : 5), Math.sin(a) * (i % 2 ? 4 : 5));
           c2.lineTo(Math.cos(a + 0.12) * 2.6, Math.sin(a + 0.12) * 2.6);
           c2.closePath();
-        }, P.acc, 0.3);
+        }, P2.acc, 0.3);
       }
-      F(c2, () => c2.arc(0, 0, 2.8, 0, 7), P.metal, 0.55);
-      gemBig(c2, 0, 0, 1.6, P.gem);
+      F(c2, () => c2.arc(0, 0, 2.8, 0, 7), P2.metal, 0.55);
+      gemBig(c2, 0, 0, 1.6, P2.gem);
       c2.restore();
     } },
-    { id: "nightbow", name: "\u041B\u0443\u043A \u041D\u043E\u0447\u043D\u043E\u0439 \u0422\u0435\u043D\u0438", cls: ["archer"], tiers: [5], swing: "bow", fx: "arcane", theme: { metal: "#4a4058", acc: "#b47aff", wood: "#2a2236", cloth: ["#2a1444", "#1a0e2e"], leather: "#24182e", gem: "#c8a0ff", leaf: "#6a4a9a", wrap: "#2a1444" }, draw(c2, P, o) {
-      bowDraw(c2, P, o, 16.5, 2);
+    { id: "nightbow", name: "\u041B\u0443\u043A \u041D\u043E\u0447\u043D\u043E\u0439 \u0422\u0435\u043D\u0438", cls: ["archer"], tiers: [5], swing: "bow", fx: "arcane", theme: { metal: "#4a4058", acc: "#b47aff", wood: "#2a2236", cloth: ["#2a1444", "#1a0e2e"], leather: "#24182e", gem: "#c8a0ff", leaf: "#6a4a9a", wrap: "#2a1444" }, draw(c2, P2, o) {
+      bowDraw(c2, P2, o, 16.5, 2);
       for (const s of [-1, 1]) {
         F(c2, () => {
           c2.moveTo(1.6, s * 16.5);
@@ -1024,14 +1024,14 @@ canvas{display:block;max-width:100%;height:auto;border-radius:8px}
           c2.quadraticCurveTo(4.6, s * 12.6, 2.4, s * 13.4);
           c2.closePath();
         }, "#8a8aa0", 0.5);
-        edgeHi(c2, P, [[5.6, s * 11], [6.2, s * 9.8]]);
+        edgeHi(c2, P2, [[5.6, s * 11], [6.2, s * 9.8]]);
       }
-      F(c2, () => c2.roundRect(-0.6, -3, 2.6, 6, 0.8), P.acc, 0.45);
-      gemBig(c2, 2.8, 0, 1.2, P.gem);
+      F(c2, () => c2.roundRect(-0.6, -3, 2.6, 6, 0.8), P2.acc, 0.45);
+      gemBig(c2, 2.8, 0, 1.2, P2.gem);
     } },
     // ---------------------------------------------------------------- инструменты и оружие жителей
-    { id: "pick", name: "\u041A\u0438\u0440\u043A\u0430", npc: true, hands: 1, draw(c2, P) {
-      haft(c2, 5, -20.6, 1.7, P, 2.4, -1.8);
+    { id: "pick", name: "\u041A\u0438\u0440\u043A\u0430", npc: true, hands: 1, draw(c2, P2) {
+      haft(c2, 5, -20.6, 1.7, P2, 2.4, -1.8);
       metal(c2, () => {
         c2.moveTo(-10.6, -15.4);
         c2.quadraticCurveTo(-5, -23.4, 0, -23.2);
@@ -1040,11 +1040,11 @@ canvas{display:block;max-width:100%;height:auto;border-radius:8px}
         c2.quadraticCurveTo(5, -19.8, 0, -19.6);
         c2.quadraticCurveTo(-5, -19.8, -9.8, -14.4);
         c2.closePath();
-      }, { ...P, metal: "#a8b0b6" });
+      }, { ...P2, metal: "#a8b0b6" });
       F(c2, () => c2.rect(-1.6, -24, 3.2, 5.4), "#6a7076", 0.5);
     } },
-    { id: "torch", name: "\u0424\u0430\u043A\u0435\u043B", npc: true, hands: 1, draw(c2, P, o) {
-      haft(c2, 5, -14, 1.6, P, 2.4, -1.4);
+    { id: "torch", name: "\u0424\u0430\u043A\u0435\u043B", npc: true, hands: 1, draw(c2, P2, o) {
+      haft(c2, 5, -14, 1.6, P2, 2.4, -1.4);
       F(c2, () => c2.rect(-1.6, -16.4, 3.2, 2.6), "#5a3a1c", 0.5);
       const t = o && o.t || 0, f = Math.sin(t * 14) * 0.8, g = c2.createRadialGradient(0, -20, 0.5, 0, -20, 8);
       g.addColorStop(0, "rgba(255,200,90,.7)");
@@ -1063,7 +1063,7 @@ canvas{display:block;max-width:100%;height:auto;border-radius:8px}
         c2.fill();
       }
     } },
-    { id: "sickle", name: "\u0421\u0435\u0440\u043F \u043A\u043E\u043B\u0434\u0443\u043D\u0430", npc: true, hands: 1, swing: "cast", tip: [6, -25], draw(c2, P, o) {
+    { id: "sickle", name: "\u0421\u0435\u0440\u043F \u043A\u043E\u043B\u0434\u0443\u043D\u0430", npc: true, hands: 1, swing: "cast", tip: [6, -25], draw(c2, P2, o) {
       F(c2, () => {
         c2.moveTo(-0.8, 10);
         c2.quadraticCurveTo(0.4, -6, -0.6, -22);
@@ -1071,7 +1071,7 @@ canvas{display:block;max-width:100%;height:auto;border-radius:8px}
         c2.quadraticCurveTo(1.8, -6, 0.8, 10);
         c2.closePath();
       }, "#5a3e24", 0.6);
-      tipGlow(c2, 5, -25, 3.4, { ...P, glow: "#78ffaa", orb: "#9affc8" }, o);
+      tipGlow(c2, 5, -25, 3.4, { ...P2, glow: "#78ffaa", orb: "#9affc8" }, o);
       F(c2, () => {
         c2.moveTo(-0.4, -21.6);
         c2.quadraticCurveTo(4.6, -30, 11.6, -26);
@@ -1082,8 +1082,8 @@ canvas{display:block;max-width:100%;height:auto;border-radius:8px}
       }, "#cfd8de", 0.6);
     } },
     // только у стражи — копьё
-    { id: "spear", name: "\u041A\u043E\u043F\u044C\u0451", tiers: [], npc: true, hands: 2, box: [-3, -34, 3, 10], draw(c2, P) {
-      haft(c2, 10, -27, 1.6, P, 1.6, -2.2);
+    { id: "spear", name: "\u041A\u043E\u043F\u044C\u0451", tiers: [], npc: true, hands: 2, box: [-3, -34, 3, 10], draw(c2, P2) {
+      haft(c2, 10, -27, 1.6, P2, 1.6, -2.2);
       metal(c2, () => {
         c2.moveTo(-0.8, -27);
         c2.lineTo(-1.8, -30);
@@ -1091,20 +1091,20 @@ canvas{display:block;max-width:100%;height:auto;border-radius:8px}
         c2.lineTo(1.8, -30);
         c2.lineTo(0.8, -27);
         c2.closePath();
-      }, P);
-      F(c2, () => c2.rect(-1.1, -27.6, 2.2, 1.6), P.acc, 0.5);
-      edgeHi(c2, P, [[-0.9, -29.8], [-0.2, -33.4]]);
+      }, P2);
+      F(c2, () => c2.rect(-1.1, -27.6, 2.2, 1.6), P2.acc, 0.5);
+      edgeHi(c2, P2, [[-0.9, -29.8], [-0.2, -33.4]]);
     } },
-    { id: "cleaver", name: "\u0422\u0435\u0441\u0430\u043A", tiers: [], npc: true, hands: 1, box: [-3, -15, 5, 5], draw(c2, P) {
-      haft(c2, 2.6, -2, 1.5, P, 2.6, -2);
+    { id: "cleaver", name: "\u0422\u0435\u0441\u0430\u043A", tiers: [], npc: true, hands: 1, box: [-3, -15, 5, 5], draw(c2, P2) {
+      haft(c2, 2.6, -2, 1.5, P2, 2.6, -2);
       metal(c2, () => {
         c2.moveTo(-1, -2.2);
         c2.lineTo(-1, -13.4);
         c2.lineTo(3.4, -14.6);
         c2.quadraticCurveTo(3.8, -8, 2, -2.2);
         c2.closePath();
-      }, P);
-      edgeHi(c2, P, [[3, -14], [3.2, -8.6], [1.9, -3]]);
+      }, P2);
+      edgeHi(c2, P2, [[3, -14], [3.2, -8.6], [1.9, -3]]);
     } }
   ];
   var W_BY = Object.fromEntries(WEAPONS.map((w) => [w.id, w]));
@@ -1143,13 +1143,13 @@ canvas{display:block;max-width:100%;height:auto;border-radius:8px}
     { id: "band", name: "\u041F\u043E\u0432\u044F\u0437\u043A\u0430", npc: true, hair: "none" }
   ];
   var H_BY = Object.fromEntries(HELMS.map((h) => [h.id, h]));
-  function drawHelm(c2, id, P, view) {
+  function drawHelm(c2, id, P2, view) {
     const hy = -18.2, side = view === "side", back = view === "back", fx = side ? 0.4 : 0;
     const dome = (r, y0, col) => metal(c2, () => {
       c2.moveTo(fx - r, y0);
       c2.bezierCurveTo(fx - r, hy - 7.2, fx + r, hy - 7.2, fx + r, y0);
       c2.closePath();
-    }, P, col);
+    }, P2, col);
     const mail = (fn, col) => {
       F(c2, fn, col, 0.6);
       c2.save();
@@ -1171,14 +1171,14 @@ canvas{display:block;max-width:100%;height:auto;border-radius:8px}
           c2.moveTo(fx - 3.8, hy - 1.2);
           c2.bezierCurveTo(fx - 3.8, hy - 6.6, fx + 3.8, hy - 6.6, fx + 3.8, hy - 1.2);
           c2.closePath();
-        }, P.leather, 0.7);
-        F(c2, () => c2.roundRect(fx - 3.9, hy - 1.9, 7.8, 1.3, 0.5), sh(P.leather, -0.25), 0.5);
-        line(c2, [[fx, hy - 1.9], [fx, hy - 5.8]], sh(P.leather, -0.35), 0.35);
+        }, P2.leather, 0.7);
+        F(c2, () => c2.roundRect(fx - 3.9, hy - 1.9, 7.8, 1.3, 0.5), sh(P2.leather, -0.25), 0.5);
+        line(c2, [[fx, hy - 1.9], [fx, hy - 5.8]], sh(P2.leather, -0.35), 0.35);
         break;
       }
       case "coif":
       case "mailcoif": {
-        const col = id === "coif" ? P.cloth[0] : P.metal;
+        const col = id === "coif" ? P2.cloth[0] : P2.metal;
         const hole = () => {
           if (back) return;
           c2.moveTo(fx + (side ? 4.6 : 2.7), hy + 0.7);
@@ -1217,23 +1217,23 @@ canvas{display:block;max-width:100%;height:auto;border-radius:8px}
           c2.quadraticCurveTo(fx - 3.6, hy - 6, fx, hy - 7.6);
           c2.quadraticCurveTo(fx + 3.6, hy - 6, fx + 3.9, hy - 1.4);
           c2.closePath();
-        }, P);
-        F(c2, () => c2.roundRect(fx - 4.1, hy - 2.2, 8.2, 1.3, 0.4), P.acc, 0.5);
+        }, P2);
+        F(c2, () => c2.roundRect(fx - 4.1, hy - 2.2, 8.2, 1.3, 0.4), P2.acc, 0.5);
         if (!back) {
-          if (side) F(c2, () => c2.rect(fx + 3.2, hy - 1.2, 0.9, 3.4), P.acc, 0.45);
-          else F(c2, () => c2.rect(fx - 0.45, hy - 1.2, 0.9, 3.6), P.acc, 0.45);
+          if (side) F(c2, () => c2.rect(fx + 3.2, hy - 1.2, 0.9, 3.4), P2.acc, 0.45);
+          else F(c2, () => c2.rect(fx - 0.45, hy - 1.2, 0.9, 3.6), P2.acc, 0.45);
         }
-        line(c2, [[fx, hy - 7.2], [fx, hy - 2.4]], P.dark, 0.3);
+        line(c2, [[fx, hy - 7.2], [fx, hy - 2.4]], P2.dark, 0.3);
         break;
       }
       case "kettle": {
-        dome(3.8, hy - 1.6, P.metal);
-        F(c2, () => c2.ellipse(fx, hy - 1.6, 6.2, side ? 1.4 : 1.6, 0, 0, 7), P.metal, 0.6);
+        dome(3.8, hy - 1.6, P2.metal);
+        F(c2, () => c2.ellipse(fx, hy - 1.6, 6.2, side ? 1.4 : 1.6, 0, 0, 7), P2.metal, 0.6);
         c2.fillStyle = "rgba(255,255,255,.25)";
         c2.beginPath();
         c2.ellipse(fx - 2, hy - 1.9, 3, 0.5, 0, 0, 7);
         c2.fill();
-        F(c2, () => c2.rect(fx - 3.8, hy - 2.8, 7.6, 0.9), P.acc, 0.4);
+        F(c2, () => c2.rect(fx - 3.8, hy - 2.8, 7.6, 0.9), P2.acc, 0.4);
         break;
       }
       case "spangen": {
@@ -1247,16 +1247,16 @@ canvas{display:block;max-width:100%;height:auto;border-radius:8px}
             c2.moveTo(fx + (side ? 4.4 : 2.6), hy + 0.9);
             side ? c2.ellipse(fx + 2.6, hy + 0.9, 1.8, 3, 0, 0, 7, true) : c2.ellipse(fx, hy + 0.9, 2.6, 3, 0, 0, 7, true);
           }
-        }, P.metal);
+        }, P2.metal);
         metal(c2, () => {
           c2.moveTo(fx - 4, hy - 1.2);
           c2.quadraticCurveTo(fx - 3.8, hy - 6.4, fx, hy - 8);
           c2.quadraticCurveTo(fx + 3.8, hy - 6.4, fx + 4, hy - 1.2);
           c2.closePath();
-        }, P);
-        for (const x of side ? [-1, 1.8] : [-2.2, 0, 2.2]) line(c2, [[fx + x * 0.9, hy - 1.6], [fx + x * 0.3, hy - 7.4]], P.acc, 0.6);
-        F(c2, () => c2.roundRect(fx - 4.2, hy - 2, 8.4, 1.3, 0.4), P.acc, 0.45);
-        F(c2, () => c2.arc(fx, hy - 8.2, 0.6, 0, 7), P.acc, 0.4);
+        }, P2);
+        for (const x of side ? [-1, 1.8] : [-2.2, 0, 2.2]) line(c2, [[fx + x * 0.9, hy - 1.6], [fx + x * 0.3, hy - 7.4]], P2.acc, 0.6);
+        F(c2, () => c2.roundRect(fx - 4.2, hy - 2, 8.4, 1.3, 0.4), P2.acc, 0.45);
+        F(c2, () => c2.arc(fx, hy - 8.2, 0.6, 0, 7), P2.acc, 0.4);
         break;
       }
       case "horned": {
@@ -1270,16 +1270,16 @@ canvas{display:block;max-width:100%;height:auto;border-radius:8px}
           }, "#ece2c8", 0.6);
           line(c2, [[x0 + s * 3.4, hy - 5.6], [x0 + s * 4, hy - 6.4]], "#b8a888", 0.35);
         }
-        dome(4, hy - 1.2, P.metal);
-        F(c2, () => c2.roundRect(fx - 4.2, hy - 2, 8.4, 1.4, 0.4), P.acc, 0.5);
+        dome(4, hy - 1.2, P2.metal);
+        F(c2, () => c2.roundRect(fx - 4.2, hy - 2, 8.4, 1.4, 0.4), P2.acc, 0.5);
         if (!back && !side) F(c2, () => {
           c2.moveTo(fx - 0.5, hy - 1);
           c2.lineTo(fx + 0.5, hy - 1);
           c2.lineTo(fx + 0.3, hy + 2.4);
           c2.lineTo(fx - 0.3, hy + 2.4);
           c2.closePath();
-        }, P.acc, 0.4);
-        gem(c2, fx, hy - 4.8, 0.7, back ? null : P.gem);
+        }, P2.acc, 0.4);
+        gem(c2, fx, hy - 4.8, 0.7, back ? null : P2.gem);
         break;
       }
       case "great": {
@@ -1290,19 +1290,19 @@ canvas{display:block;max-width:100%;height:auto;border-radius:8px}
           c2.lineTo(fx + 4.2, hy + 4.4);
           c2.quadraticCurveTo(fx, hy + 5.4, fx - 4.2, hy + 4.4);
           c2.closePath();
-        }, P);
+        }, P2);
         if (!back) {
           const ex = side ? [fx + 1.4, fx + 4.3] : [fx - 3.8, fx + 3.8];
           F(c2, () => c2.rect(ex[0], hy - 1.4, ex[1] - ex[0], 0.9), "#14100b", 0.3);
           if (!side) {
-            F(c2, () => c2.rect(fx - 0.5, hy - 4.6, 1, 8.8), P.acc, 0.4);
-            F(c2, () => c2.rect(fx - 3, hy + 0.2, 6, 0.8), P.acc, 0.4);
+            F(c2, () => c2.rect(fx - 0.5, hy - 4.6, 1, 8.8), P2.acc, 0.4);
+            F(c2, () => c2.rect(fx - 3, hy + 0.2, 6, 0.8), P2.acc, 0.4);
             for (const x of [-2.4, -1.4, 1.4, 2.4]) {
               c2.fillStyle = "#14100b";
               c2.fillRect(fx + x - 0.2, hy + 2.2, 0.4, 0.4);
               c2.fillRect(fx + x - 0.2, hy + 3.2, 0.4, 0.4);
             }
-          } else F(c2, () => c2.rect(fx + 3.4, hy - 4.4, 0.8, 8.4), P.acc, 0.4);
+          } else F(c2, () => c2.rect(fx + 3.4, hy - 4.4, 0.8, 8.4), P2.acc, 0.4);
         }
         c2.fillStyle = "rgba(255,255,255,.3)";
         c2.fillRect(fx - 3.4, hy - 3.8, 0.9, 7);
@@ -1331,16 +1331,16 @@ canvas{display:block;max-width:100%;height:auto;border-radius:8px}
           c2.lineTo(fx - (side ? -0.4 : 2.6), hy - 0.4);
           c2.lineTo(fx - (side ? -0.4 : 2.6), hy + 3.8);
           c2.closePath();
-        }, P);
-        if (back) metal(c2, () => c2.rect(fx - 4, hy - 1, 8, 4.6), P);
-        F(c2, () => c2.roundRect(fx - 4.3, hy - 1.8, 8.6, 1.2, 0.4), P.acc, 0.45);
+        }, P2);
+        if (back) metal(c2, () => c2.rect(fx - 4, hy - 1, 8, 4.6), P2);
+        F(c2, () => c2.roundRect(fx - 4.3, hy - 1.8, 8.6, 1.2, 0.4), P2.acc, 0.45);
         F(c2, () => {
           c2.moveTo(fx - 0.6, hy - 6.2);
           c2.quadraticCurveTo(fx - 1.6, hy - 9.6, fx + (side ? -3.6 : 0), hy - 10.4);
           c2.quadraticCurveTo(fx + 1.2, hy - 9, fx + 0.6, hy - 6.2);
           c2.closePath();
-        }, P.cloth[0], 0.5);
-        gem(c2, fx, hy - 3.4, 0.8, back || side ? null : P.gem);
+        }, P2.cloth[0], 0.5);
+        gem(c2, fx, hy - 3.4, 0.8, back || side ? null : P2.gem);
         break;
       }
       case "warlord": {
@@ -1352,8 +1352,8 @@ canvas{display:block;max-width:100%;height:auto;border-radius:8px}
             c2.quadraticCurveTo(x0 + s * 4.4, hy - 8.4, x0 + s * 2.2, hy - 6.6);
             c2.quadraticCurveTo(x0 + s * 1, hy - 5.6, x0, hy - 5.8);
             c2.closePath();
-          }, P.acc, 0.55);
-          line(c2, [[x0 + s * 3.2, hy - 6], [x0 + s * 4.4, hy - 8.6]], sh(P.acc, -0.35), 0.35);
+          }, P2.acc, 0.55);
+          line(c2, [[x0 + s * 3.2, hy - 6], [x0 + s * 4.4, hy - 8.6]], sh(P2.acc, -0.35), 0.35);
         }
         metal(c2, () => {
           c2.moveTo(fx - 4.4, hy + 4.8);
@@ -1362,13 +1362,13 @@ canvas{display:block;max-width:100%;height:auto;border-radius:8px}
           c2.lineTo(fx + 4.4, hy + 4.8);
           c2.quadraticCurveTo(fx, hy + 6, fx - 4.4, hy + 4.8);
           c2.closePath();
-        }, P);
+        }, P2);
         F(c2, () => {
           c2.moveTo(fx - 1, hy - 7.4);
           c2.quadraticCurveTo(fx + (side ? -6 : 0), hy - 12.6, fx + (side ? -6.6 : 0), hy - 13.4);
           c2.quadraticCurveTo(fx + (side ? -2 : 1.6), hy - 10.6, fx + 1, hy - 7.4);
           c2.closePath();
-        }, P.acc, 0.5);
+        }, P2.acc, 0.5);
         if (!back) {
           const ex = side ? [fx + 1.4, fx + 4.5] : [fx - 3.8, fx + 3.8];
           F(c2, () => c2.rect(ex[0], hy - 1.4, ex[1] - ex[0], 1), "#0a0c12", 0.3);
@@ -1379,9 +1379,9 @@ canvas{display:block;max-width:100%;height:auto;border-radius:8px}
               c2.lineTo(fx + 0.6, hy + 4.4);
               c2.lineTo(fx - 0.6, hy + 4.4);
               c2.closePath();
-            }, P.acc, 0.4);
-            gem(c2, fx, hy - 4.6, 0.9, P.gem);
-            c2.strokeStyle = P.etch;
+            }, P2.acc, 0.4);
+            gem(c2, fx, hy - 4.6, 0.9, P2.gem);
+            c2.strokeStyle = P2.etch;
             c2.lineWidth = 0.45;
             for (const sx of [-1, 1]) {
               c2.beginPath();
@@ -1392,7 +1392,7 @@ canvas{display:block;max-width:100%;height:auto;border-radius:8px}
             }
           }
         }
-        F(c2, () => c2.roundRect(fx - 4.6, hy + 3.8, 9.2, 1.2, 0.4), P.acc, 0.45);
+        F(c2, () => c2.roundRect(fx - 4.6, hy + 3.8, 9.2, 1.2, 0.4), P2.acc, 0.45);
         c2.fillStyle = "rgba(255,255,255,.28)";
         c2.fillRect(fx - 3.6, hy - 3.8, 0.9, 7);
         break;
@@ -1405,8 +1405,8 @@ canvas{display:block;max-width:100%;height:auto;border-radius:8px}
             c2.bezierCurveTo(x0 + s * 3.6, hy - 4.2, x0 + s * 6.4, hy - 4.6, x0 + s * 7.4, hy - 8.2);
             c2.quadraticCurveTo(x0 + s * 5, hy - 3.6, x0, hy - 1.2);
             c2.closePath();
-          }, P.acc, 0.5);
-          line(c2, [[x0 + s * 2.6, hy - 3.2], [x0 + s * 5.4, hy - 4.8]], sh(P.acc, -0.35), 0.35);
+          }, P2.acc, 0.5);
+          line(c2, [[x0 + s * 2.6, hy - 3.2], [x0 + s * 5.4, hy - 4.8]], sh(P2.acc, -0.35), 0.35);
         }
         metal(c2, () => {
           c2.moveTo(fx - 4.3, hy + 4.4);
@@ -1418,8 +1418,8 @@ canvas{display:block;max-width:100%;height:auto;border-radius:8px}
           c2.lineTo(fx - 2.6, hy - 0.4);
           c2.lineTo(fx - 2.6, hy + 3.6);
           c2.closePath();
-        }, P);
-        if (back) metal(c2, () => c2.rect(fx - 4.2, hy - 1, 8.4, 5), P);
+        }, P2);
+        if (back) metal(c2, () => c2.rect(fx - 4.2, hy - 1, 8.4, 5), P2);
         for (let i = 0; i < 5; i++) {
           const y = hy - 6.6 + i * 1.6, x = fx + (side ? -1.8 - i * 0.9 : 0);
           F(c2, () => {
@@ -1436,17 +1436,17 @@ canvas{display:block;max-width:100%;height:auto;border-radius:8px}
           c2.lineTo(fx + x + 0.7, hy - 6.2);
           c2.closePath();
         }, "#c83a1a", 0.4);
-        F(c2, () => c2.roundRect(fx - 4.5, hy - 1.8, 9, 1.3, 0.4), P.acc, 0.45);
+        F(c2, () => c2.roundRect(fx - 4.5, hy - 1.8, 9, 1.3, 0.4), P2.acc, 0.45);
         if (!back && !side) {
-          gem(c2, fx - 1.6, hy + 0.6, 0.5, P.gem);
-          gem(c2, fx + 1.6, hy + 0.6, 0.5, P.gem);
+          gem(c2, fx - 1.6, hy + 0.6, 0.5, P2.gem);
+          gem(c2, fx + 1.6, hy + 0.6, 0.5, P2.gem);
         }
         c2.fillStyle = "rgba(255,255,255,.25)";
         c2.fillRect(fx - 3.4, hy - 4, 0.8, 6);
         break;
       }
       case "astral": {
-        F(c2, () => c2.roundRect(fx - 4, hy - 3.8, 8, 1.5, 0.5), P.acc, 0.5);
+        F(c2, () => c2.roundRect(fx - 4, hy - 3.8, 8, 1.5, 0.5), P2.acc, 0.5);
         for (const x of side ? [-2, 0.4, 2.8] : [-3.2, -1.6, 0, 1.6, 3.2]) {
           const h = x === 0 ? 5.8 : Math.abs(x) > 2.5 ? 2.6 : 4;
           F(c2, () => {
@@ -1454,9 +1454,9 @@ canvas{display:block;max-width:100%;height:auto;border-radius:8px}
             c2.quadraticCurveTo(fx + x * 1.15, hy - 3.6 - h * 0.6, fx + x * 1.25, hy - 3.6 - h);
             c2.quadraticCurveTo(fx + x * 1.05 + 0.2, hy - 3.6 - h * 0.5, fx + x + 0.75, hy - 3.6);
             c2.closePath();
-          }, P.acc, 0.4);
+          }, P2.acc, 0.4);
         }
-        if (!back && !side) gem(c2, fx, hy - 3, 0.9, P.gem);
+        if (!back && !side) gem(c2, fx, hy - 3, 0.9, P2.gem);
         F(c2, () => {
           for (let i = 0; i < 8; i++) {
             const r = i % 2 ? 0.7 : 1.7, a = i * Math.PI / 4 - Math.PI / 2;
@@ -1464,11 +1464,11 @@ canvas{display:block;max-width:100%;height:auto;border-radius:8px}
           }
           c2.closePath();
         }, "#f4e8ff", 0.4);
-        F(c2, () => c2.arc(fx, hy - 12.6, 0.6, 0, 7), P.gem, 0.3);
+        F(c2, () => c2.arc(fx, hy - 12.6, 0.6, 0, 7), P2.gem, 0.3);
         break;
       }
       case "frostcowl": {
-        const col = P.cloth[0];
+        const col = P2.cloth[0];
         const hole = () => {
           if (back) return;
           c2.moveTo(fx + (side ? 4.4 : 2.6), hy + 0.7);
@@ -1541,7 +1541,7 @@ canvas{display:block;max-width:100%;height:auto;border-radius:8px}
           c2.lineWidth = 0.75;
           c2.stroke();
         }
-        const col = P.leather;
+        const col = P2.leather;
         const hole = () => {
           if (back) return;
           c2.moveTo(fx + (side ? 4.4 : 2.6), hy + 0.7);
@@ -1575,13 +1575,13 @@ canvas{display:block;max-width:100%;height:auto;border-radius:8px}
           c2.fillStyle = g;
           c2.fillRect(fx - 4, hy - 3, 8, 6);
           c2.restore();
-          c2.strokeStyle = P.acc;
+          c2.strokeStyle = P2.acc;
           c2.lineWidth = 0.5;
           c2.beginPath();
           side ? c2.ellipse(fx + 2.6, hy + 0.7, 2.1, 3.4, 0, 0, 7) : c2.ellipse(fx, hy + 0.9, 2.8, 3.5, 0, 0, 7);
           c2.stroke();
         }
-        for (const [x, y, a] of side ? [[-3.6, -1, 0.4]] : [[-3.8, -0.6, 0.6], [3.8, -0.6, -0.6]]) F(c2, () => c2.ellipse(fx + x, hy + y, 1.6, 0.8, a, 0, 7), P.leaf, 0.35);
+        for (const [x, y, a] of side ? [[-3.6, -1, 0.4]] : [[-3.8, -0.6, 0.6], [3.8, -0.6, -0.6]]) F(c2, () => c2.ellipse(fx + x, hy + y, 1.6, 0.8, a, 0, 7), P2.leaf, 0.35);
         break;
       }
       case "hawkmask": {
@@ -1590,7 +1590,7 @@ canvas{display:block;max-width:100%;height:auto;border-radius:8px}
           c2.quadraticCurveTo(fx - 3.6, hy - 7.4, fx, hy - 7.2);
           c2.quadraticCurveTo(fx + 3.6, hy - 7.4, fx + 3.8, hy - 2.6);
           c2.closePath();
-        }, P.leather, 0.6);
+        }, P2.leather, 0.6);
         for (let i = 0; i < 5; i++) {
           const a = -1.1 + i * 0.55, x0 = fx + (side ? -2 : Math.sin(a) * 2.6), cols = ["#8a2a14", "#e8c040", "#f4ead0", "#e8c040", "#8a2a14"];
           c2.save();
@@ -1624,10 +1624,10 @@ canvas{display:block;max-width:100%;height:auto;border-radius:8px}
               c2.lineTo(fx - 3.4, hy - 0.6);
               c2.closePath();
             }
-          }, P, P.metal);
+          }, P2, P2.metal);
           if (!side) for (const sx of [-1.8, 1.8]) F(c2, () => c2.ellipse(fx + sx, hy - 1.9, 0.9, 0.5, 0, 0, 7), "#0a0806", 0.2);
           else F(c2, () => c2.ellipse(fx + 2.6, hy - 1.6, 0.7, 0.5, 0, 0, 7), "#0a0806", 0.2);
-          gem(c2, fx + (side ? 1.4 : 0), hy - 3.6, 0.6, P.gem);
+          gem(c2, fx + (side ? 1.4 : 0), hy - 3.6, 0.6, P2.gem);
         }
         break;
       }
@@ -1636,7 +1636,7 @@ canvas{display:block;max-width:100%;height:auto;border-radius:8px}
       case "lhood":
       case "fhood":
       case "mantle": {
-        const col = id === "lhood" || id === "fhood" ? P.leather : id === "mantle" ? P.leaf : P.cloth[0];
+        const col = id === "lhood" || id === "fhood" ? P2.leather : id === "mantle" ? P2.leaf : P2.cloth[0];
         if (id === "mantle") F(c2, () => {
           c2.moveTo(fx - (side ? 3 : 6.4), hy + 3.6);
           c2.quadraticCurveTo(fx, hy + (back ? 9.4 : 7.4), fx + (side ? 4 : 6.4), hy + 3.6);
@@ -1681,7 +1681,7 @@ canvas{display:block;max-width:100%;height:auto;border-radius:8px}
           c2.restore();
         }
         if (id === "cowl" && !back) {
-          c2.strokeStyle = P.acc;
+          c2.strokeStyle = P2.acc;
           c2.lineWidth = 0.5;
           c2.beginPath();
           side ? c2.ellipse(fx + 2.6, hy + 0.7, 2.1, 3.4, 0, 0, 7) : c2.ellipse(fx, hy + 0.9, 2.8, 3.5, 0, 0, 7);
@@ -1694,7 +1694,7 @@ canvas{display:block;max-width:100%;height:auto;border-radius:8px}
             c2.quadraticCurveTo(x0 + 2.6, hy - 9, x0 + 1, hy - 12);
             c2.quadraticCurveTo(x0 + 0.2, hy - 7, x0 - 0.6, hy - 3.4);
             c2.closePath();
-          }, P.rar === "start" || P.rar === "common" ? "#e8e0cc" : P.gem || "#d84040", 0.45);
+          }, P2.rar === "start" || P2.rar === "common" ? "#e8e0cc" : P2.gem || "#d84040", 0.45);
         }
         break;
       }
@@ -1702,47 +1702,47 @@ canvas{display:block;max-width:100%;height:auto;border-radius:8px}
       case "crown":
       case "band": {
         if (id === "band") {
-          F(c2, () => c2.roundRect(fx - 3.9, hy - 3.4, 7.8, 1.5, 0.6), P.cloth[0], 0.5);
+          F(c2, () => c2.roundRect(fx - 3.9, hy - 3.4, 7.8, 1.5, 0.6), P2.cloth[0], 0.5);
           if (back) F(c2, () => {
             c2.moveTo(fx, hy - 2.6);
             c2.lineTo(fx - 1.6, hy + 2.4);
             c2.lineTo(fx + 0.2, hy + 1.6);
             c2.lineTo(fx + 1.2, hy + 2.6);
             c2.closePath();
-          }, P.cloth[0], 0.4);
+          }, P2.cloth[0], 0.4);
           else if (side) F(c2, () => {
             c2.moveTo(fx - 3.6, hy - 2.6);
             c2.lineTo(fx - 5.6, hy);
             c2.lineTo(fx - 4.2, hy - 0.4);
             c2.closePath();
-          }, P.cloth[0], 0.4);
+          }, P2.cloth[0], 0.4);
           break;
         }
-        F(c2, () => c2.roundRect(fx - 3.8, hy - 3.6, 7.6, 1.2, 0.5), P.acc, 0.5);
+        F(c2, () => c2.roundRect(fx - 3.8, hy - 3.6, 7.6, 1.2, 0.5), P2.acc, 0.5);
         if (id === "crown") {
           for (const x of side ? [-1.6, 0.8, 3] : [-3, -1.5, 0, 1.5, 3]) F(c2, () => {
             c2.moveTo(fx + x - 0.7, hy - 3.4);
             c2.lineTo(fx + x, hy - 6.4 - (x === 0 ? 1.6 : 0));
             c2.lineTo(fx + x + 0.7, hy - 3.4);
             c2.closePath();
-          }, P.acc, 0.4);
-          if (P.glow) {
+          }, P2.acc, 0.4);
+          if (P2.glow) {
             const g = c2.createRadialGradient(fx, hy - 9.6, 0.3, fx, hy - 9.6, 3.4);
-            g.addColorStop(0, P.glow + "cc");
-            g.addColorStop(1, P.glow + "00");
+            g.addColorStop(0, P2.glow + "cc");
+            g.addColorStop(1, P2.glow + "00");
             c2.fillStyle = g;
             c2.beginPath();
             c2.arc(fx, hy - 9.6, 3.4, 0, 7);
             c2.fill();
-            gem(c2, fx, hy - 9.6, 0.9, P.gem);
+            gem(c2, fx, hy - 9.6, 0.9, P2.gem);
           }
         }
-        if (!back && !side) gem(c2, fx, hy - 3, 0.8, P.gem || "#4a9eff");
+        if (!back && !side) gem(c2, fx, hy - 3, 0.8, P2.gem || "#4a9eff");
         break;
       }
       case "wizard":
       case "starhat": {
-        const col = P.cloth[0], tall = id === "starhat" ? 1.25 : 1;
+        const col = P2.cloth[0], tall = id === "starhat" ? 1.25 : 1;
         F(c2, () => c2.ellipse(fx, hy - 2.6, side ? 6 : 6.4, side ? 1.5 : 1.7, 0, 0, 7), sh(col, -0.25), 0.6);
         const bend = side ? -3.4 : 2.6;
         F(c2, () => {
@@ -1752,7 +1752,7 @@ canvas{display:block;max-width:100%;height:auto;border-radius:8px}
           c2.quadraticCurveTo(fx + 0.6, hy - 8 * tall, fx + 3.6, hy - 2.8);
           c2.closePath();
         }, col, 0.6);
-        F(c2, () => c2.rect(fx - 3.6, hy - 4.2, 7.2, 1.3), P.acc, 0.45);
+        F(c2, () => c2.rect(fx - 3.6, hy - 4.2, 7.2, 1.3), P2.acc, 0.45);
         if (id === "starhat") {
           c2.fillStyle = "#f4e8a0";
           for (const [x, y] of [[-1.2, -6.4], [1, -8.6], [0.4, -5.6]]) {
@@ -1764,13 +1764,13 @@ canvas{display:block;max-width:100%;height:auto;border-radius:8px}
             c2.fill();
           }
         }
-        if (!back && P.gem) gem(c2, fx, hy - 3.6, 0.6, P.gem);
+        if (!back && P2.gem) gem(c2, fx, hy - 3.6, 0.6, P2.gem);
         break;
       }
       case "huntcap":
       case "ranger":
       case "straw": {
-        const col = id === "straw" ? "#d8b44a" : id === "ranger" ? sh(P.leather, -0.1) : P.leaf, wide = id === "huntcap" ? 4.6 : id === "ranger" ? 7 : 7.4;
+        const col = id === "straw" ? "#d8b44a" : id === "ranger" ? sh(P2.leather, -0.1) : P2.leaf, wide = id === "huntcap" ? 4.6 : id === "ranger" ? 7 : 7.4;
         F(c2, () => c2.ellipse(fx, hy - 2.4, side ? wide * 0.9 : wide, side ? 1.3 : 1.6, 0, 0, 7), sh(col, -0.12), 0.6);
         if (id === "huntcap") F(c2, () => {
           c2.moveTo(fx - 3.8, hy - 2.6);
@@ -1802,7 +1802,7 @@ canvas{display:block;max-width:100%;height:auto;border-radius:8px}
             c2.quadraticCurveTo(x0 + (side ? -4 : 3.4), hy - 7.4, x0 + (side ? -5.6 : 4.4), hy - 10);
             c2.quadraticCurveTo(x0 + (side ? -2.4 : 1.6), hy - 7.4, x0 - 0.4, hy - 3.4);
             c2.closePath();
-          }, P.gem || (P.rar === "good" ? "#5fd35f" : "#d84040"), 0.4);
+          }, P2.gem || (P2.rar === "good" ? "#5fd35f" : "#d84040"), 0.4);
         }
         break;
       }
@@ -1855,11 +1855,11 @@ canvas{display:block;max-width:100%;height:auto;border-radius:8px}
     { id: "nightleg", name: "\u0428\u0442\u0430\u043D\u044B \u041D\u043E\u0447\u043D\u043E\u0439 \u0422\u0435\u043D\u0438", cls: ["archer"], tiers: [5], base: "leather", boots: "boot", knee: true, theme: { metal: "#4a4058", acc: "#b47aff", cloth: ["#2a1444", "#1a0e2e"], leather: "#2a2236", gem: "#c8a0ff", leaf: "#4a3a6a" } }
   ];
   var L_BY = Object.fromEntries(LEGS.map((h) => [h.id, h]));
-  function fillMat(c2, fn, base, P, col) {
-    const fill = col || (base === "shirt" ? P.cloth[0] : base === "gambeson" ? P.cloth[1] : base === "leather" ? P.leather : base === "cloth" ? P.cloth[1] : base === "robe" ? P.cloth[0] : base === "fur" ? "#7a5a3a" : P.metal);
-    if (P.glow && (base === "plate" || base === "scale")) {
+  function fillMat(c2, fn, base, P2, col) {
+    const fill = col || (base === "shirt" ? P2.cloth[0] : base === "gambeson" ? P2.cloth[1] : base === "leather" ? P2.leather : base === "cloth" ? P2.cloth[1] : base === "robe" ? P2.cloth[0] : base === "fur" ? "#7a5a3a" : P2.metal);
+    if (P2.glow && (base === "plate" || base === "scale")) {
       c2.save();
-      c2.shadowColor = P.glow;
+      c2.shadowColor = P2.glow;
       c2.shadowBlur = 3;
       F(c2, fn, fill, 0);
       c2.restore();
@@ -2008,9 +2008,9 @@ canvas{display:block;max-width:100%;height:auto;border-radius:8px}
     const m = it.m && modelOf(it.slot, it.m) && isEpicModel(it.slot, it.m) === (it.rar === "epic") ? it.m : pickModel(it.slot, cls, tier, seed);
     return { m, P: themed(palette(it.rar, seed, tier), modelOf(it.slot, m)), tier, key: it.slot + ":" + m + ":" + it.rar + ":" + seed };
   }
-  function themed(P, md) {
-    if (!md || !md.theme) return P;
-    const Q = { ...P, ...md.theme };
+  function themed(P2, md) {
+    if (!md || !md.theme) return P2;
+    const Q = { ...P2, ...md.theme };
     if (md.theme.gem && !md.theme.orb) Q.orb = md.theme.gem;
     Q.edge = sh(Q.metal || "#999999", 0.45);
     Q.dark = sh(Q.metal || "#999999", -0.35);
@@ -2032,8 +2032,8 @@ canvas{display:block;max-width:100%;height:auto;border-radius:8px}
   }
   var r1 = (v) => Math.round(v * 10) / 10;
   function propVal(k, slot, ilvl, rar, r = Math.random) {
-    const P = PROPS[k];
-    return Math.max(0.1, r1((P.base + P.per * ilvl) * ITEM.slot[slot] * (ITEM.propRar[rar] || 1) * (0.85 + r() * 0.3)));
+    const P2 = PROPS[k];
+    return Math.max(0.1, r1((P2.base + P2.per * ilvl) * ITEM.slot[slot] * (ITEM.propRar[rar] || 1) * (0.85 + r() * 0.3)));
   }
   function makeItem(cls, slot, ilvl, rar, r = Math.random) {
     const tier = visTier2(ilvl, rar);
@@ -4183,8 +4183,8 @@ canvas{display:block;max-width:100%;height:auto;border-radius:8px}
   var SKIN = "#e6b48a";
   var NAKED = palette("start", 1, 0);
   function legColor(L) {
-    const lg = L.legs && L_BY[L.legs.m], P = L.legs && L.legs.P;
-    return !lg ? L.skin || SKIN : lg.col ? P[lg.col] : lg.base === "cloth" ? P.cloth[1] : lg.base === "leather" ? P.leather : lg.base === "mail" ? sh(P.metal, -0.08) : P.metal;
+    const lg = L.legs && L_BY[L.legs.m], P2 = L.legs && L.legs.P;
+    return !lg ? L.skin || SKIN : lg.col ? P2[lg.col] : lg.base === "cloth" ? P2.cloth[1] : lg.base === "leather" ? P2.leather : lg.base === "mail" ? sh(P2.metal, -0.08) : P2.metal;
   }
   function person(c2, L, view, pose = {}) {
     const bw = (L.broad || 1) * 1.1, skin = L.skin || SKIN, hair = L.hair || "#b8642a", t = pose.t || 0;
@@ -4253,7 +4253,7 @@ canvas{display:block;max-width:100%;height:auto;border-radius:8px}
     c2.translate(view === "side" ? -hit * 2 : 0, bob - (view !== "side" ? hit * 1.2 : 0));
     if (view === "side" && hit) c2.rotate(-hit * 0.16);
     if (view === "side" && W) c2.rotate(0.04);
-    const glow = [chP, lgP, hmP, wpP].find((P) => P && P.glow);
+    const glow = [chP, lgP, hmP, wpP].find((P2) => P2 && P2.glow);
     if (glow && !L.part) {
       const g = c2.createRadialGradient(0, 11, 1, 0, 11, 16);
       g.addColorStop(0, glow.glow + "77");
@@ -4334,7 +4334,7 @@ canvas{display:block;max-width:100%;height:auto;border-radius:8px}
         c2.closePath();
       }, sh(col, -0.25));
     }
-    function quiver(where) {
+    function quiver2(where) {
       if (!(L.quiver ?? L.cls === "archer") || L.part) return;
       const col = chP.rar === "epic" || chP.rar === "rare" ? "#3a2416" : "#6b4a2c";
       c2.save();
@@ -4625,7 +4625,7 @@ canvas{display:block;max-width:100%;height:auto;border-radius:8px}
       if (ch && ch.base === "gambeson" && !sideV) F3(() => c2.roundRect(-2.4, -13.6, 4.8, 1.4, 0.6), chP.cloth[0], 0.4);
       if (ch && ch.base === "fur" && !sideV) F3(() => c2.ellipse(0, -12.6, 5.6 * bw, 1.6, 0, 0, 7), "#c8b090", 0.5);
     }
-    function emblem(x, y, P) {
+    function emblem(x, y, P2) {
       F3(() => {
         c2.moveTo(x - 1.6, y - 1.6);
         c2.lineTo(x + 1.6, y - 1.6);
@@ -4633,8 +4633,8 @@ canvas{display:block;max-width:100%;height:auto;border-radius:8px}
         c2.quadraticCurveTo(x + 1.4, y + 2, x, y + 2.6);
         c2.quadraticCurveTo(x - 1.4, y + 2, x - 1.6, y + 0.4);
         c2.closePath();
-      }, P.acc, 0.4);
-      c2.fillStyle = P.cloth[0];
+      }, P2.acc, 0.4);
+      c2.fillStyle = P2.cloth[0];
       c2.beginPath();
       c2.moveTo(x, y - 1);
       c2.lineTo(x + 0.8, y + 0.4);
@@ -4654,11 +4654,11 @@ canvas{display:block;max-width:100%;height:auto;border-radius:8px}
       c2.fillStyle = "rgba(255,255,255,.8)";
       c2.fillRect(x - r * 0.4, y - r * 0.5, r * 0.35, r * 0.35);
     }
-    function pauldron(x, y, sx, sideV) {
+    function pauldron2(x, y, sx, sideV) {
       if (!ch || !ch.pauld) return;
-      const P = chP, k = ch.pauld;
+      const P2 = chP, k = ch.pauld;
       if (k === "leather") {
-        F3(() => c2.ellipse(x, y, 2.4, 1.8, sx * 0.2, Math.PI * 1.02, Math.PI * 2.02), P.leather, 0.55);
+        F3(() => c2.ellipse(x, y, 2.4, 1.8, sx * 0.2, Math.PI * 1.02, Math.PI * 2.02), P2.leather, 0.55);
         return;
       }
       if (k === "fur") {
@@ -4671,8 +4671,8 @@ canvas{display:block;max-width:100%;height:auto;border-radius:8px}
           c2.quadraticCurveTo(x + sx * 2.6, y - 2.6, x + sx * 3.6, y + 2.6);
           c2.lineTo(x - sx * 0.6, y + 3);
           c2.closePath();
-        }, P.cloth[1], 0.5);
-        c2.strokeStyle = P.acc;
+        }, P2.cloth[1], 0.5);
+        c2.strokeStyle = P2.acc;
         c2.lineWidth = 0.5;
         c2.beginPath();
         c2.moveTo(x + sx * 3.4, y + 2.4);
@@ -4681,7 +4681,7 @@ canvas{display:block;max-width:100%;height:auto;border-radius:8px}
         return;
       }
       if (k === "scale") {
-        const col = ch.col ? P[ch.col] : P.metal;
+        const col = ch.col ? P2[ch.col] : P2.metal;
         F3(() => {
           c2.ellipse(x, y + 0.4, 2.8, 2.4, 0, Math.PI, 0);
           c2.closePath();
@@ -4703,20 +4703,20 @@ canvas{display:block;max-width:100%;height:auto;border-radius:8px}
             c2.quadraticCurveTo(x + sx * L2 * 0.6, yy - 2.4 + i * 0.3, x + sx * L2, yy - 2.8 + i * 0.6);
             c2.quadraticCurveTo(x + sx * L2 * 0.7, yy + 0.4, x - sx * 0.8, yy + 1.4);
             c2.closePath();
-          }, sh(P.cloth[0], 0.1 - i * 0.08), 0.45);
-          c2.strokeStyle = P.acc;
+          }, sh(P2.cloth[0], 0.1 - i * 0.08), 0.45);
+          c2.strokeStyle = P2.acc;
           c2.lineWidth = 0.35;
           c2.beginPath();
           c2.moveTo(x - sx * 0.6, yy + 0.2);
           c2.quadraticCurveTo(x + sx * L2 * 0.6, yy - 1.6 + i * 0.3, x + sx * L2 * 0.95, yy - 2.6 + i * 0.6);
           c2.stroke();
         }
-        gemS(x, y - 1.4, 0.7, P.gem);
+        gemS(x, y - 1.4, 0.7, P2.gem);
         return;
       }
       if (k === "antler") {
-        for (let i = 2; i >= 0; i--) F3(() => c2.ellipse(x + sx * i * 0.6, y + i * 0.9, 3 - i * 0.3, 1.8, sx * (0.35 + i * 0.1), 0, 7), sh(P.leaf, -0.08 * i), 0.45);
-        c2.strokeStyle = sh(P.leaf, -0.4);
+        for (let i = 2; i >= 0; i--) F3(() => c2.ellipse(x + sx * i * 0.6, y + i * 0.9, 3 - i * 0.3, 1.8, sx * (0.35 + i * 0.1), 0, 7), sh(P2.leaf, -0.08 * i), 0.45);
+        c2.strokeStyle = sh(P2.leaf, -0.4);
         c2.lineWidth = 0.3;
         c2.beginPath();
         c2.moveTo(x - sx * 2.2, y - 0.3);
@@ -4735,7 +4735,7 @@ canvas{display:block;max-width:100%;height:auto;border-radius:8px}
           c2.lineWidth = 0.55;
           c2.stroke();
         }
-        gemS(x, y - 0.4, 0.55, P.gem);
+        gemS(x, y - 0.4, 0.55, P2.gem);
         return;
       }
       if (k === "hero" || k === "spike") {
@@ -4745,8 +4745,8 @@ canvas{display:block;max-width:100%;height:auto;border-radius:8px}
           F3(() => {
             c2.ellipse(x + sx * i * 0.2, yy, rx2 - i * 0.25, ry2 - i * 0.35, 0, Math.PI, Math.PI * 2);
             c2.closePath();
-          }, sh(P.metal, -0.07 * i), 0.55);
-          c2.strokeStyle = P.acc;
+          }, sh(P2.metal, -0.07 * i), 0.55);
+          c2.strokeStyle = P2.acc;
           c2.lineWidth = 0.4;
           c2.beginPath();
           c2.ellipse(x + sx * i * 0.2, yy, rx2 - i * 0.25 - 0.2, ry2 - i * 0.35 - 0.2, 0, Math.PI * 1.05, Math.PI * 1.95);
@@ -4770,9 +4770,9 @@ canvas{display:block;max-width:100%;height:auto;border-radius:8px}
             c2.quadraticCurveTo(x + sx * 4, y - ry2 - 1.6, x + sx * 2.6, y - ry2 - 0.8);
             c2.lineTo(x + sx * 1.8, y - ry2 + 1);
             c2.closePath();
-          }, P.acc, 0.45);
+          }, P2.acc, 0.45);
         }
-        gemS(x, y - ry2 * 0.4, 0.85, P.gem);
+        gemS(x, y - ry2 * 0.4, 0.85, P2.gem);
         return;
       }
       const big = k === "big", rx = big ? 3.7 : 3, ry = big ? 3.1 : 2.4;
@@ -4781,9 +4781,9 @@ canvas{display:block;max-width:100%;height:auto;border-radius:8px}
         F3(() => {
           c2.ellipse(x + sx * i * 0.15, yy, rx - i * 0.2, ry - i * 0.3, 0, Math.PI * 1, Math.PI * 2);
           c2.closePath();
-        }, sh(P.metal, -0.08 * i), 0.55);
+        }, sh(P2.metal, -0.08 * i), 0.55);
       }
-      c2.strokeStyle = P.acc;
+      c2.strokeStyle = P2.acc;
       c2.lineWidth = 0.55;
       c2.beginPath();
       c2.ellipse(x, y, rx - 0.3, ry - 0.3, 0, Math.PI * 1.08, Math.PI * 1.92);
@@ -4797,8 +4797,8 @@ canvas{display:block;max-width:100%;height:auto;border-radius:8px}
         c2.lineTo(x + d * 1.3, y - ry - 2.2);
         c2.lineTo(x + d + 0.5, y - ry + 0.3);
         c2.closePath();
-      }, P.edge, 0.4);
-      if (big && P.gem) gemS(x, y - ry * 0.35, 0.7, P.gem);
+      }, P2.edge, 0.4);
+      if (big && P2.gem) gemS(x, y - ry * 0.35, 0.7, P2.gem);
     }
     function legsFB(back) {
       const order = turn ? back ? [[-2.3, 1], [2.3, -1]] : [[2.3, -1], [-2.3, 1]] : [[-2.3, 1], [2.3, -1]];
@@ -4897,7 +4897,7 @@ canvas{display:block;max-width:100%;height:auto;border-radius:8px}
         }, hair, 0.55);
         for (const x of turn ? [-3.25] : [-3.45, 3.45]) F3(() => c2.ellipse(x, -17.9, 0.7, 1.1, 0, 0, 7), skin, 0.5);
         F3(() => c2.rect(-1.5, -15, 3, 2.4), sh(skin, -0.1), 0.5);
-        const face = () => {
+        const face2 = () => {
           c2.moveTo(-3.4, -18.6);
           c2.bezierCurveTo(-3.4, -23.4, 3.4, -23.4, 3.4, -18.6);
           c2.quadraticCurveTo(3.3, -15.6, 1.2, -14.2);
@@ -4905,10 +4905,10 @@ canvas{display:block;max-width:100%;height:auto;border-radius:8px}
           c2.quadraticCurveTo(-3.3, -15.6, -3.4, -18.6);
           c2.closePath();
         };
-        F3(face, skin, 0.6);
+        F3(face2, skin, 0.6);
         c2.save();
         c2.beginPath();
-        face();
+        face2();
         c2.clip();
         c2.fillStyle = "rgba(150,80,40,.16)";
         c2.fillRect(1.2, -24, 4, 12);
@@ -5087,7 +5087,7 @@ canvas{display:block;max-width:100%;height:auto;border-radius:8px}
           c2.quadraticCurveTo(-4.4, -15, -3, -17);
           c2.closePath();
         }, hair, 0.5);
-        const face = () => {
+        const face2 = () => {
           c2.moveTo(-2.8, -16.2);
           c2.bezierCurveTo(-4.2, -23.6, 3.6, -24.2, 3.7, -19);
           c2.lineTo(3.8, -18.2);
@@ -5097,10 +5097,10 @@ canvas{display:block;max-width:100%;height:auto;border-radius:8px}
           c2.quadraticCurveTo(-0.8, -14, -2.8, -16.2);
           c2.closePath();
         };
-        F3(face, skin, 0.6);
+        F3(face2, skin, 0.6);
         c2.save();
         c2.beginPath();
-        face();
+        face2();
         c2.clip();
         c2.fillStyle = "rgba(150,80,40,.15)";
         c2.fillRect(-4, -24, 3, 12);
@@ -5208,7 +5208,7 @@ canvas{display:block;max-width:100%;height:auto;border-radius:8px}
     }
     function side() {
       cape(false, true);
-      quiver("side");
+      quiver2("side");
       const legS = (hx, ph, col, bc) => {
         const sn = Math.sin(ph * TAU2), cs = Math.cos(ph * TAU2), a1 = W ? sn * 0.5 : 0, bend = W ? Math.max(0, cs) * 0.85 : 0, a2 = a1 - bend;
         const kx = hx + Math.sin(a1) * 5.4 * LEGK, ky = 1.8 + Math.cos(a1) * 5.4 * LEGK, fx = kx + Math.sin(a2) * 5 * LEGK, fy = ky + Math.cos(a2) * 5 * LEGK;
@@ -5269,7 +5269,7 @@ canvas{display:block;max-width:100%;height:auto;border-radius:8px}
       limb2(0.5, -10.4, near.ex, near.ey, 3.1, sleeve);
       limb2(near.ex, near.ey, near.hx, near.hy, 2.8, sleeve);
       sleeveEnd(near.ex, near.ey, near.hx, near.hy);
-      pauldron(0.4, -10.8, 1, true);
+      pauldron2(0.4, -10.8, 1, true);
       if (!behind) weapon2(near.hx, near.hy, rotN);
       hand(near.hx, near.hy);
       if (sw && sw.trail) {
@@ -5352,11 +5352,11 @@ canvas{display:block;max-width:100%;height:auto;border-radius:8px}
       const R = arm(wx), Lh = arm(-wx);
       if (!back && L.part !== "chest") {
         cape(false, false);
-        quiver("front");
+        quiver2("front");
       }
       if (turn) {
         drawArm(Lh, -wx);
-        pauldron(-wx * 6.1 * bw * 0.85, -10.9, -wx, false);
+        pauldron2(-wx * 6.1 * bw * 0.85, -10.9, -wx, false);
         hand(Lh.hx, Lh.hy);
       }
       if (L.part !== "chest") legsFB(back);
@@ -5377,15 +5377,15 @@ canvas{display:block;max-width:100%;height:auto;border-radius:8px}
         };
         armP(-1);
         armP(1);
-        for (const sx of [-1, 1]) pauldron(sx * 6.1 * bw, -10.9, sx, false);
+        for (const sx of [-1, 1]) pauldron2(sx * 6.1 * bw, -10.9, sx, false);
         return;
       }
       const lifted = SW && SW.style === "chop" && SW.a < -0.6;
       if (lifted && !back) weapon2(R.hx, R.hy, R.rot);
-      if (back) quiver("back");
+      if (back) quiver2("back");
       drawArm(R, wx);
       if (!turn) drawArm(Lh, -wx);
-      for (const sx of [-1, 1]) if (!turn || sx === wx) pauldron(sx * 6.1 * bw, -10.9, sx, false);
+      for (const sx of [-1, 1]) if (!turn || sx === wx) pauldron2(sx * 6.1 * bw, -10.9, sx, false);
       if (back) headB();
       else headF();
       if (!lifted || back) {
@@ -5869,7 +5869,7 @@ canvas{display:block;max-width:100%;height:auto;border-radius:8px}
     g.quadraticCurveTo(x, ty - 9, x + w1 + 1, ty + 3);
     g.closePath();
     fillStroke(g, sh4(WOOD, 0.05), INK_W, 1.8);
-    const face = () => {
+    const face2 = () => {
       g.beginPath();
       g.moveTo(x - w0, hb);
       g.lineTo(x - w1, ty + 4);
@@ -5879,7 +5879,7 @@ canvas{display:block;max-width:100%;height:auto;border-radius:8px}
       g.lineTo(x + w0, hb);
       g.closePath();
     };
-    face();
+    face2();
     g.save();
     g.clip();
     g.fillStyle = vgrad(g, ty, hb, sh4(WOOD_IN, 0.15), sh4(WOOD_IN, -0.25));
@@ -5905,7 +5905,7 @@ canvas{display:block;max-width:100%;height:auto;border-radius:8px}
       for (let xx = x - ww + 5; xx < x + ww - 3; xx += 11) rivet2(g, xx, yy, 1.3);
     }
     g.restore();
-    face();
+    face2();
     g.strokeStyle = INK_W;
     g.lineWidth = 2;
     g.stroke();
@@ -5995,13 +5995,13 @@ canvas{display:block;max-width:100%;height:auto;border-radius:8px}
     const n = parseInt(hex.slice(1), 16), f = (v) => Math.max(0, Math.min(255, Math.round(k > 0 ? v + (255 - v) * k : v * (1 + k))));
     return "#" + [n >> 16 & 255, n >> 8 & 255, n & 255].map((v) => f(v).toString(16).padStart(2, "0")).join("");
   };
-  var ink = (col) => sh5(col, -0.6);
+  var ink = (col) => sh5(col, -0.62);
   var LW = 0.75;
   function paint(g, fill, lw = LW, y0, y1) {
     if (y0 != null) {
       const gr = g.createLinearGradient(0, y0, 0, y1);
       gr.addColorStop(0, sh5(fill, 0.16));
-      gr.addColorStop(1, sh5(fill, -0.14));
+      gr.addColorStop(1, sh5(fill, -0.16));
       g.fillStyle = gr;
     } else g.fillStyle = fill;
     g.fill();
@@ -6022,8 +6022,8 @@ canvas{display:block;max-width:100%;height:auto;border-radius:8px}
     g.strokeStyle = col;
     g.lineWidth = w;
     g.stroke();
-    g.strokeStyle = "rgba(255,255,255,.22)";
-    g.lineWidth = w * 0.3;
+    g.strokeStyle = "rgba(255,255,255,.2)";
+    g.lineWidth = w * 0.28;
     g.beginPath();
     g.moveTo(x1 - w * 0.22, y1 + 0.4);
     g.lineTo(x2 - w * 0.22, y2 - 0.4);
@@ -6034,23 +6034,27 @@ canvas{display:block;max-width:100%;height:auto;border-radius:8px}
     g.ellipse(x, y, rx, ry, 0, 0, TAU6);
     paint(g, col, LW, y - ry, y + ry);
   };
-  var shine = (g, x, y, rx, ry, a = 0.35) => {
+  var shine = (g, x, y, rx, ry, a = 0.32) => {
     g.fillStyle = `rgba(255,255,255,${a})`;
     g.beginPath();
     g.ellipse(x, y, rx, ry, -0.4, 0, TAU6);
     g.fill();
   };
-  var PROPS2 = {
-    A: { head: 4.7, hy: -35.3, sh: -29.6, hip: -18.6, sw: 5.6, hw: 4.4, leg: 3.7, arm: 3.1, hand: 1.9 },
-    B: { head: 6.4, hy: -33.6, sh: -26.6, hip: -16.4, sw: 6.2, hw: 5, leg: 4.4, arm: 3.5, hand: 2.2 }
+  var rivet3 = (g, x, y, r = 0.45) => {
+    g.fillStyle = "#e8ecf2";
+    g.beginPath();
+    g.arc(x, y, r, 0, TAU6);
+    g.fill();
   };
-  var CLS = {
-    warrior: { skin: "#f0bf92", hair: "#b8562a", beard: true, shirt: "#e6d6b2", sleeve: "#e6d6b2", belt: "#7a4a24", pants: "#7a5636", boots: "#5a3a24", weapon: "axe" },
-    mage: { skin: "#f0bf92", hair: "#d8d2c6", long: true, robe: "#3c5cb0", trim: "#f2c447", sleeve: "#3c5cb0", boots: "#3a3048", weapon: "staff" },
-    archer: { skin: "#f0bf92", hair: "#6a4024", tail: true, shirt: "#4f8a3e", sleeve: "#6a4a2c", belt: "#5a3a1c", pants: "#6a5236", boots: "#4a3020", hood: "#3f6e32", weapon: "bow", quiver: true }
+  var P = { head: 4.7, hy: -35.3, top: -29.6, hip: -18.6, sw: 5.6, hw: 4.4, leg: 3.7, arm: 3.1, hand: 1.9 };
+  var BASE = {
+    warrior: { skin: "#e8b48a", hair: "#9a4a24", beard: "full", scar: true },
+    mage: { skin: "#e8b48a", hair: "#cfc8bc", beard: "long", long: true },
+    archer: { skin: "#e2ac80", hair: "#5a361e", tail: true, stubble: true }
   };
-  function toonHero(g, cls, prop = "A", t = 0) {
-    const C = CLS[cls], P = PROPS2[prop], br = Math.sin(t * 2.2) * 0.25, blink = t % 3.6 < 0.12;
+  function toonHero(g, cls, gear = {}, t = 0) {
+    const B = BASE[cls], br = Math.sin(t * 2.2) * 0.25, blink = t % 4.1 < 0.1;
+    const head = gear.head || {}, chest = gear.chest || { m: "shirt", c: "#d8c8a4" }, legs = gear.legs || { m: "pants", c: "#6e5236" }, boots = gear.boots || "#4e3420", wp = gear.weapon || {};
     g.save();
     g.lineJoin = "round";
     g.lineCap = "round";
@@ -6059,54 +6063,89 @@ canvas{display:block;max-width:100%;height:auto;border-radius:8px}
     g.ellipse(0, 0.6, 10, 2.6, 0, 0, TAU6);
     g.fill();
     g.translate(0, br);
-    if (C.long) {
+    const robe = chest.m === "robe" || chest.m === "battlerobe";
+    if (gear.cape) {
+      g.beginPath();
+      g.moveTo(-P.sw - 0.5, P.top + 1);
+      g.quadraticCurveTo(-P.sw - 3.5, -10, -P.sw - 2.5, -1.5);
+      g.lineTo(P.sw + 2.5, -1.5);
+      g.quadraticCurveTo(P.sw + 3.5, -10, P.sw + 0.5, P.top + 1);
+      g.closePath();
+      paint(g, gear.cape, LW, P.top, 0);
+    }
+    if (B.long && head.m !== "hood") {
       g.beginPath();
       g.moveTo(-P.head * 0.95, P.hy - 1);
-      g.quadraticCurveTo(-P.head * 1.25, P.sh + 6, -P.head * 0.6, P.sh + 7);
-      g.lineTo(P.head * 0.6, P.sh + 7);
-      g.quadraticCurveTo(P.head * 1.25, P.sh + 6, P.head * 0.95, P.hy - 1);
+      g.quadraticCurveTo(-P.head * 1.25, P.top + 6, -P.head * 0.6, P.top + 7);
+      g.lineTo(P.head * 0.6, P.top + 7);
+      g.quadraticCurveTo(P.head * 1.25, P.top + 6, P.head * 0.95, P.hy - 1);
       g.closePath();
-      paint(g, C.hair, LW, P.hy, P.sh + 7);
+      paint(g, B.hair, LW, P.hy, P.top + 7);
     }
-    if (C.quiver) {
-      g.save();
-      g.translate(P.sw - 1, P.sh + 1);
-      g.rotate(0.35);
-      g.beginPath();
-      g.roundRect(-2, -9, 4.2, 12, 1.6);
-      paint(g, "#7a4a24", LW, -9, 3);
-      for (let i = 0; i < 3; i++) {
-        g.strokeStyle = "#e8e0cc";
-        g.lineWidth = 0.8;
-        g.beginPath();
-        g.moveTo(-1 + i * 1.3, -9);
-        g.lineTo(-1.6 + i * 1.3, -12);
-        g.stroke();
-        g.fillStyle = "#c84a3a";
-        g.beginPath();
-        g.moveTo(-1.6 + i * 1.3, -12);
-        g.lineTo(-0.6 + i * 1.3, -13.5);
-        g.lineTo(-2.4 + i * 1.3, -13.2);
-        g.closePath();
-        g.fill();
-      }
-      g.restore();
-    }
-    const robe = !!C.robe;
+    if (cls === "archer") quiver(g, gear.quiver || "#6a4022");
     for (const sx of [-1, 1]) {
-      const hx = sx * (P.hw - P.leg * 0.55);
-      if (!robe) capsule(g, hx, P.hip + 1, sx * (P.hw - P.leg * 0.45), -2.6, P.leg, C.pants);
+      if (!robe) {
+        capsule(g, sx * (P.hw - P.leg * 0.55), P.hip + 1, sx * (P.hw - P.leg * 0.45), -2.6, P.leg, legs.c);
+        if (legs.m === "mail") {
+          g.fillStyle = "rgba(30,34,44,.35)";
+          for (let yy = P.hip + 2; yy < -4; yy += 1.4) for (let k = -1; k <= 1; k++) {
+            g.beginPath();
+            g.arc(sx * (P.hw - P.leg * 0.5) + k * 1.1 + (yy % 2.8 > 1.4 ? 0.55 : 0), yy, 0.32, 0, TAU6);
+            g.fill();
+          }
+        }
+        if (legs.m === "plate") {
+          blob(g, sx * (P.hw - P.leg * 0.5), -10.5, P.leg * 0.62, 1.7, legs.c2 || "#a8b0bc");
+          rivet3(g, sx * (P.hw - P.leg * 0.5), -10.5);
+          capsule(g, sx * (P.hw - P.leg * 0.47), -9, sx * (P.hw - P.leg * 0.45), -3.4, P.leg * 0.9, legs.c2 || "#a8b0bc");
+        }
+      }
       g.beginPath();
-      g.ellipse(sx * (P.hw - P.leg * 0.4) + sx * 0.6, -1.3, P.leg * 0.72, 1.7, 0, 0, TAU6);
-      paint(g, C.boots, LW, -3, 0.4);
+      g.ellipse(sx * (P.hw - P.leg * 0.4) + sx * 0.6, -1.3, P.leg * 0.74, 1.7, 0, 0, TAU6);
+      paint(g, boots, LW, -3, 0.4);
       if (!robe) {
         g.beginPath();
-        g.roundRect(sx * (P.hw - P.leg * 0.45) - P.leg * 0.62, -5, P.leg * 1.24, 3.6, 1.2);
-        paint(g, C.boots, LW, -5, -1.4);
+        g.roundRect(sx * (P.hw - P.leg * 0.45) - P.leg * 0.64, -5.2, P.leg * 1.28, 3.8, 1.2);
+        paint(g, boots, LW, -5.2, -1.4);
+        g.fillStyle = sh5(boots, 0.25);
+        g.fillRect(sx * (P.hw - P.leg * 0.45) - P.leg * 0.64, -5.2, P.leg * 1.28, 0.8);
       }
     }
-    const top = P.sh, hip = P.hip;
-    if (robe) {
+    torso(g, chest, cls);
+    const hy = P.hip + 0.6;
+    for (const sx of [-1, 1]) {
+      const hx = sx * (P.sw + 1.2), sleeve = chest.m === "plate" ? chest.c2 || "#a8b0bc" : chest.m === "mail" ? "#8a929e" : chest.m === "leather" ? chest.c2 || sh5(chest.c, -0.15) : chest.c;
+      capsule(g, sx * (P.sw - 0.2), P.top + 1.6, hx, hy - 1.4, P.arm, sleeve);
+      if (robe) {
+        g.beginPath();
+        g.ellipse(hx, hy - 1.9, P.arm * 0.95, 1.5, 0, 0, TAU6);
+        paint(g, chest.c2 || "#e0b040");
+      }
+      if (chest.m === "plate" || chest.m === "mail" || chest.m === "leather") {
+        g.beginPath();
+        g.roundRect(hx - P.arm * 0.62, hy - 4.2, P.arm * 1.24, 2.8, 0.9);
+        paint(g, chest.m === "plate" ? chest.c2 || "#a8b0bc" : "#5a3a20");
+      }
+      blob(g, hx, hy, P.hand, P.hand * 0.95, chest.m === "plate" ? "#7a828e" : B.skin);
+    }
+    if (chest.pauldron) for (const sx of [-1, 1]) pauldron(g, sx, chest);
+    face(g, B, head, blink);
+    hat(g, head, B);
+    weapon(g, wp, -(P.sw + 1.2), hy, t, cls, chest.m === "plate" ? "#7a828e" : B.skin);
+    g.restore();
+  }
+  function torso(g, ch, cls) {
+    const top = P.top, hip = P.hip, m = ch.m;
+    const shape = (wTop = P.sw, wHip = P.hw, low = hip + 1.6) => {
+      g.beginPath();
+      g.moveTo(-wTop + 0.4, top + 0.6);
+      g.quadraticCurveTo(-wTop - 0.4, (top + hip) / 2, -wHip - 0.4, low);
+      g.quadraticCurveTo(0, low + 1, wHip + 0.4, low);
+      g.quadraticCurveTo(wTop + 0.4, (top + hip) / 2, wTop - 0.4, top + 0.6);
+      g.quadraticCurveTo(0, top - 1.6, -wTop + 0.4, top + 0.6);
+      g.closePath();
+    };
+    if (m === "robe" || m === "battlerobe") {
       g.beginPath();
       g.moveTo(-P.sw + 0.6, top + 0.8);
       g.quadraticCurveTo(-P.sw - 0.5, top + 8, -P.sw - 2.6, -2.2);
@@ -6114,9 +6153,10 @@ canvas{display:block;max-width:100%;height:auto;border-radius:8px}
       g.quadraticCurveTo(P.sw + 0.5, top + 8, P.sw - 0.6, top + 0.8);
       g.quadraticCurveTo(0, top - 1.5, -P.sw + 0.6, top + 0.8);
       g.closePath();
-      paint(g, C.robe, LW, top, 0);
-      g.strokeStyle = C.trim;
-      g.lineWidth = 1.2;
+      paint(g, ch.c, LW, top, 0);
+      const tr = ch.c2 || "#e0b040";
+      g.strokeStyle = tr;
+      g.lineWidth = 1.1;
       g.beginPath();
       g.moveTo(-P.sw - 2.2, -2.6);
       g.quadraticCurveTo(0, -1, P.sw + 2.2, -2.6);
@@ -6125,226 +6165,743 @@ canvas{display:block;max-width:100%;height:auto;border-radius:8px}
       g.moveTo(0, top + 1);
       g.lineTo(0, -1.4);
       g.stroke();
-      g.fillStyle = sh5(C.robe, -0.25);
       g.beginPath();
-      g.roundRect(-P.sw + 0.6, hip - 1.4, P.sw * 2 - 1.2, 2.2, 1);
-      g.fill();
-      g.fillStyle = C.trim;
+      g.roundRect(-P.sw + 0.6, hip - 1.4, P.sw * 2 - 1.2, 2.3, 1);
+      paint(g, sh5(ch.c, -0.35));
       g.beginPath();
-      g.arc(0, hip - 0.3, 1.2, 0, TAU6);
-      g.fill();
-    } else {
-      g.beginPath();
-      g.moveTo(-P.sw + 0.4, top + 0.6);
-      g.quadraticCurveTo(-P.sw - 0.4, (top + hip) / 2, -P.hw - 0.4, hip + 1.6);
-      g.quadraticCurveTo(0, hip + 2.6, P.hw + 0.4, hip + 1.6);
-      g.quadraticCurveTo(P.sw + 0.4, (top + hip) / 2, P.sw - 0.4, top + 0.6);
-      g.quadraticCurveTo(0, top - 1.6, -P.sw + 0.4, top + 0.6);
-      g.closePath();
-      paint(g, C.shirt, LW, top, hip);
-      g.strokeStyle = ink(C.shirt);
+      g.arc(0, hip - 0.25, 1.1, 0, TAU6);
+      paint(g, tr, 0.5);
+      if (m === "battlerobe") {
+        g.beginPath();
+        g.moveTo(-P.sw - 1.2, top + 2.5);
+        g.quadraticCurveTo(0, top - 2.2, P.sw + 1.2, top + 2.5);
+        g.quadraticCurveTo(P.sw, top + 6.5, P.sw - 2, top + 6.8);
+        g.lineTo(0, top + 5);
+        g.lineTo(-P.sw + 2, top + 6.8);
+        g.quadraticCurveTo(-P.sw, top + 6.5, -P.sw - 1.2, top + 2.5);
+        g.closePath();
+        paint(g, ch.c3 || sh5(ch.c, -0.3), LW, top - 2, top + 7);
+        for (const sx of [-1, 1]) {
+          g.beginPath();
+          g.arc(sx * 2.4, top + 4, 0.9, 0, TAU6);
+          paint(g, "#c8a0ff", 0.5);
+        }
+      }
+      return;
+    }
+    if (m === "shirt") {
+      shape();
+      paint(g, ch.c, LW, top, hip);
+      g.strokeStyle = ink(ch.c);
       g.lineWidth = 0.55;
       g.beginPath();
       g.moveTo(-1.6, top + 0.2);
       g.lineTo(0, top + 2.6);
       g.lineTo(1.6, top + 0.2);
       g.stroke();
-      shine(g, -P.sw * 0.45, top + 3, 1.6, 3, 0.22);
+      belt(g, ch.belt || "#6a3e1e");
+      return;
+    }
+    if (m === "leather") {
+      shape();
+      paint(g, ch.c, LW, top, hip);
+      g.strokeStyle = ink(ch.c);
+      g.lineWidth = 0.5;
       g.beginPath();
-      g.roundRect(-P.hw - 0.4, hip - 1.2, (P.hw + 0.4) * 2, 2.6, 1.2);
-      paint(g, C.belt);
+      g.moveTo(0, top + 1);
+      g.lineTo(0, hip - 1);
+      g.stroke();
+      for (let yy = top + 3; yy < hip - 1; yy += 2.6) for (const sx of [-1, 1]) rivet3(g, sx * 1.3, yy, 0.4);
+      if (ch.studs) for (let yy = top + 3.4; yy < hip - 2; yy += 3) for (const xx of [-3.6, 3.6]) rivet3(g, xx, yy, 0.42);
+      belt(g, ch.belt || "#4a2e16");
       g.beginPath();
-      g.roundRect(-1.3, hip - 1.4, 2.6, 3, 0.7);
-      paint(g, "#f2c447");
-      if (C.hood) {
+      g.ellipse(-P.sw + 0.4, top + 1.6, 2.6, 1.9, -0.3, 0, TAU6);
+      paint(g, sh5(ch.c, -0.2));
+      return;
+    }
+    if (m === "mail") {
+      shape(P.sw, P.hw + 0.6, hip + 3.4);
+      paint(g, "#8a929e", LW, top, hip + 3);
+      g.save();
+      shape(P.sw, P.hw + 0.6, hip + 3.4);
+      g.clip();
+      g.fillStyle = "rgba(30,34,44,.38)";
+      for (let yy = top; yy < hip + 4; yy += 1.3) for (let xx = -7; xx < 7; xx += 1.2) {
         g.beginPath();
-        g.moveTo(-P.sw + 0.4, top + 1);
-        g.quadraticCurveTo(0, top + 4.4, P.sw - 0.4, top + 1);
-        g.quadraticCurveTo(0, top - 2.4, -P.sw + 0.4, top + 1);
+        g.arc(xx + ((yy - top) % 2.6 > 1.3 ? 0.6 : 0), yy, 0.32, 0, TAU6);
+        g.fill();
+      }
+      g.restore();
+      g.beginPath();
+      g.moveTo(-2.8, top + 0.6);
+      g.lineTo(2.8, top + 0.6);
+      g.lineTo(3.2, hip + 4.2);
+      g.lineTo(0, hip + 5.2);
+      g.lineTo(-3.2, hip + 4.2);
+      g.closePath();
+      paint(g, ch.c, LW, top, hip + 5);
+      if (ch.sign) {
+        g.beginPath();
+        g.moveTo(0, top + 3.5);
+        g.lineTo(1.5, top + 5.5);
+        g.lineTo(0, top + 8);
+        g.lineTo(-1.5, top + 5.5);
         g.closePath();
-        paint(g, C.hood);
+        paint(g, ch.sign, 0.5);
       }
-      if (C.quiver) {
-        g.strokeStyle = ink("#7a4a24");
-        g.lineWidth = 1.5;
-        g.beginPath();
-        g.moveTo(-P.sw + 1, top + 0.8);
-        g.lineTo(P.hw, hip - 1.4);
-        g.stroke();
-        g.strokeStyle = "#7a4a24";
+      belt(g, ch.belt || "#5a3a1c");
+      return;
+    }
+    if (m === "plate") {
+      const st = ch.c2 || "#a8b0bc";
+      shape(P.sw + 0.2, P.hw + 0.2);
+      paint(g, st, LW, top, hip);
+      g.beginPath();
+      g.moveTo(-P.sw + 1.2, top + 1.2);
+      g.quadraticCurveTo(0, top - 0.6, P.sw - 1.2, top + 1.2);
+      g.quadraticCurveTo(P.sw - 0.8, top + 7, 0, top + 8.6);
+      g.quadraticCurveTo(-P.sw + 0.8, top + 7, -P.sw + 1.2, top + 1.2);
+      g.closePath();
+      paint(g, sh5(st, 0.08), LW, top, top + 8);
+      shine(g, -2.2, top + 3, 1.2, 2.4, 0.45);
+      g.strokeStyle = ink(st);
+      g.lineWidth = 0.5;
+      g.beginPath();
+      g.moveTo(0, top + 1);
+      g.lineTo(0, top + 8);
+      g.stroke();
+      if (ch.c) {
+        g.strokeStyle = ch.c;
         g.lineWidth = 0.9;
+        g.beginPath();
+        g.moveTo(-P.sw + 1.4, top + 1.4);
+        g.quadraticCurveTo(0, top - 0.3, P.sw - 1.4, top + 1.4);
         g.stroke();
       }
-    }
-    const ax = P.sw - 0.2, hy = hip + 0.6;
-    for (const sx of [-1, 1]) {
-      const hx = sx * (P.sw + 1.2);
-      capsule(g, sx * ax, top + 1.6, hx, hy - 1.4, P.arm, C.sleeve);
-      if (robe) {
+      for (let i = 0; i < 2; i++) {
+        const yy = top + 9 + i * 2.2;
         g.beginPath();
-        g.ellipse(hx, hy - 1.8, P.arm * 0.85, 1.4, 0, 0, TAU6);
-        paint(g, C.trim);
+        g.roundRect(-P.hw - 0.2 + i * 0.2, yy, (P.hw + 0.2) * 2 - i * 0.4, 2.2, 0.8);
+        paint(g, sh5(st, -0.06 * i));
       }
-      blob(g, hx, hy, P.hand, P.hand * 0.95, C.skin);
+      belt(g, ch.belt || "#4a2e16");
+      for (const sx of [-1, 1]) {
+        g.beginPath();
+        g.roundRect(sx > 0 ? 0.4 : -P.hw - 0.6, hip + 0.8, P.hw + 0.2, 3.4, 1);
+        paint(g, ch.c || st);
+      }
+      return;
     }
-    const hx0 = 0, hy0 = P.hy, R = P.head;
-    capsule(g, 0, hy0 + R * 0.7, 0, top + 0.5, R * 0.62, C.skin);
-    for (const sx of [-1, 1]) blob(g, sx * R * 0.95, hy0 + R * 0.12, R * 0.22, R * 0.3, C.skin);
+  }
+  function belt(g, col) {
     g.beginPath();
-    g.ellipse(hx0, hy0, R * 0.92, R, 0, 0, TAU6);
-    paint(g, C.skin, LW, hy0 - R, hy0 + R);
-    g.fillStyle = "rgba(232,120,100,.32)";
-    for (const sx of [-1, 1]) {
+    g.roundRect(-P.hw - 0.4, P.hip - 1.2, (P.hw + 0.4) * 2, 2.6, 1.1);
+    paint(g, col);
+    g.beginPath();
+    g.roundRect(-1.3, P.hip - 1.4, 2.6, 3, 0.6);
+    paint(g, "#b8a050");
+    g.fillStyle = sh5(col, -0.3);
+    g.fillRect(-0.4, P.hip - 0.8, 0.8, 1.8);
+  }
+  function pauldron(g, sx, ch) {
+    const col = ch.c2 || "#a8b0bc", x = sx * (P.sw + 0.2), y = P.top + 1.4;
+    g.beginPath();
+    g.ellipse(x, y, 3.4, 2.6, sx * 0.25, Math.PI, 0);
+    g.quadraticCurveTo(x + sx * 0, y + 2, x - 3.4, y);
+    g.closePath();
+    g.beginPath();
+    g.moveTo(x - 3.6, y + 0.8);
+    g.quadraticCurveTo(x - 3.6, y - 3.4, x, y - 3.4);
+    g.quadraticCurveTo(x + 3.6, y - 3.4, x + 3.6, y + 0.8);
+    g.quadraticCurveTo(x, y + 2.2, x - 3.6, y + 0.8);
+    g.closePath();
+    paint(g, col, LW, y - 3.4, y + 1.6);
+    shine(g, x - 1.2, y - 2, 1.4, 0.6, 0.5);
+    if (ch.c) {
+      g.strokeStyle = ch.c;
+      g.lineWidth = 0.8;
       g.beginPath();
-      g.ellipse(sx * R * 0.48, hy0 + R * 0.32, R * 0.2, R * 0.12, 0, 0, TAU6);
-      g.fill();
-    }
-    shine(g, -R * 0.38, hy0 - R * 0.45, R * 0.22, R * 0.14, 0.4);
-    if (C.beard) {
-      g.beginPath();
-      g.moveTo(-R * 0.86, hy0 + R * 0.05);
-      g.quadraticCurveTo(-R * 0.9, hy0 + R * 1.25, 0, hy0 + R * 1.38);
-      g.quadraticCurveTo(R * 0.9, hy0 + R * 1.25, R * 0.86, hy0 + R * 0.05);
-      g.quadraticCurveTo(R * 0.55, hy0 + R * 0.5, R * 0.3, hy0 + R * 0.45);
-      g.quadraticCurveTo(0, hy0 + R * 0.62, -R * 0.3, hy0 + R * 0.45);
-      g.quadraticCurveTo(-R * 0.55, hy0 + R * 0.5, -R * 0.86, hy0 + R * 0.05);
-      g.closePath();
-      paint(g, C.hair, LW, hy0, hy0 + R * 1.4);
-      g.beginPath();
-      g.moveTo(-R * 0.42, hy0 + R * 0.5);
-      g.quadraticCurveTo(0, hy0 + R * 0.28, R * 0.42, hy0 + R * 0.5);
-      g.quadraticCurveTo(0, hy0 + R * 0.46, -R * 0.42, hy0 + R * 0.5);
-      g.closePath();
-      paint(g, sh5(C.hair, -0.08), 0.5);
-      g.fillStyle = "#8a3a2a";
-      g.beginPath();
-      g.ellipse(0, hy0 + R * 0.62, R * 0.14, R * 0.08, 0, 0, TAU6);
-      g.fill();
-    } else {
-      g.strokeStyle = "#8a3a2a";
-      g.lineWidth = 0.55;
-      g.beginPath();
-      g.arc(0, hy0 + R * 0.38, R * 0.22, 0.25, Math.PI - 0.25);
+      g.moveTo(x - 3.2, y + 0.6);
+      g.quadraticCurveTo(x, y + 1.8, x + 3.2, y + 0.6);
       g.stroke();
     }
-    g.strokeStyle = sh5(C.skin, -0.35);
-    g.lineWidth = 0.5;
+    if (ch.pauldron === "spike") {
+      g.beginPath();
+      g.moveTo(x - 0.9, y - 3.2);
+      g.lineTo(x + sx * 1.2, y - 6.2);
+      g.lineTo(x + 0.9, y - 3.2);
+      g.closePath();
+      paint(g, "#d8dce4", 0.5);
+    }
+    rivet3(g, x - 1.6, y - 0.6);
+    rivet3(g, x + 1.6, y - 0.6);
+  }
+  function face(g, B, head, blink) {
+    const R = P.head, hy = P.hy, sk = B.skin;
+    capsule(g, 0, hy + R * 0.7, 0, P.top + 0.5, R * 0.64, sk);
+    for (const sx of [-1, 1]) blob(g, sx * R * 0.94, hy + R * 0.1, R * 0.2, R * 0.28, sk);
     g.beginPath();
-    g.arc(0, hy0 + R * 0.12, R * 0.12, 0.2, Math.PI - 0.2);
-    g.stroke();
+    g.moveTo(0, hy - R);
+    g.bezierCurveTo(R * 0.62, hy - R, R * 0.92, hy - R * 0.55, R * 0.92, hy - R * 0.05);
+    g.bezierCurveTo(R * 0.92, hy + R * 0.55, R * 0.62, hy + R * 0.95, 0, hy + R * 0.98);
+    g.bezierCurveTo(-R * 0.62, hy + R * 0.95, -R * 0.92, hy + R * 0.55, -R * 0.92, hy - R * 0.05);
+    g.bezierCurveTo(-R * 0.92, hy - R * 0.55, -R * 0.62, hy - R, 0, hy - R);
+    g.closePath();
+    paint(g, sk, LW, hy - R, hy + R);
+    g.fillStyle = "rgba(120,60,30,.16)";
     for (const sx of [-1, 1]) {
-      const ex = sx * R * 0.36, ey = hy0 - R * 0.08;
+      g.beginPath();
+      g.ellipse(sx * R * 0.6, hy + R * 0.38, R * 0.22, R * 0.3, sx * 0.3, 0, TAU6);
+      g.fill();
+    }
+    if (B.stubble) {
+      g.fillStyle = "rgba(60,36,20,.28)";
+      g.beginPath();
+      g.moveTo(-R * 0.8, hy + R * 0.25);
+      g.quadraticCurveTo(-R * 0.7, hy + R * 0.95, 0, hy + R * 0.98);
+      g.quadraticCurveTo(R * 0.7, hy + R * 0.95, R * 0.8, hy + R * 0.25);
+      g.quadraticCurveTo(0, hy + R * 0.55, -R * 0.8, hy + R * 0.25);
+      g.fill();
+    }
+    for (const sx of [-1, 1]) {
+      const ex = sx * R * 0.36, ey = hy - R * 0.06;
       if (blink) {
         g.strokeStyle = "#2a1a10";
-        g.lineWidth = 0.6;
+        g.lineWidth = 0.55;
         g.beginPath();
-        g.moveTo(ex - R * 0.14, ey);
-        g.lineTo(ex + R * 0.14, ey);
+        g.moveTo(ex - R * 0.16, ey);
+        g.lineTo(ex + R * 0.16, ey);
         g.stroke();
       } else {
-        g.fillStyle = "#fff";
+        g.fillStyle = "#f4efe6";
         g.beginPath();
-        g.ellipse(ex, ey, R * 0.17, R * 0.22, 0, 0, TAU6);
+        g.moveTo(ex - R * 0.2, ey + R * 0.02);
+        g.quadraticCurveTo(ex, ey - R * 0.15, ex + R * 0.2, ey);
+        g.quadraticCurveTo(ex, ey + R * 0.12, ex - R * 0.2, ey + R * 0.02);
+        g.closePath();
         g.fill();
-        g.fillStyle = "#2a1a10";
+        g.fillStyle = B.eyes || "#3a2a1a";
         g.beginPath();
-        g.ellipse(ex + sx * R * 0.02, ey + R * 0.03, R * 0.11, R * 0.16, 0, 0, TAU6);
+        g.arc(ex + sx * R * 0.02, ey + R * 0, R * 0.09, 0, TAU6);
         g.fill();
-        g.fillStyle = "#fff";
+        g.fillStyle = "rgba(255,255,255,.8)";
         g.beginPath();
-        g.arc(ex - R * 0.04, ey - R * 0.05, R * 0.05, 0, TAU6);
+        g.arc(ex - R * 0.02, ey - R * 0.03, R * 0.03, 0, TAU6);
+        g.fill();
+        g.strokeStyle = "#3a2214";
+        g.lineWidth = 0.5;
+        g.beginPath();
+        g.moveTo(ex - R * 0.21, ey + R * 0.02);
+        g.quadraticCurveTo(ex, ey - R * 0.17, ex + R * 0.21, ey);
+        g.stroke();
+      }
+      g.fillStyle = sh5(B.hair, -0.3);
+      g.beginPath();
+      g.moveTo(ex - sx * R * 0.3, ey - R * 0.24);
+      g.quadraticCurveTo(ex, ey - R * 0.36, ex + sx * R * 0.08, ey - R * 0.26);
+      g.lineTo(ex + sx * R * 0.2, ey - R * 0.15);
+      g.quadraticCurveTo(ex, ey - R * 0.26, ex - sx * R * 0.3, ey - R * 0.18);
+      g.closePath();
+      g.fill();
+    }
+    g.strokeStyle = "rgba(110,50,24,.5)";
+    g.lineWidth = 0.4;
+    g.beginPath();
+    g.moveTo(-R * 0.06, hy - R * 0.3);
+    g.lineTo(-R * 0.03, hy - R * 0.18);
+    g.moveTo(R * 0.06, hy - R * 0.3);
+    g.lineTo(R * 0.03, hy - R * 0.18);
+    g.stroke();
+    g.fillStyle = "rgba(140,70,40,.25)";
+    g.beginPath();
+    g.moveTo(R * 0.02, hy - R * 0.1);
+    g.lineTo(R * 0.14, hy + R * 0.22);
+    g.lineTo(-R * 0.02, hy + R * 0.26);
+    g.closePath();
+    g.fill();
+    g.strokeStyle = sh5(sk, -0.4);
+    g.lineWidth = 0.5;
+    g.beginPath();
+    g.moveTo(-R * 0.12, hy + R * 0.24);
+    g.quadraticCurveTo(0, hy + R * 0.32, R * 0.14, hy + R * 0.22);
+    g.stroke();
+    if (B.scar) {
+      g.strokeStyle = "rgba(150,60,50,.75)";
+      g.lineWidth = 0.45;
+      g.beginPath();
+      g.moveTo(R * 0.5, hy - R * 0.5);
+      g.lineTo(R * 0.28, hy + R * 0.18);
+      g.stroke();
+    }
+    if (B.beard) {
+      const long = B.beard === "long", low = long ? R * 1.9 : R * 1.32, col = B.hair;
+      g.beginPath();
+      g.moveTo(-R * 0.88, hy + R * 0.02);
+      g.quadraticCurveTo(-R * 0.92, hy + low * 0.85, 0, hy + low);
+      g.quadraticCurveTo(R * 0.92, hy + low * 0.85, R * 0.88, hy + R * 0.02);
+      g.quadraticCurveTo(R * 0.55, hy + R * 0.5, R * 0.32, hy + R * 0.46);
+      g.quadraticCurveTo(0, hy + R * 0.58, -R * 0.32, hy + R * 0.46);
+      g.quadraticCurveTo(-R * 0.55, hy + R * 0.5, -R * 0.88, hy + R * 0.02);
+      g.closePath();
+      paint(g, col, LW, hy, hy + low);
+      g.strokeStyle = sh5(col, -0.25);
+      g.lineWidth = 0.45;
+      for (const k of [-0.4, 0, 0.4]) {
+        g.beginPath();
+        g.moveTo(R * k, hy + R * 0.7);
+        g.lineTo(R * k * 0.8, hy + low * 0.9);
+        g.stroke();
+      }
+      g.beginPath();
+      g.moveTo(-R * 0.46, hy + R * 0.54);
+      g.quadraticCurveTo(-R * 0.2, hy + R * 0.34, 0, hy + R * 0.42);
+      g.quadraticCurveTo(R * 0.2, hy + R * 0.34, R * 0.46, hy + R * 0.54);
+      g.quadraticCurveTo(0, hy + R * 0.5, -R * 0.46, hy + R * 0.54);
+      g.closePath();
+      paint(g, sh5(col, -0.1), 0.5);
+      g.strokeStyle = "#5a2a1a";
+      g.lineWidth = 0.5;
+      g.beginPath();
+      g.moveTo(-R * 0.16, hy + R * 0.62);
+      g.lineTo(R * 0.16, hy + R * 0.62);
+      g.stroke();
+    } else {
+      g.strokeStyle = "#7a3a26";
+      g.lineWidth = 0.55;
+      g.beginPath();
+      g.moveTo(-R * 0.2, hy + R * 0.52);
+      g.quadraticCurveTo(0, hy + R * 0.48, R * 0.2, hy + R * 0.54);
+      g.stroke();
+      g.strokeStyle = "rgba(120,60,30,.3)";
+      g.beginPath();
+      g.moveTo(-R * 0.12, hy + R * 0.66);
+      g.lineTo(R * 0.12, hy + R * 0.66);
+      g.stroke();
+    }
+  }
+  function hat(g, h, B) {
+    const R = P.head, hy = P.hy, m = h.m, c2 = h.c || "#8a929e";
+    const hair = () => {
+      g.beginPath();
+      g.moveTo(-R * 0.98, hy + R * 0.02);
+      g.bezierCurveTo(-R * 1.1, hy - R * 1.28, R * 1.1, hy - R * 1.28, R * 0.98, hy + R * 0.02);
+      g.quadraticCurveTo(R * 0.9, hy - R * 0.5, R * 0.55, hy - R * 0.62);
+      g.lineTo(R * 0.3, hy - R * 0.42);
+      g.lineTo(R * 0.05, hy - R * 0.66);
+      g.lineTo(-R * 0.22, hy - R * 0.44);
+      g.lineTo(-R * 0.5, hy - R * 0.66);
+      g.quadraticCurveTo(-R * 0.9, hy - R * 0.5, -R * 0.98, hy + R * 0.02);
+      g.closePath();
+      paint(g, B.hair, LW, hy - R, hy);
+      shine(g, -R * 0.35, hy - R * 0.8, R * 0.28, R * 0.11, 0.3);
+    };
+    if (!m) {
+      hair();
+      if (B.tail) {
+        g.beginPath();
+        g.ellipse(R * 0.95, hy - R * 0.5, R * 0.24, R * 0.2, 0.5, 0, TAU6);
+        paint(g, "#7a2a20");
+      }
+      return;
+    }
+    if (m === "kettle") {
+      hair();
+      g.beginPath();
+      g.ellipse(0, hy - R * 0.62, R * 1.42, R * 0.34, 0, 0, TAU6);
+      paint(g, sh5(c2, -0.05));
+      g.beginPath();
+      g.moveTo(-R * 0.86, hy - R * 0.62);
+      g.bezierCurveTo(-R * 0.9, hy - R * 1.55, R * 0.9, hy - R * 1.55, R * 0.86, hy - R * 0.62);
+      g.closePath();
+      paint(g, c2, LW, hy - R * 1.4, hy - R * 0.6);
+      shine(g, -R * 0.35, hy - R * 1.12, R * 0.26, R * 0.14, 0.5);
+      g.beginPath();
+      g.roundRect(-R * 0.88, hy - R * 0.82, R * 1.76, R * 0.24, 0.4);
+      paint(g, h.c2 || sh5(c2, -0.25), 0.5);
+      return;
+    }
+    if (m === "horned") {
+      for (const sx of [-1, 1]) {
+        g.beginPath();
+        g.moveTo(sx * R * 0.8, hy - R * 0.75);
+        g.quadraticCurveTo(sx * R * 1.9, hy - R * 1, sx * R * 1.7, hy - R * 2);
+        g.quadraticCurveTo(sx * R * 1.5, hy - R * 1.25, sx * R * 0.86, hy - R * 0.4);
+        g.closePath();
+        paint(g, "#efe4cc", LW, hy - R * 2, hy - R * 0.4);
+      }
+      g.beginPath();
+      g.moveTo(-R * 0.98, hy + R * 0.15);
+      g.lineTo(-R * 0.98, hy - R * 0.4);
+      g.bezierCurveTo(-R * 1, hy - R * 1.4, R * 1, hy - R * 1.4, R * 0.98, hy - R * 0.4);
+      g.lineTo(R * 0.98, hy + R * 0.15);
+      g.lineTo(R * 0.7, hy + R * 0.15);
+      g.lineTo(R * 0.7, hy - R * 0.3);
+      g.lineTo(-R * 0.7, hy - R * 0.3);
+      g.lineTo(-R * 0.7, hy + R * 0.15);
+      g.closePath();
+      paint(g, c2, LW, hy - R * 1.2, hy);
+      g.beginPath();
+      g.roundRect(-R * 0.14, hy - R * 0.35, R * 0.28, R * 0.72, 0.3);
+      paint(g, sh5(c2, -0.1), 0.5);
+      g.beginPath();
+      g.roundRect(-R, hy - R * 0.5, R * 2, R * 0.25, 0.4);
+      paint(g, h.c2 || "#c8a040", 0.5);
+      shine(g, -R * 0.4, hy - R * 0.95, R * 0.3, R * 0.14, 0.5);
+      for (const xx of [-0.6, -0.2, 0.2, 0.6]) rivet3(g, R * xx, hy - R * 0.38, 0.35);
+      return;
+    }
+    if (m === "greathelm") {
+      if (h.crest) {
+        g.beginPath();
+        g.moveTo(0, hy - R * 1.05);
+        g.quadraticCurveTo(R * 0.4, hy - R * 2, R * 1.6, hy - R * 1.6);
+        g.quadraticCurveTo(R * 0.8, hy - R * 1.2, R * 0.3, hy - R * 0.95);
+        g.closePath();
+        paint(g, h.crest);
+      }
+      g.beginPath();
+      g.roundRect(-R * 1, hy - R * 1.1, R * 2, R * 2.05, [R * 0.9, R * 0.9, R * 0.35, R * 0.35]);
+      paint(g, c2, LW, hy - R, hy + R);
+      g.fillStyle = "#14161c";
+      g.beginPath();
+      g.roundRect(-R * 0.72, hy - R * 0.2, R * 1.44, R * 0.2, 0.3);
+      g.fill();
+      for (let i = 0; i < 4; i++) {
+        g.beginPath();
+        g.roundRect(-R * 0.36 + i * R * 0.22, hy + R * 0.2, R * 0.1, R * 0.4, 0.1);
         g.fill();
       }
-      g.strokeStyle = sh5(C.hair, -0.35);
+      g.beginPath();
+      g.roundRect(-R * 0.08, hy - R * 1.05, R * 0.16, R * 1.9, 0.2);
+      paint(g, h.c2 || "#c8a040", 0.4);
+      shine(g, -R * 0.5, hy - R * 0.7, R * 0.2, R * 0.35, 0.45);
+      return;
+    }
+    if (m === "hood" || m === "cowl") {
+      g.beginPath();
+      g.moveTo(-R * 1.15, hy + R * 0.95);
+      g.bezierCurveTo(-R * 1.35, hy - R * 1.1, -R * 0.4, hy - R * 1.55, R * 0.15, hy - R * 1.45);
+      g.bezierCurveTo(R * 1.2, hy - R * 1.3, R * 1.3, hy - R * 0.2, R * 1.15, hy + R * 0.95);
+      g.quadraticCurveTo(R * 0.9, hy + R * 0.2, R * 0.78, hy - R * 0.2);
+      g.quadraticCurveTo(0, hy - R * 0.95, -R * 0.78, hy - R * 0.2);
+      g.quadraticCurveTo(-R * 0.9, hy + R * 0.2, -R * 1.15, hy + R * 0.95);
+      g.closePath();
+      paint(g, c2, LW, hy - R * 1.4, hy + R);
+      g.fillStyle = "rgba(20,10,4,.28)";
+      g.beginPath();
+      g.moveTo(-R * 0.78, hy - R * 0.2);
+      g.quadraticCurveTo(0, hy - R * 0.95, R * 0.78, hy - R * 0.2);
+      g.quadraticCurveTo(0, hy - R * 0.45, -R * 0.78, hy - R * 0.2);
+      g.fill();
+      if (m === "cowl") {
+        g.beginPath();
+        g.moveTo(-R * 0.82, hy + R * 0.42);
+        g.quadraticCurveTo(0, hy + R * 0.95, R * 0.82, hy + R * 0.42);
+        g.lineTo(R * 0.82, hy + R * 1);
+        g.quadraticCurveTo(0, hy + R * 1.4, -R * 0.82, hy + R * 1);
+        g.closePath();
+        paint(g, h.c2 || sh5(c2, -0.2));
+      }
+      return;
+    }
+    if (m === "wizard") {
+      hair();
+      g.beginPath();
+      g.ellipse(0, hy - R * 0.62, R * 1.55, R * 0.36, 0, 0, TAU6);
+      paint(g, sh5(c2, -0.1));
+      g.beginPath();
+      g.moveTo(-R * 0.86, hy - R * 0.68);
+      g.quadraticCurveTo(-R * 0.4, hy - R * 1.8, R * 0.6, hy - R * 2.9);
+      g.quadraticCurveTo(R * 0.55, hy - R * 1.6, R * 0.86, hy - R * 0.68);
+      g.closePath();
+      paint(g, c2, LW, hy - R * 2.9, hy - R * 0.6);
+      g.beginPath();
+      g.roundRect(-R * 0.86, hy - R * 0.95, R * 1.72, R * 0.28, 0.4);
+      paint(g, h.c2 || "#e0b040", 0.5);
+      g.fillStyle = h.c2 || "#e0b040";
+      for (const [xx, yy] of [[-0.2, -1.5], [0.25, -2.1]]) {
+        g.beginPath();
+        for (let k = 0; k < 8; k++) {
+          const rr2 = k % 2 ? 0.12 : 0.32, an = k * Math.PI / 4;
+          g.lineTo(R * xx + Math.cos(an) * R * rr2, hy + R * yy + Math.sin(an) * R * rr2);
+        }
+        g.closePath();
+        g.fill();
+      }
+      return;
+    }
+    if (m === "circlet") {
+      hair();
+      g.beginPath();
+      g.moveTo(-R * 0.92, hy - R * 0.5);
+      g.quadraticCurveTo(0, hy - R * 0.85, R * 0.92, hy - R * 0.5);
+      g.lineTo(R * 0.92, hy - R * 0.32);
+      g.quadraticCurveTo(0, hy - R * 0.67, -R * 0.92, hy - R * 0.32);
+      g.closePath();
+      paint(g, c2, 0.5);
+      g.beginPath();
+      g.moveTo(0, hy - R * 1.05);
+      g.lineTo(R * 0.2, hy - R * 0.75);
+      g.lineTo(0, hy - R * 0.52);
+      g.lineTo(-R * 0.2, hy - R * 0.75);
+      g.closePath();
+      paint(g, h.gem || "#b070ff", 0.5);
+      shine(g, -R * 0.06, hy - R * 0.85, R * 0.06, R * 0.08, 0.8);
+      return;
+    }
+    if (m === "feathercap") {
+      hair();
+      g.beginPath();
+      g.moveTo(-R * 1, hy - R * 0.5);
+      g.bezierCurveTo(-R * 0.9, hy - R * 1.5, R * 0.9, hy - R * 1.55, R * 1.25, hy - R * 0.62);
+      g.quadraticCurveTo(0, hy - R * 0.75, -R * 1, hy - R * 0.5);
+      g.closePath();
+      paint(g, c2, LW, hy - R * 1.4, hy - R * 0.5);
+      g.beginPath();
+      g.moveTo(R * 0.4, hy - R * 1);
+      g.quadraticCurveTo(R * 1.9, hy - R * 1.9, R * 2.2, hy - R * 2.6);
+      g.quadraticCurveTo(R * 1.2, hy - R * 1.4, R * 0.4, hy - R * 1);
+      g.closePath();
+      paint(g, h.c2 || "#c84a3a", 0.6);
+      return;
+    }
+  }
+  function quiver(g, col) {
+    g.save();
+    g.translate(P.sw - 1, P.top + 1);
+    g.rotate(0.35);
+    g.beginPath();
+    g.roundRect(-2, -9, 4.2, 12, 1.6);
+    paint(g, col, LW, -9, 3);
+    for (let i = 0; i < 3; i++) {
+      g.strokeStyle = "#d8d0bc";
       g.lineWidth = 0.7;
       g.beginPath();
-      g.moveTo(ex - R * 0.18, ey - R * 0.34 + sx * 0);
-      g.quadraticCurveTo(ex, ey - R * 0.44, ex + R * 0.18, ey - R * 0.3);
+      g.moveTo(-1 + i * 1.3, -9);
+      g.lineTo(-1.6 + i * 1.3, -12);
       g.stroke();
-    }
-    g.beginPath();
-    g.moveTo(-R * 0.98, hy0 + R * 0.05);
-    g.bezierCurveTo(-R * 1.1, hy0 - R * 1.25, R * 1.1, hy0 - R * 1.25, R * 0.98, hy0 + R * 0.05);
-    g.quadraticCurveTo(R * 0.86, hy0 - R * 0.45, R * 0.5, hy0 - R * 0.5);
-    g.quadraticCurveTo(R * 0.2, hy0 - R * 0.28, 0, hy0 - R * 0.55);
-    g.quadraticCurveTo(-R * 0.3, hy0 - R * 0.3, -R * 0.55, hy0 - R * 0.5);
-    g.quadraticCurveTo(-R * 0.86, hy0 - R * 0.45, -R * 0.98, hy0 + R * 0.05);
-    g.closePath();
-    paint(g, C.hair, LW, hy0 - R, hy0);
-    shine(g, -R * 0.35, hy0 - R * 0.78, R * 0.3, R * 0.12, 0.35);
-    if (C.tail) {
+      g.fillStyle = "#b8b0a0";
       g.beginPath();
-      g.ellipse(R * 0.95, hy0 - R * 0.55, R * 0.28, R * 0.22, 0.5, 0, TAU6);
-      paint(g, "#c84a3a");
+      g.moveTo(-1.6 + i * 1.3, -12);
+      g.lineTo(-0.6 + i * 1.3, -13.5);
+      g.lineTo(-2.4 + i * 1.3, -13.2);
+      g.closePath();
+      g.fill();
     }
-    weapon(g, C.weapon, -(P.sw + 1.2), hip + 0.6, P, t);
     g.restore();
   }
-  function weapon(g, kind, x, y, P, t) {
-    if (kind === "axe") {
-      capsule(g, x, y + 5, x + 0.4, y - 12, 1.5, "#8a5a30");
+  function weapon(g, w, x, y, t, cls, handCol) {
+    const m = w.m, c2 = w.c || "#b8c0cc", hand = () => blob(g, x, y, P.hand, P.hand * 0.95, handCol);
+    if (m === "axe" || m === "battleaxe") {
+      capsule(g, x, y + 5, x + 0.4, y - 13, 1.5, w.wood || "#6e4626");
+      const blade = (sx) => {
+        g.beginPath();
+        g.moveTo(x, y - 12);
+        g.quadraticCurveTo(x + sx * 6.2, y - 14, x + sx * 6.4, y - 9);
+        g.quadraticCurveTo(x + sx * 6.2, y - 4.4, x, y - 6.6);
+        g.closePath();
+        paint(g, c2, LW, y - 14, y - 4);
+        g.strokeStyle = "#f2f6fa";
+        g.lineWidth = 0.55;
+        g.beginPath();
+        g.moveTo(x + sx * 5.8, y - 11.6);
+        g.quadraticCurveTo(x + sx * 6.5, y - 9, x + sx * 5.7, y - 6.2);
+        g.stroke();
+      };
+      blade(-1);
+      if (m === "battleaxe") blade(1);
       g.beginPath();
-      g.moveTo(x, y - 11);
-      g.quadraticCurveTo(x - 6, y - 13, x - 6.2, y - 8.6);
-      g.quadraticCurveTo(x - 6, y - 5, x, y - 6.4);
+      g.roundRect(x - 1.3, y - 12.6, 2.6, 6.6, 0.9);
+      paint(g, w.c2 || "#5c6170");
+      hand();
+      return;
+    }
+    if (m === "sword" || m === "flamesword") {
+      g.beginPath();
+      g.moveTo(x - 1.1, y - 3);
+      g.lineTo(x - 1.1, y - 21);
+      g.lineTo(x, y - 23.5);
+      g.lineTo(x + 1.1, y - 21);
+      g.lineTo(x + 1.1, y - 3);
       g.closePath();
-      paint(g, "#b8c0cc", LW, y - 13, y - 4);
-      g.strokeStyle = "#f2f6fa";
-      g.lineWidth = 0.6;
+      paint(g, c2, LW, y - 24, y - 3);
+      g.strokeStyle = "rgba(255,255,255,.6)";
+      g.lineWidth = 0.4;
       g.beginPath();
-      g.moveTo(x - 5.6, y - 11);
-      g.quadraticCurveTo(x - 6.3, y - 8.6, x - 5.5, y - 6);
+      g.moveTo(x - 0.3, y - 4);
+      g.lineTo(x - 0.3, y - 21.5);
       g.stroke();
+      if (m === "flamesword") {
+        const p = 0.7 + 0.3 * Math.sin(t * 6);
+        g.save();
+        g.globalCompositeOperation = "lighter";
+        for (let i = 0; i < 5; i++) {
+          const yy = y - 6 - i * 3.6, q = (t * 1.5 + i * 0.3) % 1;
+          g.fillStyle = `rgba(255,${120 + i * 20},40,${0.5 * p})`;
+          g.beginPath();
+          g.ellipse(x + Math.sin(t * 5 + i) * 0.8, yy - q * 2, 1.6, 2.4, 0, 0, TAU6);
+          g.fill();
+        }
+        g.restore();
+      }
       g.beginPath();
-      g.roundRect(x - 1.4, y - 12, 2.8, 6.4, 1);
-      paint(g, "#5c6170");
-      blob(g, x, y, P.hand, P.hand * 0.95, "#f0bf92");
+      g.roundRect(x - 3.6, y - 3.4, 7.2, 1.6, 0.7);
+      paint(g, w.c2 || "#c8a040");
+      capsule(g, x, y - 1.6, x, y + 2.4, 1.3, "#5a3a20");
+      blob(g, x, y + 3.2, 0.9, 0.9, w.c2 || "#c8a040");
+      hand();
+      return;
     }
-    if (kind === "staff") {
-      capsule(g, x, y + 16, x, y - 22, 1.5, "#7a5230");
-      g.strokeStyle = ink("#c8a040");
-      g.lineWidth = 1.6;
+    if (m === "hammer") {
+      capsule(g, x, y + 6, x, y - 13, 1.5, w.wood || "#5a3a20");
       g.beginPath();
-      g.arc(x, y - 24, 3, 0.6, Math.PI * 2 - 0.6 + Math.PI, false);
-      g.stroke();
-      g.strokeStyle = "#e8c050";
-      g.lineWidth = 0.9;
-      g.stroke();
-      const p = 0.8 + 0.2 * Math.sin(t * 4);
-      const gr = g.createRadialGradient(x, y - 24.5, 0.2, x, y - 24.5, 7);
-      gr.addColorStop(0, `rgba(180,230,255,${0.9 * p})`);
-      gr.addColorStop(1, "rgba(120,180,255,0)");
+      g.roundRect(x - 4.6, y - 17.5, 9.2, 5.6, 1.6);
+      paint(g, c2, LW, y - 17.5, y - 12);
+      shine(g, x - 2.4, y - 16.4, 1.6, 0.6, 0.55);
+      g.beginPath();
+      g.roundRect(x - 5.2, y - 15.6, 1.2, 1.8, 0.3);
+      paint(g, w.c2 || "#c8a040", 0.4);
+      g.beginPath();
+      g.roundRect(x + 4, y - 15.6, 1.2, 1.8, 0.3);
+      paint(g, w.c2 || "#c8a040", 0.4);
+      if (w.glow) {
+        g.save();
+        g.globalCompositeOperation = "lighter";
+        const p = 0.6 + 0.4 * Math.sin(t * 7);
+        g.strokeStyle = `rgba(150,210,255,${p})`;
+        g.lineWidth = 0.5;
+        g.beginPath();
+        g.moveTo(x - 4, y - 16);
+        g.lineTo(x - 1, y - 14.5);
+        g.lineTo(x - 2, y - 13.2);
+        g.lineTo(x + 2, y - 15.5);
+        g.stroke();
+        g.restore();
+      }
+      hand();
+      return;
+    }
+    if (m === "staff" || m === "firestaff" || m === "crystal") {
+      capsule(g, x, y + 16, x, y - 21, 1.4, w.wood || "#6a4628");
+      const p = 0.8 + 0.2 * Math.sin(t * 4), oc = m === "firestaff" ? [255, 150, 60] : m === "crystal" ? [200, 140, 255] : [140, 200, 255], cy = y - 24;
+      g.save();
+      g.globalCompositeOperation = "lighter";
+      const gr = g.createRadialGradient(x, cy, 0.2, x, cy, 7);
+      gr.addColorStop(0, `rgba(${oc},${0.8 * p})`);
+      gr.addColorStop(1, `rgba(${oc},0)`);
       g.fillStyle = gr;
-      g.fillRect(x - 7, y - 31.5, 14, 14);
-      blob(g, x, y - 24.5, 2.2, 2.2, "#8ad8ff");
-      shine(g, x - 0.7, y - 25.3, 0.8, 0.5, 0.8);
-      blob(g, x, y, P.hand, P.hand * 0.95, "#f0bf92");
+      g.fillRect(x - 7, cy - 7, 14, 14);
+      g.restore();
+      if (m === "firestaff") {
+        g.beginPath();
+        g.moveTo(x - 1, y - 21);
+        g.quadraticCurveTo(x - 4, y - 24, x - 2, y - 27);
+        g.quadraticCurveTo(x + 2, y - 25, x + 1, y - 21);
+        g.closePath();
+        paint(g, "#6a4628");
+        g.save();
+        g.globalCompositeOperation = "lighter";
+        for (let i = 0; i < 3; i++) {
+          g.fillStyle = `rgba(255,${140 + i * 40},40,.8)`;
+          g.beginPath();
+          g.ellipse(x - 1 + Math.sin(t * 7 + i) * 0.6, cy - 1 - i * 1.4, 1.8 - i * 0.4, 2.6 - i * 0.6, 0, 0, TAU6);
+          g.fill();
+        }
+        g.restore();
+      } else if (m === "crystal") {
+        g.beginPath();
+        g.moveTo(x, cy - 4.5);
+        g.lineTo(x + 2, cy - 0.5);
+        g.lineTo(x, cy + 2.5);
+        g.lineTo(x - 2, cy - 0.5);
+        g.closePath();
+        paint(g, "#c8a0ff", 0.6);
+        shine(g, x - 0.6, cy - 1.5, 0.5, 1, 0.8);
+        for (const sx of [-1, 1]) {
+          g.strokeStyle = ink(w.c2 || "#e0b040");
+          g.lineWidth = 1.2;
+          g.beginPath();
+          g.moveTo(x, y - 20.5);
+          g.quadraticCurveTo(x + sx * 3.2, cy, x + sx * 0.8, cy - 3.6);
+          g.stroke();
+          g.strokeStyle = w.c2 || "#e0b040";
+          g.lineWidth = 0.6;
+          g.stroke();
+        }
+      } else {
+        g.strokeStyle = ink("#c8a040");
+        g.lineWidth = 1.4;
+        g.beginPath();
+        g.arc(x, cy, 2.9, 0.7, Math.PI * 2.3);
+        g.stroke();
+        g.strokeStyle = "#d8b050";
+        g.lineWidth = 0.7;
+        g.stroke();
+        blob(g, x, cy, 2, 2, "#8ad0ff");
+        shine(g, x - 0.6, cy - 0.7, 0.7, 0.45, 0.8);
+      }
+      hand();
+      return;
     }
-    if (kind === "bow") {
-      const bx = -x, by = y - 4;
+    if (m === "bow" || m === "longbow" || m === "goldbow") {
+      const bx = -x, by = y - 4, R = m === "longbow" ? 15 : 11, a = m === "longbow" ? 1 : 0.95, col = m === "goldbow" ? "#d8a840" : c2;
       g.lineCap = "round";
-      g.strokeStyle = ink("#9a6a34");
+      g.strokeStyle = ink(col);
       g.lineWidth = 2.4;
       g.beginPath();
-      g.arc(bx - 9, by, 11, -0.95, 0.95);
+      g.arc(bx - R + 2, by, R, -a, a);
       g.stroke();
-      g.strokeStyle = "#b07a3e";
+      g.strokeStyle = col;
       g.lineWidth = 1.3;
       g.stroke();
+      if (m === "goldbow") for (const s of [-1, 1]) {
+        const ex = bx - R + 2 + Math.cos(s * a) * R, ey = by + Math.sin(s * a) * R;
+        g.beginPath();
+        g.moveTo(ex, ey);
+        g.lineTo(ex + 1.6, ey + s * 1.8);
+        g.lineTo(ex - 0.6, ey + s * 0.8);
+        g.closePath();
+        paint(g, "#f0d070", 0.4);
+      }
       g.strokeStyle = "#e8e0cc";
       g.lineWidth = 0.4;
       g.beginPath();
-      g.moveTo(bx - 9 + Math.cos(-0.95) * 11, by + Math.sin(-0.95) * 11);
-      g.lineTo(bx - 9 + Math.cos(0.95) * 11, by + Math.sin(0.95) * 11);
+      g.moveTo(bx - R + 2 + Math.cos(-a) * R, by + Math.sin(-a) * R);
+      g.lineTo(bx - R + 2 + Math.cos(a) * R, by + Math.sin(a) * R);
       g.stroke();
       g.beginPath();
       g.roundRect(bx + 0.6, by - 1.6, 1.8, 3.2, 0.6);
-      paint(g, "#5a3a1c", 0.5);
-      blob(g, -x, y, P.hand, P.hand * 0.95, "#f0bf92");
+      paint(g, "#4a2e16", 0.5);
+      blob(g, -x, y, P.hand, P.hand * 0.95, handCol);
+      return;
     }
+    hand();
   }
 
   // tools/proto/v97/gal.js
+  var SETS = {
+    warrior: [
+      ["\u041D\u0430\u0447\u0430\u043B\u043E", {}],
+      ["\u0417\u0435\u043B\u0451\u043D\u044B\u0435: \u0448\u0430\u043F\u0435\u043B\u044C, \u043A\u043E\u043B\u044C\u0447\u0443\u0433\u0430, \u043C\u0435\u0447", { head: { m: "kettle", c: "#9aa2ae" }, chest: { m: "mail", c: "#3e6a3a", sign: "#d8c070" }, legs: { m: "mail", c: "#7a828e" }, boots: "#4a3020", weapon: { m: "sword", c: "#c8d0da", c2: "#8a6a3a" } }],
+      ["\u0421\u0438\u043D\u0438\u0435: \u0440\u043E\u0433\u0430\u0442\u044B\u0439 \u0448\u043B\u0435\u043C, \u043B\u0430\u0442\u044B, \u0441\u0435\u043A\u0438\u0440\u0430", { head: { m: "horned", c: "#8a929e", c2: "#3a6ab0" }, chest: { m: "plate", c: "#3a6ab0", c2: "#a8b2c0", pauldron: true }, legs: { m: "plate", c: "#5a6270", c2: "#a8b2c0" }, boots: "#3e4450", weapon: { m: "battleaxe", c: "#c8d0da", c2: "#3a6ab0" } }],
+      ["\u0421\u0438\u043D\u0438\u0435: \u0448\u043B\u0435\u043C, \u043A\u043E\u043B\u044C\u0447\u0443\u0433\u0430, \u043C\u043E\u043B\u043E\u0442", { head: { m: "kettle", c: "#6a7280", c2: "#a83a2a" }, chest: { m: "mail", c: "#a83a2a", sign: "#e8d090" }, legs: { m: "pants", c: "#5a3a24" }, boots: "#3a2818", weapon: { m: "hammer", c: "#9aa2ae", c2: "#c8a040" }, cape: "#7a2a20" }],
+      ["\u0424\u0438\u043E\u043B\u0435\u0442\u043E\u0432\u044B\u0435: \u041B\u0430\u0442\u044B \u041F\u043B\u0430\u043C\u0435\u043D\u0438, \u041A\u043B\u0438\u043D\u043E\u043A \u041F\u043B\u0430\u043C\u0435\u043D\u0438", { head: { m: "greathelm", c: "#3a2a2a", c2: "#e0a030", crest: "#c83a20" }, chest: { m: "plate", c: "#c84a20", c2: "#4a3a3a", pauldron: "spike" }, legs: { m: "plate", c: "#3a2a2a", c2: "#5a4848" }, boots: "#2a1e1e", weapon: { m: "flamesword", c: "#f0d0a0", c2: "#e0a030" }, cape: "#8a2018" }]
+    ],
+    mage: [
+      ["\u041D\u0430\u0447\u0430\u043B\u043E", {}],
+      ["\u0417\u0435\u043B\u0451\u043D\u044B\u0435: \u043A\u0430\u043F\u044E\u0448\u043E\u043D, \u043C\u0430\u043D\u0442\u0438\u044F, \u043F\u043E\u0441\u043E\u0445", { head: { m: "hood", c: "#4a5a8a" }, chest: { m: "robe", c: "#4a5a8a", c2: "#c8b070" }, boots: "#2a2a3a", weapon: { m: "staff" } }],
+      ["\u0421\u0438\u043D\u0438\u0435: \u0448\u043B\u044F\u043F\u0430, \u043C\u0430\u043D\u0442\u0438\u044F, \u043F\u043E\u0441\u043E\u0445 \u043E\u0433\u043D\u044F", { head: { m: "wizard", c: "#8a2a2a", c2: "#e0b040" }, chest: { m: "robe", c: "#8a2a2a", c2: "#e0b040" }, boots: "#3a1e1e", weapon: { m: "firestaff" } }],
+      ["\u0421\u0438\u043D\u0438\u0435: \u043A\u0430\u043F\u044E\u0448\u043E\u043D-\u043D\u0430\u043A\u0438\u0434\u043A\u0430, \u0431\u043E\u0435\u0432\u0430\u044F \u043C\u0430\u043D\u0442\u0438\u044F", { head: { m: "cowl", c: "#2e4a6a", c2: "#1e3248" }, chest: { m: "battlerobe", c: "#2e4a6a", c2: "#a8c8e0", c3: "#1e3248" }, boots: "#1e2a38", weapon: { m: "staff", wood: "#3a2a20" } }],
+      ["\u0424\u0438\u043E\u043B\u0435\u0442\u043E\u0432\u044B\u0435: \u0412\u0435\u043D\u0435\u0446 \u0417\u0432\u0435\u0437\u0434\u043E\u0447\u0451\u0442\u0430, \u043A\u0440\u0438\u0441\u0442\u0430\u043B\u043B", { head: { m: "circlet", c: "#e0b040", gem: "#b070ff" }, chest: { m: "battlerobe", c: "#5a2a8a", c2: "#e0b040", c3: "#3a1a5a" }, boots: "#2a1a3a", weapon: { m: "crystal", c2: "#e0b040", wood: "#2a1e30" }, cape: "#3a1a5a" }]
+    ],
+    archer: [
+      ["\u041D\u0430\u0447\u0430\u043B\u043E", {}],
+      ["\u0417\u0435\u043B\u0451\u043D\u044B\u0435: \u043A\u0430\u043F\u044E\u0448\u043E\u043D, \u043A\u0443\u0440\u0442\u043A\u0430, \u043B\u0443\u043A", { head: { m: "hood", c: "#3e6a32" }, chest: { m: "leather", c: "#6a4a2c", c2: "#3e6a32" }, legs: { m: "pants", c: "#5a4430" }, boots: "#3e2a18", weapon: { m: "bow", c: "#9a6a34" } }],
+      ["\u0421\u0438\u043D\u0438\u0435: \u0448\u0430\u043F\u043A\u0430 \u0441 \u043F\u0435\u0440\u043E\u043C, \u043A\u043B\u0451\u043F\u0430\u043D\u0430\u044F \u043A\u0443\u0440\u0442\u043A\u0430", { head: { m: "feathercap", c: "#3a5a7a", c2: "#d84a3a" }, chest: { m: "leather", c: "#4a3a2a", c2: "#3a5a7a", studs: true }, legs: { m: "pants", c: "#3a3a44" }, boots: "#2a2018", weapon: { m: "longbow", c: "#7a4a24" } }],
+      ["\u0421\u0438\u043D\u0438\u0435: \u043D\u0430\u043A\u0438\u0434\u043A\u0430, \u0434\u043B\u0438\u043D\u043D\u044B\u0439 \u043B\u0443\u043A", { head: { m: "cowl", c: "#5a4a3a", c2: "#3a2e24" }, chest: { m: "leather", c: "#5a4a3a", c2: "#4a3a2c", studs: true }, legs: { m: "pants", c: "#4a3e30" }, boots: "#2e2218", weapon: { m: "longbow", c: "#5a3a20" }, cape: "#3e5a32" }],
+      ["\u0424\u0438\u043E\u043B\u0435\u0442\u043E\u0432\u044B\u0435: \u0421\u043E\u043B\u043D\u0435\u0447\u043D\u044B\u0439 \u043B\u0443\u043A, \u0411\u0435\u043B\u044B\u0439 \u041E\u043B\u0435\u043D\u044C", { head: { m: "hood", c: "#e8e0cc" }, chest: { m: "leather", c: "#e0d6bc", c2: "#8a6a3a", studs: true }, legs: { m: "pants", c: "#6a5a42" }, boots: "#4a3a28", weapon: { m: "goldbow" }, cape: "#2e5a3a", quiver: "#e0b040" }]
+    ]
+  };
   var NAME = { warrior: "\u0412\u043E\u0438\u043D", mage: "\u041C\u0430\u0433", archer: "\u041B\u0443\u0447\u043D\u0438\u043A" };
   function gallery(root) {
     const mk = (w, h, title, note) => {
@@ -6357,43 +6914,46 @@ canvas{display:block;max-width:100%;height:auto;border-radius:8px}
       root.append(s);
       return cv;
     };
-    const big = mk(1200, 560, "\u041A\u0440\u0443\u043F\u043D\u043E: \u0441\u0435\u0439\u0447\u0430\u0441 \xB7 \u0432\u0430\u0440\u0438\u0430\u043D\u0442 \u0410 \xB7 \u0432\u0430\u0440\u0438\u0430\u043D\u0442 \u0411", "\u0410 \u2014 \u043F\u0440\u043E\u043F\u043E\u0440\u0446\u0438\u0438 \u043A\u0430\u043A \u0441\u0435\u0439\u0447\u0430\u0441 (\u22484,3 \u0433\u043E\u043B\u043E\u0432\u044B), \u0442\u043E\u043B\u044C\u043A\u043E \u043C\u0443\u043B\u044C\u0442\u044F\u0448\u043D\u0430\u044F \u0440\u0438\u0441\u043E\u0432\u043A\u0430: \u043A\u0440\u0443\u0433\u043B\u044B\u0435 \u0444\u043E\u0440\u043C\u044B, \u043C\u044F\u0433\u043A\u0438\u0439 \u043E\u0431\u044A\u0451\u043C, \u043E\u0431\u0432\u043E\u0434\u043A\u0430 \u0432 \u0446\u0432\u0435\u0442 \u0434\u0435\u0442\u0430\u043B\u0438, \u043A\u0440\u0443\u043F\u043D\u044B\u0435 \u0433\u043B\u0430\u0437\u0430 \u0441 \u0431\u043B\u0438\u043A\u043E\u043C. \u0411 \u2014 \u043C\u0443\u043B\u044C\u0442\u044F\u0448\u043D\u0435\u0435: \u0433\u043E\u043B\u043E\u0432\u0430 \u0431\u043E\u043B\u044C\u0448\u0435 (\u22483,2 \u0433\u043E\u043B\u043E\u0432\u044B), \u043D\u043E\u0433\u0438 \u043A\u043E\u0440\u043E\u0447\u0435 \u0438 \u0442\u043E\u043B\u0449\u0435.");
-    const scene = mk(1200, 380, "\u0412 \u043C\u0430\u0441\u0448\u0442\u0430\u0431\u0435 \u0438\u0433\u0440\u044B (\u043F\u0440\u0438\u0431\u043B\u0438\u0436\u0435\u043D\u0438\u0435 \xD72,4) \u0440\u044F\u0434\u043E\u043C \u0441 \u043D\u043E\u0432\u044B\u043C \u0441\u0443\u043D\u0434\u0443\u043A\u043E\u043C", "\u0421\u043B\u0435\u0432\u0430 \u043D\u0430\u043F\u0440\u0430\u0432\u043E: \u043D\u044B\u043D\u0435\u0448\u043D\u0438\u0439 \u0412\u043E\u0438\u043D, \u0432\u0430\u0440\u0438\u0430\u043D\u0442 \u0410, \u0432\u0430\u0440\u0438\u0430\u043D\u0442 \u0411, \u0441\u0443\u043D\u0434\u0443\u043A, \u041C\u0430\u0433 \u0410 \u0438 \u0411, \u041B\u0443\u0447\u043D\u0438\u043A \u0410 \u0438 \u0411.");
-    const H = { warrior: lookOf(newHero("\u0412", "warrior")), mage: lookOf(newHero("\u041C", "mage")), archer: lookOf(newHero("\u041B", "archer")) };
+    const rows = ["warrior", "mage", "archer"].map((cls) => ({ cls, cv: mk(1200, 470, NAME[cls], cls === "warrior" ? "\u0421\u043B\u0435\u0432\u0430 \u043D\u044B\u043D\u0435\u0448\u043D\u0438\u0439 \u0433\u0435\u0440\u043E\u0439 \u0434\u043B\u044F \u0441\u0440\u0430\u0432\u043D\u0435\u043D\u0438\u044F, \u0434\u0430\u043B\u044C\u0448\u0435 \u2014 \u043D\u043E\u0432\u044B\u0439 \u0432 \u0440\u0430\u0437\u043D\u044B\u0445 \u0432\u0435\u0449\u0430\u0445: \u043D\u0430\u0447\u0430\u043B\u044C\u043D\u044B\u0435, \u0437\u0435\u043B\u0451\u043D\u044B\u0435, \u0441\u0438\u043D\u0438\u0435, \u0444\u0438\u043E\u043B\u0435\u0442\u043E\u0432\u044B\u0435. \u041B\u0438\u0446\u0430 \u0441\u0443\u0440\u043E\u0432\u044B\u0435: \u0442\u044F\u0436\u0451\u043B\u044B\u0435 \u0431\u0440\u043E\u0432\u0438, \u0443\u0437\u043A\u0438\u0435 \u0433\u043B\u0430\u0437\u0430, \u0441\u0436\u0430\u0442\u044B\u0439 \u0440\u043E\u0442, \u0443 \u0412\u043E\u0438\u043D\u0430 \u0448\u0440\u0430\u043C, \u0443 \u041B\u0443\u0447\u043D\u0438\u043A\u0430 \u0449\u0435\u0442\u0438\u043D\u0430." : "") }));
+    const scene = mk(1200, 380, "\u0412 \u043C\u0430\u0441\u0448\u0442\u0430\u0431\u0435 \u0438\u0433\u0440\u044B (\u043F\u0440\u0438\u0431\u043B\u0438\u0436\u0435\u043D\u0438\u0435 \xD72,4) \u0440\u044F\u0434\u043E\u043C \u0441 \u043D\u043E\u0432\u044B\u043C \u0441\u0443\u043D\u0434\u0443\u043A\u043E\u043C", "\u041D\u044B\u043D\u0435\u0448\u043D\u0438\u0439 \u0412\u043E\u0438\u043D \u0441\u043B\u0435\u0432\u0430, \u0434\u0430\u043B\u044C\u0448\u0435 \u043D\u043E\u0432\u044B\u0435 \u2014 \u043F\u043E \u043E\u0434\u043D\u043E\u043C\u0443 \u043A\u043E\u043C\u043F\u043B\u0435\u043A\u0442\u0443 \u043A\u0430\u0436\u0434\u043E\u0433\u043E \u043A\u043B\u0430\u0441\u0441\u0430.");
+    const L = { warrior: lookOf(newHero("\u0412", "warrior")), mage: lookOf(newHero("\u041C", "mage")), archer: lookOf(newHero("\u041B", "archer")) };
     const tick = (now) => {
       const t = now / 1e3;
-      {
-        const g = big.getContext("2d");
+      for (const { cls, cv } of rows) {
+        const g = cv.getContext("2d");
         g.setTransform(1, 0, 0, 1, 0, 0);
-        g.clearRect(0, 0, big.width, big.height);
+        g.clearRect(0, 0, cv.width, cv.height);
         g.save();
         g.scale(2, 2);
-        floor(g, 0, 0, 600, 280, 3, 36, false);
+        floor(g, 0, 0, 600, 235, cls.length, 36, false);
         g.restore();
-        ["warrior", "mage", "archer"].forEach((cls, i) => {
-          const x0 = 75 + i * 395, y = 500, KC = 6.8, KT = KC * 39 / 40;
-          g.fillStyle = "rgba(0,0,0,.25)";
-          g.beginPath();
-          g.ellipse(x0, y + 2, 34, 9, 0, 0, 7);
-          g.fill();
-          drawFrame(g, personSpr(H[cls], "front", "idle", 0), x0, y - 12.6 * KC, 1, KC);
+        const KC = 6.4, KT = KC * 39 / 40, y = 405;
+        g.fillStyle = "rgba(0,0,0,.25)";
+        g.beginPath();
+        g.ellipse(70, y + 2, 32, 8, 0, 0, 7);
+        g.fill();
+        drawFrame(g, personSpr(L[cls], "front", "idle", 0), 70, y - 12.6 * KC, 1, KC);
+        SETS[cls].forEach(([lab, gear], i) => {
+          const x = 230 + i * 210;
           g.save();
-          g.translate(x0 + 125, y);
+          g.translate(x, y);
           g.scale(KT, KT);
-          toonHero(g, cls, "A", t + i);
+          toonHero(g, cls, gear, t + i * 0.7);
           g.restore();
-          g.save();
-          g.translate(x0 + 255, y);
-          g.scale(KT, KT);
-          toonHero(g, cls, "B", t + i + 1);
-          g.restore();
-          g.font = "15px Georgia";
-          g.fillStyle = "#e9dfc8";
+          g.font = "13px Georgia";
+          g.fillStyle = i === 4 ? "#d8b8ff" : "#e9dfc8";
           g.textAlign = "center";
-          g.fillText(NAME[cls] + ": \u0441\u0435\u0439\u0447\u0430\u0441", x0, 545);
-          g.fillText("\u0410", x0 + 125, 545);
-          g.fillText("\u0411", x0 + 255, 545);
+          const [l1, l2] = lab.split(": ");
+          g.fillText(l1, x, 440);
+          if (l2) {
+            g.fillStyle = "#b9ad94";
+            g.fillText(l2, x, 458);
+          }
         });
+        g.font = "14px Georgia";
+        g.fillStyle = "#b9ad94";
+        g.textAlign = "center";
+        g.fillText("\u0441\u0435\u0439\u0447\u0430\u0441", 70, 440);
       }
       {
         const g = scene.getContext("2d"), K = 2.4, s = 39 / 40 * PEOPLE_K;
@@ -6405,23 +6965,23 @@ canvas{display:block;max-width:100%;height:auto;border-radius:8px}
         const y = 130;
         g.fillStyle = "rgba(0,0,0,.25)";
         g.beginPath();
-        g.ellipse(45, y + 2, 15, 5, 0, 0, 7);
+        g.ellipse(40, y + 2, 15, 5, 0, 0, 7);
         g.fill();
-        drawFrame(g, personSpr(H.warrior, "front", "idle", 0), 45, y - 12.6 * PEOPLE_K, 1, PEOPLE_K);
-        const put = (x, cls, p) => {
+        drawFrame(g, personSpr(L.warrior, "front", "idle", 0), 40, y - 12.6 * PEOPLE_K, 1, PEOPLE_K);
+        const put = (x, cls, i) => {
           g.save();
           g.translate(x, y);
           g.scale(s, s);
-          toonHero(g, cls, p, t + x);
+          toonHero(g, cls, SETS[cls][i][1], t + x);
           g.restore();
         };
-        put(100, "warrior", "A");
-        put(150, "warrior", "B");
-        chestBig(g, 220, y, true, t);
-        put(290, "mage", "A");
-        put(335, "mage", "B");
-        put(390, "archer", "A");
-        put(440, "archer", "B");
+        put(90, "warrior", 1);
+        put(140, "warrior", 4);
+        chestBig(g, 215, y, true, t);
+        put(290, "mage", 2);
+        put(340, "mage", 4);
+        put(395, "archer", 1);
+        put(445, "archer", 4);
         g.restore();
       }
       requestAnimationFrame(tick);
