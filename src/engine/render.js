@@ -18,6 +18,7 @@ import * as TM from '../art/tmarket.js';
 import { TBLD as TB2, TVIL } from '../art/tbld.js';
 import * as TP from '../art/tprops.js';
 import * as TL from '../art/tlairs.js';
+import * as TF from '../art/tforest.js';
 const oldLairs = () => typeof window !== 'undefined' && window.__oldLairs;
 const oldProps = () => typeof window !== 'undefined' && window.__oldProps;
 // v101: постройки столицы — в мультяшном стиле по одной (tbld.js); прежние — window.__oldBld = true
@@ -222,10 +223,10 @@ function buildStatics(W) {
   if (W.river) for (const b of W.river.bridgeAt) { const len = Math.round(b.len), sp = sprite('bridge' + len, 110, len + 40, 55, len / 2 + 20, 2, oldLairs() ? g => bridge(g, len) : styled(g => TL.bridge(g, len))); S.push({ y: b.y - len / 2 + 6, x: b.x, draw: g => { g.save(); g.translate(b.x, b.y); g.rotate(b.ra - Math.PI / 2); drawSpr(g, sp, 0, 0); g.restore(); } }); }
   // Грибной лес: поваленные стволы, папоротники, светящиеся грибочки, камыш у прудов
   for (const p of W.props) {
-    if (p.kind === 'log') { const L = Math.round(p.len / 10) * 10, sp = sprite('log|' + L + '|' + (p.s % 4), L + 40, 50, L / 2 + 20, 34, 2, g => FOR.fallenLog(g, L, p.s % 4 + 1)); S.push({ y: p.y, x: p.x, oc: occ(sp, p.x, p.y), draw: g => drawSpr(g, sp, p.x, p.y) }); }
-    if (p.kind === 'fern') { const sp = sprite('fern|' + (p.s % 6), 50, 34, 25, 24, 2, g => FOR.fern(g, 1, p.s % 6 + 1)); S.push({ y: p.y, x: p.x, draw: g => drawSpr(g, sp, p.x, p.y, 1, p.k) }); }
-    if (p.kind === 'glow') S.push({ y: p.y, x: p.x, draw: (g, t) => { g.save(); g.translate(p.x, p.y); FOR.glowShrooms(g, 4, p.s, t); g.restore(); } });
-    if (p.kind === 'reeds') { const sp = sprite('reeds|' + (p.s % 5), 40, 44, 20, 38, 2, g => FOR.reeds(g, 8, p.s % 5 + 2, 0)); S.push({ y: p.y, x: p.x, draw: g => drawSpr(g, sp, p.x, p.y) }); }
+    if (p.kind === 'log') { const L = Math.round(p.len / 10) * 10, sp = sprite('log|' + L + '|' + (p.s % 4), L + 40, 50, L / 2 + 20, 34, 2, oldLairs() ? g => FOR.fallenLog(g, L, p.s % 4 + 1) : styled(g => TF.fallenLog(g, L, p.s % 4 + 1))); S.push({ y: p.y, x: p.x, oc: occ(sp, p.x, p.y), draw: g => drawSpr(g, sp, p.x, p.y) }); }
+    if (p.kind === 'fern') { const sp = sprite('fern|' + (p.s % 6), 50, 34, 25, 24, 2, oldLairs() ? g => FOR.fern(g, 1, p.s % 6 + 1) : styled(g => TF.fern(g, 1, p.s % 6 + 1))); S.push({ y: p.y, x: p.x, draw: g => drawSpr(g, sp, p.x, p.y, 1, p.k) }); }
+    if (p.kind === 'glow') S.push({ y: p.y, x: p.x, draw: (g, t) => { g.save(); g.translate(p.x, p.y); (oldLairs() ? FOR : TF).glowShrooms(g, 4, p.s, t); g.restore(); } });
+    if (p.kind === 'reeds') { const sp = sprite('reeds|' + (p.s % 5), 40, 44, 20, 38, 2, oldLairs() ? g => FOR.reeds(g, 8, p.s % 5 + 2, 0) : styled(g => TF.reeds(g, 8, p.s % 5 + 2, 0))); S.push({ y: p.y, x: p.x, draw: g => drawSpr(g, sp, p.x, p.y) }); }
   }
   for (const p of W.props) if (p.kind === 'hay') { const sp = sprite('hay', 84, 84, 42, 70, 2, oldProps() ? g => haystack(g) : styled(g => TP.haystack(g))); S.push({ y: p.y, x: p.x, draw: g => drawSpr(g, sp, p.x, p.y) }); }
   for (const f of W.Z.farmsteads || []) { const sp = oldBld() ? sprite('farmst' + (f.burned ? 'B' : ''), 460, 280, 200, 250, 2, g => { g.scale(K, K); farmstead(g, f.burned); }) : sprite('tfarm' + (f.burned ? 'B' : ''), 520, 300, 260, 260, 1.8, styled(g => { g.scale(KV, KV); TVIL.farmstead(g, f.burned); })); S.push({ y: f.y, x: f.x, oc: occ(sp, f.x, f.y), draw: g => drawSpr(g, sp, f.x, f.y) }); if (f.burned) S.push({ y: f.y + 1, x: f.x, draw: (g, t) => smoke(g, f.x + 20, f.y - 60, t) }); }
@@ -328,7 +329,7 @@ function paintGround(g, W, x0, y0, CW, CH, i, j) {
   g.save(); roadPath(); g.strokeStyle = '#b39a6a'; g.lineWidth = 64; g.stroke(); plazaPath(32); g.fillStyle = '#b39a6a'; g.fill(); g.restore();
   roadPath(); g.strokeStyle = 'rgba(210,190,140,.45)'; g.lineWidth = 30; g.stroke();
   if (PL.length) { plazaPath(-14); g.fillStyle = 'rgba(210,190,140,.32)'; g.fill(); }
-  for (const [px, py, rx, ry] of W.ponds || []) if (Math.abs(px - (x0 + CW / 2)) < rx + CW && Math.abs(py - (y0 + CH / 2)) < ry + CH) { g.save(); g.translate(px, py); FOR.pond(g, rx, ry, Math.round(px) % 97, 0); g.restore(); LOOK.use(g); }
+  for (const [px, py, rx, ry] of W.ponds || []) if (Math.abs(px - (x0 + CW / 2)) < rx + CW && Math.abs(py - (y0 + CH / 2)) < ry + CH) { g.save(); g.translate(px, py); (oldLairs() ? FOR : TF).pond(g, rx, ry, Math.round(px) % 97, 0); g.restore(); LOOK.use(g); }
   const r = rng(i * 7919 + j * 104729 + 5);
   // камушки на дорогах
   for (let k = 0; k < 120 * CH / CHUNK; k++) { const x = x0 + r() * CW, y = y0 + r() * CH; if (W.roadD(x, y) < 28) { g.fillStyle = r() < 0.5 ? 'rgba(120,100,70,.55)' : 'rgba(230,215,180,.5)'; g.beginPath(); g.ellipse(x, y, 2 + r() * 2, 1.4 + r(), 0, 0, 7); g.fill(); } }

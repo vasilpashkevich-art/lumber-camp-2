@@ -25,6 +25,7 @@ export function gearIconUrl(it) {
   let url = '';
   try {
     if (it.slot === 'weapon') url = renderFit(g => W_BY[lk.m].draw(g, lk.P, {}), Math.PI / 4);
+    else if (it.slot === 'head' && !(typeof window !== 'undefined' && window.__oldIcons)) url = renderFit(g => { g.translate(0, 36); person(g, { head: lk, part: 'head' }, 'front', {}); });   // v106: шлем на голове куклы, как на герое
     else if (it.slot === 'head') url = renderFit(g => { if (lk.m === 'circlet' || lk.m === 'crown') { g.strokeStyle = '#24180f'; g.lineWidth = 1.6; g.beginPath(); g.ellipse(0, -21.2, 3.9, 1.6, 0, Math.PI, 0); g.stroke(); g.strokeStyle = lk.P.acc; g.lineWidth = 0.9; g.stroke(); } drawHelm(g, lk.m, lk.P, 'front'); });
     else if (it.slot === 'chest') url = renderFit(g => { g.save(); g.beginPath(); g.rect(-30, -24, 60, C_BY[lk.m] && C_BY[lk.m].base === 'robe' ? 34 : 30); g.clip(); person(g, { chest: lk, part: 'chest', broad: it.cls === 'warrior' ? 1.08 : 1 }, 'front', {}); g.restore(); });
     else if (it.slot === 'legs') url = renderFit(g => person(g, { legs: lk, part: 'legs' }, 'front', {}));

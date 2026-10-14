@@ -1,6 +1,7 @@
 // v104: приметы логов Соснового дола и Хуторских угодий, мост, скалы и рудные жилы — в мультяшном стиле (STYLE.md).
 // Начало координат — точка на земле в середине. Шатры 1,5–2 роста героя (рост ≈ 61 с PEOPLE_K).
 import { KIT, TB } from './tbld.js';
+import * as TF from './tforest.js';
 import { crate as crateT, barrel as barrelP, haystack as hayP } from './tprops.js';
 const { sh, ink, rnd, paint, shine, rr, poly } = KIT;
 const TAU = Math.PI * 2, DARK = '#6a4a2c', IRON = '#4a4c58';
@@ -141,11 +142,20 @@ function burned(g) {
   g.save(); g.translate(-10, -42); g.rotate(-0.22); rr(g, -32, -5, 64, 10, 5); paint(g, '#2e241e', 1.4); g.restore();
   for (let i = 0; i < 12; i++) { g.fillStyle = i % 2 ? '#ff8a3a' : '#ffc060'; g.beginPath(); g.arc(-40 + i * 7, 2 + (i % 3) * 3, 1.8, 0, TAU); g.fill(); }
 }
+
+// v106: приметы Грибного леса — те же составы, что в lairs.js, но мультяшные части (tforest.js)
+function frog(g) { g.save(); g.translate(-30, 0); TF.reedHut(g, 2); g.restore(); g.save(); g.translate(34, 14); g.scale(0.8, 0.8); TF.reedHut(g, 5); g.restore(); g.save(); g.translate(4, 18); TF.reeds(g, 6, 3, 0); g.restore(); }
+function shroomLair(g) { TF.shroomRing(g, 58, 3); g.save(); g.translate(-8, -6); TF.giantShroom(g, 52, 0); g.restore(); }
+function web2(g) { g.save(); g.translate(-26, 0); TF.web(g, 66, 70, 2); g.restore(); g.save(); g.translate(34, 6); TF.web(g, 46, 50, 5); g.restore(); }
+function brood(g) { TF.web(g, 110, 90, 3); for (const [x, y, s] of [[-30, -6, 1], [24, -14, 1.2], [6, 4, 0.9], [-50, 4, 0.8]]) { g.beginPath(); g.ellipse(x, y, 4.6 * s, 7 * s, 0.3, 0, TAU); paint(g, '#f2eee0', 1); shine(g, x - 1.4 * s, y - 2.6 * s, 1.2 * s, 2.4 * s, 0.5, 0.3); } }
+function snakeL(g) { TF.snakeLair(g, 4); }
+
 /** Приметы логов: [ширина, высота, начало x, начало y, рисунок] картинки. */
 export const TLAIRS = {
   den: [160, 90, 80, 70, den], wolf: [180, 100, 90, 76, wolf], boar: [170, 80, 85, 40, boar], web: [150, 120, 75, 100, web],
   bandit: [460, 210, 230, 160, bandit], ataman: [330, 240, 165, 190, ataman], kennel: [130, 90, 65, 70, kennel], crowfield: [110, 140, 55, 120, crowfield],
   scarefield: [140, 80, 70, 50, scarefield], pasture: [160, 80, 80, 50, pasture], burned: [150, 100, 75, 80, burned],
+  frog: [150, 90, 75, 62, frog], shroom: [160, 110, 80, 70, shroomLair], web2: [160, 110, 80, 86, web2], brood: [150, 120, 75, 100, brood], snake: [140, 80, 70, 46, snakeL],
 };
 
 // ---------------------------------------------------------------- мост: толстые доски с зазорами, брёвна-перила на столбах (вид сверху, повёрнут по дороге)
