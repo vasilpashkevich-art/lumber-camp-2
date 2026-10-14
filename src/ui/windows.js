@@ -19,6 +19,7 @@ import { doll } from '../art/body.js';
 import { gearFx } from '../art/gearfx.js';
 import { $, el, modal, toast, TOUCH, T } from './dom.js';
 import { DUNGEONS, dgState, dgLeft, dgBosses, fmtLeft } from '../systems/dungeon.js';
+import { MOBS } from '../../data/mobs.js';
 import { makeDnD } from './drag.js';
 import { DEFAULT_BAR } from '../engine/input.js';
 import { soundState, setSound, setVol } from '../engine/audio.js';
@@ -442,17 +443,20 @@ export function openDungeons(G) {
   const H = G.hero;
   const m = modal(`<h2>Подземелья</h2><div class="dgl"></div><div class="row"><button class="btn main" data-x="ok">Закрыть${T(' (J)', '')}</button></div>`, 'wide dgwin');
   const L = m.querySelector('.dgl');
-  const draw = () => {
-    L.innerHTML = DUNGEONS.map(Z => {
-      const S = dgState(H, Z.id), left = dgLeft(H, Z), inside = H.zone === Z.id;
-      const bosses = dgBosses(Z).map(b => `<li class="${S.bosses[b.kind] ? 'dead' : ''}">${S.bosses[b.kind] ? '☠' : b.final ? '♛' : '★'} ${b.name}${b.final ? ' — главный' : ''}${S.bosses[b.kind] ? ' <small>повержен</small>' : ''}</li>`).join('');
-      const nCh = ((Z.decor && Z.decor.chests) || []).length, opened = Object.keys(S.chests).length;
-      const any = Object.keys(S.bosses).length || opened || Object.keys(H.dead).some(k => k.startsWith(Z.id + ':'));
-      const st = inside ? '<b class="ok">Вы внутри</b> — обновление начнётся после выхода' : left == null ? '' : left > 0 ? `Обновится через <b class="tm">${fmtLeft(left)}</b>${any ? ' — можно вернуться и дойти до конца' : ''}` : any && !S.resetAt ? '<b class="ok">Поход начат</b> — убитые не вернутся, пока не выйдете и не пройдёт час' : '<b class="ok">Готово к походу</b> — все залы полны';
-      return `<div class="ware2 dg"><div class="dgh"><b>${Z.name}</b> <span class="c1">уровни ${Z.lvl[0]}–${Z.lvl[1]}</span></div><div class="hint2">Вход: ${Z.entry || '—'}</div><p class="hint">${Z.desc || ''}</p><ul class="bosses">${bosses}</ul><div class="hint2">Сундуков открыто: ${opened} из ${nCh} · походов: ${S.runs}</div><div class="dgst">${st}</div></div>`;
-    }).join('') || '<p class="hint">Подземелий пока нет.</p>';
+  // v94: у каждого босса — умения и тактика (раскрываются щелчком); раз в секунду обновляется только строка состояния
+  const stOf = Z => {
+    const S = dgState(H, Z.id), left = dgLeft(H, Z), inside = H.zone === Z.id, opened = Object.keys(S.chests).length;
+    const any = Object.keys(S.bosses).length || opened || Object.keys(H.dead).some(k => k.startsWith(Z.id + ':'));
+    return inside ? '<b class="ok">Вы внутри</b> — обновление начнётся после выхода' : left == null ? '' : left > 0 ? `Обновится через <b class="tm">${fmtLeft(left)}</b>${any ? ' — можно вернуться и дойти до конца' : ''}` : any && !S.resetAt ? '<b class="ok">Поход начат</b> — убитые не вернутся, пока не выйдете и не пройдёт час' : '<b class="ok">Готово к походу</b> — все залы полны';
   };
-  draw(); const iv = setInterval(draw, 1000);
+  L.innerHTML = DUNGEONS.map(Z => {
+    const S = dgState(H, Z.id), nCh = ((Z.decor && Z.decor.chests) || []).length, opened = Object.keys(S.chests).length;
+    const bosses = dgBosses(Z).map(b => { const D = MOBS[b.kind], dead = S.bosses[b.kind];
+      return `<li class="${dead ? 'dead' : ''}"><details><summary>${dead ? '☠' : b.final ? '♛' : '★'} ${b.name}${b.final ? ' — главный' : ''}${dead ? ' <small>повержен</small>' : ''} <span class="tac">тактика</span></summary>${D.abil ? `<ul class="abl2">${D.abil.map(x => `<li>${x}</li>`).join('')}</ul>` : ''}${D.tactic ? `<p class="tactic"><b>Как победить:</b> ${D.tactic}</p>` : ''}</details></li>`; }).join('');
+    return `<div class="ware2 dg"><div class="dgh"><b>${Z.name}</b> <span class="c1">уровни ${Z.lvl[0]}–${Z.lvl[1]}</span></div><div class="hint2">Вход: ${Z.entry || '—'}</div><p class="hint">${Z.desc || ''}</p><ul class="bosses">${bosses}</ul><div class="hint2">Сундуков открыто: ${opened} из ${nCh} · походов: ${S.runs}</div><div class="dgst" data-z="${Z.id}">${stOf(Z)}</div></div>`;
+  }).join('') || '<p class="hint">Подземелий пока нет.</p>';
+  const draw = () => { for (const Z of DUNGEONS) { const e = L.querySelector(`.dgst[data-z="${Z.id}"]`); if (e) e.innerHTML = stOf(Z); } };
+  const iv = setInterval(draw, 1000);
   m.querySelector('[data-x=ok]').onclick = () => m.close();
   const oc = m.onclose; m.onclose = () => { clearInterval(iv); oc && oc(); };
   return m;

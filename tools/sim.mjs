@@ -77,6 +77,7 @@ function via(W, P, tx, ty) {
 }
 const toward = (I, P, x, y) => { const a = Math.atan2(y - P.y, x - P.x); I.mx = Math.cos(a); I.my = Math.sin(a); };
 
+import { dodge } from './dodge.mjs';
 export function runBot(cls, minutes, seed = 1, log = false, zone = 'pine', lvl = 1) {
   const W = buildWorld(ZONES[zone]), H = newHero('Бот', cls); H.zone = zone; if (lvl > 1) { H.lvl = lvl; for (const sl of ['head', 'chest', 'legs', 'weapon', 'ring', 'neck']) H.eq[sl] = makeItem(cls, sl, lvl, process.env.SIM_RAR || 'common', rng(seed + 3)); if (process.env.SIM_RAR) H.potions = 5; }   // SIM_RAR=good — в зелёном с зельями
   const G = createGame(H, W, { rand: rng(seed) });
@@ -130,6 +131,7 @@ export function runBot(cls, minutes, seed = 1, log = false, zone = 'pine', lvl =
           if (H.lvl >= 5 && d < 150 && R() < 0.04) I.ability2 = true;
           if (NEW && H.lvl >= 10 && d < (cls === 'warrior' ? 70 : 300) && R() < 0.05) I.ability3 = true;
           if (NEW && H.lvl >= 20 && d < 200 && R() < 0.03) I.ability4 = true;
+          const boss = G.mobs.find(m => m.B && m.state === 'chase'); if (boss) Object.assign(I, dodge(G, boss));   // v94: от умений босса уходит
         } else {   // никого рядом — к ближайшему логову по силам, где кто-то жив
           const alive = c => G.mobs.some(m => m.camp === c && m.state !== 'dead' && lvlColor(m.lvl, H.lvl) !== '#9a9a9a');
           const ok = W.camps.filter(c => c.lvl[1] <= H.lvl + 1 && alive(c)); const cs = ok.length ? ok : W.camps.filter(alive);
@@ -158,7 +160,7 @@ if (process.argv[1] && process.argv[1].endsWith('sim.mjs')) {
   const cls = process.argv[2] || 'all', min = +process.argv[3] || 90, zone = process.argv[4] || 'pine', lv = +process.argv[5] || 1;
   for (const c of cls === 'all' ? ['warrior', 'mage', 'archer'] : [cls]) {
     const r = runBot(c, min, 1, false, zone, lv);
-    console.log(`${c}: ур.${r.lvl}, убито ${r.kills}, смертей ${r.deaths}, золото ${r.gold}, вещей ${r.items}, упирался ${r.stuck} с из ${r.walk} с ходьбы`);
+    console.log(`${c}: ур.${r.lvl}, убито ${r.kills}, смертей ${r.deaths}, золото ${r.gold}, вещей ${r.items}, упирался ${r.stuck} с из ${r.walk} с ходьбы${r.dg && Object.keys(r.dg).length ? ", боссы: " + Object.values(r.dg).map(s => Object.keys(s.bosses).join(" ") || "—").join("; ") : ""}`);
     console.log('  минуты до уровня:', Object.entries(r.lvAt).map(([l, m]) => `${l}:${m}`).join(' '));
     console.log('  надето:', r.eq.join(', '));
   }

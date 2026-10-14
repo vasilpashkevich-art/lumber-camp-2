@@ -171,3 +171,79 @@ export function summonFx(g, e, a) {
   g.strokeStyle = `rgba(230,230,220,${0.5 * clamp(1 - a / 0.9)})`; g.lineWidth = 0.6;
   for (let i = 0; i < 4; i++) { const an = r() * TAU, L = 14 + r() * 10; g.beginPath(); g.moveTo(x, y - 6); g.quadraticCurveTo(x + Math.cos(an) * L * 0.5, y - 14, x + Math.cos(an) * L, y - 4 + Math.sin(an) * L * 0.4); g.stroke(); }
 }
+
+// ---------------------------------------------------------------- v94: умения боссов
+/** Конус удара перед боссом: f.a — направление, f.arc — ширина, f.r — дальность; q — доля замаха. */
+export function teleCone(g, f, q, age = 1) {
+  const { x, y, r, a, arc } = f, inA = clamp(age / 0.15), k = '255,200,140';
+  g.save(); g.translate(x, y); g.scale(1, 0.5);
+  g.fillStyle = `rgba(${k},${(0.12 + 0.12 * q) * inA})`; g.beginPath(); g.moveTo(0, 0); g.arc(0, 0, r, a - arc / 2, a + arc / 2); g.closePath(); g.fill();
+  g.fillStyle = `rgba(${k},${(0.1 + 0.12 * q) * inA})`; g.beginPath(); g.moveTo(0, 0); g.arc(0, 0, r * (0.1 + 0.9 * q * q), a - arc / 2, a + arc / 2); g.closePath(); g.fill();
+  g.lineWidth = 3.2; g.strokeStyle = `rgba(${k},${(0.45 + 0.5 * q) * inA})`; g.beginPath(); g.moveTo(0, 0); g.arc(0, 0, r, a - arc / 2, a + arc / 2); g.closePath(); g.stroke();
+  g.restore();
+}
+/** Полоса рывка или броска: от (x,y) до (x2,y2) шириной w. */
+export function teleLine(g, f, q, age = 1) {
+  const { x, y, x2, y2, w } = f, inA = clamp(age / 0.15), k = '255,200,140', an = Math.atan2(y2 - y, x2 - x), L = Math.hypot(x2 - x, y2 - y);
+  g.save(); g.translate(x, y); g.rotate(an);
+  const ky = 0.5 + 0.5 * Math.abs(Math.cos(an)), hw = w / 2 * ky;   // ширина сплющена по взгляду сверху
+  g.fillStyle = `rgba(${k},${(0.12 + 0.1 * q) * inA})`; g.fillRect(0, -hw, L, hw * 2);
+  g.fillStyle = `rgba(${k},${(0.1 + 0.14 * q) * inA})`; g.fillRect(0, -hw, L * q, hw * 2);
+  g.lineWidth = 2.6; g.strokeStyle = `rgba(${k},${(0.45 + 0.5 * q) * inA})`; g.strokeRect(0, -hw, L, hw * 2);
+  // стрелки вдоль
+  g.fillStyle = `rgba(255,240,210,${0.35 * inA})`; for (let s = 30; s < L - 10; s += 46) { g.beginPath(); g.moveTo(s, -hw * 0.5); g.lineTo(s + 16, 0); g.lineTo(s, hw * 0.5); g.closePath(); g.fill(); }
+  g.restore();
+}
+/** Кольцо змеи вокруг героя с просветом: чешуйчатые изгибы, просвет подсвечен; q — доля до сжатия. */
+export function coilRing(g, R, q, t) {
+  const { x, y, r, gap, gw } = R;
+  g.save(); g.translate(x, y); g.scale(1, 0.5);
+  // тёмная граница сжатия
+  g.fillStyle = `rgba(40,70,20,${0.12 + 0.15 * q})`; g.beginPath(); g.arc(0, 0, r, 0, TAU); g.fill();
+  const a0 = gap + gw / 2, a1 = gap - gw / 2 + TAU, n = 40;
+  for (let pass = 0; pass < 2; pass++) {
+    g.lineWidth = pass ? 12 : 18; g.lineCap = 'round'; g.strokeStyle = pass ? '#6f8a32' : '#1d2a0e';
+    g.beginPath(); for (let i = 0; i <= n; i++) { const an = a0 + (a1 - a0) * i / n, rr = r + Math.sin(i * 1.3 + t * 6) * 4; const px = Math.cos(an) * rr, py = Math.sin(an) * rr; if (i) g.lineTo(px, py); else g.moveTo(px, py); } g.stroke();
+  }
+  g.fillStyle = 'rgba(210,220,120,.55)'; for (let i = 1; i < n; i += 2) { const an = a0 + (a1 - a0) * i / n; g.beginPath(); g.arc(Math.cos(an) * r, Math.sin(an) * r, 2.6, 0, TAU); g.fill(); }
+  // просвет — светлая дорожка наружу
+  const pulse = 0.5 + 0.5 * Math.sin(t * 8);
+  g.strokeStyle = `rgba(200,255,170,${0.5 + 0.4 * pulse})`; g.lineWidth = 5; g.beginPath(); g.arc(0, 0, r, gap - gw / 2 + 0.05, gap + gw / 2 - 0.05); g.stroke();
+  g.fillStyle = `rgba(200,255,170,${0.25 + 0.25 * pulse})`; g.beginPath(); g.moveTo(Math.cos(gap) * r * 0.55, Math.sin(gap) * r * 0.55); g.lineTo(Math.cos(gap - 0.25) * r * 0.8, Math.sin(gap - 0.25) * r * 0.8); g.lineTo(Math.cos(gap) * r * 1.15, Math.sin(gap) * r * 1.15); g.lineTo(Math.cos(gap + 0.25) * r * 0.8, Math.sin(gap + 0.25) * r * 0.8); g.closePath(); g.fill();
+  // голова змеи у края просвета
+  const hx = Math.cos(a1) * r, hy = Math.sin(a1) * r; g.fillStyle = '#3d5418'; g.beginPath(); g.ellipse(hx, hy, 14, 11, a1 + Math.PI / 2, 0, TAU); g.fill(); g.fillStyle = '#e8d040'; g.beginPath(); g.arc(hx + 4, hy - 3, 2.4, 0, TAU); g.fill();
+  g.restore();
+  // счёт к сжатию: внутреннее кольцо стягивается
+  g.lineWidth = 2; g.strokeStyle = `rgba(255,120,80,${0.3 + 0.5 * q})`; ell(g, x, y, r * (1 - q * 0.9)); g.stroke();
+}
+/** Лужа яда на полу: пузыри, края дрожат. life — сколько осталось из max. */
+export function puddle(g, h, t) {
+  const f = clamp(h.t / 1.2) * clamp((h.max - h.t) / 0.5), r = rng(h.seed || 5);
+  g.save(); g.translate(h.x, h.y); g.scale(1, 0.5);
+  const gr = g.createRadialGradient(0, 0, h.r * 0.2, 0, 0, h.r);
+  gr.addColorStop(0, `rgba(120,200,40,${0.55 * f})`); gr.addColorStop(0.75, `rgba(80,150,30,${0.45 * f})`); gr.addColorStop(1, 'rgba(60,110,20,0)');
+  g.fillStyle = gr; g.beginPath(); for (let i = 0; i <= 16; i++) { const an = i / 16 * TAU, rr = h.r * (0.88 + 0.12 * Math.sin(an * 3 + h.seed + t)); g.lineTo(Math.cos(an) * rr, Math.sin(an) * rr); } g.fill();
+  g.restore();
+  for (let i = 0; i < 4; i++) { const ph = (t * 0.8 + r()) % 1, bx = h.x + (r() - 0.5) * h.r, by = h.y + (r() - 0.5) * h.r * 0.4; g.strokeStyle = `rgba(200,255,140,${0.6 * (1 - ph) * f})`; g.lineWidth = 1.2; g.beginPath(); g.arc(bx, by - ph * 6, 1.5 + ph * 3, 0, TAU); g.stroke(); }
+}
+/** Сброс кожи: шелуха разлетается, зелёная вспышка. */
+export function shed(g, e, a) {
+  const r = rng(e.seed);
+  add(g, () => glowE(g, e.x, e.y - 20, 70 * (1 + a), 40 * (1 + a), '170,255,120', 0.5 * clamp(1 - a / 0.8)));
+  for (let i = 0; i < 14; i++) { const an = r() * TAU, d = 20 + easeOut(clamp(a / 1.2)) * (60 + r() * 60), f = clamp(1 - a / 1.6); g.fillStyle = `rgba(200,190,140,${0.8 * f})`; g.save(); g.translate(e.x + Math.cos(an) * d, e.y - 20 + Math.sin(an) * d * 0.5 + a * 20); g.rotate(an + a * 3); g.fillRect(-5, -2, 10, 4); g.restore(); }
+}
+/** Щит спереди (Воевода): дуга в сторону dir; open — опущен. */
+export function shieldArc(g, x, y, dir, r, t, open) {
+  if (open) return;
+  g.save(); g.translate(x, y); g.scale(1, 0.5);
+  const pulse = 0.5 + 0.5 * Math.sin(t * 4);
+  g.lineCap = 'round'; g.lineWidth = 7; g.strokeStyle = `rgba(255,220,120,${0.35 + 0.2 * pulse})`; g.beginPath(); g.arc(0, 0, r, dir - 1.2, dir + 1.2); g.stroke();
+  g.lineWidth = 2; g.strokeStyle = 'rgba(255,250,220,.8)'; g.beginPath(); g.arc(0, 0, r, dir - 1.2, dir + 1.2); g.stroke();
+  g.restore();
+}
+/** Неуязвим: переливающаяся оболочка. */
+export function immuneShell(g, x, y, w, h, t) {
+  const p = 0.5 + 0.5 * Math.sin(t * 6);
+  g.strokeStyle = `rgba(200,255,170,${0.5 + 0.3 * p})`; g.lineWidth = 2.5; g.beginPath(); g.ellipse(x, y - h * 0.45, w * 0.75, h * 0.62, 0, 0, TAU); g.stroke();
+  g.fillStyle = `rgba(170,255,140,${0.08 + 0.06 * p})`; g.fill();
+}

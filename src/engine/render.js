@@ -567,9 +567,13 @@ export function render(R, G, now) {
   // кольцо под целью
   if (P.target && P.target.state !== 'dead') { const m = P.target; c.strokeStyle = lvlColor(m.lvl, G.hero.lvl); c.lineWidth = 2.5; c.globalAlpha = 0.85; c.beginPath(); c.ellipse(m.x, m.y + 2 - lift(m.x, m.y), m.r + 10, (m.r + 10) * 0.42, 0, 0, 7); c.stroke(); c.globalAlpha = 1; }
   // предупреждения об ударах по площади
+  // v94: лужи яда, кольца змеи, конусы и полосы боссов
+  for (const h of G.hazards || []) if (vis(h.x, h.y, 100)) MF.puddle(c, h, t);
+  for (const r of G.rings || []) if (vis(r.x, r.y, 300)) MF.coilRing(c, r, 1 - r.t / r.max, t);
+  for (const f of G.fx) if ((f.k === 'teleCone' || f.k === 'teleLine') && vis(f.x, f.y, 500)) (f.k === 'teleCone' ? MF.teleCone : MF.teleLine)(c, f, 1 - f.t / f.max, f.max - f.t);
   for (const f of G.fx) if (f.k === 'tele' && vis(f.x, f.y, 300)) { const h = lift(f.x, f.y); c.save(); c.translate(0, -h); MF.telegraph(c, f, 1 - f.t / f.max, f.max - f.t); MF.gather(c, f, 1 - f.t / f.max); c.restore(); }
   // эффекты умений на земле (v73): под фигурами — руны и задние языки столпа, круг залпа, капканы, кольцо льда, трещины, пыль рывка, рёв ярости
-  const UNDER = { crush: V.crush, dashDust: V.dashDust, nova: V.nova, berserkCast: V.berserkCast, slam: MF.slam, ram: MF.ram, hoof: (g, f, a) => MF.hoofDust(g, f.x, f.y, a, f.seed), summon: MF.summonFx, fireSplash: MF.fireSplash };
+  const UNDER = { crush: V.crush, dashDust: V.dashDust, nova: V.nova, berserkCast: V.berserkCast, slam: MF.slam, ram: MF.ram, hoof: (g, f, a) => MF.hoofDust(g, f.x, f.y, a, f.seed), summon: MF.summonFx, fireSplash: MF.fireSplash, shed: MF.shed };
   for (const f of G.fx) { const fn = UNDER[f.k]; if (!fn || !vis(f.x, f.y, 260)) continue; const h = lift(f.x, f.y); if (h) { c.save(); c.translate(0, -h); } fn(c, f, f.max - f.t); if (h) c.restore(); }
   for (const tr of G.traps || []) if (vis(tr.x, tr.y)) { const h = lift(tr.x, tr.y); c.save(); c.translate(0, -h); c.globalAlpha = Math.min(1, tr.t / 0.5); V.trap(c, tr.x, tr.y, tr.sprung ? Math.max(0, 1 - tr.sprung / 0.06) : 1, t); c.restore(); }
   for (const ar of G.areas || []) if (vis(ar.x, ar.y, 300)) { const h = lift(ar.x, ar.y), a = ar.max - ar.t; c.save(); c.translate(0, -h);
@@ -716,7 +720,9 @@ function drawMob(c, G, m, t) {
   const seed = (m.key ? m.key.length * 31 : 7) + Math.round(m.hx) % 97;
   if (m.chill > 0 || m.frozen > 0) V.chilled(c, m.x, m.y, t, seed);
   const breathe = mode === 'idle' ? Math.sin(t * 2 + m.walkPh * 6) * 0.4 : 0;
-  drawFrame(c, m.hurt > 0 ? flashOf(sp) : sp, m.x - (m.hurt > 0 ? dir * 2 : 0), m.y + breathe, dir, sc, m.state === 'return' ? 0.6 : 1);
+  if (m.B && m.state === 'chase') { const ph = m.D.ai.phases[m.B.phase]; if (ph && ph.shield) MF.shieldArc(c, m.x, m.y, m.B.dir, m.r + 34, t, m.B.open > 0 || m.stun > 0); }   // v94: щит Воеводы спереди
+  if (m.jumpH) { c.fillStyle = 'rgba(0,0,0,.3)'; c.beginPath(); c.ellipse(m.x, m.y + 2, 26 * sc, 9 * sc, 0, 0, 7); c.fill(); }
+  drawFrame(c, m.hurt > 0 ? flashOf(sp) : sp, m.x - (m.hurt > 0 ? dir * 2 : 0), m.y + breathe - (m.jumpH || 0), dir, sc, m.state === 'return' ? 0.6 : 1);
   c.restore();
   const tt = performance.now() / 1000, top = m.y - (m.D.humanoid ? 58 * sc : (BAR_H[m.kind] || 44) - 10);
   const hgt = m.D.humanoid ? 60 * sc : Math.max(26, (BAR_H[m.kind] || 44) - 12), wid = m.D.humanoid ? 34 * sc : m.r * 2.4 + 8;
@@ -726,6 +732,7 @@ function drawMob(c, G, m, t) {
   if (m.frozen > 0) V.iceBlock(c, m.x, m.y + 4, wid + 6, hgt + 6, tt, Math.min(1, m.frozen / 0.3, ((m.frozenMax || 3) - m.frozen) / 0.15 + 0.2));
   if (m.root > 0 && !(m.trapT > 0)) V.netWrap(c, m.x, m.y, wid, hgt * 0.75, tt);
   if (m.stun > 0) V.stunStars(c, m.x, top - 6, tt);
+  if (m.B && m.B.immune > 0) MF.immuneShell(c, m.x, m.y, wid, hgt, tt);
   if (EXEC && m.hp < m.max * EXEC && m.state === 'chase') V.executeMark(c, m.x, m.y - hgt * 0.35, tt, Math.max(0.9, hgt / 60));
 }
 

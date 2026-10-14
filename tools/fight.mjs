@@ -7,6 +7,8 @@ import { newHero } from '../src/entities/hero.js';
 import { makeItem } from '../src/systems/items.js';
 import { createGame, update, abilsOf } from '../src/systems/game.js';
 import { rng } from '../src/engine/util.js';
+import { dodge } from './dodge.mjs';
+export { dodge };
 const [L0 = 10, rar0 = 'rare', kind0 = 'weaver', ML0 = 14, pack0 = 1] = process.argv.slice(2).map((v, i) => i === 1 || i === 2 ? v : +v);
 const W = buildWorld(ZONES[process.env.ZONE || 'shroom']);
 export function duel(cls, seed = 7, o = {}) {
@@ -25,6 +27,7 @@ export function duel(cls, seed = 7, o = {}) {
     const tg = ms.find(m => m.state !== 'dead'); if (!tg) break; G.P.target = tg;
     const I = { attack: true }; if (G.P.hp < G.st.maxHp * 0.4 && h.potions > 0) I.potion = true; const ready = k => AB[k] && !(G.P.acd[AB[k].id] > 0) && h.lvl >= AB[k].lvl;
     if (!process.env.NOAB) { if (ready(0)) I.ability = true; if (ready(1)) I.ability2 = true; if (ready(2)) I.ability3 = true; if (ready(4)) I.ability4 = true; }
+    if (process.env.DODGE) Object.assign(I, dodge(G, tg));   // DODGE=1 — герой уходит от умений босса (v94)
     update(G, 0.05, I); G.ev.length = 0; t += 0.05;
     if (G.P.hp <= 0 || G.P.dead) return { win: false, t, hp: 0 };
   }

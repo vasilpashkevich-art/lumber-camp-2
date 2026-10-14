@@ -19,7 +19,7 @@ test('устройство: 4 босса, запечатанный коридо�
   const B = dgBosses(TEMPLE); assert.deepEqual(B.map(b => b.kind), ['boss_bulk', 'boss_aspid', 'boss_priestess', 'boss_king']); assert.ok(B[3].final && !B[0].final);
   assert.ok(TEMPLE.rooms.find(q => q.id === 'c9').sealed && TEMPLE.doors.find(d => d.kind === 'sealed'));
   assert.equal(TEMPLE.decor.chests.length, 5); assert.ok(TEMPLE.decor.font && TEMPLE.decor.throne && TEMPLE.decor.portal);
-  for (const b of B) assert.ok(MOBS[b.kind].boss && MOBS[b.kind].hp >= 3 && (MOBS[b.kind].smash || MOBS[b.kind].summon));
+  for (const b of B) assert.ok(MOBS[b.kind].boss && MOBS[b.kind].hp >= 3 && (MOBS[b.kind].smash || MOBS[b.kind].summon || MOBS[b.kind].ai));
   assert.equal(DUNGEONS.length, 1); assert.equal(TEMPLE.reset, 3600);
   const w = W(); assert.ok(w.sealed.has('c9')); assert.ok(!w.walkable(3300, 1100), 'запечатанный ход — скала'); assert.ok(!w.path(3300, 1600, 3300, 600, 60000), 'в Тронный зал не пройти');
 });
