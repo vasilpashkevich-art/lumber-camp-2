@@ -7,10 +7,10 @@ import { POTIONS, ALCH, KIND_NAME } from '../../data/alchemy.js';
 import { herbSkill, alchSkill, skillColor, learnHerbal, learnAlchemy, buyFlask, brew, canBrew, drinkElixir } from '../systems/herbs.js';
 import { RAR_COL, RAR_NAME, LOOT, armorCut, PROPS } from '../../data/balance.js';
 import { itemIcon, anyIcon, accIcon, moneyHtml, potionIcon } from './icons.js';
-import { itemLines, itemNums, lookOf } from '../systems/items.js';
+import { itemLines, itemNums, lookOf, isStackKind } from '../systems/items.js';
 import { compareItem } from '../entities/hero.js';
 import { stashPut, stashTake, stashMove, stashSwap, stashMaterials, store } from '../systems/bank.js';
-import { equip, unequip, sellItem, buyPotion, shopStock, buyShop, POTION_PRICE, respawnHero, lootTake, hasLoot, bagMove, abilsOf, buyBack } from '../systems/game.js';
+import { dropItem, equip, unequip, sellItem, buyPotion, shopStock, buyShop, POTION_PRICE, respawnHero, lootTake, hasLoot, bagMove, abilsOf, buyBack } from '../systems/game.js';
 import { ABIL_ICON } from './icons.js';
 import { iconUrl } from '../art/abicons.js';
 import { playPreview, hasPreview, SW, SH } from './abilpreview.js';
@@ -38,8 +38,16 @@ function itemSheet(G, it, acts, worn) {
   m.querySelector('[data-x=no]').onclick = () => m.close();
   return m;
 }
+/** v91: выбросить вещь из сумки — зелёные и лучше, а также стопки — с вопросом. */
+function throwAsk(G, it, after) {
+  const go = () => { dropItem(G, it); after && after(); };
+  if (!isStackKind(it) && !['good', 'rare', 'epic'].includes(it.rar)) { go(); return; }
+  const m = modal(`<h2>Выбросить?</h2><p><b style="color:${RAR_COL[it.rar] || '#e9dfc8'}">${it.name}${it.n > 1 ? ' ×' + it.n : ''}</b> упадёт мешком на землю — его можно поднять ещё 3 минуты.</p><div class="row"><button class="btn danger" data-x="yes">Выбросить</button><button class="btn main" data-x="no">Оставить</button></div>`, 'throwask');
+  m.querySelector('[data-x=yes]').onclick = () => { m.close(); go(); };
+  m.querySelector('[data-x=no]').onclick = () => m.close();
+}
 /** Касание/щелчок по вещи: на компьютере — сразу действие, на телефоне — сначала лист. */
-const onItem = (b, G, it, label, fn, worn) => { b.onclick = () => { hideTip(); if (TOUCH) { if (label) itemSheet(G, it, [[label, fn, true]], worn); else itemSheet(G, it, [], worn); } else if (label) fn(); }; };
+const onItem = (b, G, it, label, fn, worn, extra = []) => { b.onclick = () => { hideTip(); if (TOUCH) itemSheet(G, it, [...(label ? [[label, fn, true]] : []), ...extra], worn); else if (label) fn(); }; };
 const pct = v => (v >= 0 ? '+' : '−') + Math.abs(Math.round(v * 1000) / 10).toString().replace('.', ',') + '%';
 const num = v => (v > 0 ? '+' : '−') + String(Math.abs(Math.round(v * 10) / 10)).replace('.', ',');
 /** Одна карточка вещи (для подсказки). */
@@ -84,7 +92,7 @@ export const hideTip = () => { if (tipEl) tipEl.hidden = true; };
 
 /** Окно персонажа: слева облик и надетое, справа сумка. Клик по вещи в сумке — надеть, по надетой — снять. */
 export function openChar(G, onChange) {
-  const m = modal(`<h2>${G.hero.name}</h2><div class="charwin"><div><div class="dollw"><div class="eq eqL"></div><canvas width="340" height="472"></canvas><div class="eq eqR"></div></div><dl class="stats"></dl><div class="skillb"></div></div><div class="bagside"><h3>Сумка <span class="cnt"></span></h3><div class="bag"></div><p class="hint">${T('Нажмите на вещь в сумке — надеть, на надетую — снять. Вещи можно перетаскивать мышью: по ячейкам сумки, на снаряжение и обратно. Руда и слитки лежат стопками до 20. Закрыть — I, B или Esc.', 'Коснитесь вещи — увидите, что она даёт, и сможете надеть или снять. Задержите палец на вещи и ведите — переложите в другую ячейку или на снаряжение. Руда и слитки лежат стопками до 20.')}</p></div></div>`, 'wide');
+  const m = modal(`<h2>${G.hero.name}</h2><div class="charwin"><div><div class="dollw"><div class="eq eqL"></div><canvas width="340" height="472"></canvas><div class="eq eqR"></div></div><dl class="stats"></dl><div class="skillb"></div></div><div class="bagside"><h3>Сумка <span class="cnt"></span></h3><div class="bag"></div><p class="hint">${T('Нажмите на вещь в сумке — надеть, на надетую — снять. Вещи можно перетаскивать мышью: по ячейкам сумки, на снаряжение и обратно. Выбросить — правый щелчок или вынести вещь за окно (мешок пролежит на земле 3 минуты). Руда и слитки лежат стопками до 20. Закрыть — I, B или Esc.', 'Коснитесь вещи — увидите, что она даёт, сможете надеть, снять или выбросить. Задержите палец на вещи и ведите — переложите в другую ячейку или на снаряжение. Руда и слитки лежат стопками до 20.')}</p></div></div>`, 'wide');
   const cell = (it, extra = '') => el('button', 'cell', it ? anyIcon(it, 44) + (it.n > 1 ? `<span class="n">${it.n}</span>` : '') + extra : '');
   const draw = () => {
     const h = G.hero, st = G.st;
@@ -107,13 +115,15 @@ export function openChar(G, onChange) {
     const bag = m.querySelector('.bag'); bag.innerHTML = '';
     for (let i = 0; i < LOOT.bag; i++) {
       const it = h.bag.find(x => x.pos === i), b = cell(it, it ? upMark(it, G) : '');
-      if (it) { hov(b, e => tip(e, it, G)); onItem(b, G, it, it.slot ? 'Надеть' : it.kind === 'potion' ? 'Выпить' : null, () => { if (it.kind === 'potion') drinkElixir(G, it); else equip(G, it); onChange(); draw(); }); drag(b, { it }); }
+      if (it) { hov(b, e => tip(e, it, G)); onItem(b, G, it, it.slot ? 'Надеть' : it.kind === 'potion' ? 'Выпить' : null, () => { if (it.kind === 'potion') drinkElixir(G, it); else equip(G, it); onChange(); draw(); }, false, [['Выбросить', () => throwAsk(G, it, () => { onChange(); draw(); })]]); drag(b, { it });
+        if (!TOUCH) b.oncontextmenu = e => { e.preventDefault(); hideTip(); throwAsk(G, it, () => { onChange(); draw(); }); }; }   // v91: правый щелчок — выбросить
       drop(b, src => { if (src.it) bagMove(G, src.it, i); else if (src.eq) { const cur = h.bag.find(x => x.pos === i); if (cur && cur.slot === src.eq) equip(G, cur); else if (!cur) unequip(G, src.eq, i); } });
       bag.append(b);
     }
   };
   // перетаскивание (v81: и мышью, и пальцем): из сумки в сумку, на снаряжение и обратно
   const { drag, drop } = makeDnD(() => { onChange(); draw(); });
+  drop(m.parentElement, src => { if (src.it) throwAsk(G, src.it, () => { onChange(); draw(); }); }, true);   // v91: вынес вещь из окна на землю — выбросить
   m.isChar = true;
   const onKey = e => { if ((e.code === 'KeyI' || e.code === 'KeyB') && !e.repeat) { e.preventDefault(); e.stopPropagation(); m.close(); } };
   addEventListener('keydown', onKey, true);
@@ -392,9 +402,9 @@ export function openProf(G, onChange, opts = {}) {
       for (const [id, R] of Object.entries(POTIONS)) {
         const c = skillColor(sa, R.req, ALCH.colors).c, n = canBrew(h, id), ok = sa >= R.req && n > 0 && opts.brew;
         const mats = Object.entries(R.mats).map(([hb, k]) => { const have = countOf(h, 'herb', hb); return `<span style="color:${have >= k ? '#9ad87a' : '#e07a6a'}">${k} × ${HERBS[hb].name.toLowerCase()} (${have})</span>`; }).join(', ') + `, <span style="color:${fl ? '#9ad87a' : '#e07a6a'}">склянка</span>`;
-        const r = el('div', 'ware2', `${potionIcon(id, R.heal ? 'common' : R.req >= 125 ? 'rare' : R.req >= 50 ? 'good' : 'common', 44)}<div><b style="color:${MINE.colorHex[c] || '#a89878'}">${R.name}</b> <small>${R.heal ? 'лечебное' : KIND_NAME[R.kind]} · алхимия ${R.req}</small><small>${R.d}</small><small>${mats}</small></div><button class="btn" data-x="one" ${ok ? '' : 'disabled'}>Сварить</button><button class="btn" data-x="all" ${ok && n > 1 ? '' : 'disabled'}>Всё (${n})</button>`);
-        r.querySelector('[data-x=one]').onclick = () => { brew(G, id, 1); onChange(); draw(); };
-        r.querySelector('[data-x=all]').onclick = () => { brew(G, id, 999); onChange(); draw(); };
+        const low = sa < R.req;   // v91: не хватает навыка — пишем прямо, вместо серых кнопок
+        const r = el('div', 'ware2', `${potionIcon(id, R.heal ? 'common' : R.req >= 125 ? 'rare' : R.req >= 50 ? 'good' : 'common', 44)}<div><b style="color:${MINE.colorHex[c] || '#a89878'}">${R.name}</b> <small>${R.heal ? 'лечебное' : KIND_NAME[R.kind]} · алхимия ${R.req}</small><small>${R.d}</small><small>${mats}</small></div>${low ? `<div class="need">Нужна алхимия <b>${R.req}</b><br><small>у вас <b class="bad">${sa}</b></small></div>` : `<button class="btn" data-x="one" ${ok ? '' : 'disabled'}>Сварить</button><button class="btn" data-x="all" ${ok && n > 1 ? '' : 'disabled'}>Всё (${n})</button>`}`);
+        if (!low) { r.querySelector('[data-x=one]').onclick = () => { brew(G, id, 1); onChange(); draw(); }; r.querySelector('[data-x=all]').onclick = () => { brew(G, id, 999); onChange(); draw(); }; }
         R_.append(r);
       }
     }

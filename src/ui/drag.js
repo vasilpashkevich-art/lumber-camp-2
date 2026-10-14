@@ -5,7 +5,7 @@
 import { TOUCH } from './dom.js';
 let ghost = null, src = null, hot = null, suppress = 0;
 function clearGhost() { if (ghost) { ghost.remove(); ghost = null; } if (hot) { hot.classList.remove('over'); hot = null; } document.documentElement.classList.remove('dnd'); }
-function targetAt(x, y) { const el = document.elementFromPoint(x, y); const b = el && el.closest('[data-drop]'); return b && b.__drop ? b : null; }
+function targetAt(x, y) { const el = document.elementFromPoint(x, y); const b = el && el.closest('[data-drop]'); if (b && b.dataset.dropSelf && el !== b) return null; return b && b.__drop ? b : null; }   // dropSelf — только сам элемент (фон окна), не его содержимое
 export function makeDnD(done) {
   const drag = (b, what) => {
     // мышь — родной перенос
@@ -48,11 +48,12 @@ export function makeDnD(done) {
     // после переноса пальцем — нажатие по той же ячейке не считать
     b.addEventListener('click', e => { if (Date.now() - suppress < 400) { e.stopImmediatePropagation(); e.preventDefault(); } }, true);
   };
-  const drop = (b, fn) => {
-    b.dataset.drop = '1'; b.__drop = fn;
+  const drop = (b, fn, self = false) => {
+    b.dataset.drop = '1'; b.__drop = fn; if (self) b.dataset.dropSelf = '1';
     if (TOUCH) return;
-    b.ondragover = e => { if (src) { e.preventDefault(); b.classList.add('over'); } }; b.ondragleave = () => b.classList.remove('over');
-    b.ondrop = e => { e.preventDefault(); b.classList.remove('over'); const s = src; src = null; if (s) { fn(s); done(); } };
+    const mine = e => !b.dataset.dropSelf || e.target === b;
+    b.ondragover = e => { if (src && mine(e)) { e.preventDefault(); b.classList.add('over'); } }; b.ondragleave = () => b.classList.remove('over');
+    b.ondrop = e => { if (!mine(e)) return; e.preventDefault(); b.classList.remove('over'); const s = src; src = null; if (s) { fn(s); done(); } };
   };
   return { drag, drop };
 }

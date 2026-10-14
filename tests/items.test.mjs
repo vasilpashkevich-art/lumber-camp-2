@@ -76,3 +76,17 @@ test('выкуп: проданная вещь ждёт у торговца, вы
   H.gold = 0; assert.ok(!buyBack(G, 0), 'без денег нельзя');
   const old = migrate({ name: 'С', cls: 'warrior', lvl: 3, bag: [] }); assert.deepEqual(old.buyback, []);
 });
+
+test('v91: выбросить вещь — мешок на земле 3 минуты, можно поднять обратно, потом пропадает', async () => {
+  const { dropItem, lootTake, hasLoot } = await import('../src/systems/game.js');
+  const { PINE } = await import('../data/zones.js'); const { buildWorld } = await import('../src/world/world.js');
+  const { createGame, update } = await import('../src/systems/game.js'); const { rng } = await import('../src/engine/util.js');
+  const { makeItem } = await import('../src/systems/items.js'); const { newHero } = await import('../src/entities/hero.js');
+  const h = newHero('В', 'warrior'), G = createGame(h, buildWorld(PINE), { rand: rng(3) }); G.mobs.forEach(m => { m.state = 'dead'; m.respawnAt = 1e9; });
+  const it = makeItem('warrior', 'head', 5, 'rare', rng(2)); h.bag.push(it); it.pos = 0;
+  assert.ok(dropItem(G, it)); assert.ok(!h.bag.includes(it)); const c = G.corpses.find(c => c.dropped); assert.ok(c && c.items[0] === it && c.t === 180 && !c.kind);
+  assert.equal(dropItem(G, it), false, 'второй раз нечего');
+  lootTake(G, c); assert.ok(h.bag.includes(it), 'подняли'); assert.ok(!hasLoot(c));
+  dropItem(G, it); const c2 = G.corpses.find(c => c.dropped && hasLoot(c)); for (let i = 0; i < 20 * 185; i++) { update(G, 0.05, {}); G.ev.length = 0; }
+  assert.ok(!G.corpses.includes(c2), 'через 3 минуты пропал');
+});

@@ -292,6 +292,15 @@ export function lootTake(G, c, idx = null) {
 }
 export const lootAll = (G, c) => lootTake(G, c, null);
 
+/** v91: выбросить вещь из сумки — ложится мешком на землю рядом с героем на 3 минуты, можно поднять обратно (E). */
+export function dropItem(G, it) {
+  const H = G.hero, i = H.bag.indexOf(it); if (i < 0) return false;
+  H.bag.splice(i, 1); delete it.pos;
+  const P = G.P, a = G.rand() * Math.PI * 2;
+  G.corpses.push({ id: ++G.corpseSeq, x: P.x + Math.cos(a) * 26, y: P.y + 12 + Math.sin(a) * 10, kind: null, name: 'Мешок', lvl: 0, dir: 1, t: LOOT.corpseT, money: 0, items: [it], dropped: true });
+  sfx(G, 'loot'); emit(G, { k: 'toast', s: `Выброшено: ${it.name}${it.n > 1 ? ' ×' + it.n : ''} — лежит мешком 3 минуты`, id: 'drop' });
+  return true;
+}
 /** Положить вещь в сумку (награды, проверки). Если места нет — вещь падает в тело-мешок рядом. */
 export function giveItem(G, it, x, y) {
   const H = G.hero;
