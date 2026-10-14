@@ -16,7 +16,7 @@ import { herbSkill, skillColor } from '../systems/herbs.js';
 import { vein, glint, outcrop } from '../art/ore.js';
 import { BAR_H } from '../art/beasts.js';
 import * as MF from '../art/mobfx.js';
-import { entrance as templeEntrance, interior as templeInterior, column as templeColumn, brazier as templeBrazier, restFire, rubble as templeRubble, chest as templeChest } from '../art/temple.js';
+import { entrance as templeEntrance, interior as templeInterior, column as templeColumn, brazier as templeBrazier, restFire, rubble as templeRubble, chest as templeChest, font as templeFont, throne as templeThrone, portal as templePortal } from '../art/temple.js';
 import * as FOR from '../art/forest.js';
 import { drawFace, drawRim, drawRampWhole, softGlow, footShadow, TINT, poly as rpoly } from '../art/relief.js';
 import { GIANT, giantBase, giantUpper, giantCrown, giantShade } from '../art/giants.js';
@@ -178,7 +178,10 @@ function buildStatics(W) {
     for (const [x, y] of D.columns || []) S.push({ y, x, oc: occ(col, x, y), draw: g => drawSpr(g, col, x, y) });
     for (const [x, y] of D.braziers || []) S.push({ y, x, draw: (g, t) => templeBrazier(g, x, y, t) });
     for (const [x, y] of D.rubble || []) { const sp = sprite('trub' + x, 100, 50, 50, 40, 2, g => templeRubble(g, 0, 0, 7, x | 0)); S.push({ y, x, draw: g => drawSpr(g, sp, x, y) }); }
-    for (const [x, y] of D.chests || []) S.push({ y, x, draw: g => templeChest(g, x, y) });
+    (D.chests || []).forEach(([x, y], i) => S.push({ y, x, draw: g => templeChest(g, x, y, !!(W.dg && W.dg.chests[i])) }));   // v90: открытый — по состоянию похода
+    if (D.font) S.push({ y: D.font[1] + D.font[2] * 0.5, x: D.font[0], draw: (g, t) => templeFont(g, D.font[0], D.font[1], D.font[2], t) });
+    if (D.throne) S.push({ y: D.throne[1], x: D.throne[0], draw: g => templeThrone(g, D.throne[0], D.throne[1]) });
+    if (D.portal) S.push({ y: D.portal[1], x: D.portal[0], draw: (g, t) => { if (W.exits.some(e => e.portal)) templePortal(g, D.portal[0], D.portal[1], t); }, label: 'Портал', lx: D.portal[0], ly: D.portal[1] - 130, when: () => W.exits.some(e => e.portal) });
     const gy = W.graveyard; if (gy.fire) S.push({ y: gy.y, x: gy.x, draw: (g, t) => restFire(g, gy.x, gy.y, t), label: 'Костёр', lx: gy.x, ly: gy.y - 60 });
     for (const q of W.rooms) if (q.name) S.push({ y: q.y0 - 60, label: q.name, lx: (q.x0 + q.x1) / 2, ly: q.y0 - 150, draw: () => {} });
   }
@@ -525,6 +528,7 @@ const OVER = { venom: MF.venom, sporeBurst: MF.sporeBurst, curseHit: MF.curseHit
 export function render(R, G, now) {
   const { ctx: c, cv } = R, W = G.W, P = G.P; R_PARTS = R.parts;
   if (R.W !== W) { R.W = W; R.chunks.clear(); R.statics = buildStatics(W); }
+  if (W.sealedVer !== R.sealedVer) { R.sealedVer = W.sealedVer; R.chunks.clear(); }   // v90: запечатанный ход открылся — землю перерисовать
   // события → всплывающие числа и частицы
   for (const e of G.ev) {
     if (e.k === 'dmg') R.floats.push({ x: e.x + (Math.random() - 0.5) * 16, y: e.y, s: String(Math.round(e.v)), col: e.bleed ? '#ff5a5a' : e.crit ? '#ffd34d' : '#fff', big: e.crit, t: 0.9 });
@@ -640,7 +644,7 @@ export function render(R, G, now) {
   // подписи построек
   c.textAlign = 'center';
   const bar = barRect(), z = R.cam.z / R.dpr;
-  for (const s of R.statics) if (s.label && vis(s.lx, s.ly, 100)) { const sx = (s.lx - x0) * z, sy = (s.ly - y0) * z; if (bar && sx > bar.left - 90 && sx < bar.right + 90 && sy > bar.top - 14) continue; label(c, s.label, s.lx, s.ly - lift(s.lx, s.y), '#ffe9a8', 15); }
+  for (const s of R.statics) if (s.label && (!s.when || s.when()) && vis(s.lx, s.ly, 100)) { const sx = (s.lx - x0) * z, sy = (s.ly - y0) * z; if (bar && sx > bar.left - 90 && sx < bar.right + 90 && sy > bar.top - 14) continue; label(c, s.label, s.lx, s.ly - lift(s.lx, s.y), '#ffe9a8', 15); }
   // название жилы вблизи — цветом по навыку (как в WoW)
   for (const v of G.veins || []) if ((!v.at || v.at <= G.t) && dist(v.x, v.y, P.x, P.y) < 320 && !(P.mine && P.mine.v === v)) { const col = MINE.colorHex[miningSkill(G.hero) ? veinColor(miningSkill(G.hero), ORES[v.metal].req).c : 'gray']; label(c, ORES[v.metal].vein, v.x, v.y + 22 - lift(v.x, v.y), col, 13); }
   for (const v of G.plants || []) if ((!v.at || v.at <= G.t) && dist(v.x, v.y, P.x, P.y) < 260) { const col = MINE.colorHex[herbSkill(G.hero) ? skillColor(herbSkill(G.hero), HERBS[v.herb].req).c : 'gray']; label(c, HERBS[v.herb].name, v.x, v.y + 18 - lift(v.x, v.y), col, 12); }
@@ -658,7 +662,7 @@ export function render(R, G, now) {
   if (P.goal && P.goal.k === 'ground') { c.strokeStyle = 'rgba(255,233,168,.8)'; c.lineWidth = 2; c.beginPath(); c.ellipse(P.goal.x, P.goal.y - lift(P.goal.x, P.goal.y), 14 + 3 * Math.sin(now / 150), 6, 0, 0, 7); c.stroke(); }
   // подсказка «E»
   const it = !P.dead && interactTarget(G);
-  if (it && !P.mine && !P.gather && !TOUCH) label(c, it.k === 'b' ? `E — ${it.b.name}` : it.k === 'exit' ? (it.e.temple ? 'E — врата' : it.e.door ? 'E — выход' : 'E — дорога') : it.k === 'vein' ? 'E — копать' : it.k === 'plant' ? 'E — собрать' : 'E — обыскать', P.x, P.y - 78 - hP, '#fff2a0', 14);   // на телефоне вместо надписи — кнопка действия
+  if (it && !P.mine && !P.gather && !TOUCH) label(c, it.k === 'b' ? `E — ${it.b.name}` : it.k === 'exit' ? (it.e.temple ? 'E — врата' : it.e.portal ? 'E — портал' : it.e.door ? 'E — выход' : 'E — дорога') : it.k === 'vein' ? 'E — копать' : it.k === 'plant' ? 'E — собрать' : it.k === 'chest' ? 'E — открыть сундук' : 'E — обыскать', P.x, P.y - 78 - hP, '#fff2a0', 14);   // на телефоне вместо надписи — кнопка действия
   // полоска копания
   if (P.mine) { const q = Math.min(1, P.mine.t / P.mine.max), x = P.x - 40, y = P.y - 86 - hP; c.fillStyle = 'rgba(20,14,8,.9)'; c.fillRect(x - 1, y - 1, 82, 10); c.fillStyle = '#e0a060'; c.fillRect(x, y, 80 * q, 8); label(c, ORES[P.mine.v.metal].ore, P.x, y - 5, '#ffe9a8', 13); }
   if (P.gather) { const q = Math.min(1, P.gather.t / P.gather.max), x = P.x - 40, y = P.y - 86 - hP; c.fillStyle = 'rgba(20,14,8,.9)'; c.fillRect(x - 1, y - 1, 82, 10); c.fillStyle = '#9ad87a'; c.fillRect(x, y, 80 * q, 8); label(c, HERBS[P.gather.v.herb].name, P.x, y - 5, '#ffe9a8', 13); }
@@ -773,6 +777,7 @@ function mineSparks(c, P) {
 // тело моба: лежит на боку; если в нём есть добыча — над ним мерцает искорка цвета лучшей вещи
 function drawCorpse(c, k, t) {
   const a = Math.min(1, k.t / 1.5);
+  if (k.chest) return;   // v90: содержимое сундука — сам сундук уже нарисован открытым
   if (!k.kind) drawBag(c, k.x, k.y, t);
   else {
     const sc = MOB_SCALE[k.kind] || 1, view = MOB_LOOK[k.kind] ? viewOf8(k.vx || 0, k.vy || 1) : viewOf(k.vx || 0, k.vy || 1), dir = sideways(view) ? (k.vx < 0 ? -1 : 1) : 1;

@@ -2,6 +2,7 @@
 // Всё, что должен увидеть или услышать игрок, складывается в G.ev (события) и G.fx (эффекты).
 import { CLASSES } from '../../data/classes.js';
 import { MOBS } from '../../data/mobs.js';
+import { dgState, dgEnter, dgUnsealed, dgDone, chestLoot, bossLoot, NEVER } from './dungeon.js';
 import { HERO, MOBL, RESPAWN, LEASH, AGGRO, LOOT, ITEM, TRINKET_DROP, SHOP, armorCut, xpKill, lvlColor, xpNeed } from '../../data/balance.js';
 import { TRINKETS } from '../../data/trinkets.js';
 import { NEW_ABILS } from '../../data/talents.js';
@@ -31,6 +32,7 @@ export function createGame(hero, W, opts = {}) {
   };
   if (G.P.hp <= 0) G.P.hp = Math.round(st.maxHp * 0.5);
   initVeins(G); initPlants(G);
+  if (W.Z.dungeon) { dgEnter(hero, W.Z); G.dg = dgState(hero, W.Z.id); W.dg = G.dg; if (dgUnsealed(hero, W.Z)) W.unseal(); if (dgDone(hero, W.Z)) openPortal(G); }   // v90: поход по подземелью
   for (const camp of W.camps) for (const s of camp.spawns) {
     const m = spawnMob(G, s, camp);
     const at = hero.dead[s.key];
@@ -249,12 +251,13 @@ function killMob(G, m) {
   if (passive(G, 'thirst') && !P.dead) { const v = G.st.maxHp * (hasTal(H, 'bloodlust') ? 0.08 : ABX(G, 'thirst').heal); P.hp = Math.min(G.st.maxHp, P.hp + v); G.fx.push(Object.assign(fx(G, 'thirst', m.x, m.y, 1.2), { tx: P.x, ty: P.y })); emit(G, { k: 'txt', x: P.x, y: P.y - 56, s: `+${Math.round(v)}`, col: '#7cff7c' }); }
   m.trapT = 0;
   if (m.summon) { m.state = 'dead'; m.gone = true; m.hp = 0; if (P.target === m) P.target = null; sfx(G, 'kill'); const xp = Math.round(xpKill(m.lvl, H.lvl) * 0.3); if (xp) { addXp(H, xp); emit(G, { k: 'txt', x: m.x, y: m.y - 46, s: `+${xp} опыта`, col: '#c8a0ff' }); } return; }
-  m.state = 'dead'; m.hp = 0; m.bleed = null; m.burn = null; m.venom = null; m.frozen = 0; m.respawnAt = G.t + (m.D.rare ? RESPAWN.rare : RESPAWN.normal);
+  m.state = 'dead'; m.hp = 0; m.bleed = null; m.burn = null; m.venom = null; m.frozen = 0; m.respawnAt = G.W.Z.dungeon ? NEVER : G.t + (m.D.rare ? RESPAWN.rare : RESPAWN.normal);   // v90: в подземелье не возрождаются до обновления
   H.dead[m.key] = m.respawnAt; H.stats.kills++;
+  if (m.D.boss && G.dg) { G.dg.bosses[m.kind] = true; emit(G, { k: 'boss', name: m.D.name, final: !!m.D.final }); if (dgUnsealed(H, G.W.Z) && G.W.sealed.size) { G.W.unseal(); emit(G, { k: 'toast', s: 'Запечатанный ход в Тронный зал открыт!', kind: 'good', id: 'seal' }); } if (dgDone(H, G.W.Z)) openPortal(G); }
   if (P.target === m) P.target = null;
   sfx(G, 'kill');
   // опыт
-  const xp = Math.round(xpKill(m.lvl, H.lvl, m.D.rare ? 3 : 1) * (G.W.Z.xpMul || 1) * elixirMods(H).xp);
+  const xp = Math.round(xpKill(m.lvl, H.lvl, m.D.rare || m.D.boss ? 3 : 1) * (G.W.Z.xpMul || 1) * elixirMods(H).xp);
   if (xp) {
     const up = addXp(H, xp);
     emit(G, { k: 'txt', x: m.x, y: m.y - 46, s: `+${xp} опыта`, col: '#c8a0ff' });
@@ -264,7 +267,8 @@ function killMob(G, m) {
   const money = Math.max(1, Math.round(m.lvl * m.D.gold * (G.W.Z.goldMul || 1) * (LOOT.goldMin + G.rand() * (LOOT.goldMax - LOOT.goldMin))));
   const items = [];
   const ZL = G.W.Z.loot || {};
-  if (m.D.rare || G.rand() < (ZL.chance ?? LOOT.itemChance)) items.push(rollDrop(H.cls, m.lvl, m.D.rare, G.rand, ZL));
+  if (m.D.boss) items.push(...bossLoot(H, G.W.Z, m.D, m.lvl, G.rand));   // v90: босс — гарантированно синяя (главный — и фиолетовая)
+  else if (m.D.rare || G.rand() < (ZL.chance ?? LOOT.itemChance)) items.push(rollDrop(H.cls, m.lvl, m.D.rare, G.rand, ZL));
   // аксессуар: только с вожаков, 10%, и гарантия — если 8 раз подряд не выпал, на 9-й точно
   if (m.D.rare) { H.tPity = H.tPity || 0; if (H.tPity >= TRINKET_DROP.pity || G.rand() < TRINKET_DROP.chance) { items.push(makeTrinket(H.cls, m.lvl, 'rare', G.rand)); H.tPity = 0; } else H.tPity++; }
   G.corpses.push({ id: ++G.corpseSeq, x: m.x, y: m.y, kind: m.kind, name: m.D.name, lvl: m.lvl, dir: m.face, vx: m.mdx, vy: m.mdy, t: LOOT.corpseT, money, items });
@@ -467,7 +471,14 @@ export function useTrinket(G) {
     const list = G.mobs.filter(m => hostile(m) && dist(P.x, P.y, m.x, m.y) < 420).sort((a, b) => dist(P.x, P.y, a.x, a.y) - dist(P.x, P.y, b.x, b.y)).slice(0, 3);
     if (!list.length) { emit(G, { k: 'toast', s: 'Рядом нет врагов', id: 'trk' }); return; }
     for (const m of list) { G.fx.push({ k: 'bolt', x: P.x, y: P.y - 30, x2: m.x, y2: m.y - m.r, t: 0.35, max: 0.35 }); strike(G, m, G.st.hit * 1.4, 'spell', { sure: true }); }
-  } else return;   // фиолетовые — позже
+  } else if (T.id === 'hourglass') { const AB = abilsOf(H); for (const a of AB.slice(0, 2)) P.acd[a.id] = 0; }   // v90: сброс C и V
+  else if (T.id === 'gravity') {   // v90: стянуть врагов вокруг в точку и оглушить
+    const list = G.mobs.filter(m => hostile(m) && !m.D.boss && dist(P.x, P.y, m.x, m.y) < 300);
+    if (!list.length) { emit(G, { k: 'toast', s: 'Рядом нет врагов', id: 'trk' }); return; }
+    const cx = list.reduce((a, m) => a + m.x, 0) / list.length, cy = list.reduce((a, m) => a + m.y, 0) / list.length;
+    for (const m of list) { const a = Math.atan2(m.y - cy, m.x - cx); m.x = cx + Math.cos(a) * 18; m.y = cy + Math.sin(a) * 18; setStatus(G, m, 'stun', 2); }
+    G.fx.push({ k: 'slam', x: cx, y: cy, r: 120, t: 0.6, max: 0.6 });
+  } else return;   // остальные фиолетовые — позже
   P.tcd = T.cd; P.sit = false; sfx(G, 'trinket');
   emit(G, { k: 'txt', x: P.x, y: P.y - 70, s: T.name, col: '#9ad0ff' });
 }
@@ -494,6 +505,7 @@ export function whatAt(G, x, y, touch = false) {
   for (const v of G.veins || []) if ((!v.at || v.at <= G.t) && dist(x, y, v.x, v.y - 20) < 42 + pad) return { k: 'vein', v, x: v.x, y: v.y };
   for (const v of G.plants || []) if ((!v.at || v.at <= G.t) && dist(x, y, v.x, v.y - 12) < 30 + pad) return { k: 'plant', v, x: v.x, y: v.y };
   for (const b of G.W.houses) if (b.name && dist(x, y, b.x, b.y - 30) < Math.max(70, (b.col || 50) * 1.4) + pad) return { k: 'b', b, x: b.x, y: b.y };
+  const ch = chestNear(G, x, y + 20, pad - 30); if (ch) return ch;
   for (const e of G.W.exits) if (dist(x, y, e.x, e.y) < 90 + pad) return { k: 'exit', e, x: e.x, y: e.y };
   return { k: 'ground', x, y };
 }
@@ -516,7 +528,8 @@ function goalDest(G, g) {
   if (g.k === 'vein') return [g.v.x, g.v.y, MINE.reach - 8];
   if (g.k === 'plant') return [g.v.x, g.v.y, HERBAL.reach - 8];
   if (g.k === 'b') return [g.b.x, g.b.y + 40, 60];
-  if (g.k === 'exit') return [g.e.x, g.e.y, 150];
+  if (g.k === 'exit') return [g.e.x, g.e.y, g.e.portal ? 90 : 150];
+  if (g.k === 'chest') return [g.x, g.y + 10, 60];
   return [g.x, g.y, 10];
 }
 function goalStep(G, dt) {
@@ -537,7 +550,7 @@ function goalArrive(G) {
   if (g.k === 'corpse') { P.auto = null; emit(G, { k: 'lootOpen', c: g.c }); }
   else if (g.k === 'vein') { if ((!g.v.at || g.v.at <= G.t) && !P.mine) startMine(G, g.v); }
   else if (g.k === 'plant') { if ((!g.v.at || g.v.at <= G.t) && !P.gather) startGather(G, g.v); }
-  else if (g.k === 'b' || g.k === 'exit') doInteract(G, g);
+  else if (g.k === 'b' || g.k === 'exit' || g.k === 'chest') doInteract(G, g);
 }
 
 export function interactTarget(G) {
@@ -548,12 +561,33 @@ export function interactTarget(G) {
   const v = veinNear(G); if (v) return { k: 'vein', v, x: v.x, y: v.y };
   const pl = plantNear(G); if (pl) return { k: 'plant', v: pl, x: pl.x, y: pl.y };
   for (const b of G.W.houses) { if (!b.name) continue; if (dist(P.x, P.y, b.x, b.y + 40) < 95) return { k: 'b', b, x: b.x, y: b.y }; }
-  for (const e of G.W.exits) if (dist(P.x, P.y, e.x, e.y) < 220) return { k: 'exit', e, x: e.x, y: e.y };
+  const ch = chestNear(G); if (ch) return ch;
+  for (const e of G.W.exits) if (dist(P.x, P.y, e.x, e.y) < (e.portal ? 110 : 220)) return { k: 'exit', e, x: e.x, y: e.y };
   return null;
+}
+/** v90: закрытый сундук подземелья рядом (до 80). */
+export function chestNear(G, x = G.P.x, y = G.P.y, pad = 0) {
+  if (!G.dg) return null; const C = (G.W.Z.decor && G.W.Z.decor.chests) || [];
+  for (let i = 0; i < C.length; i++) if (!G.dg.chests[i] && dist(x, y, C[i][0], C[i][1]) < 80 + pad) return { k: 'chest', i, x: C[i][0], y: C[i][1] };
+  return null;
+}
+/** Открыть сундук: содержимое — в подсумок на месте сундука (как тело), берётся как добыча. */
+export function openChest(G, i) {
+  const C = G.W.Z.decor.chests[i]; if (G.dg.chests[i]) return; G.dg.chests[i] = true;
+  const L = chestLoot(G.hero, G.W.Z, G.rand);
+  const c = { id: ++G.corpseSeq, x: C[0], y: C[1], kind: 'chest', chest: true, name: 'Сундук', lvl: 0, dir: 1, t: 1e9, money: L.money, items: L.items };
+  G.corpses.push(c); sfx(G, 'loot'); G.fx.push({ k: 'spawn', x: C[0], y: C[1] - 20, t: 0.6, max: 0.6 }); emit(G, { k: 'lootOpen', c });
+}
+/** Портал наружу после главного босса — выход у врат. */
+function openPortal(G) {
+  const D = G.W.Z.decor; if (!D || !D.portal || G.W.exits.some(e => e.portal)) return;
+  const back = G.W.Z.exits.find(e => e.zone);
+  G.W.exits.push({ x: D.portal[0], y: D.portal[1], to: back.to, lvl: back.lvl, zone: back.zone, at: back.at, door: true, portal: true });
 }
 function interact(G) { const t = interactTarget(G); if (t) doInteract(G, t); }
 function doInteract(G, t) {
   if (t.k === 'corpse') { G.P.auto = null; emit(G, { k: 'lootOpen', c: t.c }); return; }
+  if (t.k === 'chest') { G.P.auto = null; openChest(G, t.i); return; }
   if (t.k === 'vein') { if (G.P.mine) stopMine(G); else startMine(G, t.v); return; }
   if (t.k === 'plant') { if (G.P.gather) stopGather(G); else startGather(G, t.v); return; }
   if (t.k === 'b') { if (t.b.vendor) emit(G, { k: 'vendor', b: t.b }); else if (t.b.bank) emit(G, { k: 'bank', b: t.b }); else if (t.b.mentor) emit(G, { k: 'mentor', b: t.b }); else if (t.b.alchemy || t.b.brew) emit(G, { k: 'alchemy', b: t.b }); else if (t.b.guild) emit(G, { k: 'guild', b: t.b }); else if (t.b.smelt) emit(G, { k: 'smelt', b: t.b }); else emit(G, { k: 'toast', s: `${t.b.name}. ${t.b.note}`, id: 'bld' }); }

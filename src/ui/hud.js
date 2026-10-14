@@ -37,7 +37,7 @@ export function createHud(In) {
     H.G = G; H.portraitKey = ''; H.mini = null; H.miniKey = null; H.goldK = null;
     const C = CLASSES[cls()];
     H.slotK = []; H.lockLvl = -1; H.elixK = null;
-    $('#btnBag').innerHTML = ABIL_ICON.bag; $('#btnMap').innerHTML = ABIL_ICON.map; $('#btnProf').innerHTML = ABIL_ICON.prof; $('#btnMenu').innerHTML = ABIL_ICON.menu;
+    $('#btnBag').innerHTML = ABIL_ICON.bag; $('#btnMap').innerHTML = ABIL_ICON.map; $('#btnProf').innerHTML = ABIL_ICON.prof; $('#btnDg').innerHTML = ABIL_ICON.dg; $('#btnMenu').innerHTML = ABIL_ICON.menu;
     $('#pfName').textContent = G.hero.name;
     $('#pfRing').style.borderColor = C.color;
     $('#zoneName').textContent = G.W.Z.name;
@@ -83,7 +83,7 @@ export function createHud(In) {
     // умение открылось на новом уровне — его кнопка мигает
     if (H.lockLvl !== h.lvl) { if (H.lockLvl > 0) bar.forEach((a, i) => { if (a in AB_IDX && AL[AB_IDX[a]].lvl > H.lockLvl && AL[AB_IDX[a]].lvl <= h.lvl) { const b = $(SLOTS[i]); b.classList.add('ready'); setTimeout(() => b.classList.remove('ready'), 5000); } }); H.lockLvl = h.lvl; }
     // телефон: кнопка действия рядом с тем, что можно сделать (вместо клавиши E)
-    if (TOUCH) { const it = !P.dead && !P.mine && !P.gather && interactTarget(G), u = $('#actUse'), lab = it ? (it.k === 'corpse' ? 'Обыскать' : it.k === 'vein' ? 'Копать' : it.k === 'plant' ? 'Собрать' : it.k === 'exit' ? (it.e.temple ? 'Врата' : it.e.door ? 'Выход' : 'В путь') : it.b.vendor ? 'Торговать' : it.b.bank ? 'Банк' : it.b.mentor ? 'Наставник' : it.b.alchemy ? 'Травница' : it.b.guild || it.b.smelt || it.b.brew ? 'Войти' : 'Осмотреть') : '';
+    if (TOUCH) { const it = !P.dead && !P.mine && !P.gather && interactTarget(G), u = $('#actUse'), lab = it ? (it.k === 'corpse' ? 'Обыскать' : it.k === 'vein' ? 'Копать' : it.k === 'plant' ? 'Собрать' : it.k === 'chest' ? 'Открыть' : it.k === 'exit' ? (it.e.temple ? 'Врата' : it.e.portal ? 'Портал' : it.e.door ? 'Выход' : 'В путь') : it.b.vendor ? 'Торговать' : it.b.bank ? 'Банк' : it.b.mentor ? 'Наставник' : it.b.alchemy ? 'Травница' : it.b.guild || it.b.smelt || it.b.brew ? 'Войти' : 'Осмотреть') : '';
       u.hidden = !it; if (u.textContent !== lab) u.textContent = lab; $('#actSit').classList.toggle('on2', !!P.sit); }
     const E = h.elixir || {}, ek = ['battle', 'guard'].map(k => E[k] ? E[k].id + ':' + Math.ceil(E[k].t / 5) : '').join('|');
     if (ek !== H.elixK) { H.elixK = ek; $('#pfElix').innerHTML = ['battle', 'guard'].map(k => { const e = E[k]; if (!e) return ''; const tt = Math.ceil(e.t), m = Math.floor(tt / 60), sec = tt % 60; return `<div class="ex" title="${POTIONS[e.id].name}: ${POTIONS[e.id].d}">${potionIcon(e.id, 'common', 38)}<i>${tt >= 60 ? m + ':' + String(sec).padStart(2, '0') : sec + ' с'}</i></div>`; }).join(''); }

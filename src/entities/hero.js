@@ -10,7 +10,7 @@ export function newHero(name, cls) {
   return {
     v: HERO_V, id: uid(), name: name.trim().slice(0, 16) || 'Безымянный', cls,
     lvl: 1, xp: 0, gold: 0,
-    eq: starterGear(cls), bag: [], potions: 2, prof: { mining: 0, herbal: 0, alchemy: 0 }, talents: {}, tPity: 0, veins: {}, plants: {}, elixir: { battle: null, guard: null }, lastPot: null, bar: ['attack', 'ab0', 'ab1', 'ab2', 'ab4', 'trinket', 'pot2', 'potion'], shops: {},
+    eq: starterGear(cls), bag: [], potions: 2, prof: { mining: 0, herbal: 0, alchemy: 0 }, talents: {}, tPity: 0, veins: {}, plants: {}, dungeons: {}, elixir: { battle: null, guard: null }, lastPot: null, bar: ['attack', 'ab0', 'ab1', 'ab2', 'ab4', 'trinket', 'pot2', 'potion'], shops: {},
     pos: null, hp: null, zone: 'pine',
     worldT: 0,                 // время мира этого героя, секунды (возрождение мобов)
     dead: {},                  // ключ моба -> время возрождения

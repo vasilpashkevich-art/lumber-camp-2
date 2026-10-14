@@ -312,8 +312,47 @@ export function interior(g, W, x0, y0, CW, CH) {
   // проёмы: наружу — тёмный проход в ближней стене со ступенями вниз; врата подземелья — запертые в дальней стене
   for (const d of W.Z.doors || []) {
     if (d.kind === 'out') { g.fillStyle = JOINT; g.fillRect(d.x - 46, d.y - 2, 92, TOP_H + 4); hp(g, () => g.rect(d.x - 40, d.y - 1, 80, TOP_H + 2), '#0a0e0a', 0); for (let i = 0; i < 4; i++) block(g, d.x - 34, d.y + 1 + i * 6, 68, 5, i % 2 ? STONE : STONE_L); for (const sx of [-1, 1]) block(g, d.x + sx * 46 - (sx < 0 ? 0 : 8), d.y - 12, 8, TOP_H + 14, STONE_L, 0.05); const gl = g.createLinearGradient(0, d.y - 40, 0, d.y); gl.addColorStop(0, 'rgba(120,200,150,0)'); gl.addColorStop(1, 'rgba(120,200,150,.2)'); g.fillStyle = gl; g.fillRect(d.x - 40, d.y - 40, 80, 40); }
-    else { doorway(g, d.x, d.y, 84, 116, false); glyph(g, d.x, d.y - 130, 14, '#d0bc68'); }
+    else if (d.kind === 'sealed') { if (W.sealed && W.sealed.size) { doorway(g, d.x, d.y, 84, 116, false); glyph(g, d.x, d.y - 130, 14, '#d0bc68'); g.fillStyle = 'rgba(224,184,64,.5)'; for (const sx of [-1, 1]) glyph(g, d.x + sx * 62, d.y - 60, 7, 'rgba(224,184,64,.6)'); } }   // v90: запечатано, пока не повержены трое
+    else if (!d.open) { doorway(g, d.x, d.y, 84, 116, false); glyph(g, d.x, d.y - 130, 14, '#d0bc68'); }
   }
   // канавки с водой
   for (const [cx0, cy, cx1, w] of (W.Z.decor && W.Z.decor.channels) || []) channel(g, cx0, cy, cx1, w, 0);
+}
+
+// ---------------------------------------------------------------- v90: убранство залов боссов
+/** Купель Жрицы: круглый каменный бортик, зелёная вода с рябью и пузырями, жабьи знаки по кругу. */
+export function font(g, x, y, R, t = 0) {
+  g.fillStyle = 'rgba(0,0,0,.3)'; g.beginPath(); g.ellipse(x + 4, y + 4, R + 10, (R + 10) * 0.5, 0, 0, TAU); g.fill();
+  hp(g, () => g.ellipse(x, y, R + 12, (R + 12) * 0.5, 0, 0, TAU), STONE_D, 1.4);
+  hp(g, () => g.ellipse(x, y - 6, R + 12, (R + 12) * 0.5, 0, 0, TAU), STONE, 1.4);
+  for (let i = 0; i < 10; i++) { const a = i / 10 * TAU; glyph(g, x + Math.cos(a) * (R + 2), y - 6 + Math.sin(a) * (R + 2) * 0.5, 4, 'rgba(192,172,92,.6)'); }
+  const wg = g.createRadialGradient(x, y - 6, 4, x, y - 6, R); wg.addColorStop(0, '#5a9a70'); wg.addColorStop(1, '#1e4a3e');
+  hp(g, () => g.ellipse(x, y - 6, R - 4, (R - 4) * 0.5, 0, 0, TAU), wg, 1);
+  const gl = g.createRadialGradient(x, y - 6, 2, x, y - 6, R * 1.6); gl.addColorStop(0, 'rgba(120,255,160,.22)'); gl.addColorStop(1, 'rgba(120,255,160,0)'); g.fillStyle = gl; g.fillRect(x - R * 1.6, y - 6 - R, R * 3.2, R * 1.6);
+  g.strokeStyle = 'rgba(200,255,220,.35)'; g.lineWidth = 1.2; for (let i = 0; i < 3; i++) { const q = (t * 0.25 + i / 3) % 1; g.beginPath(); g.ellipse(x, y - 6, (R - 4) * q, (R - 4) * q * 0.5, 0, 0, TAU); g.stroke(); }
+  const r = rnd(7); for (let i = 0; i < 6; i++) { const q = (t * 0.4 + r()) % 1, px = x + (r() - 0.5) * R * 1.2, py = y - 6 - q * 24 + (r() - 0.5) * R * 0.4; g.fillStyle = `rgba(180,255,200,${0.6 * (1 - q)})`; g.beginPath(); g.arc(px, py, 1.5 + r() * 2, 0, TAU); g.fill(); }
+}
+/** Трон Короля: каменное возвышение в три ступени, спинка с жабьим знаком, подлокотники. */
+export function throne(g, x, y) {
+  g.fillStyle = 'rgba(0,0,0,.3)'; g.beginPath(); g.ellipse(x + 6, y + 6, 90, 26, 0, 0, TAU); g.fill();
+  for (let i = 0; i < 3; i++) { const w = 150 - i * 30, h = 10; block(g, x - w / 2, y - i * h - h, w, h, i % 2 ? STONE : STONE_L, 0.05); }
+  const by = y - 30;
+  hp(g, () => { g.moveTo(x - 34, by); g.lineTo(x - 34, by - 96); g.quadraticCurveTo(x, by - 130, x + 34, by - 96); g.lineTo(x + 34, by); g.closePath(); }, STONE_D, 1.4);
+  hp(g, () => { g.moveTo(x - 28, by - 6); g.lineTo(x - 28, by - 92); g.quadraticCurveTo(x, by - 120, x + 28, by - 92); g.lineTo(x + 28, by - 6); g.closePath(); }, '#5a3a3a', 1);
+  glyph(g, x, by - 80, 11, '#e0b840');
+  for (const sx of [-1, 1]) { hp(g, () => g.rect(x + sx * 40 - 8, by - 44, 16, 44), STONE, 1.2); hp(g, () => g.ellipse(x + sx * 40, by - 46, 10, 6, 0, 0, TAU), STONE_L, 1); }
+  hp(g, () => g.rect(x - 28, by - 24, 56, 24), '#4a3030', 1);
+  const gl = g.createRadialGradient(x, by - 80, 2, x, by - 80, 40); gl.addColorStop(0, 'rgba(224,184,64,.3)'); gl.addColorStop(1, 'rgba(224,184,64,0)'); g.fillStyle = gl; g.fillRect(x - 40, by - 120, 80, 80);
+}
+/** Портал наружу: каменная арка с жабьими знаками и зелёный вихрь внутри. */
+export function portal(g, x, y, t = 0) {
+  g.fillStyle = 'rgba(0,0,0,.3)'; g.beginPath(); g.ellipse(x + 4, y + 4, 58, 16, 0, 0, TAU); g.fill();
+  const W2 = 48, H = 110;
+  const sw = g.createRadialGradient(x, y - H / 2, 4, x, y - H / 2, W2); sw.addColorStop(0, 'rgba(200,255,220,.95)'); sw.addColorStop(0.5, 'rgba(70,200,140,.85)'); sw.addColorStop(1, 'rgba(20,80,60,.9)');
+  hp(g, () => { g.moveTo(x - W2, y); g.lineTo(x - W2, y - H + W2); g.arc(x, y - H + W2, W2, Math.PI, 0); g.lineTo(x + W2, y); g.closePath(); }, sw, 0);
+  g.strokeStyle = 'rgba(255,255,255,.35)'; g.lineWidth = 2; for (let i = 0; i < 4; i++) { const a0 = t * 2 + i * 1.6; g.beginPath(); g.ellipse(x, y - H / 2, W2 * 0.7, H * 0.3, a0, 0, Math.PI * 1.2); g.stroke(); }
+  for (const sx of [-1, 1]) { block(g, x + sx * (W2 + 8) - 8, y - H + W2 - 4, 16, H - W2 + 4, STONE, 0.05); for (let k = 0; k < 4; k++) block(g, x + sx * (W2 + 8) - 7, y - H + W2 + k * 24, 14, 22, k % 2 ? STONE_L : STONE, 0.05); }
+  g.save(); g.beginPath(); g.arc(x, y - H + W2, W2 + 16, Math.PI, 0); g.arc(x, y - H + W2, W2, 0, Math.PI, true); g.closePath(); g.fillStyle = STONE; g.fill(); g.strokeStyle = O; g.lineWidth = 1.3; g.stroke(); g.restore();
+  for (let i = 0; i < 5; i++) { const a = Math.PI + (i + 0.5) / 5 * Math.PI; glyph(g, x + Math.cos(a) * (W2 + 8), y - H + W2 + Math.sin(a) * (W2 + 8), 4, 'rgba(192,172,92,.7)'); }
+  const gl = g.createRadialGradient(x, y - 20, 4, x, y - 20, 140); gl.addColorStop(0, 'rgba(120,255,180,.25)'); gl.addColorStop(1, 'rgba(120,255,180,0)'); g.fillStyle = gl; g.fillRect(x - 140, y - 160, 280, 200);
 }

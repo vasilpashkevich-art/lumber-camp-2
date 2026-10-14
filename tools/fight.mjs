@@ -11,7 +11,7 @@ const [L0 = 10, rar0 = 'rare', kind0 = 'weaver', ML0 = 14, pack0 = 1] = process.
 const W = buildWorld(ZONES[process.env.ZONE || 'shroom']);
 export function duel(cls, seed = 7, o = {}) {
   const L = o.L ?? L0, rar = o.rar ?? rar0, kind = o.kind ?? kind0, ML = o.ML ?? ML0, pack = o.pack ?? pack0;
-  const h = newHero('Б', cls); h.lvl = L; h.potions = 0;
+  const h = newHero('Б', cls); h.lvl = L; h.potions = +(process.env.POT || 0);   // POT=5 — с зельями (пьёт ниже 40%)
   for (const s of ['head', 'chest', 'legs', 'weapon', 'ring', 'neck']) h.eq[s] = makeItem(cls, s, L, rar, rng(seed + s.length));
   const G = createGame(h, W, { rand: rng(seed) });
   const ms = G.mobs.filter(m => m.kind === kind).slice(0, pack);
@@ -23,7 +23,7 @@ export function duel(cls, seed = 7, o = {}) {
   const AB = abilsOf(h); let t = 0;
   for (let i = 0; i < 20 * 180; i++) {
     const tg = ms.find(m => m.state !== 'dead'); if (!tg) break; G.P.target = tg;
-    const I = { attack: true }; const ready = k => AB[k] && !(G.P.acd[AB[k].id] > 0) && h.lvl >= AB[k].lvl;
+    const I = { attack: true }; if (G.P.hp < G.st.maxHp * 0.4 && h.potions > 0) I.potion = true; const ready = k => AB[k] && !(G.P.acd[AB[k].id] > 0) && h.lvl >= AB[k].lvl;
     if (!process.env.NOAB) { if (ready(0)) I.ability = true; if (ready(1)) I.ability2 = true; if (ready(2)) I.ability3 = true; if (ready(4)) I.ability4 = true; }
     update(G, 0.05, I); G.ev.length = 0; t += 0.05;
     if (G.P.hp <= 0 || G.P.dead) return { win: false, t, hp: 0 };

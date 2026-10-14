@@ -85,7 +85,11 @@ export function buildWorld(Z) {
     return false;
   };
   // v77: подземелье — внутри только комнаты и коридоры (прямоугольники), всё остальное — скала
-  const ROOMS = Z.interior ? Z.rooms.map(q => ({ ...q, x0: q.r[0], y0: q.r[1], x1: q.r[0] + q.r[2], y1: q.r[1] + q.r[3] })) : null;
+  const ALL_ROOMS = Z.interior ? Z.rooms.map(q => ({ ...q, x0: q.r[0], y0: q.r[1], x1: q.r[0] + q.r[2], y1: q.r[1] + q.r[3] })) : null;
+  // v90: запечатанные комнаты (sealed) до открытия — скала: их нет ни для шага, ни для пути, ни для рисования
+  W.sealed = new Set((ALL_ROOMS || []).filter(q => q.sealed).map(q => q.id)); W.sealedVer = 0;
+  let ROOMS = ALL_ROOMS && ALL_ROOMS.filter(q => !W.sealed.has(q.id));
+  W.unseal = () => { if (!W.sealed.size) return; W.sealed.clear(); ROOMS = ALL_ROOMS.slice(); W.rooms = ROOMS; W.nav = null; W.sealedVer++; };
   const roomDepth = (x, y) => { let m = -1e9; for (const q of ROOMS) { const d = Math.min(x - q.x0, q.x1 - x, y - q.y0, q.y1 - y); if (d > m) m = d; } return m; };   // глубина внутри ближайшей комнаты (< 0 — в скале)
   const inside = ROOMS ? (x, y, pad = 0) => (pad > 0 ? roomDepth(x, y) > pad : roomDepth(x, y) >= 0) : (x, y, pad = 0) => inPoly(x, y, edge) && (pad <= 0 || edgeDist(x, y) > pad);
   W.rooms = ROOMS; W.roomAt = ROOMS ? (x, y) => ROOMS.find(q => x >= q.x0 && x <= q.x1 && y >= q.y0 && y <= q.y1) || null : () => null;

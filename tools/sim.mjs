@@ -78,7 +78,7 @@ function via(W, P, tx, ty) {
 const toward = (I, P, x, y) => { const a = Math.atan2(y - P.y, x - P.x); I.mx = Math.cos(a); I.my = Math.sin(a); };
 
 export function runBot(cls, minutes, seed = 1, log = false, zone = 'pine', lvl = 1) {
-  const W = buildWorld(ZONES[zone]), H = newHero('Бот', cls); H.zone = zone; if (lvl > 1) { H.lvl = lvl; for (const sl of ['head', 'chest', 'legs', 'weapon']) H.eq[sl] = makeItem(cls, sl, lvl, 'common', rng(seed + 3)); }
+  const W = buildWorld(ZONES[zone]), H = newHero('Бот', cls); H.zone = zone; if (lvl > 1) { H.lvl = lvl; for (const sl of ['head', 'chest', 'legs', 'weapon', 'ring', 'neck']) H.eq[sl] = makeItem(cls, sl, lvl, process.env.SIM_RAR || 'common', rng(seed + 3)); if (process.env.SIM_RAR) H.potions = 5; }   // SIM_RAR=good — в зелёном с зельями
   const G = createGame(H, W, { rand: rng(seed) });
   const dt = 1 / 20, steps = minutes * 60 / dt, lvAt = {}, R = rng(seed + 7);
   let goal = null, pullT = 0, wasBusy = false, hpAtStart = 1, deadT = 0, shopping = false, stuck = 0, side = 0, sdir = 1, nst = 0, lx = 0, ly = 0, stuckT = 0, walkT = 0;
@@ -90,7 +90,7 @@ export function runBot(cls, minutes, seed = 1, log = false, zone = 'pine', lvl =
       if (NEW) for (const r of talentRows(H)) if (H.lvl >= r.lvl && !(H.talents || {})[r.lvl]) chooseTalent(H, r.lvl, r.opts[+(process.env.SIM_TAL || 0)].id);
       // снаряжение
       for (const it of H.bag.slice()) { const c = compareItem(H, it); if (c && c.score > 0) equip(G, it); }
-      if (H.potions === 0 && H.gold >= POTION_PRICE(H.lvl)) shopping = true;
+      if (H.potions === 0 && H.gold >= POTION_PRICE(H.lvl) && W.houses.some(b => b.vendor)) shopping = true;   // в подземелье торговца нет
       if (shopping) {
         const mk = W.houses.find(b => b.vendor), mx = mk.x, my = mk.y + 40;
         const tx = dist(P.x, P.y, mx, my) > 60 ? mx : null;
@@ -151,7 +151,7 @@ export function runBot(cls, minutes, seed = 1, log = false, zone = 'pine', lvl =
     if (log && i % (log === 2 ? 20 : 1200) === 0) console.log(Math.round(G.t/60), H.lvl, Math.round(P.x), Math.round(P.y), Math.round(P.hp), H.potions, H.gold, shopping, goal && goal.kind, goal && Math.round(goal.x), goal && Math.round(goal.y), goal && goal.state, P.dead, Math.round(G.t - P.lastCombat), G.corpses.length);
     if (!lvAt[H.lvl]) lvAt[H.lvl] = Math.round(G.t / 6) / 10;
   }
-  return { cls, lvl: H.lvl, lvAt, stuck: Math.round(stuckT), walk: Math.round(walkT), kills: H.stats.kills, deaths: H.stats.deaths, gold: H.gold, items: H.stats.items, eq: Object.values(H.eq).filter(Boolean).map(i => `${i.name}(${i.rar})`) };
+  return { cls, lvl: H.lvl, lvAt, stuck: Math.round(stuckT), walk: Math.round(walkT), kills: H.stats.kills, deaths: H.stats.deaths, gold: H.gold, items: H.stats.items, dg: H.dungeons, eq: Object.values(H.eq).filter(Boolean).map(i => `${i.name}(${i.rar})`) };
 }
 
 if (process.argv[1] && process.argv[1].endsWith('sim.mjs')) {
