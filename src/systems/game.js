@@ -1,5 +1,6 @@
 // Ход игры: герой, мобы, бой, добыча, смерть. Без рисования — его делает engine/render.js.
 // Всё, что должен увидеть или услышать игрок, складывается в G.ev (события) и G.fx (эффекты).
+import { startHearth, stopHearth, hearthTick, isHearth } from './hearth.js';
 import { CLASSES } from '../../data/classes.js';
 import { MOBS } from '../../data/mobs.js';
 import { dgState, dgEnter, dgUnsealed, dgDone, chestLoot, bossLoot, NEVER } from './dungeon.js';
@@ -100,7 +101,9 @@ export function update(G, dt, I) {
     const m = Math.hypot(mx, my);
     if (m > 1) { mx /= m; my /= m; }
     P.moving = m > 0.05 && !P.dash;
-    if (P.moving || I.attack || I.attackTap || I.ability || I.ability2 || I.ability3 || I.ability4) { P.sit = false; if (P.mine) stopMine(G); if (P.gather) stopGather(G); }
+    if (P.moving || I.attack || I.attackTap || I.ability || I.ability2 || I.ability3 || I.ability4) { P.sit = false; if (P.mine) stopMine(G); if (P.gather) stopGather(G); if (P.hearth) stopHearth(G, 'Перенос сбит'); }
+    if (I.hearth) startHearth(G);   // v108: камень возвращения
+    hearthTick(G, dt);
     if (I.sit) { if (P.sit) P.sit = false; else if (G.t - P.lastCombat < 1.5) emit(G, { k: 'toast', s: 'В бою не присесть', id: 'sit' }); else P.sit = true; }
     P.rooted = Math.max(0, (P.rooted || 0) - dt);
     if (P.dash) dashTick(G, dt);
@@ -305,6 +308,7 @@ export const lootAll = (G, c) => lootTake(G, c, null);
 /** v91: выбросить вещь из сумки — ложится мешком на землю рядом с героем на 3 минуты, можно поднять обратно (E). */
 export function dropItem(G, it) {
   const H = G.hero, i = H.bag.indexOf(it); if (i < 0) return false;
+  if (isHearth(it)) { emit(G, { k: 'toast', s: 'Камень возвращения не выбросить', id: 'hearth' }); return false; }
   H.bag.splice(i, 1); delete it.pos;
   const P = G.P, a = G.rand() * Math.PI * 2;
   G.corpses.push({ id: ++G.corpseSeq, x: P.x + Math.cos(a) * 26, y: P.y + 12 + Math.sin(a) * 10, kind: null, name: 'Мешок', lvl: 0, dir: 1, t: LOOT.corpseT, money: 0, items: [it], dropped: true });
@@ -617,7 +621,7 @@ function doInteract(G, t) {
   if (t.k === 'qobj') { qUseObj(G, t.o); return; }
   if (t.k === 'vein') { if (G.P.mine) stopMine(G); else startMine(G, t.v); return; }
   if (t.k === 'plant') { if (G.P.gather) stopGather(G); else startGather(G, t.v); return; }
-  if (t.k === 'b') { if (t.b.vendor) emit(G, { k: 'vendor', b: t.b }); else if (t.b.bank) emit(G, { k: 'bank', b: t.b }); else if (t.b.mentor) emit(G, { k: 'mentor', b: t.b }); else if (t.b.alchemy || t.b.brew) emit(G, { k: 'alchemy', b: t.b }); else if (t.b.enchant) emit(G, { k: 'enchant', b: t.b }); else if (t.b.guild) emit(G, { k: 'guild', b: t.b }); else if (t.b.smelt) emit(G, { k: 'smelt', b: t.b }); else emit(G, { k: 'toast', s: `${t.b.name}. ${t.b.note}`, id: 'bld' }); }
+  if (t.k === 'b') { if (t.b.bind) emit(G, { k: 'inn', b: t.b }); else if (t.b.vendor) emit(G, { k: 'vendor', b: t.b }); else if (t.b.bank) emit(G, { k: 'bank', b: t.b }); else if (t.b.mentor) emit(G, { k: 'mentor', b: t.b }); else if (t.b.alchemy || t.b.brew) emit(G, { k: 'alchemy', b: t.b }); else if (t.b.enchant) emit(G, { k: 'enchant', b: t.b }); else if (t.b.guild) emit(G, { k: 'guild', b: t.b }); else if (t.b.smelt) emit(G, { k: 'smelt', b: t.b }); else emit(G, { k: 'toast', s: `${t.b.name}. ${t.b.note}`, id: 'bld' }); }
   if (t.k === 'exit') { if (t.e.zone) emit(G, { k: 'zone', e: t.e }); else if (t.e.temple) emit(G, { k: 'toast', s: t.e.door ? 'Врата подземелья заперты — откроются в следующих версиях' : 'Врата Храма квакунов заперты. Внутри тихо — подземелье откроется в следующих версиях', id: 'exit' }); else emit(G, { k: 'toast', s: `Дорога в ${t.e.to} (ур. ${t.e.lvl}) откроется в следующих версиях`, id: 'exit' }); }
 }
 
@@ -626,7 +630,7 @@ function hurtHero(G, v, m, dot) {
   const P = G.P; if (P.dead) return;
   if (dot === 'pierce') {   // v94: умение босса — доля здоровья, мимо брони, уклонения и блока; спасают только уход из площади, Каменное сердце и зелье стойкости
     if (P.buf.stone > 0) v *= 0.5; v *= elixirMods(G.hero).taken; P.hurt = 0.25; emit(G, { k: 'hdmg', v }); sfx(G, 'hurt');
-    if (P.mine) stopMine(G); if (P.gather) stopGather(G);
+    if (P.mine) stopMine(G); if (P.gather) stopGather(G); if (P.hearth) stopHearth(G, 'Перенос сбит ударом');
   } else if (!dot) {
     const p = G.st.p || {};
     if (p.dodge > 0 && G.rand() < p.dodge / 100) { emit(G, { k: 'txt', x: P.x, y: P.y - 60, s: 'уклонение', col: '#cfeaff' }); P.lastCombat = G.t; return; }
@@ -636,7 +640,7 @@ function hurtHero(G, v, m, dot) {
     if (P.buf.berserk > 0) v *= hasTal(G.hero, 'iron') ? 0.9 : 1 + ABX(G, 'berserk').taken;   // Ярость: открыт для ударов (Несокрушимость — наоборот)
     v *= (1 - armorCut(G.st.armor, G.hero.lvl)); P.hurt = 0.18; emit(G, { k: 'hdmg', v }); sfx(G, 'hurt');
     if (P.buf.thorns > 0 && m && m.state !== 'dead') strike(G, m, v * 0.3, 'thorns', { sure: true, noCrit: true, flat: true });   // Тотем шипов
-    if (P.mine) stopMine(G, 'Копать помешали'); if (P.gather) stopGather(G, 'Собирать помешали');
+    if (P.mine) stopMine(G, 'Копать помешали'); if (P.gather) stopGather(G, 'Собирать помешали'); if (P.hearth) stopHearth(G, 'Перенос сбит ударом');
   }
   P.hp -= v; P.lastCombat = G.t; P.sit = false;
   if (P.hp <= 0) heroDie(G);
@@ -811,6 +815,7 @@ export const POTION_PRICE = L => 4 + L * 2;
 
 export function sellItem(G, it) {
   const H = G.hero, i = H.bag.indexOf(it); if (i < 0) return;
+  if (isHearth(it)) { emit(G, { k: 'toast', s: 'Камень возвращения не продаётся', id: 'hearth' }); return; }
   const v = it.price * (it.n || 1); H.bag.splice(i, 1); H.gold += v; sfx(G, 'coin');
   // v81: проданное можно выкупить обратно за ту же цену — последние 12 вещей
   H.buyback = H.buyback || []; const bb = { ...it }; delete bb.pos; H.buyback.push({ it: bb, v }); while (H.buyback.length > LOOT.buyback) H.buyback.shift();

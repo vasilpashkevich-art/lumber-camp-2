@@ -68,7 +68,7 @@ export function createInput(cv) {
     if (joy) { mx = joy.dx; my = joy.dy; }
     const I = {
       mx, my,
-      sit: t('KeyX') || t('Sit'), interact: t('KeyE') || t('Use'),
+      sit: t('KeyX') || t('Sit'), interact: t('KeyE') || t('Use'), hearth: t('KeyH') || t('Hearth'),
       pick: pick && toWorld ? { ...toWorld(pick.sx, pick.sy), touch: pick.touch } : null,
       tabTarget: t('Tab'),
     };

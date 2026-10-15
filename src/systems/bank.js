@@ -21,6 +21,7 @@ const touch = (G, S) => { if (S.shared) G.sharedDirty = true; };
 /** Сумка → хранилище (в ячейку pos, если свободна). Стопки сначала доливаются в такие же. false — места нет. */
 export function stashPut(G, it, where, pos = null) {
   const H = G.hero, S = store(G, where), i = H.bag.indexOf(it); if (i < 0) return false;
+  if (it.tool === 'hearth') { G.ev.push({ k: 'toast', s: 'Камень возвращения всегда при вас', id: 'hearth' }); return false; }
   if (isStack(it)) {
     for (const o of S.list) { if (it.n <= 0) break; if (sameStack(o, it) && o.n < LOOT.stack) { const k = Math.min(it.n, LOOT.stack - o.n); o.n += k; it.n -= k; } }
     if (it.n <= 0) { H.bag.splice(i, 1); touch(G, S); sfx(G, 'equip'); return true; }

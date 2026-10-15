@@ -1,4 +1,5 @@
 // Окна: «Персонаж» (надетое, сумка, характеристики), «Рынок», меню (Esc), гибель.
+import { isHearth, homeSpot, homeOf, hearthLeft, bindHome, startHearth } from '../systems/hearth.js';
 import { CLASSES, SLOTS, SLOTS_L, SLOTS_R, SLOT_NAME, MAIN_STAT } from '../../data/classes.js';
 import { ORES, MINE, veinColor, GEMS } from '../../data/mining.js';
 import { learnMining, buyPick, smelt, countOf, miningSkill, hasPick, insertGem, socketTargets } from '../systems/mining.js';
@@ -75,6 +76,7 @@ const pct = v => (v >= 0 ? '+' : '−') + Math.abs(Math.round(v * 1000) / 10).to
 const num = v => (v > 0 ? '+' : '−') + String(Math.abs(Math.round(v * 10) / 10)).replace('.', ',');
 /** Одна карточка вещи (для подсказки). */
 function card(it, G, head = '') {
+  if (isHearth(it) && G) { const left = hearthLeft(G.hero), mm = Math.floor(left / 60), ss = Math.ceil(left % 60); return `<div class="tcard">${head}<b style="color:${RAR_COL.good}">Камень возвращения</b><small>Всегда при вас · ${T('клавиша H', 'кнопка с камнем вверху')}</small><p>Переносит домой: <b>${homeSpot(G.hero).name}</b>.</p><p>10 секунд — шаг, удар или урон собьют перенос.</p><p class="${left ? '' : 'prop'}">${left ? `Готов через ${mm} мин ${ss} с` : 'Готов'}</p><p class="hint2">Дом меняют у хозяина постоялого двора: в Столице — Постоялый двор и Таверна, в Хуторе Подгорном — Постоялый двор. Перезарядка — 20 минут, идёт и после выхода из игры.</p></div>`; }
   const wrong = it.cls !== G.hero.cls ? `<p class="bad">Не для вашего класса</p>` : '';
   const kind = it.kind === 'ore' ? 'Руда' : it.kind === 'bar' ? 'Слиток' : it.kind === 'gem' ? 'Самоцвет' : it.kind === 'tool' ? 'Инструмент' : it.kind === 'herb' ? 'Трава' : it.kind === 'flask' ? 'Склянка' : it.kind === 'ench' ? 'Материал чар' : it.kind === 'potion' ? `Зелье · ${KIND_NAME[POTIONS[it.metal].kind]}` : `${RAR_NAME[it.rar]} · ${SLOT_NAME[it.slot]}`;
   return `<div class="tcard">${head}<b style="color:${RAR_COL[it.rar]}">${it.name}${it.n > 1 ? ` <span class="cnt">× ${it.n}</span>` : ''}</b><small>${kind}</small>${itemLines(it).map(([k, t, prop, col]) => k === 'sock' ? `<p class="sock${prop ? ' on' : ''}"${col ? ` style="color:${col}"` : ''}>${t}</p>` : k === 'ench' ? `<p class="ench">${t}</p>` : `<p class="${prop ? 'prop' : ''}">${t}</p>`).join('')}${it.slot ? wrong : ''}${it.cost ? `<p class="gold">Купить: ${moneyHtml(it.cost)}</p>` : ''}${it.price && !it.cost ? `<p class="gold">Цена у торговца: ${moneyHtml(it.price * (it.n || 1))}${it.n > 1 ? ` <small>(${moneyHtml(it.price)} за штуку)</small>` : ''}</p>` : ''}</div>`;
@@ -139,7 +141,7 @@ export function openChar(G, onChange) {
     const bag = m.querySelector('.bag'); bag.innerHTML = '';
     for (let i = 0; i < LOOT.bag; i++) {
       const it = h.bag.find(x => x.pos === i), b = cell(it, it ? upMark(it, G) : '');
-      if (it) { hov(b, e => tip(e, it, G)); onItem(b, G, it, it.slot ? 'Надеть' : it.kind === 'potion' ? 'Выпить' : it.kind === 'gem' ? 'Вставить в вещь' : null, () => { if (it.kind === 'potion') drinkElixir(G, it); else if (it.kind === 'gem') gemPick(G, it, () => { onChange(); draw(); }); else equip(G, it); onChange(); draw(); }, false, [...(enchSkill(G.hero) && hasRod(G.hero) && canDisenchant(G.hero, it) ? [['Распылить', () => deAsk(G, it, () => { onChange(); draw(); })]] : []), ['Выбросить', () => throwAsk(G, it, () => { onChange(); draw(); })]]);   // v107: на телефоне — «Распылить» drag(b, { it });
+      if (it) { hov(b, e => tip(e, it, G)); onItem(b, G, it, it.slot ? 'Надеть' : it.kind === 'potion' ? 'Выпить' : it.kind === 'gem' ? 'Вставить в вещь' : isHearth(it) ? 'Вернуться домой' : null, () => { if (isHearth(it)) { if (startHearth(G)) m.close(); return; } if (it.kind === 'potion') drinkElixir(G, it); else if (it.kind === 'gem') gemPick(G, it, () => { onChange(); draw(); }); else equip(G, it); onChange(); draw(); }, false, [...(enchSkill(G.hero) && hasRod(G.hero) && canDisenchant(G.hero, it) ? [['Распылить', () => deAsk(G, it, () => { onChange(); draw(); })]] : []), ...(isHearth(it) ? [] : [['Выбросить', () => throwAsk(G, it, () => { onChange(); draw(); })]])]);   // v107: на телефоне — «Распылить» drag(b, { it });
         if (!TOUCH) b.oncontextmenu = e => { e.preventDefault(); hideTip(); throwAsk(G, it, () => { onChange(); draw(); }); }; }   // v91: правый щелчок — выбросить
       drop(b, src => { const cur0 = h.bag.find(x => x.pos === i); if (src.it && src.it.kind === 'gem' && cur0 && cur0 !== src.it && hasSocket(cur0)) { gemConfirm(G, src.it, cur0, () => { onChange(); draw(); }); return; } if (src.it) bagMove(G, src.it, i); else if (src.eq) { const cur = h.bag.find(x => x.pos === i); if (cur && cur.slot === src.eq) equip(G, cur); else if (!cur) unequip(G, src.eq, i); } });
       bag.append(b);
@@ -391,6 +393,16 @@ export function showDeath(G, onDone) {
 
 // телефон: пояснение к характеристике закрывается касанием в любом другом месте
 if (TOUCH && typeof addEventListener !== 'undefined') addEventListener('pointerdown', e => { if (!(e.target.closest && e.target.closest('.si'))) hideTip(); }, true);
+
+/** v108: постоялый двор — сделать домом для камня возвращения; в трактире Хутора — ещё и котёл. */
+export function openInn(G, b, onChange, toBrew) {
+  const h = G.hero, cur = homeOf(h), here = cur.zone === G.W.Z.id && cur.b === b.id;
+  const m = modal(`<h2>${b.name}</h2><p class="who">Хозяин: «Комната найдётся, путник. Оставишь у нас вещички — камень возвращения приведёт тебя сюда из любой глуши».</p><div class="ware2">${accIcon('hearth', 'good', 44)}<div><b>Сделать домом</b><small>${here ? 'Здесь ваш дом' : `Сейчас дом: ${homeSpot(h).name}`}</small></div><button class="btn main" data-x="bind" ${here ? 'disabled' : ''}>${here ? 'Ваш дом' : 'Остановиться здесь'}</button></div>${b.brew ? `<div class="row"><button class="btn" data-x="brew">Котёл — варить зелья</button></div>` : ''}<p class="hint">Отдых: здоровье здесь восстанавливается быстро.</p><div class="row"><button class="btn" data-x="no">Закрыть</button></div>`, 'throwask');
+  m.querySelector('[data-x=bind]').onclick = () => { bindHome(G, b); onChange && onChange(); m.close(); };
+  if (b.brew) m.querySelector('[data-x=brew]').onclick = () => { m.close(); setTimeout(() => toBrew && toBrew(), 0); };
+  m.querySelector('[data-x=no]').onclick = () => m.close();
+  closeOnE(m); return m;
+}
 
 // ---------------------------------------------------------------- v107: зачарование — распыление и чары
 const MAIN_TO = { warrior: 'к силе', mage: 'к интеллекту', archer: 'к ловкости' };

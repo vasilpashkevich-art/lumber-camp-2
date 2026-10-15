@@ -42,9 +42,9 @@ export const PINE = {
       { id: 'h2', name: 'Наставник', dx: -560, dy: 90, art: 'house', v: 0, mentor: true, note: 'Наставник Ратибор: сброс талантов' },
       { id: 'h4', dx: 560, dy: 90, art: 'house', v: 2 }, { id: 'h5', dx: 880, dy: 90, art: 'house', v: 1 },
       { id: 'h3', dx: -900, dy: 540, art: 'house', v: 1 },
-      { id: 'tavern', name: 'Таверна', dx: -520, dy: 540, art: 'tavern', note: 'Отдых: в столице здоровье восстанавливается быстро' },
+      { id: 'tavern', name: 'Таверна', dx: -520, dy: 540, art: 'tavern', bind: true, note: 'Отдых: в столице здоровье восстанавливается быстро' },
       { id: 'miners', name: 'Гильдия рудокопов', dx: 520, dy: 540, art: 'miners', guild: true, smelt: true, note: 'Горное дело' },
-      { id: 'inn', name: 'Постоялый двор', dx: 900, dy: 540, art: 'inn', note: 'Отдых: здоровье восстанавливается быстро' },
+      { id: 'inn', name: 'Постоялый двор', dx: 900, dy: 540, art: 'inn', bind: true, note: 'Отдых: здоровье восстанавливается быстро' },
     ],
     // дворы и убранство: заборы, бочки, ящики, дровники, лавки, телеги, стога, колодцы, фонари (смещения от центра)
     decor: [
@@ -115,7 +115,7 @@ export const FARMS = {
   village: {
     name: 'Хутор Подгорный', x: 3000, y: 1050, R: 430,
     buildings: [
-      { id: 'inn', name: 'Постоялый двор', dx: -170, dy: -110, col: 96, art: 'inn', brew: true, note: 'Отдых: здоровье восстанавливается быстро. В трактире есть котёл — варить зелья' },
+      { id: 'inn', name: 'Постоялый двор', dx: -170, dy: -110, col: 96, art: 'inn', brew: true, bind: true, note: 'Отдых: здоровье восстанавливается быстро. В трактире есть котёл — варить зелья' },
       { id: 'market', name: 'Лавка', dx: 190, dy: -70, col: 60, art: 'stall', vendor: true, jewel: { good: 1800, rare: 5000 } },
       { id: 'barn', name: 'Амбар', dx: 110, dy: 200, col: 92, art: 'barn', note: 'Здесь хутор держит зерно и сено' },
       { id: 'house1', dx: 370, dy: 175, col: 68, art: 'house', v: 1 },
