@@ -24,7 +24,7 @@ import { dist } from './engine/util.js';
 import { $, toast, zoneTitle, TOUCH, T } from './ui/dom.js';
 import { RAR_COL } from '../data/balance.js';
 
-const VERSION = 106;
+const VERSION = 107;
 /** Приближение камеры на шаг: +1 ближе, −1 дальше. */
 let zoomT = 0;
 function zoomBy(d) {
@@ -145,6 +145,7 @@ function frame(now) {
     if (e.k === 'bank' && !document.querySelector('.modal')) { const bm = openBank(G, () => hud.update()), oc = bm.onclose; bm.onclose = () => { oc && oc(); persist(); }; }
     if (e.k === 'smelt' && !document.querySelector('.modal')) openSmelt(G, () => hud.update());
     if (e.k === 'alchemy' && !document.querySelector('.modal')) profWin({ teach: !!e.b.alchemy, brew: true, tab: 'alchemy' });
+    if (e.k === 'enchant' && !document.querySelector('.modal')) profWin({ teachEnch: true, tab: 'enchant' });
     if (e.k === 'skill') toast(e.s, 'good', 'skill');
     if (e.k === 'barSwap') { persist(); toast('Ячейки панели поменяны местами — клавиши остались у ячеек', '', 'bar'); }
     if (e.k === 'zone') { goZone(e.e); break; }

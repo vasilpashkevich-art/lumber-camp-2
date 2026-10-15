@@ -40,9 +40,10 @@ export function itemIcon(it, size = 40) {
   // v92: фиолетовые — тёмно-фиолетовый фон и золотая кайма внутри рамки, без свечения
   const bg = epic ? 'radial-gradient(circle at 50% 38%, #6a3aa8 0%, #2a1444 55%, #120a1e 100%)' : `radial-gradient(circle at 50% 40%, ${rc}33, #1a120c 70%)`;
   const img = `<img class="gicon${epic ? ' epic' : ''}" src="${gearIconUrl(it)}" width="${size}" height="${size}" alt="" draggable="false" style="background:${bg};border:2px solid ${rc};border-radius:6px${epic ? ';box-shadow:inset 0 0 0 1px #e7c35a' : ''}">`;
-  if (!hasSocket(it)) return img;
+  const en = it.ench ? `<span class="enm" style="font-size:${Math.max(10, Math.round(size * 0.3))}px">✦</span>` : '';   // v107: на вещи чары
+  if (!hasSocket(it) && !en) return img;
   const g = it.gem && GEMS[it.gem], d = Math.max(9, Math.round(size * 0.24));
-  return `<span class="gwrap" style="position:relative;display:inline-block;width:${size}px;height:${size}px;line-height:0">${img}<span class="sock${g ? ' on' : ''}" style="width:${d}px;height:${d}px${g ? `;background:radial-gradient(circle at 35% 35%,#ffffffaa 0 18%,${g.col} 45%,${g.col})` : ''}"></span></span>`;
+  return `<span class="gwrap" style="position:relative;display:inline-block;width:${size}px;height:${size}px;line-height:0">${img}${hasSocket(it) ? `<span class="sock${g ? ' on' : ''}" style="width:${d}px;height:${d}px${g ? `;background:radial-gradient(circle at 35% 35%,#ffffffaa 0 18%,${g.col} 45%,${g.col})` : ''}"></span>` : ''}${en}</span>`;
 }
 
 export const ABIL_ICON = {
@@ -111,8 +112,14 @@ export const ACC_ICON = {
   herb_fireflower: `<path d="M16 29V16" stroke="${O}" stroke-width="2.6"/><path d="M16 29V16" stroke="#6a8a48" stroke-width="1.4"/><path d="M16 24q-7-1-8-7q7 1 8 7z" fill="#a8c880" stroke="${O}" stroke-width=".9"/>${[0, 72, 144, 216, 288].map(a => `<ellipse cx="16" cy="9" rx="3" ry="6" transform="rotate(${a} 16 13)" fill="#ff8a3a" stroke="${O}" stroke-width=".9"/>`).join('')}<circle cx="16" cy="13" r="2.8" fill="#ffe080" stroke="${O}" stroke-width=".8"/>`,
   flask: `<rect x="13" y="3" width="6" height="5" fill="#c9a06a" stroke="${O}"/><path d="M12 8h8v4l5 6v6a4 4 0 0 1-4 4H11a4 4 0 0 1-4-4v-6l5-6z" fill="rgba(220,235,245,.85)" stroke="${O}" stroke-width="1.3"/><path d="M10 14l2 10" stroke="#fff" stroke-width="1.6" opacity=".8"/>`,
   pickaxe: `<path d="M9 29L19 11" stroke="${O}" stroke-width="4.4" stroke-linecap="round"/><path d="M9 29L19 11" stroke="#8a5a32" stroke-width="2.6" stroke-linecap="round"/><path d="M10.5 26l7-12.5" stroke="#c08a52" stroke-width=".9"/><path d="M4 11Q10 4 17 5Q24 5 29 12L27 13Q23 9 19 9.5L17 11.5L14.5 9.5Q10 9.5 6 12.5z" fill="#a8b0b6" stroke="${O}" stroke-width="1.4"/><path d="M6 11Q11 6 16.5 6.6Q23 6.8 27 11.5" fill="none" stroke="#e8eef2" stroke-width="1.1"/><path d="M14.5 9.5L17 11.5L19 9.5L17 6.8z" fill="#6a7076" stroke="${O}" stroke-width=".9"/><path d="M8 29.5l2 .8" stroke="${O}" stroke-width="2"/>`,
-};
-/** Значок: кольцо/шея (gem — цвет камня), аксессуар по id, руда/слиток/кирка. */
+  // v107: материалы и жезл зачарования
+  ench_dust1: `<ellipse cx="16" cy="25" rx="12" ry="4.6" fill="#9a78b8" stroke="${O}" stroke-width="1.2"/><path d="M5 25q2-9 11-11q9 2 11 11q-11 4-22 0z" fill="#d8b8f0" stroke="${O}" stroke-width="1.3"/><path d="M9 21q4-5 8-6" stroke="#fff" stroke-width="1.4" fill="none" opacity=".75"/>${[[12,19],[19,17],[22,22],[15,23],[9,24]].map(([x,y])=>`<circle cx="${x}" cy="${y}" r="1.1" fill="#fff"/>`).join('')}<path d="M24 7l1.2 3 3 1.2-3 1.2-1.2 3-1.2-3-3-1.2 3-1.2z" fill="#e8d0ff" stroke="${O}" stroke-width=".7"/><path d="M8 9l.8 2 2 .8-2 .8-.8 2-.8-2-2-.8 2-.8z" fill="#fff"/>`,
+  ench_dust2: `<ellipse cx="16" cy="25" rx="12" ry="4.6" fill="#6a88c0" stroke="${O}" stroke-width="1.2"/><path d="M5 25q2-9 11-11q9 2 11 11q-11 4-22 0z" fill="#a8ccff" stroke="${O}" stroke-width="1.3"/><path d="M9 21q4-5 8-6" stroke="#fff" stroke-width="1.4" fill="none" opacity=".75"/>${[[12,19],[19,17],[22,22],[15,23],[9,24]].map(([x,y])=>`<circle cx="${x}" cy="${y}" r="1.1" fill="#fff"/>`).join('')}<path d="M24 7l1.2 3 3 1.2-3 1.2-1.2 3-1.2-3-3-1.2 3-1.2z" fill="#d0e8ff" stroke="${O}" stroke-width=".7"/><path d="M8 9l.8 2 2 .8-2 .8-.8 2-.8-2-2-.8 2-.8z" fill="#fff"/>`,
+  ench_shard1: `<path d="M14 3l8 7-3 18-8-4-4-10z" fill="#d888ff" stroke="${O}" stroke-width="1.4"/><path d="M14 3l1 11 4 14M7 14l8 0 7-4" fill="none" stroke="#8a3ab8" stroke-width="1"/><path d="M11 8l3-3" stroke="#fff" stroke-width="1.6"/><path d="M25 18l1 2.4 2.4 1-2.4 1-1 2.4-1-2.4-2.4-1 2.4-1z" fill="#fff"/>`,
+  ench_shard2: `<path d="M14 3l8 7-3 18-8-4-4-10z" fill="#7ad8ff" stroke="${O}" stroke-width="1.4"/><path d="M14 3l1 11 4 14M7 14l8 0 7-4" fill="none" stroke="#2a80b8" stroke-width="1"/><path d="M11 8l3-3" stroke="#fff" stroke-width="1.6"/><path d="M25 18l1 2.4 2.4 1-2.4 1-1 2.4-1-2.4-2.4-1 2.4-1z" fill="#fff"/>`,
+  ench_crystal: `<path d="M16 2l7 8v13l-7 7-7-7V10z" fill="#b46aff" stroke="${O}" stroke-width="1.5"/><path d="M16 2v28M9 10l7 5 7-5M9 23l7-8 7 8" fill="none" stroke="#6a2aa8" stroke-width="1"/><path d="M12 8l3-4" stroke="#fff" stroke-width="1.8"/><circle cx="16" cy="15" r="2.4" fill="#f0d8ff"/><path d="M27 5l.9 2 2 .9-2 .9-.9 2-.9-2-2-.9 2-.9z" fill="#fff"/>`,
+  rod: `<path d="M7 28L22 9" stroke="${O}" stroke-width="4.6" stroke-linecap="round"/><path d="M7 28L22 9" stroke="#c8703a" stroke-width="2.8" stroke-linecap="round"/><path d="M8.5 25.5l11-14" stroke="#ffc090" stroke-width=".9"/><circle cx="12" cy="21.6" r="2" fill="#a85a2a" stroke="${O}" stroke-width=".8"/><circle cx="24" cy="7" r="5" fill="#c8a0ff" stroke="${O}" stroke-width="1.4"/><circle cx="22.4" cy="5.4" r="1.6" fill="#fff"/><path d="M29 13l.8 2 2 .8-2 .8-.8 2-.8-2-2-.8 2-.8z" fill="#e8d0ff"/>`,
+};/** Значок: кольцо/шея (gem — цвет камня), аксессуар по id, руда/слиток/кирка. */
 export function accIcon(kind, rar = 'common', size = 40, gemCol = '#4a9eff') {
   const b = ACC_ICON[kind]; const body = typeof b === 'function' ? b(gemCol) : b || '';
   return box(body, RAR_COL[rar] || '#888', size);
@@ -121,7 +128,8 @@ export function accIcon(kind, rar = 'common', size = 40, gemCol = '#4a9eff') {
 const GEM = { crit: '#ff6a5a', haste: '#9ad0ff', regen: '#5fd38a', pen: '#e7c35a', dodge: '#c8e0ff', vamp: '#c41a3a', block: '#c4c0b6', cdr: '#b46aff' };
 export function anyIcon(it, size = 44) {
   if (it.kind === 'ore' || it.kind === 'bar' || it.kind === 'gem') return accIcon(it.kind + '_' + it.metal, it.rar || 'common', size);
-  if (it.kind === 'tool') return accIcon('pickaxe', 'common', size);
+  if (it.kind === 'tool') return accIcon(it.tool === 'rod' ? 'rod' : 'pickaxe', 'common', size);
+  if (it.kind === 'ench') return accIcon('ench_' + it.metal, it.rar || 'common', size);
   if (it.kind === 'herb') return accIcon('herb_' + it.metal, it.rar || 'common', size);
   if (it.kind === 'flask') return accIcon('flask', 'common', size);
   if (it.kind === 'potion') return potionIcon(it.metal, it.rar || 'common', size);

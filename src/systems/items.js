@@ -1,4 +1,5 @@
 // Вещи: создание, характеристики, облик, цена.
+import { ENCH_MATS, ENCHANTS } from '../../data/enchanting.js';
 import { GEAR_NAMES, MAIN_STAT_TO } from '../../data/classes.js';
 import { RAR_MUL, RAR_IDX, RAR_PROPS, LOOT, ITEM, PROPS } from '../../data/balance.js';
 import { TRINKETS } from '../../data/trinkets.js';
@@ -115,13 +116,14 @@ export function makeTrinket(cls, ilvl, rar = 'rare', r = Math.random, id = null)
 export const TRINKET = id => TRINKETS.find(t => t.id === id);
 
 /** Руда или слиток стопкой: kind — 'ore' | 'bar', metal — copper/tin. price — за штуку. */
-export const STACK_KINDS = ['ore', 'bar', 'gem', 'herb', 'potion', 'flask'];
+export const STACK_KINDS = ['ore', 'bar', 'gem', 'herb', 'potion', 'flask', 'ench'];
 export const isStackKind = it => !!it && STACK_KINDS.includes(it.kind);
 export function makeStack(kind, metal, n = 1) {
   // v84: травы, зелья и склянки — тоже стопками; metal — id травы или зелья
   if (kind === 'herb') return { id: uid(), kind, metal, n, name: HERBS[metal].name, rar: HERBS[metal].rare ? 'good' : 'common', price: HERBS[metal].price };
   if (kind === 'potion') return { id: uid(), kind, metal, n, name: POTIONS[metal].name, rar: POTIONS[metal].req >= 125 ? 'rare' : POTIONS[metal].req >= 50 ? 'good' : 'common', price: POTIONS[metal].price || 0 };
   if (kind === 'flask') return { id: uid(), kind, metal: 'flask', n, name: 'Пустая склянка', rar: 'common', price: ALCH.flaskSell };
+  if (kind === 'ench') return { id: uid(), kind, metal, n, name: ENCH_MATS[metal].name, rar: ENCH_MATS[metal].rar, price: ENCH_MATS[metal].price };   // v107: материалы чар
   if (kind === 'gem') return { id: uid(), kind, metal, n, name: GEMS[metal].name, rar: metal === 'emerald' ? 'rare' : metal === 'amethyst' ? 'good' : 'common', price: GEMS[metal].price };
   const O = ORES[metal];
   return { id: uid(), kind, metal, n, name: kind === 'ore' ? O.ore : O.bar, rar: 'common', price: kind === 'ore' ? O.oreP : O.barP };
@@ -154,7 +156,8 @@ export function itemLines(it) {
   if (it.kind === 'ore') return [['t', `Руда для плавки: ${2} — на слиток`], ['n', `В стопке: ${it.n} из ${LOOT.stack}`]];
   if (it.kind === 'bar') return [['t', 'Слиток. Пока его можно продать — позже из слитков будет ковать кузнец'], ['n', `В стопке: ${it.n} из ${LOOT.stack}`]];
   if (it.kind === 'gem') return [['t', `Камень для гнезда: ${(() => { const b = (GEMS[it.metal] || {}).bonus || {}; return b.main ? `+${b.main} к главной характеристике` : b.stam ? `+${b.stam} к выносливости` : `+${b.crit}% к криту`; })()}. Вставляется в оружие, шлем, нагрудник, штаны или шею с гнездом — насовсем, вынуть нельзя, можно только заменить`], ['n', `В стопке: ${it.n} из ${LOOT.stack}`]];
-  if (it.kind === 'tool') return [['t', 'Нужна, чтобы копать руду. Достаточно держать в сумке']];
+  if (it.kind === 'tool') return [['t', it.tool === 'rod' ? 'Нужен, чтобы распылять вещи и накладывать чары. Достаточно держать в сумке' : 'Нужна, чтобы копать руду. Достаточно держать в сумке']];
+  if (it.kind === 'ench') { const M = ENCH_MATS[it.metal]; return [['t', `${M.d}. Для зачарования`], ['n', `В стопке: ${it.n} из ${LOOT.stack}`]]; }
   if (it.kind === 'herb') { const Hb = HERBS[it.metal]; return [['t', Hb.d], ['w', `Где растёт: ${Hb.where}. Для алхимии`], ['n', `В стопке: ${it.n} из ${LOOT.stack}`]]; }
   if (it.kind === 'potion') { const Po = POTIONS[it.metal]; return [['ab', Po.d, true], ['k', `${Po.kind === 'battle' ? 'Боевое' : 'Защитное'} зелье — действует по одному каждого рода, новое заменяет прежнее. Клавиша 2 — выпить последнее выбранное`], ['n', `В стопке: ${it.n} из ${LOOT.stack}`]]; }
   if (it.kind === 'flask') return [['t', 'Пустая склянка — в неё алхимик наливает зелье. Продают все торговцы'], ['n', `В стопке: ${it.n} из ${LOOT.stack}`]];
@@ -166,6 +169,7 @@ export function itemLines(it) {
   if (it.stam) L.push(['stam', `+${it.stam} к выносливости`]);
   for (const [k, v] of Object.entries(it.props || {})) L.push(['p:' + k, `+${f(v)}${PROPS[k].unit} ${PROPS[k].name}`, true]);
   const sk = socketLine(it); if (sk) L.push(sk);   // v92: гнездо
+  const en = enchLine(it); if (en) L.push(en);   // v107: чары
   L.push(['ilvl', `Уровень вещи: ${it.ilvl}`]);
   return L;
 }
@@ -185,6 +189,12 @@ export function hasSocket(it) {
   if (it.rar === 'rare' || it.rar === 'epic') return true;
   if (it.rar === 'good') return (seedOf(it) % 1000) / 1000 < SOCKET.good;
   return false;
+}
+/** v107: строка чар для подсказки. */
+export function enchLine(it) {
+  const R = it && it.ench && ENCHANTS[it.ench]; if (!R) return null; const b = R.bonus, MS = MAIN_STAT_TO[it.cls] || 'к силе', f = v => String(v).replace('.', ',');
+  const parts = []; if (b.main) parts.push(`+${b.main} ${MS}`); if (b.stam) parts.push(`+${b.stam} к выносливости`); for (const k of ['crit', 'haste', 'regen', 'dodge']) if (b[k]) parts.push(`+${f(b[k])}${PROPS[k].unit} ${PROPS[k].name}`);
+  return ['ench', `✦ Чары «${R.name}»: ${parts.join(', ')}`, true, '#c8a0ff'];
 }
 /** Строка гнезда для подсказки. */
 export function socketLine(it) {

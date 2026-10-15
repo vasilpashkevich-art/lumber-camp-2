@@ -1,4 +1,5 @@
 // Герой: создание, характеристики, опыт.
+import { ENCHANTS } from '../../data/enchanting.js';
 import { CLASSES, FIST } from '../../data/classes.js';
 import { HERO, MAX_LVL, xpNeed, ITEM, PROPS, armorCut } from '../../data/balance.js';
 import { starterGear, hasSocket } from '../systems/items.js';
@@ -31,6 +32,7 @@ export function heroStats(h, eq = h.eq) {
     if (it.cls === h.cls) { main += it.main || 0; for (const [k, v] of Object.entries(it.props || {})) if (k in p) p[k] += v; }
     if (it.slot === 'weapon') wdmg = it.dmg || 0;
     if (it.gem && GEMS[it.gem] && hasSocket(it)) { const b = GEMS[it.gem].bonus; main += b.main || 0; stam += b.stam || 0; p.crit += b.crit || 0; }   // v92: камень в гнезде
+    if (it.ench && ENCHANTS[it.ench]) { const b = ENCHANTS[it.ench].bonus; main += b.main || 0; stam += b.stam || 0; for (const k of ['crit', 'haste', 'regen', 'dodge']) p[k] += b[k] || 0; }   // v107: чары
   }
   if (h.cls === 'archer') p.crit += main / ITEM.agiCrit;
   for (const k in p) p[k] = Math.min(PROPS[k].cap, Math.round(p[k] * 10) / 10);

@@ -33,7 +33,7 @@ export const PINE = {
     // постройки: смещение от центра (середина лица у земли), рисунок (src/art/bld2.js), кто внутри
     buildings: [
       { id: 'hall', name: 'Королевский дворец', dx: 0, dy: -560, art: 'palace', note: 'Король пока в отъезде. Задания и сюжет — скоро' },
-      { id: 'enchant', name: 'Мастерская чар', dx: -760, dy: -320, art: 'enchant', note: 'Зачарование — скоро' },
+      { id: 'enchant', name: 'Мастерская чар', dx: -760, dy: -320, art: 'enchant', enchant: true, note: 'Чародейка Велена: зачарование и жезл чародея' },
       { id: 'bank', name: 'Банк', dx: 440, dy: -320, art: 'bank', bank: true, note: 'Банкир Евстафий' },
       { id: 'forge', name: 'Кузница', dx: 820, dy: -320, art: 'forge', smelt: true, note: 'Плавка руды. Ремонт и ковка — скоро' },
       { id: 'market', name: 'Рынок', dx: -220, dy: -60, art: 'stall', vendor: true, jewel: { good: 800, rare: 2500 } },
