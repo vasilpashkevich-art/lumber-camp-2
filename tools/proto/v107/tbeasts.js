@@ -1,7 +1,7 @@
 // v107 (эскиз): звери в мультяшном стиле (STYLE.md) — лиса, волк, кабан. Те же размеры и позы, что в beasts.js
 // (длина, высота в холке, кадры шага 8, удара 6, падения 4), но пухлые формы: тело-фасоль, крупная голова,
 // толстые лапы капсулами, шерсть крупными «фестонами», обводка в тон, глянец, суровые глаза под бровью.
-import { beast as beastOld } from './beasts.js';
+import { beast as beastOld } from '../../../src/art/beasts.js';
 const TAU = Math.PI * 2;
 const sh = (hex, k) => { const n = parseInt(hex.slice(1), 16), f = v => Math.max(0, Math.min(255, Math.round(k > 0 ? v + (255 - v) * k : v * (1 + k)))); return '#' + [(n >> 16) & 255, (n >> 8) & 255, n & 255].map(v => f(v).toString(16).padStart(2, '0')).join(''); };
 const ink = col => sh(col, -0.62);

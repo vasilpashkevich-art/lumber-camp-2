@@ -1,5 +1,5 @@
 // Эскиз v107: лиса, волк, кабан — было / стало, живые кадры, рядом герой.
-import { tbeast } from '../../../src/art/tbeasts.js';
+import { tbeast } from './tbeasts.js';
 import { sprite, styled, beastSpr, personSpr, drawFrame, PEOPLE_K, FRAMES } from '../../../src/art/sprites.js';
 import { BOX } from '../../../src/art/beasts.js';
 import { starterLook } from '../../../src/systems/items.js';
