@@ -3,7 +3,7 @@ import { TOUCH } from '../ui/dom.js';
 import { LOOK } from '../art/look.js';
 import { lairSpr } from '../art/lairs.js';
 import { chestBig } from '../art/chest.js';
-import { NPC_LOOK, questMark, snare, questGlint } from '../art/npc.js';
+import { NPC_LOOK, questMark, snare, questGlint, QART } from '../art/npc.js';
 import { npcMark } from '../systems/quests.js';
 import { legColor, person } from '../art/body.js';
 import { palette } from '../art/gear.js';
@@ -619,7 +619,7 @@ export function render(R, G, now) {
   for (const m of G.mobs) if (m.state !== 'dead' && vis(m.x, m.y)) L.push({ y: m.y, mob: m });
   // v95: жители с заданиями (поворачиваются к герою, знак над головой) и предметы заданий
   for (const n of G.npcs || []) if (vis(n.x, n.y)) L.push({ y: n.y, x: n.x, draw: (g, tt) => drawNpc(g, G, n, tt) });
-  for (const o of G.qobjs || []) if (vis(o.x, o.y)) L.push({ y: o.y, x: o.x, draw: (g, tt) => { if (o.art === 'snare') drawSpr(g, sprite('qsnare', 80, 40, 40, 30, 2, gg => { gg.scale(1.35, 1.35); snare(gg); }), o.x, o.y); questGlint(g, o.x, o.y - (o.art === 'tent' ? 50 : 0), tt, o.j); } });
+  for (const o of G.qobjs || []) if (vis(o.x, o.y)) L.push({ y: o.y, x: o.x, draw: (g, tt) => { const A = QART[o.art]; if (o.art === 'snare') drawSpr(g, sprite('qsnare', 80, 40, 40, 30, 2, gg => { gg.scale(1.35, 1.35); snare(gg); }), o.x, o.y); else if (A) drawSpr(g, sprite('q' + o.art, A[0] * 1.3, A[1] * 1.3, A[2] * 1.3, A[3] * 1.3, 2, gg => { gg.scale(1.3, 1.3); A[4](gg); }), o.x, o.y); questGlint(g, o.x, o.y - (o.art === 'tent' ? 50 : A ? A[1] * 0.9 - 20 : 0), tt, o.j); } });
   L.push({ y: P.y, hero: true });
   L.sort((a, b) => a.y - b.y);
   const look = lookOf(G.hero);

@@ -23,8 +23,8 @@ test('данные: жители и цели на месте, цепочка б�
     assert.ok(Q.NPCS[q.giver] && Q.NPCS[q.turn || q.giver], id + ' житель'); if (q.after) assert.ok(Q.QUESTS[q.after], id + ' after');
     assert.ok(q.text && q.done && q.name && q.goals.length, id + ' тексты');
     for (const g of q.goals) {
-      if (g.k === 'kill' || g.k === 'loot') { assert.ok(MOBS[g.mob], id + ' моб'); if (q.zone === 'pine') assert.ok(camps.includes(g.mob), id + ' моб в зоне ' + g.mob); }
-      if (g.k === 'obj') { assert.ok(g.spots.length >= g.n); for (const [x, y] of g.spots) assert.ok(W.walkable(x, y + 30), id + ' место ' + x); }
+      if (g.k === 'kill' || g.k === 'loot') { assert.ok([].concat(g.mob).every(k => MOBS[k]), id + ' моб'); if (q.zone === 'pine') assert.ok([].concat(g.mob).every(k => camps.includes(k)), id + ' моб в зоне ' + g.mob); }
+      if (g.k === 'obj' && q.zone === 'pine') { assert.ok(g.spots.length >= g.n); for (const [x, y] of g.spots) assert.ok(W.walkable(x, y + 30), id + ' место ' + x); }
       if (g.k === 'talk') assert.ok(Q.NPCS[g.npc]);
     }
   }
