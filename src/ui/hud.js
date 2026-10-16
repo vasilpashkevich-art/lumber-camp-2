@@ -9,6 +9,7 @@ import { hearthLeft, homeSpot } from '../systems/hearth.js';
 import { POTIONS } from '../../data/alchemy.js';
 import { countOf } from '../systems/mining.js';
 import { TRINKETS } from '../../data/trinkets.js';
+import { craftLabel, craftLeft, stopCraft } from '../systems/craft.js';
 import { drawMini } from './map.js';
 import { attackOf } from '../entities/hero.js';
 import { $, TOUCH } from './dom.js';
@@ -44,8 +45,16 @@ export function createHud(In) {
     $('#pfRing').style.borderColor = C.color;
     $('#zoneName').textContent = G.W.Z.name;
   };
+  // v112: полоска ремесла
+  const CB = $('#castBar'); if (CB && CB.parentNode !== document.body) document.body.append(CB);   // поверх окон: вне контейнера интерфейса
+  if (CB) CB.querySelector('.cbx').onclick = () => H.G && stopCraft(H.G, 'Работа прервана');
+  let cbKey = '';
   H.update = () => {
     const G = H.G, P = G.P, h = G.hero, st = G.st, C = CLASSES[h.cls];
+    if (CB) { const c = P.craft, j = c && c.q[0];
+      if (!j) { if (!CB.hidden) CB.hidden = true; cbKey = ''; }
+      else { CB.hidden = false; const n = craftLeft(G), k = craftLabel(j) + '|' + n; if (k !== cbKey) { cbKey = k; CB.querySelector('.cbt').textContent = craftLabel(j); CB.querySelector('.cbn').textContent = n > 1 ? `осталось ${n}` : ''; }
+        CB.querySelector('.cbb i').style.width = Math.min(100, c.t / c.max * 100) + '%'; } }
     // портрет перерисовываем только при смене вещей
     const L = lookOf(h), key = L.key;
     if (key !== H.portraitKey) { H.portraitKey = key; const c = $('#pfCanvas').getContext('2d'); c.clearRect(0, 0, 160, 160); doll(c, 80, 186, 6.2, 1, L, 0.3); }

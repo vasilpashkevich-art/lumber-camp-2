@@ -6,7 +6,14 @@ import { learnMining, buyPick, smelt, countOf, miningSkill, hasPick, insertGem, 
 import { HERBS, HERBAL } from '../../data/herbs.js';
 import { POTIONS, ALCH, KIND_NAME } from '../../data/alchemy.js';
 import { ENCH, ENCH_MATS, ENCHANTS } from '../../data/enchanting.js';
-import { enchSkill, hasRod, learnEnchant, craftRod, canDisenchant, deOutcome, disenchant, disenchantAll, canEnchant, enchTargets, enchant } from '../systems/enchant.js';
+import { enchSkill, hasRod, learnEnchant, canDisenchant, deOutcome, canEnchant, enchTargets } from '../systems/enchant.js';
+import { startCraft, startDeAll } from '../systems/craft.js';
+
+// v112: окно ремесла перерисовывается после каждой сделанной вещи (очередь идёт, пока окно открыто или закрыто)
+let craftHook = null;
+export function craftRedraw() { if (craftHook) craftHook(); }
+const deQueued = (G, it) => !!(G.P.craft && G.P.craft.q.some(j => j.k === 'de' && j.a === it));
+function hookCraft(m, fn) { craftHook = fn; const oc = m.onclose; m.onclose = () => { if (craftHook === fn) craftHook = null; oc && oc(); }; }
 import { herbSkill, alchSkill, skillColor, learnHerbal, learnAlchemy, buyFlask, brew, canBrew, drinkElixir } from '../systems/herbs.js';
 import { RAR_COL, RAR_NAME, LOOT, armorCut, PROPS } from '../../data/balance.js';
 import { itemIcon, anyIcon, accIcon, moneyHtml, potionIcon, DE_SVG } from './icons.js';
@@ -147,7 +154,7 @@ export function openChar(G, onChange) {
       db.onclick = () => { deMode = !deMode; hideTip(); draw(); }; }
     for (let i = 0; i < LOOT.bag; i++) {
       const it = h.bag.find(x => x.pos === i), b = cell(it, it ? upMark(it, G) : '');
-      if (deMode) { if (it && canDisenchant(h, it)) { b.classList.add('decan'); hov(b, e => tip(e, it, G)); b.onclick = () => { hideTip(); deAsk(G, it, () => { onChange(); draw(); }); }; } else b.classList.add('deno'); bag.append(b); continue; }
+      if (deMode) { if (it && canDisenchant(h, it)) { b.classList.add(deQueued(G, it) ? 'deq' : 'decan'); hov(b, e => tip(e, it, G)); b.onclick = () => { hideTip(); deAsk(G, it, () => { onChange(); draw(); }); }; } else b.classList.add('deno'); bag.append(b); continue; }
       if (it) { hov(b, e => tip(e, it, G)); onItem(b, G, it, it.slot ? 'Надеть' : it.kind === 'potion' ? 'Выпить' : it.kind === 'gem' ? 'Вставить в вещь' : isHearth(it) ? 'Вернуться домой' : null, () => { if (isHearth(it)) { if (startHearth(G)) m.close(); return; } if (it.kind === 'potion') drinkElixir(G, it); else if (it.kind === 'gem') gemPick(G, it, () => { onChange(); draw(); }); else equip(G, it); onChange(); draw(); }, false, [...(enchSkill(G.hero) && hasRod(G.hero) && canDisenchant(G.hero, it) ? [[`${DE_SVG}Распылить`, () => deAsk(G, it, () => { onChange(); draw(); })]] : []), ...(isHearth(it) ? [] : [['Выбросить', () => throwAsk(G, it, () => { onChange(); draw(); })]])]); drag(b, { it });   // v107: на телефоне — «Распылить»; v109: перенос вещей снова работает
         if (!TOUCH) b.oncontextmenu = e => { e.preventDefault(); hideTip(); throwAsk(G, it, () => { onChange(); draw(); }); }; }   // v91: правый щелчок — выбросить
       drop(b, src => { const cur0 = h.bag.find(x => x.pos === i); if (src.it && src.it.kind === 'gem' && cur0 && cur0 !== src.it && hasSocket(cur0)) { gemConfirm(G, src.it, cur0, () => { onChange(); draw(); }); return; } if (src.it) bagMove(G, src.it, i); else if (src.eq) { const cur = h.bag.find(x => x.pos === i); if (cur && cur.slot === src.eq) equip(G, cur); else if (!cur) unequip(G, src.eq, i); } });
@@ -161,7 +168,7 @@ export function openChar(G, onChange) {
   { const cv = m.querySelector('canvas'); const anim = now => { if (!m.isConnected) return; if (dollFx.length) { const g = cv.getContext('2d'); g.setTransform(2, 0, 0, 2, 0, 0); g.clearRect(0, 0, 170, 236); doll(g, 85, 184, 3.9, 1, lookOf(G.hero), 0.3); gearFx(g, dollFx, 85, 184 + 12.6 * 3.9, now / 1000, 37 * 3.9); } requestAnimationFrame(anim); }; requestAnimationFrame(anim); }
   const onKey = e => { if ((e.code === 'KeyI' || e.code === 'KeyB') && !e.repeat) { e.preventDefault(); e.stopPropagation(); m.close(); } };
   addEventListener('keydown', onKey, true);
-  m.onclose = () => { hideTip(); removeEventListener('keydown', onKey, true); removeEventListener('keydown', deEsc, true); }; draw(); return m;
+  m.onclose = () => { hideTip(); removeEventListener('keydown', onKey, true); removeEventListener('keydown', deEsc, true); }; hookCraft(m, () => { onChange(); draw(); }); draw(); return m;
 }
 
 /** Банк (v72): слева — личный банк (64) или общий сундук всех героев (32), справа — сумка.
@@ -304,19 +311,19 @@ export function openGuild(G, onChange) {
 
 /** Плавильня: 2 руды → 1 слиток. В кузнице Столицы, в Гильдии рудокопов и в кузне Хутора Подгорного. */
 export function openSmelt(G, onChange) {
-  const m = modal(`<h2>Плавильня</h2><div class="sm"></div><p class="hint">Слиток стоит дороже двух руд. Позже из слитков будет ковать кузнец.${T(' Закрыть — E или Esc.', '')}</p>`, 'wide');
+  const m = modal(`<h2>Плавильня</h2><div class="sm"></div><p class="hint">Каждый слиток — 3 секунды; «Всё» плавит по очереди, шаг или удар прерывает. Слиток стоит дороже двух руд.${T(' Закрыть — E или Esc.', '')}</p>`, 'wide');
   const draw = () => {
     const h = G.hero, sk = miningSkill(h), L = m.querySelector('.sm'); L.innerHTML = '';
     for (const [k, O] of Object.entries(ORES)) {
       const have = countOf(h, 'ore', k), n = Math.floor(have / MINE.smelt), ok = sk >= O.req;
       const r = el('div', 'ware2', `${accIcon('bar_' + k, 'common', 44)}<div><b>${O.bar}</b><small>${MINE.smelt} × ${O.ore.toLowerCase()} · у вас ${have} · слиток ${moneyHtml(O.barP)}, руда ${moneyHtml(O.oreP)}${ok ? '' : ` · нужно горное дело ${O.req}`}</small></div><button class="btn" data-x="one" ${ok && n ? '' : 'disabled'}>Переплавить</button><button class="btn" data-x="all" ${ok && n ? '' : 'disabled'}>Всё (${n})</button>`);
-      r.querySelector('[data-x=one]').onclick = () => { smelt(G, k, 1); onChange(); draw(); };
-      r.querySelector('[data-x=all]').onclick = () => { smelt(G, k, 999); onChange(); draw(); };
+      r.querySelector('[data-x=one]').onclick = () => { startCraft(G, 'smelt', k, 1); onChange(); draw(); };
+      r.querySelector('[data-x=all]').onclick = () => { startCraft(G, 'smelt', k, 999); onChange(); draw(); };
       L.append(r);
     }
     if (!sk) L.append(el('p', 'hint', 'Сначала выучите горное дело в Гильдии рудокопов.'));
   };
-  closeOnE(m); draw(); return m;
+  closeOnE(m); hookCraft(m, () => { onChange(); draw(); }); draw(); return m;
 }
 
 const moneyIcon = () => `<svg viewBox="0 0 32 32" width="34" height="34"><ellipse cx="16" cy="24" rx="11" ry="4" fill="#c4703a" stroke="#24180f"/><ellipse cx="14" cy="19" rx="11" ry="4" fill="#cfd6dc" stroke="#24180f"/><ellipse cx="17" cy="13" rx="11" ry="4" fill="#f2c037" stroke="#24180f"/><ellipse cx="15" cy="12" rx="4" ry="1.2" fill="#fff6c0"/></svg>`;
@@ -418,7 +425,7 @@ export function enchBonusText(b, cls) { const P = []; if (b.main) P.push(`+${b.m
 const deText = it => deOutcome(it).map(([m, a, b, ch]) => `<span style="color:${ENCH_MATS[m].col}">${a === b ? a : a + '–' + b} × ${ENCH_MATS[m].name.toLowerCase()}${ch < 1 ? ` (${Math.round(ch * 100)}%)` : ''}</span>`).join(', ');
 /** Распылить с вопросом для синих и фиолетовых. */
 export function deAsk(G, it, after) {
-  const go = () => { if (disenchant(G, it)) after && after(); };
+  const go = () => { if (startCraft(G, 'de', it)) after && after(); };
   if (it.rar === 'good') { go(); return; }
   const m = modal(`<h2>Распылить?</h2><p><b style="color:${RAR_COL[it.rar]}">${it.name}</b> рассыплется насовсем.</p><p class="hint">Выйдет: ${deText(it)}.${it.ench ? ' Чары на вещи пропадут.' : ''}${it.gem ? ' Камень в гнезде пропадёт.' : ''}</p><div class="row"><button class="btn danger" data-x="yes">Распылить</button><button class="btn main" data-x="no">Оставить</button></div>`, 'throwask');
   m.querySelector('[data-x=yes]').onclick = () => { m.close(); go(); };
@@ -431,7 +438,7 @@ function enchPick(G, id, after) {
   const box = m.querySelector('.tgs');
   for (const it of L) { const worn = Object.values(G.hero.eq).includes(it), cur = it.ench && ENCHANTS[it.ench];
     const r = el('div', 'ware2 tg', `${itemIcon(it, 44)}<div><b style="color:${RAR_COL[it.rar]}">${it.name}</b><small>${worn ? 'надето' : 'в сумке'} · ${cur ? `сейчас чары «${cur.name}» — пропадут` : 'чар нет'}</small></div>`);
-    r.onclick = () => { m.close(); if (enchant(G, id, it)) after && after(); }; box.append(r); }
+    r.onclick = () => { m.close(); if (startCraft(G, 'ench', id, 1, it)) after && after(); }; box.append(r); }
   m.querySelector('[data-x=no]').onclick = () => m.close();
 }
 function enchTab(G, B, se, redraw, skbar, leg) {
@@ -440,9 +447,9 @@ function enchTab(G, B, se, redraw, skbar, leg) {
   B.innerHTML = skbar('Зачарование', se, ENCH.cap) + `<p class="hint2">${rod ? 'Жезл чародея в сумке.' : `<b style="color:#e07a6a">Нет жезла чародея</b> — его делают в Мастерской чар из ${ENCH.rodBars} медных слитков.`} Распылять и зачаровывать можно где угодно.</p><div class="emats">${mats}</div><h3>Распыление</h3><div class="detools"></div><div class="delist"></div><h3>Чары</h3><div class="recipes"></div>` + leg;
   const items = h.bag.filter(it => canDisenchant(h, it)).sort((a, b) => (a.pos ?? 0) - (b.pos ?? 0)), D = B.querySelector('.delist'), greens = items.filter(it => it.rar === 'good').length;
   const tools = B.querySelector('.detools');
-  if (greens > 1) { const b = el('button', 'btn', `Распылить все зелёные (${greens})`); b.disabled = !rod; b.onclick = () => { const m = modal(`<h2>Распылить все зелёные?</h2><p>${greens} зелёных вещей из сумки рассыплются насовсем. Надетые, синие и фиолетовые не тронутся.</p><div class="row"><button class="btn danger" data-x="yes">Распылить</button><button class="btn main" data-x="no">Оставить</button></div>`, 'throwask'); m.querySelector('[data-x=yes]').onclick = () => { m.close(); disenchantAll(G, 'good'); redraw(); }; m.querySelector('[data-x=no]').onclick = () => m.close(); }; tools.append(b); }
+  if (greens > 1) { const b = el('button', 'btn', `Распылить все зелёные (${greens})`); b.disabled = !rod; b.onclick = () => { const m = modal(`<h2>Распылить все зелёные?</h2><p>${greens} зелёных вещей из сумки рассыплются насовсем. Надетые, синие и фиолетовые не тронутся.</p><div class="row"><button class="btn danger" data-x="yes">Распылить</button><button class="btn main" data-x="no">Оставить</button></div>`, 'throwask'); m.querySelector('[data-x=yes]').onclick = () => { m.close(); startDeAll(G, G.hero.bag.filter(x => x.rar === 'good')); redraw(); }; m.querySelector('[data-x=no]').onclick = () => m.close(); }; tools.append(b); }
   if (!items.length) D.innerHTML = `<p class="hint">В сумке нечего распылять: подходят зелёные, синие и фиолетовые вещи. Белые продают торговцу.</p>`;
-  for (const it of items) { const r = el('div', 'ware2', `${anyIcon(it, 44)}<div><b style="color:${RAR_COL[it.rar]}">${it.name}</b><small>ур. ${it.ilvl} · выйдет: ${deText(it)}</small></div><button class="btn" ${rod ? '' : 'disabled'}>Распылить</button>`); hov(r.querySelector('.gicon') || r, e => tip(e, it, G)); r.querySelector('.btn').onclick = () => deAsk(G, it, redraw); D.append(r); }
+  for (const it of items) { const r = el('div', 'ware2', `${anyIcon(it, 44)}<div><b style="color:${RAR_COL[it.rar]}">${it.name}</b><small>ур. ${it.ilvl} · выйдет: ${deText(it)}</small></div><button class="btn" ${rod ? '' : 'disabled'}>Распылить</button>`); hov(r.querySelector('.gicon') || r, e => tip(e, it, G)); const qb = r.querySelector('.btn'); if (deQueued(G, it)) { qb.disabled = true; qb.textContent = 'В очереди'; } qb.onclick = () => deAsk(G, it, redraw); D.append(r); }
   const R_ = B.querySelector('.recipes');
   for (const [id, R] of Object.entries(ENCHANTS)) {
     const c = skillColor(se, R.req, ENCH.colors).c, n = canEnchant(h, id), low = se < R.req;
@@ -476,7 +483,7 @@ export function openProf(G, onChange, opts = {}) {
       r.querySelector('.btn').onclick = () => { learnEnchant(G); onChange(); draw(); }; L.append(r);
       const bars = countOf(h, 'bar', 'copper'), rod = hasRod(h);
       const q = el('div', 'ware2', `${accIcon('rod', 'common', 44)}<div><b>Медный жезл чародея</b><small>${rod ? 'У вас уже есть' : `Без него не распылить и не зачаровать. Из ${ENCH.rodBars} медных слитков — у вас <b style="color:${bars >= ENCH.rodBars ? '#9ad87a' : '#e07a6a'}">${bars}</b>`}</small></div><button class="btn" ${rod || bars < ENCH.rodBars ? 'disabled' : ''}>${rod ? 'Есть' : 'Сделать'}</button>`);
-      q.querySelector('.btn').onclick = () => { craftRod(G); onChange(); draw(); }; L.append(q);
+      q.querySelector('.btn').onclick = () => { startCraft(G, 'rod', null); onChange(); draw(); }; L.append(q);
     }
     const tabs = [['mining', 'Горное дело', sm], ['herbal', 'Травничество', sh], ['alchemy', 'Алхимия', sa], ['enchant', 'Зачарование', se]].filter(t => t[2]);
     const T_ = m.querySelector('.tabs'), B = m.querySelector('.pbody');
@@ -499,7 +506,7 @@ export function openProf(G, onChange, opts = {}) {
         const mats = Object.entries(R.mats).map(([hb, k]) => { const have = countOf(h, 'herb', hb); return `<span style="color:${have >= k ? '#9ad87a' : '#e07a6a'}">${k} × ${HERBS[hb].name.toLowerCase()} (${have})</span>`; }).join(', ') + `, <span style="color:${fl ? '#9ad87a' : '#e07a6a'}">склянка</span>`;
         const low = sa < R.req;   // v91: не хватает навыка — пишем прямо, вместо серых кнопок
         const r = el('div', 'ware2', `${potionIcon(id, R.heal ? 'common' : R.req >= 125 ? 'rare' : R.req >= 50 ? 'good' : 'common', 44)}<div><b style="color:${MINE.colorHex[c] || '#a89878'}">${R.name}</b> <small>${R.heal ? 'лечебное' : KIND_NAME[R.kind]} · алхимия ${R.req}</small><small>${R.d}</small><small>${mats}</small></div>${low ? `<div class="need">Нужна алхимия <b>${R.req}</b><br><small>у вас <b class="bad">${sa}</b></small></div>` : `<button class="btn" data-x="one" ${ok ? '' : 'disabled'}>Сварить</button><button class="btn" data-x="all" ${ok && n > 1 ? '' : 'disabled'}>Всё (${n})</button>`}`);
-        if (!low) { r.querySelector('[data-x=one]').onclick = () => { brew(G, id, 1); onChange(); draw(); }; r.querySelector('[data-x=all]').onclick = () => { brew(G, id, 999); onChange(); draw(); }; }
+        if (!low) { r.querySelector('[data-x=one]').onclick = () => { startCraft(G, 'brew', id, 1); onChange(); draw(); }; r.querySelector('[data-x=all]').onclick = () => { startCraft(G, 'brew', id, 999); onChange(); draw(); }; }
         R_.append(r);
       }
     }
@@ -509,7 +516,7 @@ export function openProf(G, onChange, opts = {}) {
   addEventListener('keydown', onKey, true);
   const oc = () => removeEventListener('keydown', onKey, true);
   if (opts.teach || opts.brew || opts.teachEnch) closeOnE(m, oc); else m.onclose = () => { hideTip(); oc(); };
-  draw(); return m;
+  hookCraft(m, () => { onChange(); draw(); }); draw(); return m;
 }
 
 /** v90: окно «Подземелья» (J): описание, вход, боссы с отметками, сундуки, время до обновления (идёт в настоящем времени). */

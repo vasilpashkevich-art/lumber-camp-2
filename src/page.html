@@ -271,6 +271,14 @@ html.touch .map canvas{max-height:62vh;width:auto;max-width:100%}
 #joy i{position:absolute;left:28px;top:28px;width:44px;height:44px;border-radius:50%;background:rgba(255,233,168,.55);border:2px solid rgba(36,24,15,.6)}
 @media (orientation:portrait){ html.touch #rotate{display:flex;position:fixed;inset:0;z-index:200;background:#120c08;align-items:center;justify-content:center;text-align:center;color:var(--hi)} html.touch #rotate b{display:block;font-size:24px;margin-bottom:8px} html.touch #rotate span{color:var(--dim)} }
 @media (max-width:760px){ .bars{width:150px} #target{left:12px;top:100px} #mini{width:140px;height:88px} #selInfo{display:none} #selRight{left:4vw;right:4vw;width:auto;top:13vh;bottom:calc(12vh + 60px)} .slot{min-height:64px} #selFiles{bottom:12vh} .btn.wb.big{font-size:20px;min-height:48px;padding:10px 24px} }
+
+/* v112: полоска ремесла — над панелью действий и поверх окон (окно ремесла может быть открыто) */
+#castBar{position:fixed;left:50%;bottom:108px;transform:translateX(-50%);z-index:60;width:min(360px,80vw);padding:6px 34px 8px 12px;background:linear-gradient(#3a2414,#24160a);border:2px solid #c8982e;border-radius:10px;box-shadow:0 0 0 2px #1a0e06,0 4px 14px rgba(0,0,0,.6);color:#f3e6c4;font:14px Georgia,serif;pointer-events:auto}
+#castBar .cbl{display:flex;justify-content:space-between;gap:8px;margin-bottom:4px;white-space:nowrap;overflow:hidden} #castBar .cbt{overflow:hidden;text-overflow:ellipsis} #castBar .cbn{color:#e7c35a}
+#castBar .cbb{height:12px;border-radius:6px;background:#140c06;border:1px solid #6a4a2a;overflow:hidden} #castBar .cbb i{display:block;height:100%;width:0;background:linear-gradient(#ffe08a,#e0a030);box-shadow:inset 0 2px 0 rgba(255,255,255,.4)}
+#castBar .cbx{position:absolute;right:6px;top:50%;transform:translateY(-50%);width:24px;height:24px;border-radius:50%;border:1.5px solid #c8982e;background:#4a2a14;color:#f3e6c4;font-size:16px;line-height:18px;cursor:pointer;padding:0}
+html.touch #castBar{bottom:6px;width:min(320px,44vw);font-size:13px}
+.bag.deon .cell.deq{opacity:.6;box-shadow:0 0 0 2px #e7c35a}
 </style>
 
 <canvas id="game" hidden></canvas>
@@ -299,7 +307,8 @@ html.touch .map canvas{max-height:62vh;width:auto;max-width:100%}
   <div id="pfElix"></div>
   <div id="target" hidden><div class="top"><span id="tgLvl"></span><span id="tgName"></span></div><div class="bar" id="tgHp"><i></i><span></span></div><span id="tgNote"></span></div>
   <div id="topRight"><div id="zoomInd"></div><div id="miniBox"><canvas id="mini" width="400" height="250" title="Карта — K"></canvas><div id="miniZ"><button data-z="1" title="Ближе">+</button><button data-z="-1" title="Дальше">−</button></div></div><div id="zoneName"></div><div id="goldBox" title="Деньги: 100 меди = 1 серебро, 100 серебра = 1 золото"><span id="gold"></span></div><div id="qtrack" hidden title="Журнал заданий — L"></div></div>
-  <div id="actbar">
+  <div id="castBar" hidden><div class="cbl"><span class="cbt"></span><span class="cbn"></span></div><div class="cbb"><i></i></div><button class="cbx" title="Прервать">×</button></div>
+<div id="actbar">
     <button class="act" id="actAttack" data-drop="1"><span class="ico"></span><span class="k">Пробел</span><span class="n"></span><span class="cd"></span><span class="cdt"></span><span class="lock" hidden><svg viewBox="0 0 32 32"><rect x="9" y="15" width="14" height="11" rx="2" fill="#c9a24a" stroke="#24180f" stroke-width="1.4"/><path d="M12 15v-4a4 4 0 0 1 8 0v4" fill="none" stroke="#24180f" stroke-width="2.4"/></svg><b></b></span></button>
     <button class="act" id="actAbil" data-drop="1"><span class="ico"></span><span class="k">C</span><span class="n"></span><span class="cd"></span><span class="cdt"></span><span class="lock" hidden><svg viewBox="0 0 32 32"><rect x="9" y="15" width="14" height="11" rx="2" fill="#c9a24a" stroke="#24180f" stroke-width="1.4"/><path d="M12 15v-4a4 4 0 0 1 8 0v4" fill="none" stroke="#24180f" stroke-width="2.4"/></svg><b></b></span></button>
     <button class="act" id="actAbil2" data-drop="1"><span class="ico"></span><span class="k">V</span><span class="n"></span><span class="cd"></span><span class="cdt"></span><span class="lock" hidden><svg viewBox="0 0 32 32"><rect x="9" y="15" width="14" height="11" rx="2" fill="#c9a24a" stroke="#24180f" stroke-width="1.4"/><path d="M12 15v-4a4 4 0 0 1 8 0v4" fill="none" stroke="#24180f" stroke-width="2.4"/></svg><b></b></span></button>

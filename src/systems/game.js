@@ -1,6 +1,7 @@
 // Ход игры: герой, мобы, бой, добыча, смерть. Без рисования — его делает engine/render.js.
 // Всё, что должен увидеть или услышать игрок, складывается в G.ev (события) и G.fx (эффекты).
 import { startHearth, stopHearth, hearthTick, isHearth } from './hearth.js';
+import { stopCraft, craftTick } from './craft.js';
 import { CLASSES } from '../../data/classes.js';
 import { MOBS } from '../../data/mobs.js';
 import { dgState, dgEnter, dgUnsealed, dgDone, chestLoot, bossLoot, NEVER } from './dungeon.js';
@@ -101,9 +102,9 @@ export function update(G, dt, I) {
     const m = Math.hypot(mx, my);
     if (m > 1) { mx /= m; my /= m; }
     P.moving = m > 0.05 && !P.dash;
-    if (P.moving || I.attack || I.attackTap || I.ability || I.ability2 || I.ability3 || I.ability4) { P.sit = false; if (P.mine) stopMine(G); if (P.gather) stopGather(G); if (P.hearth) stopHearth(G, 'Перенос сбит'); }
+    if (P.moving || I.attack || I.attackTap || I.ability || I.ability2 || I.ability3 || I.ability4) { P.sit = false; if (P.mine) stopMine(G); if (P.gather) stopGather(G); if (P.hearth) stopHearth(G, 'Перенос сбит'); if (P.craft) stopCraft(G, 'Работа прервана'); }
     if (I.hearth) startHearth(G);   // v108: камень возвращения
-    hearthTick(G, dt);
+    hearthTick(G, dt); craftTick(G, dt);   // v112: ремесло со временем
     if (I.sit) { if (P.sit) P.sit = false; else if (G.t - P.lastCombat < 1.5) emit(G, { k: 'toast', s: 'В бою не присесть', id: 'sit' }); else P.sit = true; }
     P.rooted = Math.max(0, (P.rooted || 0) - dt);
     if (P.dash) dashTick(G, dt);
@@ -650,7 +651,7 @@ function hurtHero(G, v, m, dot) {
   const P = G.P; if (P.dead) return;
   if (dot === 'pierce') {   // v94: умение босса — доля здоровья, мимо брони, уклонения и блока; спасают только уход из площади, Каменное сердце и зелье стойкости
     if (P.buf.stone > 0) v *= 0.7; v *= elixirMods(G.hero).taken; P.hurt = 0.25; emit(G, { k: 'hdmg', v }); sfx(G, 'hurt');
-    if (P.mine) stopMine(G); if (P.gather) stopGather(G); if (P.hearth) stopHearth(G, 'Перенос сбит ударом');
+    if (P.mine) stopMine(G); if (P.gather) stopGather(G); if (P.hearth) stopHearth(G, 'Перенос сбит ударом'); if (P.craft) stopCraft(G, 'Работу прервали');
   } else if (!dot) {
     const p = G.st.p || {};
     if (p.dodge > 0 && G.rand() < p.dodge / 100) { emit(G, { k: 'txt', x: P.x, y: P.y - 60, s: 'уклонение', col: '#cfeaff' }); P.lastCombat = G.t; return; }
@@ -660,7 +661,7 @@ function hurtHero(G, v, m, dot) {
     if (P.buf.berserk > 0) v *= hasTal(G.hero, 'iron') ? 0.9 : 1 + ABX(G, 'berserk').taken;   // Ярость: открыт для ударов (Несокрушимость — наоборот)
     v *= (1 - armorCut(G.st.armor, G.hero.lvl)); P.hurt = 0.18; emit(G, { k: 'hdmg', v }); sfx(G, 'hurt');
     if (P.buf.thorns > 0 && m && m.state !== 'dead') strike(G, m, v * 0.3, 'thorns', { sure: true, noCrit: true, flat: true });   // Тотем шипов
-    if (P.mine) stopMine(G, 'Копать помешали'); if (P.gather) stopGather(G, 'Собирать помешали'); if (P.hearth) stopHearth(G, 'Перенос сбит ударом');
+    if (P.mine) stopMine(G, 'Копать помешали'); if (P.gather) stopGather(G, 'Собирать помешали'); if (P.hearth) stopHearth(G, 'Перенос сбит ударом'); if (P.craft) stopCraft(G, 'Работу прервали');
   }
   P.hp -= v; P.lastCombat = G.t; P.sit = false;
   if (!dot) trinketProc(G, 'hurt', m);

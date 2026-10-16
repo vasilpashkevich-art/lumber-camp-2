@@ -705,6 +705,14 @@ export function render(R, G, now) {
   if (P.hearth) { const q = Math.min(1, P.hearth.t / P.hearth.max), x = P.x - 40, y = P.y - 86 - hP, tt = performance.now() / 1000;   // v108: камень возвращения
     c.save(); c.globalCompositeOperation = 'lighter'; for (let k = 0; k < 3; k++) { const a = tt * 2 + k * 2.1; c.fillStyle = `rgba(120,200,255,${0.25 + 0.2 * q})`; c.beginPath(); c.ellipse(P.x + Math.cos(a) * 22, P.y - hP - 30 - Math.sin(a * 1.3) * 18 * q, 4 + q * 3, 4 + q * 3, 0, 0, 7); c.fill(); } c.fillStyle = `rgba(120,200,255,${0.12 + 0.25 * q})`; c.beginPath(); c.ellipse(P.x, P.y - hP, 26 + q * 10, 9 + q * 3, 0, 0, 7); c.fill(); c.restore();
     c.fillStyle = 'rgba(20,14,8,.9)'; c.fillRect(x - 1, y - 1, 82, 10); c.fillStyle = '#7ac8ff'; c.fillRect(x, y, 80 * q, 8); label(c, 'Возвращение домой', P.x, y - 5, '#d8f0ff', 13); }
+  if (P.craft && P.craft.q[0]) {   // v112: ремесло — пар (зелье), искры (плавка), сиреневое сияние (чары, распыление, жезл)
+    const k = P.craft.q[0].k, tt = performance.now() / 1000, x0 = P.x + 16, y0 = P.y - 34 - hP;
+    c.save();
+    if (k === 'brew') for (let i = 0; i < 6; i++) { const q = (tt * 0.6 + i / 6) % 1; c.fillStyle = `rgba(220,240,230,${0.45 * (1 - q)})`; c.beginPath(); c.arc(x0 + Math.sin(tt * 2 + i) * 6, y0 - q * 40, 4 + q * 7, 0, 7); c.fill(); }
+    else if (k === 'smelt') for (let i = 0; i < 8; i++) { const q = (tt * 1.4 + i / 8) % 1, a = i * 2.4; c.fillStyle = `rgba(255,${180 - q * 120 | 0},60,${1 - q})`; c.beginPath(); c.arc(x0 + Math.cos(a) * q * 26, y0 + 10 - Math.abs(Math.sin(a)) * q * 30, 2.2 * (1 - q) + 0.6, 0, 7); c.fill(); }
+    else { c.globalCompositeOperation = 'lighter'; for (let i = 0; i < 7; i++) { const q = (tt * 0.8 + i / 7) % 1, a = i * 0.9 + tt; c.fillStyle = `rgba(190,120,255,${0.7 * (1 - q)})`; c.beginPath(); c.arc(x0 - 16 + Math.cos(a) * (10 + q * 18), y0 - 4 - q * 30 + Math.sin(a) * 6, 2.6 * (1 - q) + 0.8, 0, 7); c.fill(); } }
+    c.restore();
+  }
   if (P.gather) { const q = Math.min(1, P.gather.t / P.gather.max), x = P.x - 40, y = P.y - 86 - hP; c.fillStyle = 'rgba(20,14,8,.9)'; c.fillRect(x - 1, y - 1, 82, 10); c.fillStyle = '#9ad87a'; c.fillRect(x, y, 80 * q, 8); label(c, HERBS[P.gather.v.herb].name, P.x, y - 5, '#ffe9a8', 13); }
   // всплывающие числа
   for (const f of R.floats) { f.t -= 1 / 60; f.y -= 32 / 60; c.globalAlpha = Math.min(1, f.t * 2); label(c, f.s, f.x, f.y, f.col, f.big ? 22 : 15, true); }

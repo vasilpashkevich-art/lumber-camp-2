@@ -14,7 +14,7 @@ async function runOn(b, phone) {
   await p.goto(URL); await p.waitForTimeout(400);
   await p.click('#selNew', { noWaitAfter: true }); await p.waitForSelector('#newName'); await p.waitForTimeout(150); await p.click('.clsCard[data-c=archer]'); await p.waitForTimeout(100);
   await ev(() => { document.querySelector('#newName').value = 'Травник'; document.querySelector('[data-x=ok]').click(); }); await p.waitForSelector('.modal', { state: 'detached' }); await p.waitForTimeout(200);
-  await p.click('.slot:nth-child(1)'); await p.click('#selEnter'); await p.waitForTimeout(900);
+  await p.click('.slot:nth-child(1)'); await p.click('#selEnter'); await p.waitForTimeout(900); await ev(() => { const C = window.__G.CRAFT; for (const k in C) C[k] = 0.02; });   // v112: ремесло со временем — здесь проверяем окна, не ожидание
   const quiet = () => ev(() => { const G = window.__G.G; G.mobs.forEach(m => { m.state = 'dead'; m.respawnAt = 1e9; }); });
   await quiet();
   // 1. лавка травницы в Столице рядом с героем

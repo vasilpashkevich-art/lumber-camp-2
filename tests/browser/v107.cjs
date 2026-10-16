@@ -14,7 +14,7 @@ async function runOn(b, phone) {
   await p.goto(URL); await p.waitForTimeout(400);
   await p.click('#selNew', { noWaitAfter: true }); await p.waitForSelector('#newName'); await p.waitForTimeout(150); await p.click('.clsCard[data-c=mage]'); await p.waitForTimeout(300); await p.screenshot({ path: `${OUT}/${tag}-new.png` });
   await ev(() => { document.querySelector('#newName').value = 'Чародей'; document.querySelector('[data-x=ok]').click(); }); await p.waitForSelector('.modal', { state: 'detached' }); await p.waitForTimeout(200);
-  await p.click('.slot:nth-child(1)'); await p.click('#selEnter'); await p.waitForTimeout(900);
+  await p.click('.slot:nth-child(1)'); await p.click('#selEnter'); await p.waitForTimeout(900); await ev(() => { const C = window.__G.CRAFT; for (const k in C) C[k] = 0.02; });   // v112: ремесло со временем — здесь проверяем окна, не ожидание
   await ev(() => { const G = window.__G.G; G.mobs.forEach(m => { m.state = 'dead'; m.respawnAt = 1e9; }); });
   // вещи и слитки в сумку
   await ev(() => { const G = window.__G.G, H = G.hero; H.bag.length = 0; window.__G.addStack(H, window.__G.makeStack('bar', 'copper', 12)); let k = 2;
