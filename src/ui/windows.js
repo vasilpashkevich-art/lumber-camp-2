@@ -83,7 +83,7 @@ function card(it, G, head = '') {
 }
 /** Что изменится, если надеть: построчно и итог. */
 function diffHtml(it, G) {
-  if (!it.slot || it.trinket) return '';
+  if (!it.slot) return '';
   const h = G.hero, cur = h.eq[it.slot], c = compareItem(h, it); if (!c) return '';
   const a = itemNums(cur), b = itemNums(it), keys = [...new Set([...Object.keys(b), ...Object.keys(a)])];
   const NAME = { dmg: 'урон', armor: 'броня', main: MAIN_STAT[h.cls].toLowerCase(), stam: 'выносливость' };
@@ -105,7 +105,7 @@ function tip(e, it, G, worn) {
   tipEl.style.left = left + 'px'; tipEl.style.top = Math.max(8, Math.min(innerHeight - hh - 8, r.top)) + 'px';
 }
 /** Зелёная стрелка на ячейке: вещь лучше надетой по урону в секунду. */
-const upMark = (it, G) => { if (!it.slot || it.trinket) return it.trinket && !G.hero.eq.trinket && it.cls === G.hero.cls ? '<span class="upmark" title="Место свободно">▲</span>' : ''; const c = compareItem(G.hero, it); return c && c.up ? '<span class="upmark" title="Лучше надетого">▲</span>' : ''; };
+const upMark = (it, G) => { if (!it.slot) return ''; const c = compareItem(G.hero, it); return c && c.up ? '<span class="upmark" title="Лучше надетого">▲</span>' : ''; };
 /** Подсказка-пояснение к строке характеристик. */
 function helpTip(e, title, text) {
   if (!tipEl) { tipEl = el('div', 'tip'); document.body.append(tipEl); }
@@ -255,7 +255,7 @@ export function openVendor(G, onChange, shop = null) {
   for (const t of m.querySelectorAll('.tab')) t.onclick = () => { for (const u of m.querySelectorAll('.tab')) u.classList.toggle('on', u === t); m.querySelector('.buy').hidden = t.dataset.t !== 'buy'; m.querySelector('.back').hidden = t.dataset.t !== 'back'; };
   m.querySelector('.sellall').onclick = () => {
     const h = G.hero;
-    for (const it of h.bag.slice()) { if (!it.slot) continue; const c = compareItem(h, it); if (!c || (h.eq[it.slot] && c.score <= 0 && !it.trinket)) sellItem(G, it); }
+    for (const it of h.bag.slice()) { if (!it.slot) continue; const c = compareItem(h, it); if (!c || (h.eq[it.slot] && c.score <= 0)) sellItem(G, it); }
     onChange(); draw();
   };
   m.querySelector('.sellore').onclick = () => { for (const it of G.hero.bag.slice()) if (it.kind === 'ore' || it.kind === 'bar' || it.kind === 'gem') sellItem(G, it); onChange(); draw(); };

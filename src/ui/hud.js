@@ -72,14 +72,14 @@ export function createHud(In) {
         H.slotK[i] = k; b.className = 'act'; ic.className = 'ico'; lk.hidden = true; n.textContent = ''; b.querySelector('.cd').style.height = '0'; b.querySelector('.cdt').textContent = '';
         if (a === 'attack') { ic.innerHTML = abImg('atk_' + h.cls); ic.classList.add('pic'); b.title = `Удар — ${key}. Нажать один раз — автоатака по цели, пока она жива или пока не выберете другую`; }
         else if (a in AB_IDX) { const A = AL[AB_IDX[a]]; ic.innerHTML = abImg(A.icon); ic.classList.add('pic'); b.title = `${A.name} — ${key}. ${A.d}`; lk.hidden = h.lvl >= A.lvl; lk.querySelector('b').textContent = `${A.lvl} ур.`; }
-        else if (a === 'trinket') { b.classList.add('tr'); if (tr) { ic.innerHTML = accIcon(tr.trinket, tr.rar, 44).replace(/width="44" height="44"/, 'width="100%" height="100%"'); b.title = `${T.name} — ${key}. ${T.d}`; } else { ic.innerHTML = ABIL_ICON.trinketEmpty; b.classList.add('empty'); b.title = `Аксессуар — ${key}. Наденьте аксессуар в окне героя`; } }
+        else if (a === 'trinket') { b.classList.add('tr'); if (tr) { ic.innerHTML = accIcon(tr.trinket, tr.rar, 44).replace(/width="44" height="44"/, 'width="100%" height="100%"'); b.title = T ? `${T.name} — срабатывает сам. ${T.d}` : tr.name; } else { ic.innerHTML = ABIL_ICON.trinketEmpty; b.classList.add('empty'); b.title = `Аксессуар — ${key}. Наденьте аксессуар в окне героя`; } }
         else if (a === 'pot2') { b.classList.add('pot2'); if (pid) { ic.innerHTML = potionIcon(pid, 'common', 44).replace(/width="44" height="44"/, 'width="100%" height="100%"'); n.textContent = pn; b.classList.toggle('none', !pn); b.title = `${POTIONS[pid].name} — ${key}. ${POTIONS[pid].d}`; } else { ic.innerHTML = ABIL_ICON.potionEmpty; b.classList.add('empty'); b.title = `Зелье — ${key}. Выпейте зелье из сумки — оно будет здесь`; } }
         else if (a === 'potion') { ic.innerHTML = ABIL_ICON.potion; b.title = `Зелье здоровья — ${key}`; }
         b.title += '. Перетащите, чтобы поменять ячейки местами';
       }
       if (a === 'attack') { cool(SLOTS[i], P.cd, attackOf(h).cd); b.classList.toggle('auto', !!P.auto); }
       else if (a in AB_IDX) { const A = AL[AB_IDX[a]]; cool(SLOTS[i], P.acd[A.id] || 0, A.cd); if (a === 'ab4') b.classList.toggle('on', P.buf.berserk > 0); }
-      else if (a === 'trinket') { if (T) cool(SLOTS[i], P.tcd, T.cd); }
+      else if (a === 'trinket') { if (T) cool(SLOTS[i], P.tcd, T.icd); b.classList.toggle('on', !!(T && T.buf && P.buf[T.buf] > 0)); }
       else if (a === 'potion') { cool(SLOTS[i], P.potCd, 20); n.textContent = h.potions; }
     });
     // умение открылось на новом уровне — его кнопка мигает

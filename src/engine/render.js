@@ -661,7 +661,7 @@ export function render(R, G, now) {
     const fh = lift(f0.x, f0.y), f = fh ? { ...f0, y: f0.y - fh, y2: f0.y2 != null ? f0.y2 - lift(f0.x2, f0.y2) : f0.y2, ty: f0.ty != null ? f0.ty - lift(f0.tx, f0.ty) : f0.ty } : f0;
     if (f.k === 'ring') { const q = 1 - f.t / 0.35; c.strokeStyle = f.col; c.globalAlpha = 1 - q; c.lineWidth = 6; c.beginPath(); c.ellipse(f.x, f.y, f.r + (f.max - f.r) * q, (f.r + (f.max - f.r) * q) * 0.5, 0, 0, 7); c.stroke(); c.globalAlpha = 1; }
     if (f.k === 'boom' && f.t > 0.3) for (let i = 0; i < (f.big ? 30 : 14); i++) R.parts.push(part(f.x, f.y, ['#ffd34d', '#ff7a2a', '#cf4b3f']));
-    if (f.k === 'bolt') { const q = f.t / f.max; c.strokeStyle = `rgba(255,240,140,${q})`; c.lineWidth = 3; c.beginPath(); c.moveTo(f.x, f.y); const n = 6; for (let i = 1; i <= n; i++) { const k = i / n; c.lineTo(f.x + (f.x2 - f.x) * k + (i < n ? (Math.random() - 0.5) * 22 : 0), f.y + (f.y2 - f.y) * k + (i < n ? (Math.random() - 0.5) * 22 : 0)); } c.stroke(); c.strokeStyle = `rgba(255,255,255,${q})`; c.lineWidth = 1.2; c.stroke(); }
+    if (f.k === 'bolt') { const q = f.t / f.max; c.strokeStyle = f.col ? f.col : `rgba(255,240,140,${q})`; c.globalAlpha = f.col ? q : 1; c.lineWidth = 3; c.beginPath(); c.moveTo(f.x, f.y); const n = 6; for (let i = 1; i <= n; i++) { const k = i / n; c.lineTo(f.x + (f.x2 - f.x) * k + (i < n ? (Math.random() - 0.5) * 22 : 0), f.y + (f.y2 - f.y) * k + (i < n ? (Math.random() - 0.5) * 22 : 0)); } c.stroke(); c.strokeStyle = `rgba(255,255,255,${q})`; c.lineWidth = 1.2; c.stroke(); c.globalAlpha = 1; }
     if (f.k === 'trail') { c.fillStyle = `rgba(255,240,200,${f.t * 1.4})`; c.beginPath(); c.ellipse(f.x, f.y - 14, 12, 18, 0, 0, 7); c.fill(); }
     const fo = OVER[f.k]; if (fo && vis(f.x, f.y, 260)) fo(c, f, f.max - f.t);
     if (f.k === 'spawn') { c.fillStyle = `rgba(255,255,255,${f.t})`; c.beginPath(); c.ellipse(f.x, f.y, 26 * (1.4 - f.t), 10, 0, 0, 7); c.fill(); }
@@ -806,7 +806,10 @@ function drawHero(c, G, look, t) {
   }
   if (P.mine) look = { ...look, weapon: { m: 'pick', P: PICK_P }, swing: 'chop', key: look.key + '|pick' };
   const sp = personSpr(look, view, mode, f), breathe = mode === 'idle' ? Math.sin(t * 2) * 0.4 : 0;
-  drawFrame(c, P.hurt > 0 ? flashOf(sp) : sp, P.x - (P.hurt > 0 && view === 'side' ? dir * 2 : 0), P.y + breathe, dir, PEOPLE_K, P.dead ? Math.max(0.35, 1 - P.deadT / 3) : 1);
+  // v110: аксессуары — тень-двойник и призрачные волки рядом
+  if (B.mirror > 0) { c.save(); c.globalAlpha = 0.42 * Math.min(1, B.mirror / 0.5); c.filter = 'hue-rotate(220deg) saturate(0.6) brightness(0.7)'; drawFrame(c, sp, P.x - 34 * dir, P.y - 6, dir, PEOPLE_K); c.restore(); }
+  if (B.pack > 0) { const a = 0.5 * Math.min(1, B.pack / 0.5), wf = Math.floor(t * 10) % 8; c.save(); c.globalAlpha = a; c.filter = 'saturate(0.3) brightness(1.5) hue-rotate(170deg)'; for (const s of [-1, 1]) drawFrame(c, beastSpr('wolf', 'side', P.moving ? 'walk' : 'idle', P.moving ? wf : 0), P.x + s * 46, P.y + 14 + s * 6, dir, 1); c.restore(); }
+  drawFrame(c, P.hurt > 0 ? flashOf(sp) : sp, P.x - (P.hurt > 0 && view === 'side' ? dir * 2 : 0), P.y + breathe, dir, PEOPLE_K, P.dead ? Math.max(0.35, 1 - P.deadT / 3) : B.cloak > 0 ? 0.35 : 1);
   if (B.berserk > 0) V.berserkAura(c, P.x, P.y + 3, t + 0.5, Math.min(1, B.berserk / 0.5) * 0.3, 9);
   if (!P.dead) gearFx(c, fxListOf(G.hero), P.x, P.y + breathe, t, 37 * PEOPLE_K, dir);   // v92: живые эффекты героических вещей
   if (P.poison) { c.fillStyle = 'rgba(120,220,80,.6)'; for (let i = 0; i < 3; i++) c.fillRect(P.x - 10 + i * 9, P.y - 60 - ((t * 40 + i * 13) % 20), 3, 3); }

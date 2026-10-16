@@ -4,7 +4,7 @@ import * as Q from './systems/quests.js';
 import { ZONES } from '../data/zones.js';
 import { buildNav } from './world/relief.js';
 import { buildWorld, inCity } from './world/world.js';
-import { createGame, update, abilsOf, refreshStats } from './systems/game.js';
+import { createGame, update, abilsOf, refreshStats, trinketProc } from './systems/game.js';
 import { addStack } from './systems/mining.js';
 import { loadHero, saveHero, migrate, loadShared, saveShared } from './engine/save.js';
 import { createRenderer, render, ZOOM } from './engine/render.js';
@@ -25,7 +25,7 @@ import { dist } from './engine/util.js';
 import { $, toast, zoneTitle, TOUCH, T } from './ui/dom.js';
 import { RAR_COL } from '../data/balance.js';
 
-const VERSION = 109;
+const VERSION = 110;
 /** Приближение камеры на шаг: +1 ближе, −1 дальше. */
 let zoomT = 0;
 function zoomBy(d) {
@@ -72,7 +72,7 @@ function boot() {
   miniBtns();
   $('#btnBag').onclick = () => charWin(); $('#btnHearth').onclick = () => { if (G && !document.querySelector('.modal')) startHearth(G); }; $('#btnMenu').onclick = () => menu(); $('#btnMap').onclick = () => mapWin(); $('#btnProf').onclick = () => profWin(); $('#btnDg').onclick = () => dgWin(); $('#btnQuest').onclick = () => qWin(); $('#qtrack').onclick = () => qWin(); $('#mini').onclick = () => mapWin(); $('#pfRing').onclick = () => { if (G && !document.querySelector('.modal')) devWin(); };
   $('#ver').textContent = 'версия ' + VERSION;
-  if (location.hash === '#dev') window.__G = { get G() { return G; }, start, toSelect, R: () => R, rollDrop, makeItem, doll, makeTrinket, makeStack, makePick, addStack, refresh: () => { refreshStats(G); hud.update(); }, spriteStats, Q };
+  if (location.hash === '#dev') window.__G = { get G() { return G; }, start, toSelect, R: () => R, rollDrop, makeItem, doll, makeTrinket, makeStack, makePick, addStack, refresh: () => { refreshStats(G); hud.update(); }, spriteStats, Q, trinketProc };
   toSelect();
 }
 

@@ -90,7 +90,7 @@ export const RAR_PROPS = { start: 0, common: 0, good: 1, rare: 2, epic: 3 };   /
 // --- вещи (v59): главный параметр класса и дополнительные свойства
 export const ITEM = {
   main: { base: 0.5, per: 0.45 },                              // главный параметр = (base + per·ур.) × место × цвет
-  slot: { weapon: 1.2, chest: 1.1, legs: 1, head: 0.85, neck: 0.9, ring: 0.8 },   // доля места в главном параметре и свойствах
+  slot: { weapon: 1.2, chest: 1.1, legs: 1, head: 0.85, neck: 0.9, ring: 0.8, trinket: 0.9 },   // доля места в главном параметре и свойствах
   propRar: { good: 1, rare: 1.3, epic: 1.6 },                  // сила свойства по цвету
   agiCrit: 20,                                                 // Лучник: каждые 20 Ловкости — +1% крита
   baseCrit: 10, critMul: 1.7,                                  // крит у всех без вещей и во сколько раз сильнее

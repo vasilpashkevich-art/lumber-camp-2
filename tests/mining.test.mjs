@@ -7,7 +7,7 @@ import { LOOT, TRINKET_DROP } from '../data/balance.js';
 import { ORES, MINE, veinColor } from '../data/mining.js';
 import { buildWorld } from '../src/world/world.js';
 import { newHero, heroStats } from '../src/entities/hero.js';
-import { createGame, update, sellItem, useTrinket } from '../src/systems/game.js';
+import { createGame, update, sellItem, trinketProc } from '../src/systems/game.js';
 import { learnMining, buyPick, smelt, countOf, addStack, veinNear } from '../src/systems/mining.js';
 import { makeItem, makeTrinket, makeStack } from '../src/systems/items.js';
 import { migrate } from '../src/engine/save.js';
@@ -91,13 +91,16 @@ test('аксессуар с вожака: 10%, а 9-й подряд — точн
   assert.ok(got > 0, 'выпадает'); assert.ok(maxRun <= TRINKET_DROP.pity, `без аксессуара подряд: ${maxRun}`);
 });
 
-test('аксессуары работают: сердце, ярость, флакон, око, шипы', () => {
-  const G = game(); quiet(G); const h = G.hero;
-  h.eq.trinket = makeTrinket('warrior', 6, 'rare', null, 'breath'); G.P.hp = 10; useTrinket(G); assert.ok(G.P.hp > 10 + G.st.maxHp * 0.3); assert.ok(G.P.tcd > 0);
-  G.P.tcd = 0; h.eq.trinket = makeTrinket('warrior', 6, 'rare', null, 'stoneheart'); useTrinket(G); assert.ok(G.P.buf.stone > 0);
+test('аксессуары (v110 — пассивные, сами с вероятностью): флакон, сердце, око, клич; параметры и перезарядка', () => {
+  const G = game(); quiet(G); const h = G.hero; G.rand = () => 0.01;
+  h.eq.trinket = makeTrinket('warrior', 6, 'rare', null, 'breath'); assert.ok(h.eq.trinket.main > 0 && h.eq.trinket.stam > 0, 'главная характеристика и выносливость');
+  G.P.hp = G.st.maxHp * 0.5; assert.ok(!trinketProc(G, 'low'), 'выше 35% — не срабатывает'); G.P.hp = 10; assert.ok(trinketProc(G, 'low')); assert.ok(G.P.hp > 10 + G.st.maxHp * 0.2); assert.ok(G.P.tcd > 0);
+  assert.ok(!trinketProc(G, 'low'), 'внутренняя перезарядка');
+  G.P.tcd = 0; h.eq.trinket = makeTrinket('warrior', 6, 'rare', null, 'stoneheart'); assert.ok(!trinketProc(G, 'hit'), 'не своё событие'); trinketProc(G, 'hurt'); assert.ok(G.P.buf.stone > 0);
+  G.P.tcd = 0; G.rand = () => 0.99; assert.ok(!trinketProc(G, 'hurt'), 'шанс не выпал'); G.rand = () => 0.01;
   const m = G.mobs.find(x => x.kind === 'wolf'); m.state = 'idle'; m.hp = m.max = 9999; m.x = G.P.x + 80; m.y = G.P.y;
-  G.P.tcd = 0; h.eq.trinket = makeTrinket('warrior', 6, 'rare', null, 'stormeye'); useTrinket(G); assert.ok(m.hp < 9999, 'молния попала');
-  G.P.tcd = 0; h.eq.trinket = makeTrinket('warrior', 6, 'rare', null, 'rage'); useTrinket(G); assert.ok(G.P.buf.rage > 0);
+  G.P.tcd = 0; h.eq.trinket = makeTrinket('warrior', 6, 'rare', null, 'stormeye'); trinketProc(G, 'hit'); assert.ok(m.hp < 9999, 'молния попала');
+  G.P.tcd = 0; h.eq.trinket = makeTrinket('warrior', 6, 'rare', null, 'rage'); trinketProc(G, 'hit'); assert.ok(G.P.buf.rage > 0);
 });
 
 test('старое сохранение получает новые места, навык и пустые жилы', () => {

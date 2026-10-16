@@ -1,7 +1,7 @@
 // Сохранения: до 5 героев в браузере, у каждого свой ключ. Перенос — файлом.
 // Ключи ветки II: lumber-camp2-*  (не пересекаются с основной игрой).
 import { HERO_V } from '../entities/hero.js';
-import { remakeItem, lookUpgrade, epicUpgrade } from '../systems/items.js';
+import { remakeItem, lookUpgrade, epicUpgrade , trinketStats } from '../systems/items.js';
 import { fixSlots } from '../systems/bank.js';
 import { LOOT } from '../../data/balance.js';
 
@@ -66,7 +66,7 @@ export function migrate(h) {
   // v73: таланты — уровень ряда -> id выбранного
   h.talents = h.talents && typeof h.talents === 'object' ? h.talents : {};
   // v92: фиолетовые вещи — героическая модель и новое название (каждый раз, без вреда для уже обновлённых)
-  for (const it of [...Object.values(h.eq || {}), ...h.bag, ...h.bank, ...(h.buyback || []).map(b => b && (b.it || b))]) if (it && it.slot) { it.cls = it.cls || h.cls; epicUpgrade(it); }
+  for (const it of [...Object.values(h.eq || {}), ...h.bag, ...h.bank, ...(h.buyback || []).map(b => b && (b.it || b))]) if (it && it.slot) { it.cls = it.cls || h.cls; epicUpgrade(it); if (it.trinket && it.tv !== 1) trinketStats(it, h.cls); }   // v110: аксессуары — параметры и новые названия
   if (h.v < HERO_V) h.v = HERO_V;
   return h;
 }
@@ -96,7 +96,7 @@ export function importAll(text) {
 // общий сундук всех героев (v72): отдельный ключ, вещи с теми же правилами, что в сумке
 const SHARED = 'lumber-camp2-shared';
 export function loadShared() {
-  try { const d = JSON.parse(get(SHARED) || 'null'); const items = (d && Array.isArray(d.items) ? d.items : []).filter(Boolean).map(it => it.slot && it.cls ? epicUpgrade(lookUpgrade(it, it.cls) || it) : it); return { items: fixSlots(items, LOOT.shared) }; } catch (e) { return { items: [] }; }
+  try { const d = JSON.parse(get(SHARED) || 'null'); const items = (d && Array.isArray(d.items) ? d.items : []).filter(Boolean).map(it => it.slot && it.cls ? epicUpgrade(lookUpgrade(it, it.cls) || it) : it).map(it => it.trinket && it.tv !== 1 ? trinketStats(it, it.cls) : it); return { items: fixSlots(items, LOOT.shared) }; } catch (e) { return { items: [] }; }
 }
 export const saveShared = S => set(SHARED, JSON.stringify({ v: 1, items: S.items }));
 

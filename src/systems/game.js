@@ -29,7 +29,7 @@ export function createGame(hero, W, opts = {}) {
       x: start.x, y: start.y, hp: hero.hp == null ? st.maxHp : Math.min(hero.hp, st.maxHp), face: 0, dir: 1,
       cd: 0, acd: {}, potCd: 0, target: null, sit: false, dash: null, atkT: 0, atkDur: 0.35, mvx: 0, mvy: 1, deadT: 0, lastCombat: -99, weak: 0, poison: null, slow: 0,
       whirl: 0, whirlT: 0, volley: 0, swing: 0, shot: 0, dead: false, moving: false, hurt: 0, step: 0,
-      mine: null, gather: null, auto: null, goal: null, tcd: 0, buf: { stone: 0, rage: 0, wind: 0, thorns: 0, berserk: 0 }, berExt: 0, whirlR: 92, whirlMax: 1.2,
+      mine: null, gather: null, auto: null, goal: null, tcd: 0, buf: { stone: 0, rage: 0, wind: 0, thorns: 0, berserk: 0, mirror: 0, pack: 0, cloak: 0 }, petT: 0, berExt: 0, whirlR: 92, whirlMax: 1.2,
     },
     mobs: [], shots: [], ev: [], fx: [], corpses: [], corpseSeq: 0, areas: [], traps: [], fxSeq: 1,
   };
@@ -109,7 +109,7 @@ export function update(G, dt, I) {
     if (P.dash) dashTick(G, dt);
     else if (P.moving && P.rooted > 0) { P.moving = false; }   // v94: сжат кольцами змеи
     else if (P.moving) {
-      const sp = HERO.speed * (P.slow > 0 && !(P.buf.berserk > 0) ? 0.6 : 1) * (P.whirl > 0 ? 0.8 : 1) * (P.buf.wind > 0 ? 1.5 : 1) * elixirMods(G.hero).speed;
+      const sp = HERO.speed * (P.slow > 0 && !(P.buf.berserk > 0) ? 0.6 : 1) * (P.whirl > 0 ? 0.8 : 1) * (P.buf.wind > 0 ? 1.4 : 1) * elixirMods(G.hero).speed;
       const [nx, ny] = moveTo(G.W, P.x, P.y, P.x + mx * sp * dt, P.y + my * sp * dt);
       if (!G.rings || !G.rings.length || !ringBlocks(G, P.x, P.y, nx, ny)) { P.x = nx; P.y = ny; }   // кольцо змеи не выпускает, кроме как через просвет
       if (Math.abs(mx) > 0.1) P.dir = mx < 0 ? -1 : 1;
@@ -138,7 +138,8 @@ export function update(G, dt, I) {
     if (I.potion) drinkPotion(G);
     if (I.potion2) drinkLast(G);
     if (I.interact) interact(G);
-    if (I.trinket) useTrinket(G);
+    if (I.trinket) useTrinket(G);   // v110: аксессуар пассивный — кнопка только подсказывает
+    trinketPets(G, dt);
     if (P.goal) goalArrive(G);
     abilityTick(G, dt);
     mineTick(G, dt); herbTick(G, dt); qTick(G, dt);
@@ -193,7 +194,7 @@ function heroAttack(G, tap, force = null) {
     else { if (tap && t) emit(G, { k: 'toast', s: 'Слишком далеко', id: 'far' }); return; }
   }
   P.target = t; P.face = Math.atan2(t.y - P.y, t.x - P.x); P.dir = Math.cos(P.face) < 0 ? -1 : 1;
-  P.cd = G.st.cd / (P.buf.rage > 0 ? 1.3 : 1) / (P.buf.berserk > 0 ? 1 + ABX(G, 'berserk').haste : 1); P.lastCombat = G.t; sfx(G, A.sfx);
+  P.cd = G.st.cd / (P.buf.rage > 0 ? 1.2 : 1) / (P.buf.berserk > 0 ? 1 + ABX(G, 'berserk').haste : 1); P.lastCombat = G.t; sfx(G, A.sfx);
   startAtk(P, A.kind === 'melee' ? 0.32 : 0.42);
   if (A.kind === 'melee') { P.swing = 0.22; strike(G, t, G.st.hit, 'melee'); }
   else {
@@ -233,6 +234,7 @@ function strike(G, m, base, src, opt = {}) {
   let cc = (st.crit ?? ITEM.baseCrit) + elixirMods(H).crit;
   if (passive(G, 'execute') && m.hp < m.max * (hasTal(H, 'aim') ? 0.5 : ABX(G, 'execute').below)) cc += ABX(G, 'execute').crit;   // Добивание
   const crit = !opt.noCrit && G.rand() < cc / 100; if (crit) { v *= ITEM.critMul; G.fx.push(fx(G, 'critBurst', m.x, m.y, 0.35)); }
+  if (G.P.buf.cloak > 0 && !opt.proc && src !== 'dot') { v *= 2; G.P.buf.cloak = 0; emit(G, { k: 'txt', x: m.x, y: m.y - m.r - 34, s: 'из тени!', col: '#c8a0ff' }); }   // v110: Плащ сумерек
   v = Math.max(1, v);
   // Ярость: Неистовство — каждый удар продлевает её
   if (G.P.buf.berserk > 0 && hasTal(H, 'frenzy') && G.P.berExt < 6 && src !== 'dot') { G.P.buf.berserk += 0.5; G.P.berExt += 0.5; }
@@ -243,13 +245,15 @@ function strike(G, m, base, src, opt = {}) {
   if (opt.burn) { const lb = opt.big && hasTal(H, 'longBurn'); m.burn = { t: lb ? 6 : 3, dps: base * (lb ? 0.4 : 0.3) }; }
   // Возгорание (маг, пассивное): крит огнём поджигает
   if (crit && opt.fire && passive(G, 'ignite')) { const b = ABX(G, 'ignite').burn; m.burn = { t: 4, dps: Math.max(m.burn ? m.burn.dps : 0, v * b) }; G.fx.push(fx(G, 'igniteFlash', m.x, m.y, 0.5)); emit(G, { k: 'txt', x: m.x, y: m.y - m.r - 34, s: 'возгорание', col: '#ffb347' }); }
+  if (!opt.proc && src !== 'dot' && src !== 'thorns') trinketProc(G, 'hit', m);   // v110: аксессуар — «когда ваш удар попал»
+  if (m.state === 'dead') return;
   if (m.hp <= 0) { killMob(G, m); return; }
   aggro(G, m);
   if (m.D.trait === 'flee' && !m.fled && m.hp < m.max * 0.25) { m.fled = true; m.flee = 2.2; emit(G, { k: 'txt', x: m.x, y: m.y - m.r - 26, s: 'убегает!', col: '#f5e05a' }); }
 }
 
 function aggro(G, m) {
-  if (m.state === 'dead' || m.state === 'return' || G.P.dead) return;
+  if (m.state === 'dead' || m.state === 'return' || G.P.dead || G.P.buf.cloak > 0) return;   // v110: в тени не замечают
   const was = m.state; m.state = 'chase'; G.P.lastCombat = G.t;
   if (was !== 'chase' && m.D.trait === 'pack') {
     const near = G.mobs.filter(o => o !== m && o.camp === m.camp && o.state === 'idle' && dist(o.x, o.y, m.x, m.y) < (m.D.packR || 320)).sort((a, b) => dist(a.x, a.y, m.x, m.y) - dist(b.x, b.y, m.x, m.y));
@@ -266,6 +270,7 @@ function killMob(G, m) {
   m.state = 'dead'; m.hp = 0; m.bleed = null; m.burn = null; m.venom = null; m.frozen = 0; m.respawnAt = G.W.Z.dungeon ? NEVER : G.t + (m.D.rare ? RESPAWN.rare : RESPAWN.normal);   // v90: в подземелье не возрождаются до обновления
   H.dead[m.key] = m.respawnAt; H.stats.kills++;
   qOnKill(G, m);   // v95: задания
+  trinketProc(G, 'kill', m);   // v110: аксессуар — «когда враг убит»
   if (m.D.boss && G.dg) { G.dg.bosses[m.kind] = true; emit(G, { k: 'boss', name: m.D.name, final: !!m.D.final }); if (dgUnsealed(H, G.W.Z) && G.W.sealed.size) { G.W.unseal(); emit(G, { k: 'toast', s: 'Запечатанный ход в Тронный зал открыт!', kind: 'good', id: 'seal' }); } if (dgDone(H, G.W.Z)) openPortal(G); }
   if (P.target === m) P.target = null;
   sfx(G, 'kill');
@@ -401,6 +406,7 @@ function useAbility(G, i) {
     if (A.id === 'bleed') shot('arrow', G.st.hit * A.mul, { bleed: bleedOf(G, A), red: true, rico: hasTal(H, 'ricochet') ? 2 : 0 });
   }
   P.acd[A.id] = Math.max(0.5, cd) * (1 - ((G.st.p && G.st.p.cdr) || 0) / 100); P.lastCombat = G.t; P.sit = false; sfx(G, A.sfx);
+  trinketProc(G, 'ability');   // v110: Песочные часы
 }
 const bleedOf = (G, A) => ({ t: A.bleed.t, dmg: G.st.hit * A.bleed.mul * (hasTal(G.hero, 'barbs') ? 1.5 : 1) });
 /** Выстрел умения героя из точки (x0,y0) — по умолчанию от героя — в цель t. */
@@ -479,31 +485,45 @@ function trapsTick(G, dt) {
   G.traps = G.traps.filter(t => t.t > 0);
 }
 
-// ---------------------------------------------------------------- аксессуар (клавиша 1)
+// ---------------------------------------------------------------- аксессуар (v110): пассивный, как в WoW
+export const trinketOf = G => { const it = G.hero.eq.trinket; return it ? TRINKETS.find(t => t.id === it.trinket) : null; };
+/** Клавиша 1 больше ничего не делает — подсказывает, что аксессуар срабатывает сам. */
 export function useTrinket(G) {
-  const P = G.P, H = G.hero, it = H.eq.trinket;
-  if (!it) { emit(G, { k: 'toast', s: 'Аксессуар не надет', id: 'trk' }); return; }
-  const T = TRINKETS.find(t => t.id === it.trinket); if (!T || T.passive) return;
-  if (P.tcd > 0) { emit(G, { k: 'toast', s: `${T.name}: ещё ${Math.ceil(P.tcd)} с`, id: 'trk' }); return; }
-  if (T.id === 'stoneheart') P.buf.stone = 6;
-  else if (T.id === 'rage') P.buf.rage = 10;
-  else if (T.id === 'windfeather') P.buf.wind = 5;
-  else if (T.id === 'thorns') P.buf.thorns = 8;
-  else if (T.id === 'breath') { const v = G.st.maxHp * 0.35; P.hp = Math.min(G.st.maxHp, P.hp + v); emit(G, { k: 'txt', x: P.x, y: P.y - 50, s: `+${Math.round(v)}`, col: '#7cff7c' }); }
-  else if (T.id === 'stormeye') {
-    const list = G.mobs.filter(m => hostile(m) && dist(P.x, P.y, m.x, m.y) < 420).sort((a, b) => dist(P.x, P.y, a.x, a.y) - dist(P.x, P.y, b.x, b.y)).slice(0, 3);
-    if (!list.length) { emit(G, { k: 'toast', s: 'Рядом нет врагов', id: 'trk' }); return; }
-    for (const m of list) { G.fx.push({ k: 'bolt', x: P.x, y: P.y - 30, x2: m.x, y2: m.y - m.r, t: 0.35, max: 0.35 }); strike(G, m, G.st.hit * 1.4, 'spell', { sure: true }); }
-  } else if (T.id === 'hourglass') { const AB = abilsOf(H); for (const a of AB.slice(0, 2)) P.acd[a.id] = 0; }   // v90: сброс C и V
-  else if (T.id === 'gravity') {   // v90: стянуть врагов вокруг в точку и оглушить
-    const list = G.mobs.filter(m => hostile(m) && !m.D.boss && dist(P.x, P.y, m.x, m.y) < 300);
-    if (!list.length) { emit(G, { k: 'toast', s: 'Рядом нет врагов', id: 'trk' }); return; }
-    const cx = list.reduce((a, m) => a + m.x, 0) / list.length, cy = list.reduce((a, m) => a + m.y, 0) / list.length;
-    for (const m of list) { const a = Math.atan2(m.y - cy, m.x - cx); m.x = cx + Math.cos(a) * 18; m.y = cy + Math.sin(a) * 18; setStatus(G, m, 'stun', 2); }
+  const T = trinketOf(G);
+  emit(G, { k: 'toast', s: T ? `${T.name} срабатывает сам — нажимать не нужно` : 'Аксессуар не надет — наденьте его в окне героя', id: 'trk' });
+}
+/** Срабатывание аксессуара: on — событие, m — враг (если есть). Возвращает true, если сработал. */
+export function trinketProc(G, on, m) {
+  const P = G.P, T = trinketOf(G); if (!T || T.on !== on || P.tcd > 0) return false;
+  if (on === 'low' && P.hp > G.st.maxHp * T.below) return false;
+  if (T.ch < 1 && G.rand() >= T.ch) return false;
+  const near = r => G.mobs.filter(o => hostile(o) && dist(P.x, P.y, o.x, o.y) < r).sort((a, b) => dist(P.x, P.y, a.x, a.y) - dist(P.x, P.y, b.x, b.y));
+  if (T.buf) { P.buf[T.buf] = T.t; if (T.buf === 'mirror' || T.buf === 'pack') P.petT = 0.4; }
+  if (T.buf === 'cloak') { for (const o of G.mobs) if (o.state === 'chase') o.state = 'return'; P.target = null; P.auto = null; }
+  if (T.heal) { const v = G.st.maxHp * T.heal; P.hp = Math.min(G.st.maxHp, P.hp + v); emit(G, { k: 'txt', x: P.x, y: P.y - 50, s: `+${Math.round(v)}`, col: '#7cff7c' }); }
+  if (T.bolt) { const list = near(420).slice(0, 3); if (!list.length) return false; for (const o of list) { G.fx.push({ k: 'bolt', x: P.x, y: P.y - 30, x2: o.x, y2: o.y - o.r, t: 0.35, max: 0.35 }); strike(G, o, G.st.hit * T.bolt, 'spell', { sure: true, proc: true }); } }
+  if (T.id === 'hourglass') { const AB = abilsOf(G.hero); for (const a of AB.slice(0, 2)) P.acd[a.id] = 0; }
+  if (T.id === 'gravity') {
+    const list = near(300).filter(o => !o.D.boss); if (!list.length) return false;
+    const cx = list.reduce((a, o) => a + o.x, 0) / list.length, cy = list.reduce((a, o) => a + o.y, 0) / list.length;
+    for (const o of list) { const a = Math.atan2(o.y - cy, o.x - cx); o.x = cx + Math.cos(a) * 18; o.y = cy + Math.sin(a) * 18; setStatus(G, o, 'stun', 2); }
     G.fx.push({ k: 'slam', x: cx, y: cy, r: 120, t: 0.6, max: 0.6 });
-  } else return;   // остальные фиолетовые — позже
-  P.tcd = T.cd; P.sit = false; sfx(G, 'trinket');
-  emit(G, { k: 'txt', x: P.x, y: P.y - 70, s: T.name, col: '#9ad0ff' });
+  }
+  if (T.id === 'phoenix') {   // вместо гибели — встать с половиной здоровья и огненной вспышкой
+    P.hp = G.st.maxHp * 0.5; G.fx.push({ k: 'slam', x: P.x, y: P.y, r: 140, t: 0.8, max: 0.8 });
+    for (const o of near(160)) strike(G, o, G.st.hit, 'spell', { sure: true, proc: true, fire: true });
+  }
+  P.tcd = T.icd; sfx(G, 'trinket'); emit(G, { k: 'txt', x: P.x, y: P.y - 76, s: T.name, col: '#c8a0ff' });
+  return true;
+}
+/** Тень (Зеркало двойника) и призрачные волки (Клык вожака): раз в секунду бьют врагов рядом. */
+function trinketPets(G, dt) {
+  const P = G.P; if (!(P.buf.mirror > 0 || P.buf.pack > 0) || P.dead) return;
+  if ((P.petT -= dt) > 0) return; P.petT = 1;
+  if (P.buf.mirror > 0) { const t = P.target && hostile(P.target) && dist(P.x, P.y, P.target.x, P.target.y) < 320 ? P.target : G.mobs.filter(o => hostile(o) && o.state === 'chase' && dist(P.x, P.y, o.x, o.y) < 320)[0];
+    if (t) { G.fx.push({ k: 'bolt', x: P.x - 26, y: P.y - 34, x2: t.x, y2: t.y - t.r, t: 0.25, max: 0.25, col: '#b46aff' }); strike(G, t, G.st.hit * 0.5, 'spell', { sure: true, proc: true }); } }
+  if (P.buf.pack > 0) { const list = G.mobs.filter(o => hostile(o) && dist(P.x, P.y, o.x, o.y) < 260).sort((a, b) => dist(P.x, P.y, a.x, a.y) - dist(P.x, P.y, b.x, b.y)).slice(0, 2);
+    list.forEach((o, i) => { G.fx.push({ k: 'spawn', x: o.x, y: o.y, t: 0.4, max: 0.4 }); strike(G, list[i], G.st.hit * 0.35, 'melee', { sure: true, proc: true }); }); }
 }
 
 function drinkPotion(G) {
@@ -629,13 +649,13 @@ function doInteract(G, t) {
 function hurtHero(G, v, m, dot) {
   const P = G.P; if (P.dead) return;
   if (dot === 'pierce') {   // v94: умение босса — доля здоровья, мимо брони, уклонения и блока; спасают только уход из площади, Каменное сердце и зелье стойкости
-    if (P.buf.stone > 0) v *= 0.5; v *= elixirMods(G.hero).taken; P.hurt = 0.25; emit(G, { k: 'hdmg', v }); sfx(G, 'hurt');
+    if (P.buf.stone > 0) v *= 0.7; v *= elixirMods(G.hero).taken; P.hurt = 0.25; emit(G, { k: 'hdmg', v }); sfx(G, 'hurt');
     if (P.mine) stopMine(G); if (P.gather) stopGather(G); if (P.hearth) stopHearth(G, 'Перенос сбит ударом');
   } else if (!dot) {
     const p = G.st.p || {};
     if (p.dodge > 0 && G.rand() < p.dodge / 100) { emit(G, { k: 'txt', x: P.x, y: P.y - 60, s: 'уклонение', col: '#cfeaff' }); P.lastCombat = G.t; return; }
     if (p.block > 0 && G.rand() < p.block / 100) { emit(G, { k: 'txt', x: P.x, y: P.y - 60, s: 'блок', col: '#e8e0cc' }); P.lastCombat = G.t; sfx(G, 'hammer'); return; }
-    if (P.buf.stone > 0) v *= 0.5;   // Каменное сердце
+    if (P.buf.stone > 0) v *= 0.7;   // Гранитное сердце (v110: −30%)
     v *= elixirMods(G.hero).taken;   // Зелье стойкости
     if (P.buf.berserk > 0) v *= hasTal(G.hero, 'iron') ? 0.9 : 1 + ABX(G, 'berserk').taken;   // Ярость: открыт для ударов (Несокрушимость — наоборот)
     v *= (1 - armorCut(G.st.armor, G.hero.lvl)); P.hurt = 0.18; emit(G, { k: 'hdmg', v }); sfx(G, 'hurt');
@@ -643,7 +663,9 @@ function hurtHero(G, v, m, dot) {
     if (P.mine) stopMine(G, 'Копать помешали'); if (P.gather) stopGather(G, 'Собирать помешали'); if (P.hearth) stopHearth(G, 'Перенос сбит ударом');
   }
   P.hp -= v; P.lastCombat = G.t; P.sit = false;
-  if (P.hp <= 0) heroDie(G);
+  if (!dot) trinketProc(G, 'hurt', m);
+  if (P.hp > 0) trinketProc(G, 'low');
+  if (P.hp <= 0 && !trinketProc(G, 'death')) heroDie(G);
 }
 
 function heroDie(G) {

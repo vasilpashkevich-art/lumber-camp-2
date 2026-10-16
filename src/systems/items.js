@@ -2,7 +2,7 @@
 import { ENCH_MATS, ENCHANTS } from '../../data/enchanting.js';
 import { GEAR_NAMES, MAIN_STAT_TO } from '../../data/classes.js';
 import { RAR_MUL, RAR_IDX, RAR_PROPS, LOOT, ITEM, PROPS } from '../../data/balance.js';
-import { TRINKETS } from '../../data/trinkets.js';
+import { TRINKETS, TRINKET_ON, TRINKET_STATS } from '../../data/trinkets.js';
 import { ORES, GEMS, SOCKET } from '../../data/mining.js';
 import { HERBS } from '../../data/herbs.js';
 import { POTIONS, ALCH } from '../../data/alchemy.js';
@@ -110,8 +110,22 @@ export function rollDrop(cls, mobL, rare, r = Math.random, table = null) {
 
 /** Аксессуар: способность вместо параметров. Только синие и фиолетовые; id — из TRINKETS (без него — случайный нужного цвета). */
 export function makeTrinket(cls, ilvl, rar = 'rare', r = Math.random, id = null) {
+  r = r || Math.random;
   const pool = TRINKETS.filter(t => t.rar === rar), T = (id && TRINKETS.find(t => t.id === id)) || pool[Math.floor(r() * pool.length)];
-  return { id: uid(), cls, slot: 'trinket', ilvl, rar: T.rar, tier: 3, trinket: T.id, name: T.name, price: Math.round((40 + ilvl * 12) * (T.rar === 'epic' ? 3 : 1)) };
+  const it = { id: uid(), cls, slot: 'trinket', ilvl, rar: T.rar, tier: 3, trinket: T.id, name: T.name, price: Math.round((40 + ilvl * 12) * (T.rar === 'epic' ? 3 : 1)), seed: 1 + Math.floor(r() * 2147483000) };
+  return trinketStats(it, cls);
+}
+/** v110: постоянные параметры аксессуара (главная характеристика + второй по смыслу) — по зерну, повторный вызов даёт то же. */
+export function trinketStats(it, cls = it.cls) {
+  const T = TRINKET(it.trinket); if (!T) return it;
+  it.cls = it.cls || cls; it.seed = it.seed || seedOf(it); const r = rng(it.seed), m = RAR_MUL[it.rar] || 1.5, lv = it.ilvl || 1;
+  it.main = Math.max(1, Math.round((ITEM.main.base + ITEM.main.per * lv) * ITEM.slot.trinket * m * (0.9 + r() * 0.2)));
+  delete it.armor; delete it.stam; it.props = {};
+  const st = T.stat === 'dodge' && it.cls === 'warrior' ? 'armor' : T.stat;
+  if (st === 'armor') it.armor = Math.round((TRINKET_STATS.armor.base + TRINKET_STATS.armor.per * lv) * m * (0.9 + r() * 0.2));
+  else if (st === 'stam') it.stam = Math.round((TRINKET_STATS.stam.base + TRINKET_STATS.stam.per * lv) * m * (0.9 + r() * 0.2));
+  else it.props[st] = propVal(st, 'trinket', lv, it.rar, r);
+  it.name = T.name; it.tv = 1; return it;
 }
 export const TRINKET = id => TRINKETS.find(t => t.id === id);
 
@@ -162,7 +176,11 @@ export function itemLines(it) {
   if (it.kind === 'herb') { const Hb = HERBS[it.metal]; return [['t', Hb.d], ['w', `Где растёт: ${Hb.where}. Для алхимии`], ['n', `В стопке: ${it.n} из ${LOOT.stack}`]]; }
   if (it.kind === 'potion') { const Po = POTIONS[it.metal]; return [['ab', Po.d, true], ['k', `${Po.kind === 'battle' ? 'Боевое' : 'Защитное'} зелье — действует по одному каждого рода, новое заменяет прежнее. Клавиша 2 — выпить последнее выбранное`], ['n', `В стопке: ${it.n} из ${LOOT.stack}`]]; }
   if (it.kind === 'flask') return [['t', 'Пустая склянка — в неё алхимик наливает зелье. Продают все торговцы'], ['n', `В стопке: ${it.n} из ${LOOT.stack}`]];
-  if (it.trinket) { const T = TRINKET(it.trinket); return [['ab', T.passive ? `Срабатывает само: ${T.d}` : `Клавиша 1: ${T.d}`, true], ['cd', `Перезарядка ${T.cd >= 120 ? T.cd / 60 + ' мин' : T.cd + ' с'}`], ['ilvl', `Уровень вещи: ${it.ilvl}`]]; }
+  if (it.trinket) { const T = TRINKET(it.trinket), L2 = [], f2 = v => String(v).replace('.', ','); if (!T) return [['ilvl', `Уровень вещи: ${it.ilvl}`]];
+    if (it.armor) L2.push(['armor', `Броня: ${it.armor}`]); if (it.main) L2.push(['main', `+${it.main} ${MAIN_STAT_TO[it.cls]}`]); if (it.stam) L2.push(['stam', `+${it.stam} к выносливости`]);
+    for (const [k, v] of Object.entries(it.props || {})) L2.push(['p:' + k, `+${f2(v)}${PROPS[k].unit} ${PROPS[k].name}`, true]);
+    const when = T.on === 'low' ? `${TRINKET_ON.low} ${Math.round(T.below * 100)}%` : TRINKET_ON[T.on], ch = T.ch < 1 ? ` с вероятностью ${Math.round(T.ch * 100)}%` : '';
+    L2.push(['ab', `Срабатывает само${ch}, ${when}: ${T.d}.`, true]); L2.push(['cd', `Не чаще раза в ${T.icd >= 120 ? T.icd / 60 + ' мин' : T.icd + ' с'}`]); L2.push(['ilvl', `Уровень вещи: ${it.ilvl}`]); return L2; }
   const f = v => String(v).replace('.', ',');
   if (it.dmg) L.push(['dmg', `Урон: ${f(it.dmg)}`]);
   if (it.armor) L.push(['armor', `Броня: ${it.armor}`]);
