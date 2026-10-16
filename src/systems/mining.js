@@ -29,7 +29,7 @@ function placeIn(G, A) {
 /** Жилы зоны: из сохранения героя или новые. */
 export function initVeins(G) {
   const H = G.hero, Z = G.W.Z, areas = Z.ore || [];
-  H.veins = H.veins || {}; const list = H.veins[Z.id] = (H.veins[Z.id] || []).filter(v => areas[v.a] && v.metal === areas[v.a].metal);
+  H.veins = H.veins || {}; const list = H.veins[Z.id] = (H.veins[Z.id] || []).filter(v => areas[v.a] && v.metal === areas[v.a].metal && G.W.walkable(v.x, v.y) && G.W.edgeDist(v.x, v.y) >= 60);   // v114: за новой границей зоны — убрать (встанет заново внутри)
   areas.forEach((A, a) => {
     let have = list.filter(v => v.a === a).length;
     while (have < A.n) { const p = placeIn(G, A); if (!p) break; list.push({ a, metal: A.metal, x: p.x, y: p.y, at: 0, s: Math.floor(G.rand() * 1000) }); have++; }

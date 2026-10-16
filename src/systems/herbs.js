@@ -40,7 +40,7 @@ function placeIn(G, A) {
 /** Кусты зоны: из сохранения героя или новые. */
 export function initPlants(G) {
   const H = G.hero, Z = G.W.Z, areas = Z.herbs || [];
-  H.plants = H.plants || {}; const list = H.plants[Z.id] = (H.plants[Z.id] || []).filter(v => areas[v.a] && v.herb === areas[v.a].herb);
+  H.plants = H.plants || {}; const list = H.plants[Z.id] = (H.plants[Z.id] || []).filter(v => areas[v.a] && v.herb === areas[v.a].herb && G.W.walkable(v.x, v.y) && G.W.edgeDist(v.x, v.y) >= 60);   // v114: за новой границей зоны — убрать (встанет заново внутри)
   areas.forEach((A, a) => {
     let have = list.filter(v => v.a === a).length;
     while (have < A.n) { const p = placeIn(G, A); if (!p) break; list.push({ a, herb: A.herb, x: p.x, y: p.y, at: 0, s: Math.floor(G.rand() * 1000) }); have++; }

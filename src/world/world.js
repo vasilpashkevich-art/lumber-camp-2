@@ -10,15 +10,17 @@ const CELL = 400; // ячейка сетки для быстрого поиск�
 export function buildWorld(Z) {
   const r = rng(Z.seed);
   // неровная граница
-  const edge = [];
-  for (let i = 0; i < Z.edge.length; i++) {
-    const [ax, ay] = Z.edge[i], [bx, by] = Z.edge[(i + 1) % Z.edge.length];
-    const n = Math.max(2, Math.round(Math.hypot(bx - ax, by - ay) / 160));
-    for (let k = 0; k < n; k++) {
-      const t = k / n, j = k === 0 ? 0 : 70;
-      edge.push([ax + (bx - ax) * t + (r() - 0.5) * j, ay + (by - ay) * t + (r() - 0.5) * j]);
-    }
-  }
+  const jag = (pts, rr, step = 160, J = 70) => { const out = []; for (let i = 0; i < pts.length; i++) {
+    const [ax, ay] = pts[i], [bx, by] = pts[(i + 1) % pts.length];
+    const n = Math.max(2, Math.round(Math.hypot(bx - ax, by - ay) / step));
+    for (let k = 0; k < n; k++) { const t = k / n, j = k === 0 ? 0 : J; out.push([ax + (bx - ax) * t + (rr() - 0.5) * j, ay + (by - ay) * t + (rr() - 0.5) * j]); }
+  } return out; };
+  const edgeOld = jag(Z.edge, r);   // прежняя кромка: зерно расходуется как раньше — лагеря и деревья не сдвигаются
+  // v114: граница по карте континента (Z.shape) — своим зерном; без неё — прежняя
+  const edge = Z.shape ? jag(Z.shape, rng(Z.seed + 1100), 130, 50) : edgeOld;
+  /** Род берега у точки снаружи: по треугольнику от середины зоны к углам — север, восток, юг, запад (Z.coast). */
+  const sideOf = (x, y) => { const u = (x - Z.W / 2) / Z.W, v = (y - Z.H / 2) / Z.H; return Math.abs(u) > Math.abs(v) ? (u > 0 ? 'east' : 'west') : (v > 0 ? 'south' : 'north'); };
+  const coastAt = (x, y) => (Z.coast && Z.coast[sideOf(x, y)]) || 'forest';
   const cap = Z.capital;
   const roadD = (x, y) => {
     let m = 1e9;
@@ -33,7 +35,7 @@ export function buildWorld(Z) {
   /** Насколько точка снаружи города (0 — внутри): прямоугольник у квадратной столицы, круг у посёлка. */
   const townD = (x, y) => !town ? 1e9 : town.rect ? Math.max(0, town.rect[0] - x, x - town.rect[2], town.rect[1] - y, y - town.rect[3]) : Math.max(0, dist(x, y, town.x, town.y) - town.R);
   const W = {
-    Z, edge, W: Z.W, H: Z.H, cap, town, townD, village: Z.village || null,
+    Z, edge, sideOf, coastAt, W: Z.W, H: Z.H, cap, town, townD, village: Z.village || null,
     roads: Z.roads, roadD,
     trees: [], grid: new Map(),
     camps: [], graveyard: Z.graveyard, exits: Z.exits,
@@ -130,6 +132,10 @@ export function buildWorld(Z) {
   W.inField = inField;
   const edgeDist = ROOMS ? (x, y) => Math.max(0, roomDepth(x, y)) : (x, y) => { let m = 1e9; for (let i = 0; i < edge.length; i++) { const a = edge[i], b = edge[(i + 1) % edge.length]; m = Math.min(m, segDist(x, y, a[0], a[1], b[0], b[1])); } return m; };
   W.inside = inside; W.edgeDist = edgeDist;
+  // v114: деревья сеются по прежней кромке (чтобы не сдвинулись), потом лишние снаружи убираются
+  const insideT = Z.shape ? (x, y, pad = 0) => inPoly(x, y, edgeOld) && (pad <= 0 || edgeDistOld(x, y) > pad) : inside;
+  const edgeDistOld = (x, y) => { let m = 1e9; for (let i = 0; i < edgeOld.length; i++) { const a = edgeOld[i], b = edgeOld[(i + 1) % edgeOld.length]; m = Math.min(m, segDist(x, y, a[0], a[1], b[0], b[1])); } return m; };
+  const edgeDistT = Z.shape ? edgeDistOld : edgeDist;
   // рельеф (v71): ярусы, склоны; высота земли и можно ли шагнуть
   const RF = W.relief = buildRelief(Z);
   W.hAt = RF ? (x, y) => RF.height(x, y) : () => 0;
@@ -169,7 +175,7 @@ export function buildWorld(Z) {
   const T = Z.trees; let tries = 0;
   while (W.trees.length < T.count && tries++ < T.count * 20) {
     const x = r() * Z.W, y = r() * Z.H;
-    if (!inside(x, y, 40)) continue;
+    if (!insideT(x, y, 40)) continue;
     if (town && townD(x, y) < 120) continue;
     if (R && W.riverD(x, y) < R.w / 2 + 50) continue;
     if (PONDS.length && inPond(x, y, 60)) continue;
@@ -182,18 +188,22 @@ export function buildWorld(Z) {
     if (W.trees.some(t => Math.abs(t.x - x) < 46 && Math.abs(t.y - y) < 46)) continue;
     if (RF && (!W.flatOk(x, y, 50) || W.giants.some(g => Math.abs(g.x - x) < 150 && Math.abs(g.y - y) < 110))) continue;
     // деревья гуще у краёв зоны
-    if (edgeDist(x, y) > 700 && r() < 0.45) continue;
+    if (edgeDistT(x, y) > 700 && r() < 0.45) continue;
     const kind = T.kinds[Math.floor(r() * T.kinds.length)];
     addTree(W, { x, y, kind, s: 0.85 + r() * 0.35, v: r() });
   }
   // плотный лес вдоль края (за ним — горы)
-  for (let i = 0; i < edge.length; i++) {
-    const [ax, ay] = edge[i], [bx, by] = edge[(i + 1) % edge.length];
+  // v114: по новой границе — своим зерном и только там, где за краем лес, обрыв или топь (у моря берег открыт); прежний — как раньше
+  const EG = Z.shape ? edge : edgeOld, re = Z.shape ? rng(Z.seed + 1200) : r;
+  if (Z.shape) { const all = W.trees.filter(t => inside(t.x, t.y, 30)); W.grid.clear(); W.trees = []; for (const t of all) addTree(W, t); }
+  for (let i = 0; i < EG.length; i++) {
+    const [ax, ay] = EG[i], [bx, by] = EG[(i + 1) % EG.length];
     const n = Math.round(Math.hypot(bx - ax, by - ay) / 70);
     for (let k = 0; k < n; k++) {
-      const t = k / n, x = ax + (bx - ax) * t + (r() - 0.5) * 40, y = ay + (by - ay) * t + (r() - 0.5) * 40;
+      const t = k / n, x = ax + (bx - ax) * t + (re() - 0.5) * 40, y = ay + (by - ay) * t + (re() - 0.5) * 40, s = 1 + re() * 0.3, v = re();
       if (Z.exits.some(e => dist(x, y, e.x, e.y) < 260) || (RF && !W.flatOk(x, y, 30))) continue;
-      addTree(W, { x, y, kind: 2, s: 1 + r() * 0.3, v: r(), edge: true });
+      const cst = coastAt(x, y); if (Z.shape && (cst === 'sea' || (cst === 'swamp' && v < 0.5))) continue;
+      addTree(W, { x, y, kind: 2, s, v, edge: true });
     }
   }
   // деревья в столице — по списку (не из зерна, старые деревья не сдвигаются)

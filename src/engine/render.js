@@ -237,6 +237,7 @@ function buildStatics(W) {
   const mt = [], ridges = W.Z.ridges || [];
   for (let i = 0; i < W.edge.length; i++) {
     const [x, y] = W.edge[i];
+    if (W.Z.coast) { if (W.sideOf(x, y) === 'north' && W.coastAt(x, y) === 'cliff' && ridges.includes('north')) mt.push([x + (r() - 0.5) * 60, y - 110 - r() * 120, r()]); continue; }   // v114: горы — только над обрывом
     if ((y < 700 && ridges.includes('north')) || (x < 700 && ridges.includes('west'))) { const ox = x < 700 ? -150 - r() * 120 : (r() - 0.5) * 60, oy = y < 700 ? -90 - r() * 120 : (r() - 0.5) * 60; mt.push([x + ox, y + oy, r()]); }
   }
   for (const [x, y, v] of mt) { const sp = mountainSpr(v); S.push({ y, draw: g => drawSpr(g, sp, x, y, 1, 1.3) }); }
@@ -308,6 +309,38 @@ function chunk(R, i, j) {
   R.chunks.set(key, cv); R.built = (R.built || 0) + 1; if (R.chunks.size > (TOUCH ? 16 : 30)) R.chunks.delete(R.chunks.keys().next().value);
   return cv;
 }
+// v114: за краем зоны — по роду берега (Z.coast): море с песком и пеной, тёмный лес, скалы обрыва, топь. g уже обрезан «снаружи».
+function paintCoast(g, W, x0, y0, CW, CH) {
+  const Z = W.Z, cx = Z.W / 2, cy = Z.H / 2, far = (x, y) => [cx + (x - cx) * 4, cy + (y - cy) * 4];
+  const C = { north: [far(0, 0), far(Z.W, 0)], east: [far(Z.W, 0), far(Z.W, Z.H)], south: [far(Z.W, Z.H), far(0, Z.H)], west: [far(0, Z.H), far(0, 0)] };
+  const edgePath = () => { g.beginPath(); g.moveTo(W.edge[0][0], W.edge[0][1]); for (const p of W.edge) g.lineTo(p[0], p[1]); g.closePath(); };
+  let h = (Math.floor(x0) * 73856093 ^ Math.floor(y0) * 19349663) >>> 0; const rr = () => ((h = (h * 1664525 + 1013904223) >>> 0) / 4294967296);
+  for (const [side, [a, b]] of Object.entries(C)) {
+    const kind = Z.coast[side] || 'forest';
+    g.save(); g.beginPath(); g.moveTo(cx, cy); g.lineTo(a[0], a[1]); g.lineTo(b[0], b[1]); g.closePath(); g.clip();
+    if (kind === 'sea') {
+      g.fillStyle = '#4f8da0'; g.fillRect(x0 - 2, y0 - 2, CW + 4, CH + 4);
+      // глубже — темнее: полоса от берега
+      g.lineJoin = 'round'; edgePath(); g.strokeStyle = '#6fb0bc'; g.lineWidth = 420; g.stroke(); edgePath(); g.strokeStyle = '#86c4c8'; g.lineWidth = 200; g.stroke();
+      g.strokeStyle = 'rgba(235,250,250,.55)'; g.lineWidth = 3; g.lineCap = 'round';
+      for (let i = 0; i < 26; i++) { const x = x0 + rr() * CW, y = y0 + rr() * CH, w = 14 + rr() * 18; g.beginPath(); g.moveTo(x - w, y); g.quadraticCurveTo(x - w / 2, y - 6, x, y); g.quadraticCurveTo(x + w / 2, y - 6, x + w, y); g.stroke(); }
+      edgePath(); g.strokeStyle = 'rgba(245,252,250,.75)'; g.lineWidth = 120; g.stroke();   // пена
+      edgePath(); g.strokeStyle = '#dcc890'; g.lineWidth = 84; g.stroke();                 // песок
+      edgePath(); g.strokeStyle = '#c8b27a'; g.lineWidth = 30; g.stroke();
+    } else if (kind === 'cliff') {
+      g.fillStyle = '#5e5446'; g.fillRect(x0 - 2, y0 - 2, CW + 4, CH + 4);
+      g.fillStyle = 'rgba(40,32,24,.5)'; for (let i = 0; i < 40; i++) { const x = x0 + rr() * CW, y = y0 + rr() * CH; g.beginPath(); g.ellipse(x, y, 20 + rr() * 40, 8 + rr() * 12, rr() * 0.6 - 0.3, 0, 7); g.fill(); }
+      g.lineJoin = 'round'; edgePath(); g.strokeStyle = '#3e3226'; g.lineWidth = 110; g.stroke();   // кромка обрыва
+      edgePath(); g.strokeStyle = '#8a7a64'; g.lineWidth = 56; g.stroke(); edgePath(); g.strokeStyle = '#a8977c'; g.lineWidth = 20; g.stroke();
+    } else if (kind === 'swamp') {
+      g.fillStyle = '#3e4a2e'; g.fillRect(x0 - 2, y0 - 2, CW + 4, CH + 4);
+      for (let i = 0; i < 18; i++) { const x = x0 + rr() * CW, y = y0 + rr() * CH, rx = 40 + rr() * 90; g.fillStyle = 'rgba(70,98,92,.75)'; g.beginPath(); g.ellipse(x, y, rx, rx * 0.45, 0, 0, 7); g.fill(); g.fillStyle = 'rgba(200,230,220,.18)'; g.beginPath(); g.ellipse(x - rx * 0.3, y - rx * 0.12, rx * 0.35, rx * 0.08, 0, 0, 7); g.fill(); }
+      g.strokeStyle = '#5a6a32'; g.lineWidth = 3; for (let i = 0; i < 60; i++) { const x = x0 + rr() * CW, y = y0 + rr() * CH; g.beginPath(); g.moveTo(x, y); g.quadraticCurveTo(x - 3, y - 12, x - 1, y - 22); g.moveTo(x + 4, y); g.lineTo(x + 6, y - 18); g.stroke(); }
+      g.lineJoin = 'round'; edgePath(); g.strokeStyle = 'rgba(28,40,26,.6)'; g.lineWidth = 70; g.stroke();
+    } else { g.fillStyle = 'rgba(28,40,26,.88)'; g.fillRect(x0 - 2, y0 - 2, CW + 4, CH + 4); }
+    g.restore();
+  }
+}
 // земля зоны в прямоугольнике мира (x0, y0, w, h): трава, дороги, ручей, пруды, лагеря; g уже в координатах мира
 function paintGround(g, W, x0, y0, CW, CH, i, j) {
   if (W.rooms) { templeInterior(g, W, x0, y0, CW, CH); return; }   // v77: подземелье
@@ -318,7 +351,9 @@ function paintGround(g, W, x0, y0, CW, CH, i, j) {
   // за краем зоны — тёмный лес и скалы
   g.save(); g.beginPath(); g.rect(x0 - 2, y0 - 2, CW + 4, CH + 4);
   g.moveTo(W.edge[0][0], W.edge[0][1]); for (const p of W.edge) g.lineTo(p[0], p[1]); g.closePath();
-  g.fillStyle = 'rgba(28,40,26,.88)'; g.fill('evenodd'); g.restore();
+  if (W.Z.coast) { g.clip('evenodd'); paintCoast(g, W, x0, y0, CW, CH); }
+  else { g.fillStyle = 'rgba(28,40,26,.88)'; g.fill('evenodd'); }
+  g.restore();
   // дороги: одним путём на все дороги и площадки — слои кладутся разом, стыки без швов
   g.lineJoin = 'round'; g.lineCap = 'round';
   const PL = W.Z.plazas || [];

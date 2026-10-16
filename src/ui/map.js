@@ -46,6 +46,15 @@ function base(g, W, k, big, q = 1) {
     return;
   }
   g.fillStyle = '#1c2a1a'; g.fillRect(0, 0, W.W * k + 2, W.H * k + 2);
+  if (W.Z.coast) {   // v114: за краем — море, скалы, топь или лес (по карте континента)
+    const cx = W.W / 2 * k, cy = W.H / 2 * k, F = { sea: '#4f8da0', cliff: '#5e5446', swamp: '#3e4a2e', forest: '#1c2a1a' };
+    const far = (x, y) => [cx + (x * k - cx) * 4, cy + (y * k - cy) * 4];
+    const C = { north: [far(0, 0), far(W.W, 0)], east: [far(W.W, 0), far(W.W, W.H)], south: [far(W.W, W.H), far(0, W.H)], west: [far(0, W.H), far(0, 0)] };
+    for (const [sd, [a, b]] of Object.entries(C)) { g.fillStyle = F[W.Z.coast[sd]] || F.forest; g.beginPath(); g.moveTo(cx, cy); g.lineTo(a[0], a[1]); g.lineTo(b[0], b[1]); g.closePath(); g.fill(); }
+    g.save(); g.beginPath(); W.edge.forEach((p, i) => i ? g.lineTo(p[0] * k, p[1] * k) : g.moveTo(p[0] * k, p[1] * k)); g.closePath(); g.lineJoin = 'round'; g.strokeStyle = '#d8c38c'; g.lineWidth = Math.max(2, 120 * k);
+    for (const [sd, [a, b]] of Object.entries(C)) if (W.Z.coast[sd] === 'sea') { g.save(); g.beginPath(); g.moveTo(cx, cy); g.lineTo(a[0], a[1]); g.lineTo(b[0], b[1]); g.closePath(); g.clip(); g.beginPath(); W.edge.forEach((p, i) => i ? g.lineTo(p[0] * k, p[1] * k) : g.moveTo(p[0] * k, p[1] * k)); g.closePath(); g.stroke(); g.restore(); }
+    g.restore();
+  }
   g.beginPath(); W.edge.forEach((p, i) => i ? g.lineTo(p[0] * k, p[1] * k) : g.moveTo(p[0] * k, p[1] * k)); g.closePath(); g.fillStyle = W.Z.ground === 'z3' ? '#a8a058' : W.Z.moss ? '#3e5a2c' : '#5d8a42'; g.fill();
   if (big) { g.strokeStyle = '#3a5a2a'; g.lineWidth = 2; g.stroke(); }
   // рельеф (v71): низины темнее, холмы светлее; каменные края — обводкой
