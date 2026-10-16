@@ -1,0 +1,205 @@
+<title>Карта континента</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;700&family=PT+Serif:ital,wght@0,400;0,700;1,400&display=swap">
+<style>
+/* Пергаментная карта мира игры: одна тёплая палитра (карта — это предмет из мира, не интерфейс), без тёмной темы. */
+:root{
+  --paper:#efe2c2; --paper2:#e4d2a8; --ink:#3a2814; --ink2:#6a4f2e; --gold:#b8862a; --sea:#9fc3c8; --sea2:#7fa9b2;
+  --display:'Cormorant Garamond', 'PT Serif', Georgia, serif; --body:'PT Serif', Georgia, serif;
+  color-scheme:light;
+}
+body{background:var(--paper2);color:var(--ink);font-family:var(--body);margin:0;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 40px}
+.wrap{max-width:1180px;margin:0 auto;display:grid;gap:22px}
+h1{font-family:var(--display);font-weight:700;font-size:clamp(30px,5vw,48px);margin:0;letter-spacing:.02em;text-wrap:balance}
+.lead{margin:4px 0 0;color:var(--ink2);max-width:70ch;line-height:1.5}
+.map{background:var(--paper);border:3px solid var(--ink2);border-radius:6px;box-shadow:0 0 0 6px var(--paper),0 0 0 8px var(--ink2),0 10px 30px rgba(60,40,10,.25);overflow-x:auto}
+.map svg{display:block;width:100%;min-width:760px;height:auto}
+.cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:18px}
+.card{background:var(--paper);border:1.5px solid #c9b07a;border-radius:6px;padding:14px 16px;min-width:0}
+.card h2{font-family:var(--display);font-size:24px;margin:0 0 8px}
+table{border-collapse:collapse;width:100%;font-size:14px}
+td,th{padding:5px 6px;border-bottom:1px solid #d6c08e;text-align:left;vertical-align:top}
+th{font-weight:700;color:var(--ink2);font-size:12px;letter-spacing:.06em;text-transform:uppercase}
+td.n{font-variant-numeric:tabular-nums;white-space:nowrap}
+.sw{display:inline-block;width:12px;height:12px;border-radius:3px;border:1px solid rgba(0,0,0,.35);vertical-align:-1px;margin-right:6px}
+ul{margin:0;padding-left:18px;line-height:1.5} li{margin:4px 0}
+.q li b{color:#7a2a12}
+.tag{font-size:12px;color:var(--ink2)}
+@media (prefers-reduced-motion:no-preference){ .route{stroke-dasharray:6 7;animation:dash 2.4s linear infinite} @keyframes dash{to{stroke-dashoffset:-26}} }
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>Континент — эскиз</h1>
+    <p class="lead">Семь краёв вокруг Соснового дола. Три готовых стоят так же, как в игре (Хутор — к югу, Грибной лес — к востоку). Пунктир — их нынешние прямоугольные карты, цветное пятно — будущая форма. Между краями — природные границы: горы, река, топь, обрывы. Золотые знаки — проходы, линия — путь героя по уровням.</p>
+  </header>
+
+  <div class="map"><svg id="map" viewBox="0 0 1200 860" role="img" aria-label="Карта континента с семью краями"></svg></div>
+
+  <div class="cols">
+    <div class="card">
+      <h2>Края и проходы</h2>
+      <table id="zt"><tr><th>Край</th><th>Ур.</th><th>Откуда вход</th></tr></table>
+    </div>
+    <div class="card">
+      <h2>Что поменяется в готовых краях</h2>
+      <ul>
+        <li><b>Сосновый дол</b> — север становится скальным обрывом (за ним Красная пустошь, видно зарево), на западе берег моря и место под будущую Гавань. Подрезаются только пустые углы.</li>
+        <li><b>Хуторские угодья</b> — на востоке река уходит в топь Болотного края; закрытый выход на Болото переносится с южного края на восточный. Юг — морской берег.</li>
+        <li><b>Грибной лес</b> — на севере каменная гряда с перевалом в Скалистое нагорье (новый выход), на юге топь; выход на Болото переносится с восточного края на южный. Восток — морские скалы.</li>
+        <li>Логова, посёлки, жители, задания и Храм остаются на местах.</li>
+      </ul>
+    </div>
+    <div class="card q">
+      <h2>Решить тебе</h2>
+      <ul>
+        <li><b>Где Красная пустошь?</b> Здесь — к северу от Соснового дола, за обрывом. Можно на запад, тогда Гавань уходит на юг Хутора.</li>
+        <li><b>Снежный край</b> — полосой по всему северу, вход из Нагорья и из Пустоши. Или только из Нагорья?</li>
+        <li><b>Гавань</b> на западе Соснового дола — под будущие континенты (30–50). Оставляем место?</li>
+        <li><b>Болотный край</b> — вход и из Хутора, и из Грибного леса (как сейчас задумано). Оставить оба?</li>
+      </ul>
+    </div>
+  </div>
+  <p class="tag">Масштаб как в игре: 1 клетка карты = 1000 шагов. Сосновый дол и Хутор — 8000 × 5000, Грибной лес — 10 400 × 6500, новые края — 9000–12 000.</p>
+</div>
+
+<script>
+const S = 25;           // 1 точка карты = 25 шагов мира
+const NS = 'http://www.w3.org/2000/svg', svg = document.getElementById('map');
+const mk = (t, a = {}, p = svg) => { const e = document.createElementNS(NS, t); for (const k in a) e.setAttribute(k, a[k]); p.appendChild(e); return e; };
+let seed = 7; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+
+// края: прямоугольник места (x, y, w, h в точках), цвета, нынешняя карта (real) — пунктиром
+const Z = [
+  { id: 'pine',  name: 'Сосновый дол',      lv: '1–6',   x: 360, y: 340, w: 320, h: 200, real: true, col: '#9cc07a', dk: '#5f8a44', deco: 'pine' },
+  { id: 'farms', name: 'Хуторские угодья',  lv: '6–10',  x: 360, y: 540, w: 320, h: 200, real: true, col: '#d8c278', dk: '#9a8640', deco: 'field' },
+  { id: 'shroom',name: 'Грибной лес',       lv: '10–14', x: 680, y: 314, w: 416, h: 260, real: true, col: '#7fae8e', dk: '#3f7058', deco: 'shroom' },
+  { id: 'swamp', name: 'Болотный край',     lv: '14–18', x: 690, y: 586, w: 400, h: 214, col: '#8fa07a', dk: '#55663f', deco: 'reed' },
+  { id: 'crags', name: 'Скалистое нагорье', lv: '18–23', x: 640, y: 128, w: 470, h: 178, col: '#b8aa98', dk: '#6e6252', deco: 'mount' },
+  { id: 'waste', name: 'Красная пустошь',   lv: '23–27', x: 150, y: 150, w: 480, h: 176, col: '#d79a6a', dk: '#9a4e2a', deco: 'dune' },
+  { id: 'snow',  name: 'Снежный край',      lv: '27–30', x: 230, y: 18,  w: 700, h: 120, col: '#e9eef2', dk: '#8aa0b0', deco: 'snow' },
+];
+const BY = Object.fromEntries(Z.map(z => [z.id, z]));
+
+// --- море
+mk('rect', { x: 0, y: 0, width: 1200, height: 860, fill: 'var(--sea)' });
+for (let i = 0; i < 90; i++) { const x = rnd() * 1200, y = rnd() * 860; mk('path', { d: `M${x} ${y}q6 -4 12 0q6 4 12 0`, fill: 'none', stroke: 'var(--sea2)', 'stroke-width': 1.2, 'stroke-linecap': 'round' }); }
+// суша — большое пятно под всеми краями
+function blob(x, y, w, h, n = 4, amp = 8, k = 64, round = 0) {
+  const pts = [];
+  for (let i = 0; i < k; i++) {
+    const a = i / k * Math.PI * 2, c = Math.cos(a), s = Math.sin(a);
+    const rx = Math.sign(c) * Math.pow(Math.abs(c), 2 / n) * (w / 2), ry = Math.sign(s) * Math.pow(Math.abs(s), 2 / n) * (h / 2);
+    const j = 1 + (rnd() - 0.5) * amp / Math.min(w, h) * 2;
+    pts.push([x + w / 2 + rx * j, y + h / 2 + ry * j]);
+  }
+  return pts;
+}
+const smooth = P => { let d = ''; const n = P.length; for (let i = 0; i < n; i++) { const p0 = P[(i - 1 + n) % n], p1 = P[i], p2 = P[(i + 1) % n], p3 = P[(i + 2) % n];
+  if (!i) d += `M${p1[0].toFixed(1)} ${p1[1].toFixed(1)}`; d += `C${(p1[0] + (p2[0] - p0[0]) / 6).toFixed(1)} ${(p1[1] + (p2[1] - p0[1]) / 6).toFixed(1)} ${(p2[0] - (p3[0] - p1[0]) / 6).toFixed(1)} ${(p2[1] - (p3[1] - p1[1]) / 6).toFixed(1)} ${p2[0].toFixed(1)} ${p2[1].toFixed(1)}`; } return d + 'Z'; };
+const land = [[215,4],[600,0],[950,8],[1010,100],[1124,116],[1128,320],[1112,570],[1108,812],[860,826],[680,818],[630,768],[350,762],[332,640],[326,470],[306,362],[132,344],[122,168],[196,140]];
+mk('path', { d: smooth(land), fill: '#d8c9a0', stroke: '#8a744c', 'stroke-width': 3 });
+
+
+// --- края
+const shapes = {};
+for (const z of Z) {
+  seed = z.x * 31 + z.y;
+  const P = blob(z.x + 7, z.y + 7, z.w - 14, z.h - 14, z.id === 'snow' ? 3 : 4.5, z.real ? 9 : 16);
+  shapes[z.id] = P;
+  const g = mk('g', { id: 'z-' + z.id });
+  mk('path', { d: smooth(P), fill: z.col, stroke: z.dk, 'stroke-width': 2.2 }, g);
+  mk('path', { d: smooth(P), fill: 'none', stroke: '#fff', 'stroke-width': 1, opacity: .35, transform: 'translate(-1.5 -1.5)' }, g);
+  if (z.real) mk('rect', { x: z.x, y: z.y, width: z.w, height: z.h, fill: 'none', stroke: z.dk, 'stroke-width': 1.3, 'stroke-dasharray': '5 5', opacity: .8 }, g);
+}
+// точка внутри многоугольника
+const inside = (P, x, y) => { let c = false; for (let i = 0, j = P.length - 1; i < P.length; j = i++) { const [xi, yi] = P[i], [xj, yj] = P[j]; if ((yi > y) !== (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) c = !c; } return c; };
+const keepOut = []; // места под надписи — без значков
+const DECO = {
+  pine: (g, x, y) => { mk('path', { d: `M${x} ${y - 11}l6 9h-3l5 7h-16l5 -7h-3z`, fill: '#3f6e3a', stroke: '#2a4a26', 'stroke-width': .8 }, g); },
+  field: (g, x, y) => { mk('path', { d: `M${x - 9} ${y - 3}h18M${x - 9} ${y}h18M${x - 9} ${y + 3}h18`, stroke: '#a88a3a', 'stroke-width': 1.2 }, g); },
+  shroom: (g, x, y) => { mk('rect', { x: x - 1.5, y: y - 4, width: 3, height: 7, fill: '#efe6d0' }, g); mk('path', { d: `M${x - 7} ${y - 3}q7 -11 14 0z`, fill: rnd() < .5 ? '#c84a3a' : '#5a8ad0', stroke: '#3a2414', 'stroke-width': .7 }, g); },
+  reed: (g, x, y) => { mk('path', { d: `M${x - 4} ${y + 3}q1 -9 -1 -12M${x} ${y + 3}v-13M${x + 4} ${y + 3}q-1 -9 1 -11`, stroke: '#4a5a2a', 'stroke-width': 1.1, fill: 'none' }, g); mk('ellipse', { cx: x, cy: y + 4, rx: 9, ry: 2.5, fill: '#6a8a7a', opacity: .5 }, g); },
+  mount: (g, x, y) => { mk('path', { d: `M${x - 13} ${y + 5}l13 -20l13 20z`, fill: '#9a8c78', stroke: '#5a4e3e', 'stroke-width': 1 }, g); mk('path', { d: `M${x - 4} ${y - 9}l4 -6l4 6l-2 2z`, fill: '#fff' }, g); },
+  dune: (g, x, y) => { if (rnd() < .3) { mk('path', { d: `M${x - 6} ${y}l4 -3l3 4l5 -5`, stroke: '#c8341a', 'stroke-width': 1.5, fill: 'none' }, g); } else mk('path', { d: `M${x - 10} ${y + 2}q10 -9 20 0`, stroke: '#a85a2a', 'stroke-width': 1.3, fill: 'none' }, g); },
+  snow: (g, x, y) => { if (rnd() < .5) { mk('path', { d: `M${x - 12} ${y + 5}l12 -18l12 18z`, fill: '#cfdbe6', stroke: '#7a90a2', 'stroke-width': 1 }, g); } else mk('path', { d: `M${x} ${y - 5}v10M${x - 4.5} ${y - 2.5}l9 5M${x - 4.5} ${y + 2.5}l9 -5`, stroke: '#7a9ab8', 'stroke-width': 1.1 }, g); },
+};
+
+// --- границы между краями: горная гряда, река, топь, обрыв
+function ridge(x1, y1, x2, y2, kind) {
+  const n = Math.max(3, Math.round(Math.hypot(x2 - x1, y2 - y1) / 22));
+  for (let i = 0; i <= n; i++) {
+    const t = i / n, x = x1 + (x2 - x1) * t + (rnd() - .5) * 6, y = y1 + (y2 - y1) * t + (rnd() - .5) * 6;
+    if (kind === 'mount') { mk('path', { d: `M${x - 11} ${y + 7}l11 -17l11 17z`, fill: '#8a7c68', stroke: '#4e4434', 'stroke-width': 1 }); mk('path', { d: `M${x - 3} ${y - 5}l3 -5l3 5z`, fill: '#fff' }); }
+    if (kind === 'cliff') { mk('path', { d: `M${x - 10} ${y + 4}l4 -9h12l4 9z`, fill: '#7a5a4a', stroke: '#3e2a1e', 'stroke-width': 1 }); }
+    if (kind === 'trees') { mk('circle', { cx: x, cy: y, r: 6, fill: '#4e7a3e', stroke: '#2e4a24', 'stroke-width': .8 }); }
+    if (kind === 'bog') { mk('ellipse', { cx: x, cy: y, rx: 10, ry: 4, fill: '#6a8a6a', opacity: .7 }); }
+  }
+}
+function river(pts) { const d = 'M' + pts.map(p => p.join(' ')).join('L'); mk('path', { d, fill: 'none', stroke: '#6a9aa8', 'stroke-width': 7, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }); mk('path', { d, fill: 'none', stroke: 'var(--sea)', 'stroke-width': 4, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }); }
+
+seed = 99;
+ridge(620, 330, 360, 336, 'cliff');      // Сосновый дол — Пустошь: обрыв
+ridge(650, 316, 1095, 308, 'mount');     // Грибной лес — Нагорье: гряда
+ridge(640, 140, 640, 300, 'mount');      // Пустошь — Нагорье
+ridge(240, 140, 930, 132, 'mount');      // север: снега
+ridge(372, 540, 668, 540, 'trees');      // Сосновый дол — Хутор: опушка
+ridge(682, 350, 682, 530, 'trees');      // Сосновый дол — Грибной лес: опушка
+ridge(700, 580, 1090, 580, 'bog');       // Грибной лес — Болото: топь
+river([[560, 540], [600, 600], [650, 640], [690, 690], [760, 720], [840, 800]]);   // река Хутора уходит в Болото
+
+// значки краёв (после границ — поверх)
+for (const z of Z) { seed = z.x + z.y * 7; const g = svg.querySelector('#z-' + z.id), P = shapes[z.id];
+  const N = Math.round(z.w * z.h / 1700);
+  for (let i = 0; i < N; i++) { const x = z.x + 14 + rnd() * (z.w - 28), y = z.y + 16 + rnd() * (z.h - 28); if (!inside(P, x, y)) continue; if (Math.abs(x - (z.x + z.w / 2)) < 90 && Math.abs(y - (z.y + z.h / 2)) < 26) continue; DECO[z.deco](g, x, y); } }
+
+// --- места в готовых краях (по настоящим координатам)
+const at = (z, wx, wy) => [BY[z].x + wx / S, BY[z].y + wy / S];
+function place([x, y], name, kind) {
+  if (kind === 'city') { mk('rect', { x: x - 11, y: y - 9, width: 22, height: 18, rx: 2, fill: '#e8dcc0', stroke: '#3a2814', 'stroke-width': 1.6 }); for (const [dx, dy] of [[-11, -9], [11, -9], [-11, 9], [11, 9]]) mk('circle', { cx: x + dx, cy: y + dy, r: 3.2, fill: '#5a7ab0', stroke: '#3a2814' }); mk('path', { d: `M${x - 4} ${y + 2}l4 -7l4 7z`, fill: '#b8862a', stroke: '#3a2814', 'stroke-width': .8 }); }
+  else if (kind === 'temple') { mk('path', { d: `M${x - 9} ${y + 5}h18v-8l-9 -6l-9 6z`, fill: '#8a9a7a', stroke: '#2e3a24', 'stroke-width': 1.2 }); mk('rect', { x: x - 2.5, y: y - 1, width: 5, height: 6, fill: '#1e2a1a' }); }
+  else if (kind === 'harbor') { mk('path', { d: `M${x - 9} ${y}q9 8 18 0l-2 -2h-14z`, fill: '#7a5432', stroke: '#3a2814' }); mk('path', { d: `M${x} ${y - 2}v-12l7 9z`, fill: '#efe6d0', stroke: '#3a2814', 'stroke-width': .8 }); }
+  else { mk('circle', { cx: x, cy: y, r: 4.5, fill: '#e8dcc0', stroke: '#3a2814', 'stroke-width': 1.4 }); }
+  const t = mk('text', { x: x + (kind === 'harbor' ? -14 : 12), y: y + 4, 'font-family': 'PT Serif, Georgia, serif', 'font-size': 11.5, fill: '#3a2814', 'text-anchor': kind === 'harbor' ? 'end' : 'start', 'paint-order': 'stroke', stroke: 'rgba(240,228,196,.85)', 'stroke-width': 3 }); t.textContent = name;
+}
+place(at('pine', 2800, 2350), 'Столица', 'city');
+place(at('farms', 3000, 1050), 'Хутор Подгорный');
+place(at('farms', 1300, 4080), 'Мельница');
+place(at('shroom', 3900, 3328), 'Стоянка купца');
+place(at('shroom', 8775, 5110), 'Храм квакунов', 'temple');
+place([352, 455], 'Гавань', 'harbor');
+
+// --- проходы (золотые ромбы) и путь героя
+function pass([x, y], name) { mk('path', { d: `M${x} ${y - 9}l9 9l-9 9l-9 -9z`, fill: '#e7c35a', stroke: '#6a4a10', 'stroke-width': 1.5 }); if (name) { const t = mk('text', { x: x + 12, y: y - 8, 'font-family': 'PT Serif, Georgia, serif', 'font-style': 'italic', 'font-size': 11, fill: '#5a3a10', 'paint-order': 'stroke', stroke: 'rgba(240,228,196,.9)', 'stroke-width': 3 }); t.textContent = name; } }
+const P1 = at('pine', 2875, 5000), P2 = at('pine', 8000, 2600), P3 = [930, 580], P4 = [960, 312], P5 = [640, 210], P6 = [430, 136], P7 = [820, 132], P8 = [680, 640];
+const route = [at('pine', 2800, 2350), P1, at('farms', 3000, 1050), P1, P2, at('shroom', 3900, 3328), P3, [960, 680], P3, P4, [880, 210], P5, [400, 230], P6, [540, 70]];
+mk('path', { class: 'route', d: 'M' + route.map(p => p.map(v => v.toFixed(1)).join(' ')).join('L'), fill: 'none', stroke: '#8a2a12', 'stroke-width': 2.4, 'stroke-linecap': 'round', 'stroke-linejoin': 'round', opacity: .85 });
+pass(P1, 'Южная дорога'); pass(P2, 'Восточная дорога'); pass(P3, 'Гать'); pass(P8, 'Брод'); pass(P4, 'Каменный перевал'); pass(P5, 'Огненное ущелье'); pass(P6, 'Пепельный перевал'); pass(P7, 'Ледяной перевал');
+
+// --- названия краёв
+for (const z of Z) {
+  const cx = z.x + z.w / 2, cy = z.y + z.h / 2 + (z.id === 'pine' ? 46 : z.id === 'shroom' ? -40 : 0);
+  const t = mk('text', { x: cx, y: cy, 'text-anchor': 'middle', 'font-family': 'Cormorant Garamond, PT Serif, Georgia, serif', 'font-weight': 700, 'font-size': z.real ? 25 : 23, fill: '#2a1a0a', 'paint-order': 'stroke', stroke: 'rgba(245,235,205,.9)', 'stroke-width': 5 }); t.textContent = z.name;
+  const l = mk('text', { x: cx, y: cy + 18, 'text-anchor': 'middle', 'font-family': 'PT Serif, Georgia, serif', 'font-size': 13, fill: '#5a3a1a', 'paint-order': 'stroke', stroke: 'rgba(245,235,205,.9)', 'stroke-width': 4 }); l.textContent = 'уровни ' + z.lv + (z.real ? ' · готов' : '');
+}
+// моря и роза ветров
+const sea = (x, y, s, r = 0) => { const t = mk('text', { x, y, 'text-anchor': 'middle', 'font-family': 'Cormorant Garamond, Georgia, serif', 'font-style': 'italic', 'font-size': 20, fill: '#3e6a74', transform: `rotate(${r} ${x} ${y})` }); t.textContent = s; };
+sea(200, 600, 'Западное море', -70); sea(1180, 470, 'Восточное море', 90); sea(560, 845, 'Южное море');
+{ const x = 90, y = 770; mk('circle', { cx: x, cy: y, r: 30, fill: 'rgba(240,228,196,.8)', stroke: '#6a4f2e', 'stroke-width': 1.5 });
+  mk('path', { d: `M${x} ${y - 28}l6 22l-6 6l-6 -6z`, fill: '#8a2a12' }); mk('path', { d: `M${x} ${y + 28}l6 -22l-6 -6l-6 6z`, fill: '#6a4f2e' }); mk('path', { d: `M${x - 28} ${y}l22 -6l6 6l-6 6z M${x + 28} ${y}l-22 -6l-6 6l6 6z`, fill: '#b8a07a' });
+  const n = mk('text', { x, y: y - 34, 'text-anchor': 'middle', 'font-family': 'Cormorant Garamond, Georgia, serif', 'font-weight': 700, 'font-size': 15, fill: '#3a2814' }); n.textContent = 'С'; }
+// легенда
+{ const g = mk('g', { transform: 'translate(930 720)' });
+  mk('rect', { x: 0, y: 0, width: 250, height: 118, rx: 6, fill: 'rgba(240,228,196,.92)', stroke: '#8a744c', 'stroke-width': 1.5 }, g);
+  const row = (y, draw, s) => { draw(g, 18, y); const t = mk('text', { x: 38, y: y + 4, 'font-family': 'PT Serif, Georgia, serif', 'font-size': 12.5, fill: '#3a2814' }, g); t.textContent = s; };
+  row(20, (g, x, y) => mk('path', { d: `M${x} ${y - 7}l7 7l-7 7l-7 -7z`, fill: '#e7c35a', stroke: '#6a4a10', 'stroke-width': 1.3 }, g), 'проход между краями');
+  row(44, (g, x, y) => mk('path', { d: `M${x - 12} ${y}h24`, stroke: '#8a2a12', 'stroke-width': 2.4, 'stroke-dasharray': '6 5' }, g), 'путь героя по уровням');
+  row(68, (g, x, y) => mk('rect', { x: x - 12, y: y - 6, width: 24, height: 12, fill: 'none', stroke: '#5f8a44', 'stroke-dasharray': '4 3' }, g), 'нынешняя карта края');
+  row(92, (g, x, y) => mk('path', { d: `M${x - 11} ${y + 6}l11 -14l11 14z`, fill: '#8a7c68', stroke: '#4e4434' }, g), 'горы, обрыв — непроходимо'); }
+
+// таблица
+const IN = { pine: 'Столица — начало', farms: 'Сосновый дол, Южная дорога', shroom: 'Сосновый дол, Восточная дорога', swamp: 'Грибной лес (Гать), Хутор (Брод)', crags: 'Грибной лес, Каменный перевал', waste: 'Нагорье, Огненное ущелье', snow: 'Пустошь или Нагорье, перевалы' };
+const T = document.getElementById('zt');
+for (const z of Z) { const r = T.insertRow(); r.innerHTML = `<td><span class="sw" style="background:${z.col}"></span>${z.name}</td><td class="n">${z.lv}</td><td>${IN[z.id]}</td>`; }
+</script>
