@@ -9,7 +9,7 @@ import { ENCH, ENCH_MATS, ENCHANTS } from '../../data/enchanting.js';
 import { enchSkill, hasRod, learnEnchant, craftRod, canDisenchant, deOutcome, disenchant, disenchantAll, canEnchant, enchTargets, enchant } from '../systems/enchant.js';
 import { herbSkill, alchSkill, skillColor, learnHerbal, learnAlchemy, buyFlask, brew, canBrew, drinkElixir } from '../systems/herbs.js';
 import { RAR_COL, RAR_NAME, LOOT, armorCut, PROPS } from '../../data/balance.js';
-import { itemIcon, anyIcon, accIcon, moneyHtml, potionIcon } from './icons.js';
+import { itemIcon, anyIcon, accIcon, moneyHtml, potionIcon, DE_SVG } from './icons.js';
 import { itemLines, itemNums, lookOf, isStackKind, hasSocket, fxListOf } from '../systems/items.js';
 import { compareItem } from '../entities/hero.js';
 import { stashPut, stashTake, stashMove, stashSwap, stashMaterials, store } from '../systems/bank.js';
@@ -117,10 +117,13 @@ export const hideTip = () => { if (tipEl) tipEl.hidden = true; };
 
 /** Окно персонажа: слева облик и надетое, справа сумка. Клик по вещи в сумке — надеть, по надетой — снять. */
 export function openChar(G, onChange) {
-  const m = modal(`<h2>${G.hero.name}</h2><div class="charwin"><div><div class="dollw"><div class="eq eqL"></div><canvas width="340" height="472"></canvas><div class="eq eqR"></div></div><dl class="stats"></dl><div class="skillb"></div></div><div class="bagside"><h3>Сумка <span class="cnt"></span></h3><div class="bag"></div><p class="hint">${T('Нажмите на вещь в сумке — надеть, на надетую — снять. Вещи можно перетаскивать мышью: по ячейкам сумки, на снаряжение и обратно. Выбросить — правый щелчок или вынести вещь за окно (мешок пролежит на земле 3 минуты). Руда и слитки лежат стопками до 20. Закрыть — I, B или Esc.', 'Коснитесь вещи — увидите, что она даёт, сможете надеть, снять или выбросить. Задержите палец на вещи и ведите — переложите в другую ячейку или на снаряжение. Руда и слитки лежат стопками до 20.')}</p></div></div>`, 'wide');
+  let deMode = false, draw = null;   // v109: режим распыления (компьютер); Esc сперва выключает режим, а не закрывает окно
+  const deEsc = e => { if (deMode && e.key === 'Escape') { e.preventDefault(); e.stopImmediatePropagation(); deMode = false; draw && draw(); } };
+  addEventListener('keydown', deEsc, true);
+  const m = modal(`<h2>${G.hero.name}</h2><div class="charwin"><div><div class="dollw"><div class="eq eqL"></div><canvas width="340" height="472"></canvas><div class="eq eqR"></div></div><dl class="stats"></dl><div class="skillb"></div></div><div class="bagside"><h3>Сумка <span class="cnt"></span><button class="btn demode" hidden>${DE_SVG}<span>Распылить</span></button></h3><div class="bag"></div><p class="dehint" hidden>Режим распыления: щёлкните вещь — она рассыплется в пыль и осколки. Выйти — снова кнопка или Esc.</p><p class="hint">${T('Нажмите на вещь в сумке — надеть, на надетую — снять. Вещи можно перетаскивать мышью: по ячейкам сумки, на снаряжение и обратно. Выбросить — правый щелчок или вынести вещь за окно (мешок пролежит на земле 3 минуты). Руда и слитки лежат стопками до 20. Закрыть — I, B или Esc.', 'Коснитесь вещи — увидите, что она даёт, сможете надеть, снять или выбросить. Задержите палец на вещи и ведите — переложите в другую ячейку или на снаряжение. Руда и слитки лежат стопками до 20.')}</p></div></div>`, 'wide');
   let dollFx = [];   // v92: живые эффекты героических вещей на кукле
   const cell = (it, extra = '') => el('button', 'cell', it ? anyIcon(it, 44) + (it.n > 1 ? `<span class="n">${it.n}</span>` : '') + extra : '');
-  const draw = () => {
+  draw = () => {
     const h = G.hero, st = G.st;
     const g = m.querySelector('canvas').getContext('2d'); g.setTransform(2, 0, 0, 2, 0, 0); g.clearRect(0, 0, 170, 236); doll(g, 85, 184, 3.9, 1, lookOf(h), 0.3); dollFx = fxListOf(h);
     for (const [sel, list] of [['.eqL', SLOTS_L], ['.eqR', SLOTS_R]]) {
@@ -139,9 +142,13 @@ export function openChar(G, onChange) {
     m.querySelector('.skillb').innerHTML = PR.length ? PR.map(([n, sk, cap]) => `<div class="skrow"><span>${n}</span><span>${sk} / ${cap}</span></div><div class="skbar"><i style="width:${sk / cap * 100}%"></i></div>`).join('') : `<p class="hint">Профессии учат в Столице: горное дело — в Гильдии рудокопов, травничество и алхимию — у травницы.</p>`;
     m.querySelector('.cnt').textContent = `${h.bag.length} / ${LOOT.bag}`;
     const bag = m.querySelector('.bag'); bag.innerHTML = '';
+    { const db = m.querySelector('.demode'), can = enchSkill(h) > 0 && !TOUCH; db.hidden = !can; if (!can) deMode = false; db.disabled = can && !hasRod(h); db.title = hasRod(h) ? 'Распылять вещи по одной' : 'Нужен жезл чародея (Мастерская чар)'; if (!hasRod(h)) deMode = false;
+      db.classList.toggle('on', deMode); bag.classList.toggle('deon', deMode); m.querySelector('.dehint').hidden = !deMode;
+      db.onclick = () => { deMode = !deMode; hideTip(); draw(); }; }
     for (let i = 0; i < LOOT.bag; i++) {
       const it = h.bag.find(x => x.pos === i), b = cell(it, it ? upMark(it, G) : '');
-      if (it) { hov(b, e => tip(e, it, G)); onItem(b, G, it, it.slot ? 'Надеть' : it.kind === 'potion' ? 'Выпить' : it.kind === 'gem' ? 'Вставить в вещь' : isHearth(it) ? 'Вернуться домой' : null, () => { if (isHearth(it)) { if (startHearth(G)) m.close(); return; } if (it.kind === 'potion') drinkElixir(G, it); else if (it.kind === 'gem') gemPick(G, it, () => { onChange(); draw(); }); else equip(G, it); onChange(); draw(); }, false, [...(enchSkill(G.hero) && hasRod(G.hero) && canDisenchant(G.hero, it) ? [['Распылить', () => deAsk(G, it, () => { onChange(); draw(); })]] : []), ...(isHearth(it) ? [] : [['Выбросить', () => throwAsk(G, it, () => { onChange(); draw(); })]])]);   // v107: на телефоне — «Распылить» drag(b, { it });
+      if (deMode) { if (it && canDisenchant(h, it)) { b.classList.add('decan'); hov(b, e => tip(e, it, G)); b.onclick = () => { hideTip(); deAsk(G, it, () => { onChange(); draw(); }); }; } else b.classList.add('deno'); bag.append(b); continue; }
+      if (it) { hov(b, e => tip(e, it, G)); onItem(b, G, it, it.slot ? 'Надеть' : it.kind === 'potion' ? 'Выпить' : it.kind === 'gem' ? 'Вставить в вещь' : isHearth(it) ? 'Вернуться домой' : null, () => { if (isHearth(it)) { if (startHearth(G)) m.close(); return; } if (it.kind === 'potion') drinkElixir(G, it); else if (it.kind === 'gem') gemPick(G, it, () => { onChange(); draw(); }); else equip(G, it); onChange(); draw(); }, false, [...(enchSkill(G.hero) && hasRod(G.hero) && canDisenchant(G.hero, it) ? [[`${DE_SVG}Распылить`, () => deAsk(G, it, () => { onChange(); draw(); })]] : []), ...(isHearth(it) ? [] : [['Выбросить', () => throwAsk(G, it, () => { onChange(); draw(); })]])]); drag(b, { it });   // v107: на телефоне — «Распылить»; v109: перенос вещей снова работает
         if (!TOUCH) b.oncontextmenu = e => { e.preventDefault(); hideTip(); throwAsk(G, it, () => { onChange(); draw(); }); }; }   // v91: правый щелчок — выбросить
       drop(b, src => { const cur0 = h.bag.find(x => x.pos === i); if (src.it && src.it.kind === 'gem' && cur0 && cur0 !== src.it && hasSocket(cur0)) { gemConfirm(G, src.it, cur0, () => { onChange(); draw(); }); return; } if (src.it) bagMove(G, src.it, i); else if (src.eq) { const cur = h.bag.find(x => x.pos === i); if (cur && cur.slot === src.eq) equip(G, cur); else if (!cur) unequip(G, src.eq, i); } });
       bag.append(b);
@@ -154,7 +161,7 @@ export function openChar(G, onChange) {
   { const cv = m.querySelector('canvas'); const anim = now => { if (!m.isConnected) return; if (dollFx.length) { const g = cv.getContext('2d'); g.setTransform(2, 0, 0, 2, 0, 0); g.clearRect(0, 0, 170, 236); doll(g, 85, 184, 3.9, 1, lookOf(G.hero), 0.3); gearFx(g, dollFx, 85, 184 + 12.6 * 3.9, now / 1000, 37 * 3.9); } requestAnimationFrame(anim); }; requestAnimationFrame(anim); }
   const onKey = e => { if ((e.code === 'KeyI' || e.code === 'KeyB') && !e.repeat) { e.preventDefault(); e.stopPropagation(); m.close(); } };
   addEventListener('keydown', onKey, true);
-  m.onclose = () => { hideTip(); removeEventListener('keydown', onKey, true); }; draw(); return m;
+  m.onclose = () => { hideTip(); removeEventListener('keydown', onKey, true); removeEventListener('keydown', deEsc, true); }; draw(); return m;
 }
 
 /** Банк (v72): слева — личный банк (64) или общий сундук всех героев (32), справа — сумка.
@@ -435,7 +442,7 @@ function enchTab(G, B, se, redraw, skbar, leg) {
   const tools = B.querySelector('.detools');
   if (greens > 1) { const b = el('button', 'btn', `Распылить все зелёные (${greens})`); b.disabled = !rod; b.onclick = () => { const m = modal(`<h2>Распылить все зелёные?</h2><p>${greens} зелёных вещей из сумки рассыплются насовсем. Надетые, синие и фиолетовые не тронутся.</p><div class="row"><button class="btn danger" data-x="yes">Распылить</button><button class="btn main" data-x="no">Оставить</button></div>`, 'throwask'); m.querySelector('[data-x=yes]').onclick = () => { m.close(); disenchantAll(G, 'good'); redraw(); }; m.querySelector('[data-x=no]').onclick = () => m.close(); }; tools.append(b); }
   if (!items.length) D.innerHTML = `<p class="hint">В сумке нечего распылять: подходят зелёные, синие и фиолетовые вещи. Белые продают торговцу.</p>`;
-  for (const it of items) { const r = el('div', 'ware2', `${itemIcon(it, 44)}<div><b style="color:${RAR_COL[it.rar]}">${it.name}</b><small>ур. ${it.ilvl} · выйдет: ${deText(it)}</small></div><button class="btn" ${rod ? '' : 'disabled'}>Распылить</button>`); hov(r.querySelector('.gicon') || r, e => tip(e, it, G)); r.querySelector('.btn').onclick = () => deAsk(G, it, redraw); D.append(r); }
+  for (const it of items) { const r = el('div', 'ware2', `${anyIcon(it, 44)}<div><b style="color:${RAR_COL[it.rar]}">${it.name}</b><small>ур. ${it.ilvl} · выйдет: ${deText(it)}</small></div><button class="btn" ${rod ? '' : 'disabled'}>Распылить</button>`); hov(r.querySelector('.gicon') || r, e => tip(e, it, G)); r.querySelector('.btn').onclick = () => deAsk(G, it, redraw); D.append(r); }
   const R_ = B.querySelector('.recipes');
   for (const [id, R] of Object.entries(ENCHANTS)) {
     const c = skillColor(se, R.req, ENCH.colors).c, n = canEnchant(h, id), low = se < R.req;

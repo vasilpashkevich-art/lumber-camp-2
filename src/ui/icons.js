@@ -36,6 +36,7 @@ export function gearIconUrl(it) {
   return url;
 }
 export function itemIcon(it, size = 40) {
+  if (it.trinket || it.kind) return anyIcon(it, size);   // v109: аксессуар и стопки — своими значками (раньше окно чар спотыкалось об аксессуар)
   const rc = RAR_COL[it.rar] || '#888', epic = it.rar === 'epic';
   // v92: фиолетовые — тёмно-фиолетовый фон и золотая кайма внутри рамки, без свечения
   const bg = epic ? 'radial-gradient(circle at 50% 38%, #6a3aa8 0%, #2a1444 55%, #120a1e 100%)' : `radial-gradient(circle at 50% 40%, ${rc}33, #1a120c 70%)`;
@@ -120,7 +121,9 @@ export const ACC_ICON = {
   ench_shard2: `<path d="M14 3l8 7-3 18-8-4-4-10z" fill="#7ad8ff" stroke="${O}" stroke-width="1.4"/><path d="M14 3l1 11 4 14M7 14l8 0 7-4" fill="none" stroke="#2a80b8" stroke-width="1"/><path d="M11 8l3-3" stroke="#fff" stroke-width="1.6"/><path d="M25 18l1 2.4 2.4 1-2.4 1-1 2.4-1-2.4-2.4-1 2.4-1z" fill="#fff"/>`,
   ench_crystal: `<path d="M16 2l7 8v13l-7 7-7-7V10z" fill="#b46aff" stroke="${O}" stroke-width="1.5"/><path d="M16 2v28M9 10l7 5 7-5M9 23l7-8 7 8" fill="none" stroke="#6a2aa8" stroke-width="1"/><path d="M12 8l3-4" stroke="#fff" stroke-width="1.8"/><circle cx="16" cy="15" r="2.4" fill="#f0d8ff"/><path d="M27 5l.9 2 2 .9-2 .9-.9 2-.9-2-2-.9 2-.9z" fill="#fff"/>`,
   rod: `<path d="M7 28L22 9" stroke="${O}" stroke-width="4.6" stroke-linecap="round"/><path d="M7 28L22 9" stroke="#c8703a" stroke-width="2.8" stroke-linecap="round"/><path d="M8.5 25.5l11-14" stroke="#ffc090" stroke-width=".9"/><circle cx="12" cy="21.6" r="2" fill="#a85a2a" stroke="${O}" stroke-width=".8"/><circle cx="24" cy="7" r="5" fill="#c8a0ff" stroke="${O}" stroke-width="1.4"/><circle cx="22.4" cy="5.4" r="1.6" fill="#fff"/><path d="M29 13l.8 2 2 .8-2 .8-.8 2-.8-2-2-.8 2-.8z" fill="#e8d0ff"/>`,
-};/** v108: камень возвращения на кнопке сбоку. */
+};/** v109: знак распыления — фиолетовый кристалл раскалывается, осколки и искры разлетаются, внизу кучка пыли. */
+export const DE_SVG = `<svg viewBox="0 0 32 32" class="deico"><ellipse cx="16" cy="27" rx="10" ry="3.2" fill="#c8a8e8" stroke="#3a1a5a" stroke-width="1"/><path d="M12 6l5-3 4 6-2 9-6 1-3-7z" fill="#b46aff" stroke="#3a1a5a" stroke-width="1.3"/><path d="M17 3l-1 8 3 7M12 6l4 5-6 2" fill="none" stroke="#6a2aa8" stroke-width=".9"/><path d="M13 6l3-2" stroke="#fff" stroke-width="1.4" stroke-linecap="round"/><path d="M15.5 11l1.5 1.5" stroke="#fff4" stroke-width="2"/><path d="M5 12l3-1 1 3-3 1z" fill="#d8a8ff" stroke="#3a1a5a" stroke-width=".8"/><path d="M24 14l3 1-1 3-3-1z" fill="#d8a8ff" stroke="#3a1a5a" stroke-width=".8"/><path d="M22 20l2 2-2 1z" fill="#e8d0ff" stroke="#3a1a5a" stroke-width=".6"/><path d="M27 6l.8 2 2 .8-2 .8-.8 2-.8-2-2-.8 2-.8z" fill="#fff"/><path d="M6 20l.6 1.4 1.4.6-1.4.6-.6 1.4-.6-1.4-1.4-.6 1.4-.6z" fill="#fff"/><circle cx="11" cy="24" r=".9" fill="#fff"/><circle cx="20" cy="25" r=".8" fill="#fff"/></svg>`;
+/** v108: камень возвращения на кнопке сбоку. */
 export const hearthSvg = () => `<svg viewBox="0 0 32 32">${ACC_ICON.hearth}</svg>`;
 /** Значок: кольцо/шея (gem — цвет камня), аксессуар по id, руда/слиток/кирка. */
 export function accIcon(kind, rar = 'common', size = 40, gemCol = '#4a9eff') {

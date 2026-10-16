@@ -25,7 +25,7 @@ import { dist } from './engine/util.js';
 import { $, toast, zoneTitle, TOUCH, T } from './ui/dom.js';
 import { RAR_COL } from '../data/balance.js';
 
-const VERSION = 108;
+const VERSION = 109;
 /** Приближение камеры на шаг: +1 ближе, −1 дальше. */
 let zoomT = 0;
 function zoomBy(d) {
@@ -125,7 +125,19 @@ function profWin(opts = {}) { if (!G) return; const m = document.querySelector('
 let lootWin = null;
 function menu() { if (!G) return; paused = true; const m = openMenu({ inGame: true, onExit: () => toSelect() }); const oc = m.onclose; m.onclose = () => { paused = false; oc && oc(); }; }
 
+/** v109: кадр под защитой — ошибка в окне или рисовании не останавливает игру (раньше герой «зависал» до перезахода). */
+let crashT = 0;
 function frame(now) {
+  try { frameInner(now); }
+  catch (err) {
+    console.error('кадр', err); if (G) G.ev.length = 0;
+    document.querySelectorAll('.modal .box').forEach(b => { try { b.close(); } catch (e) { b.parentElement && b.parentElement.remove(); } });
+    document.querySelectorAll('.modal').forEach(m => m.remove()); paused = false;
+    if (now - crashT > 3000) { crashT = now; toast('Окно закрылось из-за ошибки — игра продолжается', '', 'crash'); }
+    if (G) raf = requestAnimationFrame(frame);
+  }
+}
+function frameInner(now) {
   if (!G) return;
   const dt = Math.min(0.05, (now - last) / 1000); last = now;
   const modalOpen = !!document.querySelector('.modal');
