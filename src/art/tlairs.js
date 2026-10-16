@@ -167,9 +167,73 @@ export function bridge(g, len) {
     for (let y = -len / 2; y <= len / 2 + 1; y += len / 4) { g.beginPath(); g.arc(sx * w / 2, y, 7, 0, TAU); paint(g, '#7a4e2a', 1.3); g.beginPath(); g.arc(sx * w / 2, y, 3.6, 0, TAU); paint(g, '#c8a070', 0.8); } }
 }
 
-// ---------------------------------------------------------------- скалы: пухлые валуны (рудные жилы остаются прежними, с острыми гранями — ore.js)
-/** Скала у края: большой валун и два поменьше, мох, камешки. */
+// ---------------------------------------------------------------- скалы (v115): острые гранёные глыбы — как рудные жилы, но в цветах мультяшного стиля
+// Силуэт ломаный, без скруглений; грани — от верхних вершин к внутреннему основанию, светлее слева сверху, темнее справа;
+// обводка в тон камня, белые блики по рёбрам, мох плоскими шапками; четыре формы и три оттенка по зерну скалы.
+// Формы глыб: ridge — гребень из нескольких зубцов, mesa — плоская плита с косым срезом, fang — один наклонный клык.
+function shard(g, x0, y0, w, h, col, seed, moss = false, prof = 'ridge') {
+  const r = rnd(seed), top = [[x0 - w / 2, y0]];
+  if (prof === 'mesa') {   // плита: крутые бока, верх — две-три косые грани почти вровень
+    const tilt = (r() - 0.5) * 0.35, H0 = h * (0.78 + r() * 0.14);
+    top.push([x0 - w * 0.42, y0 - H0 * (0.72 + r() * 0.12)], [x0 - w * 0.3, y0 - H0 * (1 - tilt)], [x0 + w * (0.02 + r() * 0.1), y0 - H0 * (0.94 + r() * 0.08)], [x0 + w * 0.32, y0 - H0 * (1 + tilt)], [x0 + w * 0.44, y0 - H0 * (0.62 + r() * 0.1)]);
+  } else if (prof === 'fang') {   // клык: один высокий наклонный зуб и плечо сбоку
+    const lean = (r() < 0.5 ? -1 : 1) * (0.08 + r() * 0.1);
+    top.push([x0 - w * 0.3, y0 - h * (0.32 + r() * 0.1)], [x0 + w * (lean - 0.06), y0 - h * 1.08], [x0 + w * (lean + 0.05), y0 - h * (0.9 + r() * 0.06)], [x0 + w * 0.3, y0 - h * (0.38 + r() * 0.12)]);
+  } else {   // гребень
+    const n = 5 + Math.floor(r() * 3);
+    for (let k = 1; k < n; k++) { const q = k / n, env = Math.sin(Math.PI * Math.min(1, q * 1.06)) ** 0.7, hy = h * env * (0.82 + r() * 0.35) * (k % 2 ? 1 : 0.84);
+      top.push([x0 - w / 2 + q * w + (r() - 0.5) * w / n * 0.5, y0 - Math.max(h * 0.18, hy)]); }
+  }
+  top.push([x0 + w / 2, y0]);
+  // внутреннее основание граней: чуть выше земли, под вершинами
+  const bot = top.map(([x, y], i) => i === 0 || i === top.length - 1 ? [x, y] : [x0 + (x - x0) * 0.86 + (r() - 0.5) * 6, y0 - h * (0.08 + r() * 0.1)]);
+  const sil = () => { g.beginPath(); g.moveTo(top[0][0], top[0][1]); for (const p of top) g.lineTo(p[0], p[1]); g.lineTo(x0 + w / 2 - 4, y0 + 3); g.lineTo(x0 - w / 2 + 4, y0 + 3); g.closePath(); };
+  g.fillStyle = 'rgba(20,12,6,.08)'; g.beginPath(); g.ellipse(x0 + w * 0.1, y0 + 2, w * 0.62, w * 0.12, 0, 0, TAU); g.fill();
+  sil(); g.fillStyle = sh(col, -0.32); g.fill();   // низ — тёмная подошва
+  // грани: от каждой пары верхних вершин к основанию; свет слева сверху
+  for (let i = 0; i < top.length - 1; i++) {
+    const q = i / (top.length - 2), lit = 0.34 - q * 0.62 + (i % 2 ? -0.06 : 0.04);
+    g.beginPath(); g.moveTo(top[i][0], top[i][1]); g.lineTo(top[i + 1][0], top[i + 1][1]); g.lineTo(bot[i + 1][0], bot[i + 1][1]); g.lineTo(bot[i][0], bot[i][1]); g.closePath();
+    g.fillStyle = sh(col, lit); g.fill();
+    if (i > 0 && i < top.length - 2 && r() < 0.6) { const [ax, ay] = top[i], [bx, by] = top[i + 1], mx = (ax + bx) / 2, my = Math.max(ay, by) + h * 0.18;
+      g.beginPath(); g.moveTo(ax, ay); g.lineTo(bx, by); g.lineTo(mx + (bx - ax) * 0.1, my); g.closePath(); g.fillStyle = sh(col, lit + 0.16); g.fill(); }
+  }
+  g.strokeStyle = ink(col); g.lineJoin = 'miter'; g.lineWidth = 0.9; g.globalAlpha = 0.55;
+  for (let i = 1; i < top.length - 1; i++) { g.beginPath(); g.moveTo(top[i][0], top[i][1]); g.lineTo(bot[i][0], bot[i][1]); g.stroke(); }
+  g.beginPath(); bot.forEach((p, i) => i ? g.lineTo(p[0], p[1]) : g.moveTo(p[0], p[1])); g.stroke(); g.globalAlpha = 1;
+  g.strokeStyle = 'rgba(255,255,255,.55)'; g.lineWidth = 1.6; g.lineCap = 'round';
+  for (let i = 0; i < top.length - 2; i++) { const q = i / (top.length - 2); if (q > 0.55) break; const [ax, ay] = top[i], [bx, by] = top[i + 1]; g.beginPath(); g.moveTo(ax + (bx - ax) * 0.18, ay + (by - ay) * 0.18 + 1.6); g.lineTo(ax + (bx - ax) * 0.7, ay + (by - ay) * 0.7 + 1.6); g.stroke(); }
+  g.strokeStyle = sh(col, -0.45); g.lineWidth = 1; g.lineCap = 'butt';
+  for (let i = 0; i < 2; i++) { const t = top[1 + Math.floor(r() * (top.length - 2))]; let x = t[0] + (r() - 0.5) * 8, y = t[1] + h * 0.15; g.beginPath(); g.moveTo(x, y); for (let k = 0; k < 3; k++) { x += (r() - 0.5) * 10; y += h * 0.12; g.lineTo(x, y); } g.stroke(); }
+  if (moss) { const t = top[Math.max(1, Math.floor(top.length * 0.3))]; g.beginPath(); g.moveTo(t[0] - w * 0.12, t[1] + 4); g.lineTo(t[0] - w * 0.04, t[1] - 1); g.lineTo(t[0] + w * 0.09, t[1] + 1); g.lineTo(t[0] + w * 0.12, t[1] + 5); g.lineTo(t[0] - w * 0.02, t[1] + 7); g.closePath(); paint(g, '#6f9a44', 1); }
+  sil(); g.strokeStyle = ink(col); g.lineWidth = 1.8; g.lineJoin = 'miter'; g.miterLimit = 3; g.stroke();
+}
+/** Острый камешек у подножия. */
+function chip(g, x, y, s, col, r) { g.beginPath(); g.moveTo(x - s, y); g.lineTo(x - s * 0.4, y - s * (0.8 + r() * 0.5)); g.lineTo(x + s * 0.5, y - s * 0.6); g.lineTo(x + s, y); g.closePath(); g.fillStyle = sh(col, 0.08); g.fill(); g.strokeStyle = ink(col); g.lineWidth = 0.9; g.stroke(); }
+// камень трёх оттенков: серый гранит, тёплый песчаник, холодный сланец
+const STONE = ['#9a9488', '#a39684', '#8e949a'];
+/** Скала у края: одна из четырёх форм по зерну — гребень, плита, клык, россыпь глыб; оттенок тоже по зерну. */
 export function outcrop(g, w = 170, h = 110, seed = 5, moss = true) {
+  const r = rnd(seed), kind = seed % 4, col = STONE[Math.floor(seed / 4) % 3], c2 = sh(col, -0.06), c3 = sh(col, 0.04);
+  if (kind === 0) {   // гребень с двумя спутниками
+    shard(g, w * 0.3, 6, w * 0.55, h * 0.55, c2, seed + 3, false, 'fang');
+    shard(g, 0, 0, w, h, col, seed, moss, 'ridge');
+    shard(g, -w * 0.34, 10, w * 0.42, h * 0.42, c3, seed + 7, moss && r() < 0.5, 'ridge');
+  } else if (kind === 1) {   // плоская плита и обломок
+    shard(g, -w * 0.36, 8, w * 0.38, h * 0.36, c3, seed + 5, false, 'ridge');
+    shard(g, w * 0.04, 0, w * 0.96, h * 0.72, col, seed, moss, 'mesa');
+  } else if (kind === 2) {   // клык: высокий зуб, у подножия плита
+    shard(g, w * 0.22, 8, w * 0.6, h * 0.42, c2, seed + 9, moss, 'mesa');
+    shard(g, -w * 0.12, 2, w * 0.62, h * 1.05, col, seed, false, 'fang');
+  } else {   // россыпь: три-четыре глыбы рядом
+    const n = 3 + Math.floor(r() * 2);
+    for (let i = 0; i < n; i++) { const q = i / (n - 1) - 0.5, ww = w * (0.36 + r() * 0.14), hh = h * (0.4 + r() * 0.3);
+      shard(g, q * w * 0.8, (i % 2) * 8, ww, hh, [col, c2, c3][i % 3], seed + i * 13, moss && i === 1, ['ridge', 'fang', 'mesa'][Math.floor(r() * 3)]); }
+  }
+  for (let i = 0; i < 7; i++) chip(g, (r() - 0.5) * w * 1.2, 10 + r() * 10, 3 + r() * 4, sh(col, 0.06), r);
+}
+/** Прежняя пухлая скала (v104) — для сравнения. */
+export function outcropSoft(g, w = 170, h = 110, seed = 5, moss = true) {
   const r = rnd(seed); shadow(g, w * 0.62, w * 0.14, w * 0.08);
   boulder(g, w * 0.3, 6, w * 0.55, h * 0.55, '#8e877a', false, seed + 3);
   boulder(g, 0, 0, w, h, '#9a9286', moss, seed);
