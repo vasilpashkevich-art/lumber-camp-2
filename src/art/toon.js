@@ -53,6 +53,22 @@ function texture(g, kind, col, x0, y0, x1, y1) {
 
 // ---------------------------------------------------------------- поза
 const KCHOP = [[0, 0.3, 3.25], [0.3, 2.65, 4.05], [0.42, 3.0, 4.3], [0.58, 1.6, 2.05], [0.76, 0.8, 1.25], [1, 0.3, 3.25]];
+// v116: связка ударов — удар по кругу меняет движение (pose.v). Ключи: [время, подъём руки, направление оружия w, наклон наружу lt, сгиб локтя, наклон тела].
+// Рубка: 0 — сверху (KCHOP), 1 — наискось слева направо, 2 — обратным ходом справа налево, 3 — укол вперёд.
+const CHOPV = {
+  1: [[0.28, 1.0, 2.1, 1.5, 0.5, 0.2], [0.5, 1.3, 1.8, 0.2, 0.1, 0.9], [0.72, 1.15, 1.62, -1.2, 0.1, 0.7]],
+  2: [[0.28, 1.1, 2.0, -1.0, 0.6, 0.2], [0.5, 1.35, 1.78, 0.3, 0.1, 0.9], [0.72, 1.2, 1.7, 1.5, 0.1, 0.7]],
+  3: [[0.3, 0.85, 1.95, 0.15, 1.1, -0.3], [0.52, 1.5, 1.6, 0, -0.1, 1.5], [0.76, 1.42, 1.62, 0, 0, 1.1]],
+};
+// Заклинание: 0 — поднять посох (как раньше), 1 — выпад посохом вперёд, 2 — круговой взмах сбоку. Ключи: [время, рука, w, lt, локоть, свет].
+const CASTV = {
+  1: [[0.3, 0.7, 2.6, 0, 0.6, 0.3], [0.55, 1.45, 1.78, 0, -0.05, 1], [0.8, 1.35, 1.82, 0, 0, 0.6]],
+  2: [[0.3, 0.95, 2.55, 1.2, 0.3, 0.3], [0.55, 1.2, 2.2, -0.2, 0.1, 1], [0.78, 1.05, 2.3, -1.0, 0.15, 0.5]],
+};
+/** Сколько движений у удара по стилю. */
+export const SWING_N = { chop: 4, cast: 3, bow: 3 };
+/** Каким движением бьёт облик: рубка, заклинание или выстрел. */
+export const swingOf = L => L.swing || (L.weapon && W_BY[L.weapon.m] && W_BY[L.weapon.m].swing) || 'chop';
 function keyed(K, k) { let i = 0; while (i < K.length - 2 && k > K[i + 1][0]) i++; const a = K[i], b = K[i + 1], q = Math.min(1, Math.max(0, (k - a[0]) / (b[0] - a[0]))), e = q * q * (3 - 2 * q); return a.map((v, j) => v + (b[j] - v) * e); }
 // оружие в покое: по стороне взгляда — чтобы не закрывало лицо (спереди — вверх и наружу, боком — вперёд-вверх)
 const REST = { front: [3.0, 0.55], fs: [3.45, 0.75], side: [2.35, 0], bs: [3.1, 0.55], back: [3.0, 0.55] };
@@ -66,6 +82,24 @@ function poseRig(pose, style, view) {
     R.armL = 0.12 - Math.sin(w) * 0.42; R.armR += Math.sin(w) * 0.28; if (style === 'chop') R.w += Math.sin(w) * 0.15; }
   const A = pose.atk >= 0 ? pose.atk : -1;
   if (A >= 0) {
+    const V = pose.v || 0;
+    if (style === 'chop' && CHOPV[V]) {
+      const r0 = [0, 0.3, rw, rl, 0.35, 0], K = [r0, ...CHOPV[V], [1, 0.3, rw, rl, 0.35, 0]], [, ar, w, lt, bd, ln] = keyed(K, A);
+      R.armR = ar; R.w = w; R.lt = lt; R.bendR = bd; R.lean = ln; R.atk = Math.min(1, Math.sin(Math.PI * A) * 1.4);
+      R.foot = [A > 0.4 ? (V === 3 ? 3 : 1.6) : 0, A > 0.4 ? -1.2 : 0]; R.trail = A > 0.38 && A < 0.74 ? 0.5 : 0; R.trailH = V === 3 ? 0 : V === 1 ? 1 : -1;
+      if (V === 3) R.trail = A > 0.45 && A < 0.72 ? 0.45 : 0;
+      return R;
+    }
+    if (style === 'cast' && CASTV[V]) {
+      const [cw, cl] = REST_CAST[view] || REST_CAST.front, r0 = [0, 0.2, cw, cl, 0.25, 0], K = [r0, ...CASTV[V], [1, 0.2, cw, cl, 0.25, 0]], [, ar, w, lt, bd, gl] = keyed(K, A);
+      R.armR = ar; R.w = w; R.lt = lt; R.bendR = bd; R.glow = gl; R.lean = gl * 0.7; R.foot = [A > 0.4 ? 1.4 : 0, 0];
+      return R;
+    }
+    if (style === 'bow' && V) {   // 1 — быстрый выстрел с бедра (лук наклонён, натяжение короче), 2 — навесом вверх
+      const k = A < 0.55 ? A / 0.55 : 1 - (A - 0.55) / 0.45; R.bow = Math.min(1, k * 1.9); R.pull = A < 0.55 ? Math.min(1, k * 1.2) * (V === 1 ? 0.6 : 1) : 0;
+      R.bowTilt = V === 1 ? -0.6 * R.bow : 0.3 * R.bow; R.bowUp = V === 1 ? 2.2 * R.bow : -4 * R.bow; R.lean = V === 2 ? -0.6 * R.bow : 0.4 * R.bow;
+      return R;
+    }
     if (style === 'cast') { const k = A < 0.5 ? A / 0.5 : 1 - (A - 0.5) / 0.5, e = k * k * (3 - 2 * k); R.armR = 0.2 + e * 1.35; R.bendR = 0.25 - e * 0.25; const [cw, cl] = REST_CAST[view] || REST_CAST.front; R.w = cw - e * 0.5; R.lt = cl * (1 - e); R.glow = k; R.lean = e * 0.6; }
     else if (style === 'bow') { const k = A < 0.6 ? A / 0.6 : 1 - (A - 0.6) / 0.4; R.bow = Math.min(1, k * 1.8); R.pull = A < 0.6 ? Math.min(1, k * 1.2) : 0; }
     else { const K = KCHOP.map((k, i) => i === 0 || i === KCHOP.length - 1 ? [k[0], k[1], rw] : k), [, ar, w] = keyed(K, A); R.armR = ar; R.w = w; R.bendR = ar > 1.5 ? -0.45 : 0.3; R.atk = Math.min(1, Math.sin(Math.PI * Math.min(1, A * 1.15)) * 1.6); R.lt = rl * (1 - R.atk); R.lean = A > 0.5 && A < 0.92 ? 1.1 : 0; R.foot = [A > 0.5 ? 2.2 : 0, A > 0.5 ? -1.4 : 0]; R.trail = A > 0.42 && A < 0.66 ? 0.55 : 0; }
@@ -304,7 +338,7 @@ export function person(c, L, view, pose = {}) {
     if (two) { const g2 = [H[0] - d[0] * 3.6, H[1] - d[1] * 3.6, H[2] - d[2] * 3.6], s = AL.s, m = [(s[0] + g2[0]) / 2 + 1.2, (s[1] + g2[1]) / 2 - 0.6, (s[2] + g2[2]) / 2 + 1.6]; AL = { s, e: m, h: g2 }; }
   }
   if (isBow) {
-    if (PR.bow > 0) { const k = PR.bow, hand = [SW * 0.5, 10.5 * k + 1.6 * (1 - k), shY + 1 + (1 - k) * 9];
+    if (PR.bow > 0) { const k = PR.bow, hand = [SW * 0.5, 10.5 * k + 1.6 * (1 - k), shY + 1 + (1 - k) * 9 + (PR.bowUp || 0)];
       AL = { s: AL.s, e: [lL + 0.6, (AL.s[1] + hand[1]) / 2, (shY + hand[2]) / 2 + 0.6], h: hand };
       const rh = [SW * 0.3, hand[1] - 2.2 - PR.pull * 8, hand[2]]; AR = { s: AR.s, e: [lR - 1.6, rh[1] - 3, shY + 0.8], h: rh }; }
     wpn = { H: PR.bow > 0 ? AL.h : AR.h, bow: true, hand: PR.bow > 0 ? AL : AR };   // в покое лук в правой руке (ближней сбоку), в выстреле — в левой
@@ -319,7 +353,7 @@ export function person(c, L, view, pose = {}) {
   function drawWeapon() {
     const s = 1.05, o = { t, glow: PR.glow, pull: PR.pull, arrow: isBow && PR.bow > 0.3 };
     g.save();
-    if (wpn.bow) { const h = P2(wpn.H), fx2 = sa >= 0 ? Math.max(0.28, Asa) : -Math.max(0.28, Asa); g.transform(fx2 * s, 0, 0, s, h[0], h[1]); }
+    if (wpn.bow) { const h = P2(wpn.H), fx2 = sa >= 0 ? Math.max(0.28, Asa) : -Math.max(0.28, Asa); g.transform(fx2 * s, 0, 0, s, h[0], h[1]); if (PR.bowTilt) g.rotate(PR.bowTilt); }
     else {
       const h = P2(wpn.H), dx = X(wpn.d[0], wpn.d[1]), dy = wpn.d[2], ln = Math.hypot(dx, dy) || 1, ux = dx / ln, uy = dy / ln, fl = Math.max(0.4, ln);
       let px = -uy, py = ux; const out = Math.sign(h[0] - bx) || -1;
@@ -330,7 +364,11 @@ export function person(c, L, view, pose = {}) {
     g.lineJoin = 'round'; g.lineCap = 'round'; wp.draw(g, wpP, o); g.restore();
     blob(g, ...P2(wpn.bow ? wpn.H : AR.h), 1.85, 1.75, hx6(glove));   // кисть поверх рукояти
     if (two) { const q = P2(AL.h); blob(g, q[0], q[1], 1.8, 1.7, hx6(glove)); }
-    if (PR.trail) { g.save(); g.globalCompositeOperation = 'lighter'; g.strokeStyle = `rgba(255,240,210,${PR.trail})`; g.lineWidth = 2.4; g.beginPath(); for (let k = 0; k <= 10; k++) { const th = 3.9 - k * 0.24, F = AR.s[1] + Math.sin(th) * 17, y = AR.s[2] + Math.cos(th) * 17; k ? g.lineTo(X(lR, F), y) : g.moveTo(X(lR, F), y); } g.stroke(); g.restore(); }
+    if (PR.trail) { g.save(); g.globalCompositeOperation = 'lighter'; g.strokeStyle = `rgba(255,240,210,${PR.trail})`; g.lineWidth = 2.4; g.beginPath();
+      if (PR.trailH) { const y = AR.s[2] + 1.5; for (let k = 0; k <= 10; k++) { const th = (k / 10 - 0.5) * 2.2 * PR.trailH, l = lR * 0.3 - Math.sin(th) * 15, F = AR.s[1] + Math.cos(th) * 15; k ? g.lineTo(X(l, F), y + Z(l, F) * 0) : g.moveTo(X(l, F), y); } }
+      else if (PR.trailH === 0) { const y = AR.s[2] + 0.5; g.moveTo(X(lR, 6), y); g.lineTo(X(lR, 22), y); }
+      else for (let k = 0; k <= 10; k++) { const th = 3.9 - k * 0.24, F = AR.s[1] + Math.sin(th) * 17, y = AR.s[2] + Math.cos(th) * 17; k ? g.lineTo(X(lR, F), y) : g.moveTo(X(lR, F), y); }
+      g.stroke(); g.restore(); }
   }
 
   // ================================================================ наплечники

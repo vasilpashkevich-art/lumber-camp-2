@@ -70,7 +70,8 @@ export function heroSpr(L, dir) {
 // view: front (идёт вниз) / side (вбок, рисуется вправо, влево — зеркально) / back (вверх)
 // mode: idle — стоит, walk — 8 кадров шага, atk — 6 кадров удара, dead — 4 кадра падения
 export const FRAMES = { idle: 1, walk: 8, atk: 6, dead: 4 };
-const poseOf = (mode, f) => mode === 'walk' ? { walk: f / 8 } : mode === 'atk' ? { atk: (f + 0.5) / 6 } : mode === 'dead' ? { dead: (f + 1) / 4 } : { walk: -1 };
+// v116: 'atk1'…'atk3' — то же, но другое движение связки (pose.v)
+const poseOf = (mode, f) => mode === 'walk' ? { walk: f / 8 } : mode.startsWith('atk') ? { atk: (f + 0.5) / 6, v: +mode.slice(3) || 0 } : mode === 'dead' ? { dead: (f + 1) / 4 } : { walk: -1 };
 const lookKey = L => L.key || JSON.stringify([L.cls, L.head && L.head.m, L.chest && L.chest.m, L.legs && L.legs.m, L.weapon && L.weapon.m]);
 // v75: мягкий облик людей и зверей — внутренние линии полупрозрачные (тёмный тон своего цвета), снаружи —
 // тонкий контур тоном самой картинки (её затемнённая копия со сдвигом), лёгкий свет сверху слева и тень снизу справа.

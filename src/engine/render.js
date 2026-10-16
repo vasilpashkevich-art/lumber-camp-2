@@ -40,6 +40,7 @@ import { GIANT, giantBase, giantUpper, giantCrown, giantShade } from '../art/gia
 import { LH } from '../world/relief.js';
 import { ORES, veinColor, MINE } from '../../data/mining.js';
 import { miningSkill } from '../systems/mining.js';
+import { SWING_N, swingOf } from '../art/toon.js';
 import { sprite, styled, PEOPLE_K, drawSpr, flashOf, heroSpr, mobSpr, MOB_SCALE, MOB_LOOK, personSpr, beastSpr, drawFrame, GUARD_LOOK, MERCH_LOOK, viewOf, viewOf8, sideways, sprBox, FRAMES, treeSpr, TREE_K, bldSpr, mountainSpr } from '../art/sprites.js';
 import { treesIn, GATE_W } from '../world/world.js';
 import { lookOf, fxListOf } from '../systems/items.js';
@@ -803,7 +804,8 @@ function drawMob(c, G, m, t) {
   const view = hum ? viewOf8(dx, dy) : viewOf(dx, dy), dir = sideways(view) ? (dx < 0 ? -1 : 1) : 1;
   const mode = m.atkT > 0 ? 'atk' : m.moving ? 'walk' : 'idle';
   const f = mode === 'atk' ? frameOf('atk', 1 - m.atkT / (m.atkDur || 0.35)) : mode === 'walk' ? frameOf('walk', m.walkPh) : 0;
-  const sp = mobFrame(m.kind, view, mode, f);
+  const vN = hum && mode === 'atk' ? (m.atkVar || 0) % (SWING_N[swingOf(MOB_LOOK[m.kind])] || 1) : 0;   // v116: люди-мобы тоже бьют по-разному
+  const sp = mobFrame(m.kind, view, vN ? 'atk' + vN : mode, f);
   if (hum) { c.fillStyle = 'rgba(0,0,0,.25)'; c.beginPath(); c.ellipse(m.x, m.y + 2, 14 * sc, 5 * sc, 0, 0, 7); c.fill(); }
   c.save(); if (m.state === 'return') c.globalAlpha = 0.6;
   const seed = (m.key ? m.key.length * 31 : 7) + Math.round(m.hx) % 97;
@@ -849,7 +851,8 @@ function drawHero(c, G, look, t) {
     return;
   }
   if (P.mine) look = { ...look, weapon: { m: 'pick', P: PICK_P }, swing: 'chop', key: look.key + '|pick' };
-  const sp = personSpr(look, view, mode, f), breathe = mode === 'idle' ? Math.sin(t * 2) * 0.4 : 0;
+  const vN = mode === 'atk' && !P.mine ? (P.atkVar || 0) % (SWING_N[swingOf(look)] || 1) : 0;   // v116: связка ударов
+  const sp = personSpr(look, view, vN ? 'atk' + vN : mode, f), breathe = mode === 'idle' ? Math.sin(t * 2) * 0.4 : 0;
   // v110: аксессуары — тень-двойник и призрачные волки рядом
   if (B.mirror > 0) { c.save(); c.globalAlpha = 0.42 * Math.min(1, B.mirror / 0.5); c.filter = 'hue-rotate(220deg) saturate(0.6) brightness(0.7)'; drawFrame(c, sp, P.x - 34 * dir, P.y - 6, dir, PEOPLE_K); c.restore(); }
   if (B.pack > 0) { const a = 0.5 * Math.min(1, B.pack / 0.5), wf = Math.floor(t * 10) % 8; c.save(); c.globalAlpha = a; c.filter = 'saturate(0.3) brightness(1.5) hue-rotate(170deg)'; for (const s of [-1, 1]) drawFrame(c, beastSpr('wolf', 'side', P.moving ? 'walk' : 'idle', P.moving ? wf : 0), P.x + s * 46, P.y + 14 + s * 6, dir, 1); c.restore(); }

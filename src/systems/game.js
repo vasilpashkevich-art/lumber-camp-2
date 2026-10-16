@@ -80,7 +80,7 @@ export function steer(G, o, tx, ty, dt) {
 }
 const sfx = (G, n) => G.ev.push({ k: 'sfx', n });
 /** Начать анимацию удара героя (для рисования: доля = 1 − atkT/atkDur). */
-const startAtk = (P, dur) => { P.atkT = dur; P.atkDur = dur; };
+const startAtk = (P, dur) => { P.atkT = dur; P.atkDur = dur; P.atkVar = 0; };   // умения — своим движением; обычный удар ставит связку после
 export const refreshStats = G => { G.st = heroStats(G.hero); G.P.hp = Math.min(G.P.hp, G.st.maxHp); };
 
 // ---------------------------------------------------------------- шаг игры
@@ -197,6 +197,8 @@ function heroAttack(G, tap, force = null) {
   P.target = t; P.face = Math.atan2(t.y - P.y, t.x - P.x); P.dir = Math.cos(P.face) < 0 ? -1 : 1;
   P.cd = G.st.cd / (P.buf.rage > 0 ? 1.2 : 1) / (P.buf.berserk > 0 ? 1 + ABX(G, 'berserk').haste : 1); P.lastCombat = G.t; sfx(G, A.sfx);
   startAtk(P, A.kind === 'melee' ? 0.32 : 0.42);
+  // v116: связка — каждый обычный удар следующим движением (рисунок по кругу); пауза больше 3 с — снова с первого
+  P.atkVar = G.t - (P.lastSwingT ?? -9) > 3 ? 0 : (P.atkVar || 0) + 1; P.lastSwingT = G.t;
   if (A.kind === 'melee') { P.swing = 0.22; strike(G, t, G.st.hit, 'melee'); }
   else {
     P.shot = 0.2;
@@ -769,7 +771,7 @@ function mobTick(G, m, dt) {
   if (D.trait === 'caster') {
     if (dH > D.reach * 0.85) go(P.x, P.y, D.speed); else if (dH < 170) { const a = Math.atan2(m.y - P.y, m.x - P.x); go(m.x + Math.cos(a) * 60, m.y + Math.sin(a) * 60, D.speed * 0.5); }
     if (dH <= D.reach && m.cd <= 0) {
-      m.cd = D.cd; m.face = P.x < m.x ? -1 : 1; m.atkT = m.atkDur = 0.5; const a = Math.atan2(P.y - m.y, P.x - m.x);
+      m.cd = D.cd; m.face = P.x < m.x ? -1 : 1; m.atkT = m.atkDur = 0.5; m.atkVar = (m.atkVar || 0) + 1; const a = Math.atan2(P.y - m.y, P.x - m.x);
       G.shots.push({ from: 'mob', kind: 'curse', x: m.x, y: m.y - 24, vx: Math.cos(a) * 340, vy: Math.sin(a) * 340, t: 1.2, dmg: m.dmg, m, slow: 2.5, say: D.curseSay });
     }
     return;
@@ -778,7 +780,7 @@ function mobTick(G, m, dt) {
     if (dH > D.reach * 0.9) go(P.x, P.y, D.speed);
     else if (dH < 150) { const a = Math.atan2(m.y - P.y, m.x - P.x); go(m.x + Math.cos(a) * 60, m.y + Math.sin(a) * 60, D.speed * 0.45); }  // отходит медленно — догнать можно
     if (dH <= D.reach && m.cd <= 0) {
-      m.cd = D.cd; m.face = P.x < m.x ? -1 : 1; m.atkT = m.atkDur = 0.42; const a = Math.atan2(P.y - 18 - (m.y - 18), P.x - m.x);
+      m.cd = D.cd; m.face = P.x < m.x ? -1 : 1; m.atkT = m.atkDur = 0.42; m.atkVar = (m.atkVar || 0) + 1; const a = Math.atan2(P.y - 18 - (m.y - 18), P.x - m.x);
       const fireS = D.shot === 'fire', spore = D.shot === 'spore', sp = fireS ? 380 : spore ? 290 : 520;
       G.shots.push({ from: 'mob', kind: fireS ? 'bottle' : spore ? 'spore' : 'arrow', x: m.x, y: m.y - 18, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, t: spore ? 1.1 : 1.0, dmg: m.dmg, m, burn: fireS ? D.burn : 0, poison: spore ? 0.22 : 0 });
     }
@@ -786,7 +788,7 @@ function mobTick(G, m, dt) {
   }
   if (dH > reach || !tier(G, m, P)) go(P.x, P.y, D.speed);
   else if (m.cd <= 0) {
-    m.cd = D.cd; m.face = P.x < m.x ? -1 : 1; m.bite = 0.2; m.atkT = m.atkDur = 0.35;
+    m.cd = D.cd; m.face = P.x < m.x ? -1 : 1; m.bite = 0.2; m.atkT = m.atkDur = 0.35; m.atkVar = (m.atkVar || 0) + 1;
     hurtHero(G, m.dmg * (0.9 + G.rand() * 0.2), m);
     if (D.trait === 'poison' && !P.dead) { P.poison = { t: 6, dps: m.dmg * 0.18 }; P.slow = 3; G.fx.push({ k: 'venom', x: P.x, y: P.y, seed: Math.floor(G.rand() * 1e6), t: 1.2, max: 1.2 }); emit(G, { k: 'txt', x: P.x, y: P.y - 60, s: D.poisonSay || 'яд', col: '#8ad84a' }); }
   }
