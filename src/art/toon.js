@@ -78,6 +78,8 @@ function poseRig(pose, style, view) {
   const t = pose.t || 0, R = { bob: Math.sin(t * 2.2) * 0.2, foot: [0, 0], lift: [0, 0], armL: 0.12, armR: view === 'side' ? 0.45 : 0.25, bendR: 0.35, w: rw, lt: rl, lean: 0, atk: 0, glow: 0, pull: 0, bow: false, trail: 0 };
   if (style === 'cast') { [R.w, R.lt] = REST_CAST[view] || REST_CAST.front; R.armR = 0.2; R.bendR = 0.25; }
   if (style === 'bow') { R.armR = 0.15; R.armL = 0.15; }
+  if (pose.ride && style === 'chop') { R.w += pose.rw ?? 0.2; R.armR = pose.rar ?? 0.9; if (pose.rlt != null) R.lt = pose.rlt; R.armL = 0.6; }   // v121: верхом оружие поднято назад — не закрывает голову коня; левая рука — поводья
+  if (pose.ride && style !== 'chop') R.armL = 0.6;
   if (pose.walk >= 0) { const w = pose.walk * TAU; R.foot = [Math.sin(w) * 4.4, -Math.sin(w) * 4.4]; R.lift = [Math.max(0, Math.cos(w)) * 1.8, Math.max(0, -Math.cos(w)) * 1.8]; R.bob = -Math.abs(Math.sin(w)) * 0.7;
     R.armL = 0.12 - Math.sin(w) * 0.42; R.armR += Math.sin(w) * 0.28; if (style === 'chop') R.w += Math.sin(w) * 0.15; }
   const A = pose.atk >= 0 ? pose.atk : -1;
@@ -190,9 +192,12 @@ export function person(c, L, view, pose = {}) {
 
   // ================================================================ ноги
   const legItems = () => { for (const [i, l] of [[0, 2.7], [1, -2.7]]) {
-    const fF = PR.foot[i], lift = PR.lift[i], kF = fF * 0.45 + 0.9, ky = -10.2 - lift * 0.4;
-    add(Z(l, fF * 0.5) - 0.5, () => {
-      const hx = X(l, lean * 0.3), kx = X(l, kF), ax = X(l, fF), ay = -2.6 - lift, near = Z(l, 0) >= -0.1, shade = near ? 0 : -0.12;
+    // v121: верхом (pose.ride) — бёдра в стороны вокруг конского бока, колени вперёд, стопы в стременах; дальняя нога за конём не рисуется
+    const RD = !!pose.ride, lk = RD ? l * 2.6 : l, la = RD ? l * 2.8 : l;
+    if (RD && Asa > 0.35 && Z(la, 0) < -1) continue;
+    const fF = RD ? 4.2 : PR.foot[i], lift = RD ? 0 : PR.lift[i], kF = RD ? 7 : fF * 0.45 + 0.9, ky = RD ? HIP + 3 : -10.2 - lift * 0.4;
+    add(Z(la, fF * 0.5) - 0.5, () => {
+      const hx = X(l, lean * 0.3), kx = X(lk, kF), ax = X(la, fF), ay = RD ? HIP + 13.5 : -2.6 - lift, near = Z(la, 0) >= -0.1, shade = near ? 0 : -0.12;
       const lc = sh(hx6(legCol), shade);
       if (!robe || part === 'legs') {
         capsule(g, hx, HIP + 1, kx, ky, 4.3, lc); capsule(g, kx, ky, ax, ay - 1, 3.7, lc);
@@ -208,7 +213,7 @@ export function person(c, L, view, pose = {}) {
           if (lg.spikeKnee) { g.beginPath(); g.moveTo(kx + tx(0.8) - 0.7, ky - 1.2); g.lineTo(kx + tx(2.6), ky - 4); g.lineTo(kx + tx(0.8) + 0.7, ky - 1.2); g.closePath(); paint(g, lgP.acc, 0.45); } }
       }
       // обувь: носок вперёд
-      const toe = X(l, fF + 2.2), heel = X(l, fF - 1.4), wid = 2.3 * Aca + 0.6, x0 = Math.min(toe, heel) - wid, x1 = Math.max(toe, heel) + wid, mx = (toe + heel) / 2, bc = sh(hx6(bootCol), shade);
+      const toe = X(la, fF + 2.2), heel = X(la, fF - 1.4), wid = 2.3 * Aca + 0.6, x0 = Math.min(toe, heel) - wid, x1 = Math.max(toe, heel) + wid, mx = (toe + heel) / 2, bc = sh(hx6(bootCol), shade);
       const B = lg ? lg.boots : null;
       if (B === 'boot' || B === 'fur' || B === 'sabaton') {   // голенище
         const top = B === 'sabaton' ? ky + 1.6 : ay - 5.4;
