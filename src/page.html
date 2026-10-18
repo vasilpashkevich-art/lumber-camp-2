@@ -131,6 +131,9 @@ html.touch #actbar .act.empty{display:none} html.touch.dnd #actbar .act.empty{di
 .money{display:inline-flex;align-items:center;gap:3px;white-space:nowrap} .money b{color:var(--txt);font-weight:bold}
 .coin{display:inline-block;width:11px;height:11px;border-radius:50%;margin-right:4px;border:1px solid rgba(0,0,0,.6);box-shadow:inset -2px -2px 0 rgba(0,0,0,.25),inset 1px 1px 0 rgba(255,255,255,.5)}
 .cg{background:#f2c037} .cs{background:#cfd6dc} .cc{background:#c4703a}
+/* v118: на пергаменте (светлые таблички) цифры денег и цветной текст — тёмные, иначе не видно */
+#selInfo dl .money b,.ask .money b,.toast .money b,table.ores .money b,.stats .money b{color:#2a1808}
+#selInfo dl [style*="color"],.ask [style*="color"],.toast [style*="color"],table.ores [style*="color"],.stats [style*="color"]{filter:brightness(.55) saturate(1.5)}
 /* подсумок */
 .box.loot{width:300px;padding:16px 18px}
 .loot h2{font-size:20px;margin-bottom:8px} .loot .lv{color:var(--dim);font-size:13px;font-weight:normal}
@@ -213,8 +216,8 @@ table.ores{width:100%;border-collapse:collapse;margin:6px 0;font-size:14px;backg
 .cell .empty{font-size:10px;color:#6a5a40;text-align:center}
 .cell .pr{position:absolute;right:2px;bottom:0;font-size:11px;color:#ffd34d;font-weight:bold;text-shadow:0 1px 2px #000}
 .stats{font-size:14px;max-width:290px;background:linear-gradient(#e9d9b0,#d8c498);border:2px solid #5a3a16;border-radius:8px;padding:8px 12px;color:#2a1808;box-shadow:inset 0 0 0 1px rgba(255,255,255,.35),inset 0 0 24px rgba(120,80,30,.25)} .stats b{color:#2a1808} .stats dt{color:#5a3e1a;font-weight:bold} .stats dd{color:#2a1808;font-weight:bold} .stats .dim,.stats small{color:#6a4a22} .stats .si{border-color:#6a4a22;color:#6a4a22}
-.stats .si{display:inline-flex;align-items:center;justify-content:center;width:15px;height:15px;margin-left:6px;border:1px solid #8a7458;border-radius:50%;font:italic bold 11px Georgia,serif;color:#c8b48a;cursor:help;vertical-align:1px}
-.stats .si:hover{border-color:#ffd34d;color:#ffd34d;background:rgba(255,211,77,.12)}
+.stats .si{display:inline-flex;align-items:center;justify-content:center;width:15px;height:15px;margin-left:6px;border:1px solid #6a4a22;border-radius:50%;font:italic bold 11px Georgia,serif;color:#6a4a22;cursor:help;vertical-align:1px}
+.stats .si:hover{border-color:#8a5a10;color:#fff3c8;background:#8a5a10}
 .tip .thelp{width:270px} .tip .thelp p{color:#e8dcc4;line-height:1.4}
 .bag{display:grid;grid-template-columns:repeat(8,52px);gap:6px;padding:8px;border-radius:10px;background:rgba(0,0,0,.28);box-shadow:inset 0 0 0 1px rgba(255,220,150,.12)}
 .cell .n{position:absolute;right:3px;bottom:1px;font-size:12px;font-weight:bold;color:#fff;text-shadow:0 1px 2px #000,0 0 2px #000;pointer-events:none}
