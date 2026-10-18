@@ -764,6 +764,15 @@ export function render(R, G, now) {
       c.save(); c.translate(ex, ey); c.rotate(a); c.globalAlpha = 0.85 + 0.15 * Math.sin(now / 160);
       c.fillStyle = '#e2453a'; c.strokeStyle = '#2a0c08'; c.lineWidth = 2 / zs; c.beginPath(); c.moveTo(s, 0); c.lineTo(-s * 0.8, -s * 0.8); c.lineTo(-s * 0.4, 0); c.lineTo(-s * 0.8, s * 0.8); c.closePath(); c.fill(); c.stroke(); c.restore();
     } }
+  // v124: новичок — золотая стрелка к капитану Гордею, пока не взято первое задание
+  { const q = G.hero.quests, gn = G.W.Z.id === 'pine' && !(q.act && q.act.pine_road) && !(q.done && q.done.pine_road) && !P.dead && (G.npcs || []).find(n => n.id === 'gordey');
+    if (gn) { const zs = R.cam.z / R.dpr, top = gn.y - 62 * PEOPLE_K / 1.15 - 18 - lift(gn.x, gn.y), bob = Math.sin(now / 220) * 5 / zs;
+      const arrow = (s) => { c.beginPath(); c.moveTo(s, 0); c.lineTo(-s * 0.2, -s * 0.75); c.lineTo(-s * 0.2, -s * 0.32); c.lineTo(-s, -s * 0.32); c.lineTo(-s, s * 0.32); c.lineTo(-s * 0.2, s * 0.32); c.lineTo(-s * 0.2, s * 0.75); c.closePath(); c.fillStyle = '#ffd34d'; c.fill(); c.lineWidth = 2.4 / zs; c.strokeStyle = '#5a3a08'; c.stroke(); c.fillStyle = 'rgba(255,255,255,.45)'; c.beginPath(); c.moveTo(s * 0.7, -s * 0.06); c.lineTo(-s * 0.1, -s * 0.6); c.lineTo(-s * 0.1, -s * 0.2); c.lineTo(-s * 0.85, -s * 0.2); c.lineTo(-s * 0.85, 0); c.closePath(); c.fill(); };
+      if (vis(gn.x, top, -30)) { if (dist(P.x, P.y, gn.x, gn.y) > 220) { c.save(); c.translate(gn.x, top - 14 - 54 / zs + bob); c.rotate(Math.PI / 2); arrow(15 / zs); c.restore(); } }
+      else { const [pl, pt, pr, pb] = (TOUCH ? [80, 80, 240, 70] : [60, 120, 60, 140]).map(v => v / zs), ax = x0 + pl, ay = y0 + pt, bx = x0 + zw - pr, by = y0 + zh - pb, cx = (ax + bx) / 2, cy = (ay + by) / 2, a = Math.atan2(top - cy, gn.x - cx), hx = (bx - ax) / 2, hy = (by - ay) / 2, tt = Math.min(hx / Math.abs(Math.cos(a) || 1e-6), hy / Math.abs(Math.sin(a) || 1e-6));
+        const ex = cx + Math.cos(a) * (tt - Math.abs(bob)), ey = cy + Math.sin(a) * (tt - Math.abs(bob));
+        c.save(); c.translate(ex, ey); c.rotate(a); arrow(20 / zs); c.restore();
+        const lx = Math.max(ax + 60 / zs, Math.min(bx - 60 / zs, ex - Math.cos(a) * 30 / zs)), ly = ey - Math.sin(a) * 34 / zs - (Math.abs(Math.sin(a)) < 0.5 ? 26 / zs : 0); label(c, 'Капитан Гордей', lx, ly, '#ffe08a', 13, true); } } }
   // куда идёт герой по касанию — кольцо на земле
   if (P.goal && P.goal.k === 'ground') { c.strokeStyle = 'rgba(255,233,168,.8)'; c.lineWidth = 2; c.beginPath(); c.ellipse(P.goal.x, P.goal.y - lift(P.goal.x, P.goal.y), 14 + 3 * Math.sin(now / 150), 6, 0, 0, 7); c.stroke(); }
   // подсказка «E»

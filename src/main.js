@@ -14,7 +14,7 @@ import { soundInit, sfx, music, setSound, soundState } from './engine/audio.js';
 import { showSelect } from './ui/select.js';
 import { createHud } from './ui/hud.js';
 import { talentRows, talentFree } from './systems/talents.js';
-import { openChar, openVendor, openMenu, showDeath, hideTip, openLoot, openAbils, openGuild, openSmelt, openBank, openProf, openDungeons, openNpc, openJournal , openInn, openStable, craftRedraw } from './ui/windows.js';
+import { openChar, openVendor, openMenu, showDeath, hideTip, openLoot, openAbils, openGuild, openSmelt, openBank, openProf, openDungeons, openNpc, openJournal , openInn, openStable, craftRedraw, openHowTo } from './ui/windows.js';
 import { dgLeave } from './systems/dungeon.js';
 import { openMap, miniZoom, miniZoomLevel, MINI_Z } from './ui/map.js';
 import { doll } from './art/body.js';
@@ -26,7 +26,7 @@ import { dist } from './engine/util.js';
 import { $, toast, zoneTitle, TOUCH, T } from './ui/dom.js';
 import { RAR_COL } from '../data/balance.js';
 
-const VERSION = 123;
+const VERSION = 124;
 /** Приближение камеры на шаг: +1 ближе, −1 дальше. */
 let zoomT = 0;
 function zoomBy(d) {
@@ -73,7 +73,7 @@ function boot() {
   miniBtns();
   $('#btnBag').onclick = () => charWin(); $('#btnHearth').onclick = () => { if (G && !document.querySelector('.modal')) startHearth(G); }; $('#btnMount').onclick = () => { if (G && !document.querySelector('.modal')) { toggleMount(G); hud.update(); } }; $('#btnMenu').onclick = () => menu(); $('#btnMap').onclick = () => mapWin(); $('#btnProf').onclick = () => profWin(); $('#btnDg').onclick = () => dgWin(); $('#btnQuest').onclick = () => qWin(); $('#qtrack').onclick = () => qWin(); $('#mini').onclick = () => mapWin(); $('#pfRing').onclick = () => { if (G && !document.querySelector('.modal')) devWin(); };
   $('#ver').textContent = 'версия ' + VERSION;
-  if (location.hash === '#dev') window.__G = { get G() { return G; }, start, toSelect, R: () => R, rollDrop, makeItem, doll, makeTrinket, makeStack, makePick, addStack, refresh: () => { refreshStats(G); hud.update(); }, spriteStats, Q, trinketProc, CRAFT };
+  if (location.hash === '#dev') window.__G = { get G() { return G; }, start, toSelect, R: () => R, rollDrop, makeItem, doll, makeTrinket, makeStack, makePick, addStack, refresh: () => { refreshStats(G); hud.update(); }, spriteStats, Q, trinketProc, CRAFT, openHowTo };
   toSelect();
 }
 
@@ -96,7 +96,7 @@ function start(id) {
   $('#hud').hidden = false; $('#game').hidden = false;
   hud.bind(G); In.clear();
   last = performance.now(); raf = requestAnimationFrame(frame);
-  if (!hero.stats.play) toast(T(`Добро пожаловать в Сосновый дол! Мобы бродят за стенами Столицы. Пробел — бить, C — умение, X — отдых, K — карта, E — обыскать или поговорить.`, `Добро пожаловать в Сосновый дол! Ведите пальцем слева — идти. Коснитесь врага — бить, тела или жилы — обыскать и копать. Справа — удар, умения, зелье, отдых.`), 'good');
+  if (!hero.howTo && location.hash !== '#dev') { hero.howTo = true; paused = true; openHowTo(() => { paused = false; }); }   // v124: новичку — «Как играть» (в #dev для снимков не открывается само — __G.openHowTo)
   saveHero(hero);
 }
 
