@@ -3,6 +3,8 @@ import { LOOK } from './look.js';
 import { BLD } from './bld.js';
 import { BEASTS, beast, BOX, setBeastInk, captureShadows } from './beasts.js';
 import { person, doll } from './body.js';
+import { horse } from './horse.js';
+import { RIG } from './toon.js';
 import { palette, setInk, INK, INK_HARD } from './gear.js';
 import { mossTree, giantShroom } from './forest.js';
 import { giantShroom as tShroom } from './tforest.js';
@@ -101,6 +103,12 @@ const SK = () => STYLE.soft ? '' : '|o';
 /** Кадр человека (герой, разбойники). Начало — как у heroSpr: ступни на +12,6. */
 export function personSpr(L, view, mode, f) {
   return sprite('p|' + lookKey(L) + '|' + view + '|' + mode + '|' + f + SK(), 100, 104, 50, 72, 2.2, styled(g => person(g, L, view, poseOf(mode, f))));
+}
+/** v121: конь (со всадником L или без; bare — без седла, graze — пасётся). Начало — как у человека: земля на +12,6. Кадры шага 0…7. */
+export function mountSpr(coat, L, view, mode, f, o = {}) {
+  const key = 'mt|' + coat + '|' + (L ? lookKey(L) : '-') + '|' + view + '|' + mode + '|' + f + (o.bare ? 'b' : '') + (o.graze ? 'g' : '') + SK();
+  return sprite(key, 160, 150, 80, 108, 2, styled(g => { g.translate(0, RIG.FOOT); g.scale(RIG.K, RIG.K);
+    horse(g, coat, view, { walk: mode === 'walk' ? f / 8 : -1, t: 1, bare: o.bare, graze: o.graze, rider: !!L, riderFn: L ? (seat, rx) => { g.save(); g.translate(rx, seat + 18.6); g.scale(1 / RIG.K, 1 / RIG.K); g.translate(0, -RIG.FOOT); person(g, L, view, { ride: true, t: 1 }); g.restore(); } : null }); }));
 }
 /** Кадр зверя. Начало — земля под ним. */
 export function beastSpr(kind, view, mode, f) {

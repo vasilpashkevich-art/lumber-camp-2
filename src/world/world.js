@@ -44,6 +44,11 @@ export function buildWorld(Z) {
   // постройки, у которых можно что-то сделать (E): столичные и посёлка, с координатами
   const T0 = cap || Z.village;
   W.houses = T0 ? T0.buildings.map(b => ({ ...b, x: T0.x + b.dx, y: T0.y + b.dy })) : [];
+  // v121: Конный двор — конюшня (постройка с конюшим), поилка, загон; безопасное место
+  W.yard = Z.yard || null;
+  if (W.yard) { const Y = W.yard; W.houses.push({ id: 'stable', art: 'stable', name: 'Конюшня', stable: true, x: Y.x + Y.stable.dx, y: Y.y + Y.stable.dy }); }
+  W.safes = [];   // безопасные места кроме города (пока нет: на Конном дворе мобы не живут, но погоня туда заходит — как в WoW)
+  W.keepOut = W.yard ? [{ x: W.yard.x, y: W.yard.y, R: W.yard.R }] : [];   // жилы и травы здесь не растут
   // препятствия: эллипс под основанием построек (столица, посёлок, хутора, мельница)
   const block = (x, y, rx) => W.blocks.push({ x, y: y - 22, rx, ry: rx * 0.42 });
   const rect = (x0, y0, x1, y1) => W.blocks.push({ rect: true, x0, y0, x1, y1 });
@@ -77,6 +82,11 @@ export function buildWorld(Z) {
   if (Z.mill) block(Z.mill.x, Z.mill.y, 58);
   ((Z.decor && Z.decor.columns) || []).forEach(([x, y], i) => W.blocks.push({ x, y: y - 4, rx: 16, ry: 9, col: i }));   // v77: колонны подземелья (v117: col — номер; разбитая — off)
   W.colHit = {};
+  if (Z.yard) { const Y = Z.yard, sx = Y.x + Y.stable.dx, sy = Y.y + Y.stable.dy, tx = Y.x + Y.trough.dx, ty = Y.y + Y.trough.dy, P = Y.paddock;
+    W.blocks.push({ rect: true, x0: sx - 190, y0: sy - 70, x1: sx + 190, y1: sy - 6 });   // конюшня
+    W.blocks.push({ rect: true, x0: tx - 50, y0: ty - 12, x1: tx + 50, y1: ty + 2 });   // поилка
+    for (const [x0, y0, x1, y1] of [[P.x0, P.y0 - 6, P.x1, P.y0 + 4], [P.x0 - 5, P.y0, P.x0 + 5, P.y1], [P.x1 - 5, P.y0, P.x1 + 5, P.y1], [P.x0, P.y1 - 6, P.gate[0], P.y1 + 4], [P.gate[1], P.y1 - 6, P.x1, P.y1 + 4]]) W.blocks.push({ rect: true, x0, y0, x1, y1 });   // забор загона с калиткой
+  }
   for (const [x, y] of (Z.decor && Z.decor.chests) || []) W.blocks.push({ rect: true, x0: x - 30, y0: y - 16, x1: x + 30, y1: y + 2 });   // v96: сундук крупный — сквозь него не пройти
   // v76: фасад Храма квакунов — стена по обе стороны от врат, в проём можно войти до порога
   if (Z.temple) { const T = Z.temple; rect(T.x - 370, T.y - 300, T.x - 32, T.y); rect(T.x + 32, T.y - 300, T.x + 370, T.y); rect(T.x - 32, T.y - 300, T.x + 32, T.y - 70); W.temple = { ...T }; }
@@ -244,7 +254,7 @@ export function buildWorld(Z) {
   }
   if (W.rocks.length) { W.trees = W.trees.filter(t => !W.rocks.some(o => Math.abs(t.x - o.x) < o.w * 0.6 && Math.abs(t.y - o.y) < o.w * 0.3)); W.grid.clear(); const all = W.trees; W.trees = []; for (const t of all) addTree(W, t); }
   // v95: у жителей с заданиями и у мест предметов заданий деревья не растут (остальные не сдвигаются)
-  { const keep = [...Object.values(NPCS).filter(n => n.zone === Z.id).map(n => [n.x, n.y, 110]), ...Object.values(QUESTS).filter(q => q.zone === Z.id).flatMap(q => q.goals.flatMap(g => (g.spots || []).map(([x, y]) => [x, y, 60])))];
+  { const keep = [...Object.values(NPCS).filter(n => n.zone === Z.id).map(n => [n.x, n.y, 110]), ...Object.values(QUESTS).filter(q => q.zone === Z.id).flatMap(q => q.goals.flatMap(g => (g.spots || []).map(([x, y]) => [x, y, 60]))), ...(Z.yard ? [[Z.yard.x, Z.yard.y, Z.yard.R - 30], [(Z.yard.paddock.x0 + Z.yard.paddock.x1) / 2, (Z.yard.paddock.y0 + Z.yard.paddock.y1) / 2, 200]] : [])];   // v121: и на Конном дворе
     if (keep.length && W.trees.some(t => keep.some(([x, y, r]) => dist(t.x, t.y, x, y) < r))) { const all = W.trees.filter(t => !keep.some(([x, y, r]) => dist(t.x, t.y, x, y) < r)); W.grid.clear(); W.trees = []; for (const t of all) addTree(W, t); } }
   return W;
 }
@@ -288,5 +298,7 @@ export function inGate(c, a) {
 }
 
 /** В столице или посёлке: мобы сюда не заходят, здоровье восстанавливается быстро. */
+/** v121: безопасное место — город или Конный двор (мобы не заходят, отдых быстрее). */
+export const inSafe = (W, x, y) => inCity(W, x, y) || !!(W.safes && W.safes.some(q => dist(x, y, q.x, q.y) < q.R));
 export const inCity = (W, x, y) => !!W.town && (W.town.rect ? x > W.town.rect[0] && x < W.town.rect[2] && y > W.town.rect[1] && y < W.town.rect[3] : dist(x, y, W.town.x, W.town.y) < W.town.R);
 export const clampW = (W, x, y) => [clamp(x, 0, W.W), clamp(y, 0, W.H)];

@@ -187,7 +187,7 @@ html.touch .abpop{pointer-events:auto} html.touch .abpop canvas{width:min(420px,
 .cell.ghost{box-shadow:0 0 0 2px #f5d77a,0 8px 20px rgba(0,0,0,.7);background:radial-gradient(#3a2a18,#1a1008)}
 .cell.drag{opacity:.35} .cell.over{border-color:var(--gold);box-shadow:0 0 0 2px rgba(231,195,90,.5) inset}
 .sq{width:48px;height:48px;border:2px solid #24130a;border-radius:10px;background:linear-gradient(#7a5226,#4a2e14 55%,#3a2210);padding:7px;box-shadow:0 0 0 2px #c8982e,inset 0 2px 0 rgba(255,220,160,.25),inset 0 -3px 0 rgba(0,0,0,.35),0 4px 0 #1a0c06} .sq:active{transform:translateY(2px)}
-#sideBtns{position:fixed;right:12px;bottom:12px;display:flex;gap:8px} #btnHearth{position:relative;overflow:hidden} #btnHearth .hcd{position:absolute;inset:0;background:rgba(0,0,0,.6);color:#fff;font:bold 13px Georgia;display:flex;align-items:center;justify-content:center;border-radius:8px} #btnHearth.cast{box-shadow:0 0 0 2px #7ac8ff,0 0 12px #7ac8ff}
+#sideBtns{position:fixed;right:12px;bottom:12px;display:flex;gap:8px} #btnMount.on{box-shadow:0 0 0 2px #ffd34d,0 0 12px rgba(255,211,77,.7)} #btnMount.cast{box-shadow:0 0 0 2px #ffd34d,0 0 14px #ffd34d} #btnMount[hidden]{display:none} .stablewin canvas.hpic{width:120px;height:92px;flex:0 0 auto;border-radius:8px;background:radial-gradient(#4a6a3a,#2a3a20)} #btnHearth{position:relative;overflow:hidden} #btnHearth .hcd{position:absolute;inset:0;background:rgba(0,0,0,.6);color:#fff;font:bold 13px Georgia;display:flex;align-items:center;justify-content:center;border-radius:8px} #btnHearth.cast{box-shadow:0 0 0 2px #7ac8ff,0 0 12px #7ac8ff}
 #zoneTitle{position:fixed;left:50%;top:21vh;transform:translateX(-50%);text-align:center;pointer-events:none;z-index:59;opacity:0}
 #zoneTitle b{display:block;font-size:42px;background:linear-gradient(#fff2b0,#f3c84e 45%,#a86a18 52%,#e8b43a 60%,#8a5210);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 2px 0 #2a1608) drop-shadow(0 4px 10px rgba(0,0,0,.7));letter-spacing:.5px}
 #zoneTitle small{display:block;font-size:17px;color:#e8dcc0;text-shadow:0 1px 4px #000}
@@ -324,7 +324,7 @@ html.touch #castBar{bottom:6px;width:min(320px,44vw);font-size:13px}
   </div>
   <button id="actUse" class="tonly" hidden></button>
   <div id="rotate"><div><b>Поверните телефон</b><span>Игра — в лежачем положении экрана</span></div></div>
-  <div id="sideBtns"><button class="sq" id="btnMap" title="Карта — K"></button><button class="sq" id="btnProf" title="Профессии — P"></button><button class="sq" id="btnDg" title="Подземелья — J"></button><button class="sq" id="btnQuest" title="Журнал заданий — L"></button><button class="sq" id="btnHearth" title="Камень возвращения — H"></button><button class="sq" id="btnBag" title="Персонаж и сумка — I"></button><button class="sq" id="btnMenu" title="Меню — Esc"></button></div>
+  <div id="sideBtns"><button class="sq" id="btnMap" title="Карта — K"></button><button class="sq" id="btnProf" title="Профессии — P"></button><button class="sq" id="btnDg" title="Подземелья — J"></button><button class="sq" id="btnQuest" title="Журнал заданий — L"></button><button class="sq" id="btnHearth" title="Камень возвращения — H"></button><button class="sq" id="btnMount" title="Конь — Z" hidden></button><button class="sq" id="btnBag" title="Персонаж и сумка — I"></button><button class="sq" id="btnMenu" title="Меню — Esc"></button></div>
   <div id="touch"></div>
 </div>
 <div id="toasts"></div>

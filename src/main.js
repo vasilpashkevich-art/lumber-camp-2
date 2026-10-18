@@ -1,5 +1,6 @@
 // Запуск игры: экран выбора героя → мир. Связывает ход игры, рисование, интерфейс и звук.
 import { startHearth } from './systems/hearth.js';
+import { toggleMount } from './systems/mount.js';
 import * as Q from './systems/quests.js';
 import { ZONES } from '../data/zones.js';
 import { buildNav } from './world/relief.js';
@@ -13,7 +14,7 @@ import { soundInit, sfx, music, setSound, soundState } from './engine/audio.js';
 import { showSelect } from './ui/select.js';
 import { createHud } from './ui/hud.js';
 import { talentRows, talentFree } from './systems/talents.js';
-import { openChar, openVendor, openMenu, showDeath, hideTip, openLoot, openAbils, openGuild, openSmelt, openBank, openProf, openDungeons, openNpc, openJournal , openInn, craftRedraw } from './ui/windows.js';
+import { openChar, openVendor, openMenu, showDeath, hideTip, openLoot, openAbils, openGuild, openSmelt, openBank, openProf, openDungeons, openNpc, openJournal , openInn, openStable, craftRedraw } from './ui/windows.js';
 import { dgLeave } from './systems/dungeon.js';
 import { openMap, miniZoom, miniZoomLevel, MINI_Z } from './ui/map.js';
 import { doll } from './art/body.js';
@@ -25,7 +26,7 @@ import { dist } from './engine/util.js';
 import { $, toast, zoneTitle, TOUCH, T } from './ui/dom.js';
 import { RAR_COL } from '../data/balance.js';
 
-const VERSION = 120;
+const VERSION = 121;
 /** Приближение камеры на шаг: +1 ближе, −1 дальше. */
 let zoomT = 0;
 function zoomBy(d) {
@@ -70,7 +71,7 @@ function boot() {
   const miniBtns = () => { const z = miniZoomLevel(); for (const b of document.querySelectorAll('#miniZ button')) b.disabled = +b.dataset.z > 0 ? z >= MINI_Z.length - 1 : z <= 0; };
   for (const b of document.querySelectorAll('#miniZ button')) b.onclick = e => { e.stopPropagation(); miniZoom(+b.dataset.z); miniBtns(); };
   miniBtns();
-  $('#btnBag').onclick = () => charWin(); $('#btnHearth').onclick = () => { if (G && !document.querySelector('.modal')) startHearth(G); }; $('#btnMenu').onclick = () => menu(); $('#btnMap').onclick = () => mapWin(); $('#btnProf').onclick = () => profWin(); $('#btnDg').onclick = () => dgWin(); $('#btnQuest').onclick = () => qWin(); $('#qtrack').onclick = () => qWin(); $('#mini').onclick = () => mapWin(); $('#pfRing').onclick = () => { if (G && !document.querySelector('.modal')) devWin(); };
+  $('#btnBag').onclick = () => charWin(); $('#btnHearth').onclick = () => { if (G && !document.querySelector('.modal')) startHearth(G); }; $('#btnMount').onclick = () => { if (G && !document.querySelector('.modal')) { toggleMount(G); hud.update(); } }; $('#btnMenu').onclick = () => menu(); $('#btnMap').onclick = () => mapWin(); $('#btnProf').onclick = () => profWin(); $('#btnDg').onclick = () => dgWin(); $('#btnQuest').onclick = () => qWin(); $('#qtrack').onclick = () => qWin(); $('#mini').onclick = () => mapWin(); $('#pfRing').onclick = () => { if (G && !document.querySelector('.modal')) devWin(); };
   $('#ver').textContent = 'версия ' + VERSION;
   if (location.hash === '#dev') window.__G = { get G() { return G; }, start, toSelect, R: () => R, rollDrop, makeItem, doll, makeTrinket, makeStack, makePick, addStack, refresh: () => { refreshStats(G); hud.update(); }, spriteStats, Q, trinketProc, CRAFT };
   toSelect();
@@ -165,6 +166,8 @@ function frameInner(now) {
     if (e.k === 'zone') { goZone(e.e); break; }
     if (e.k === 'hearth') { goZone({ zone: e.zone, at: e.at }); toast(`Вы дома: ${e.name}`, 'good', 'hearth'); break; }   // v108: камень возвращения в другую зону
     if (e.k === 'cam') { R.cam.x = G.P.x; R.cam.y = G.P.y - G.W.hAt(G.P.x, G.P.y); }
+    if (e.k === 'stable' && !document.querySelector('.modal')) openStable(G, () => { hud.update(); persist(); });
+    if (e.k === 'mounts') hud.update();
     if (e.k === 'inn' && !document.querySelector('.modal')) openInn(G, e.b, () => { hud.update(); persist(); }, () => profWin({ brew: true, tab: 'alchemy' }));
     if (e.k === 'boss') { toast(e.final ? `<b>${e.name}</b> повержен! Храм очищен — у трона открылся портал наружу` : `<b>${e.name}</b> ${e.fem ? 'повержена' : 'повержен'}!`, 'good'); sfx('levelUp'); }
     if (e.k === 'lootOpen' && !document.querySelector('.modal')) { lootWin = openLoot(G, e.c, () => hud.update()); const oc = lootWin.onclose; lootWin.onclose = () => { lootWin = null; oc && oc(); }; }

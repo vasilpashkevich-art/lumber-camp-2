@@ -45,6 +45,7 @@ export function migrate(h) {
   for (const it of Object.values(h.eq || {})) if (it) delete it.pos; h.dead = h.dead || {}; h.stats = Object.assign({ kills: 0, deaths: 0, gold: 0, items: 0, play: 0 }, h.stats || {});
   // v61: кольцо, шея, аксессуар; горное дело; гарантия аксессуара; жилы
   h.eq = Object.assign({ head: null, neck: null, chest: null, legs: null, weapon: null, ring: null, trinket: null }, h.eq || {});
+  h.mounts = Array.isArray(h.mounts) ? h.mounts : []; if (h.mount && !h.mounts.includes(h.mount)) h.mount = null; h.mount = h.mount || null; h.riding = !!h.riding && !!h.mount;   // v121: кони
   h.prof = Object.assign({ mining: 0, herbal: 0, alchemy: 0 }, h.prof || {}); h.tPity = h.tPity || 0; h.veins = h.veins || {};
   // v84: травы, зелья
   h.plants = h.plants || {};

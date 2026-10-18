@@ -29,6 +29,9 @@ import { doll } from '../art/body.js';
 import { gearFx } from '../art/gearfx.js';
 import { $, el, modal, toast, TOUCH, T } from './dom.js';
 import { DUNGEONS, dgState, dgLeft, dgBosses, fmtLeft } from '../systems/dungeon.js';
+import { MOUNTS } from '../../data/mounts.js';
+import { buyMount, pickMount } from '../systems/mount.js';
+import { mountSpr } from '../art/sprites.js';
 import { MOBS } from '../../data/mobs.js';
 import { makeDnD } from './drag.js';
 import { DEFAULT_BAR } from '../engine/input.js';
@@ -416,6 +419,21 @@ export function openInn(G, b, onChange, toBrew) {
   if (b.brew) m.querySelector('[data-x=brew]').onclick = () => { m.close(); setTimeout(() => toBrew && toBrew(), 0); };
   m.querySelector('[data-x=no]').onclick = () => m.close();
   closeOnE(m); return m;
+}
+
+// ---------------------------------------------------------------- v121: Конный двор — конюший продаёт коней
+export function openStable(G, onChange) {
+  const h = G.hero, rowsHtml = () => Object.entries(MOUNTS).map(([id, M]) => { const own = h.mounts.includes(id), cur = h.mount === id, lock = h.lvl < M.lvl;
+      return `<div class="ware2"><canvas class="hpic" data-c="${M.coat}" width="120" height="92"></canvas><div><b>${M.name}</b><small>${M.note} Бег ×${String(M.speed).replace('.', ',')}.</small>${lock ? `<small class="need">С ${M.lvl}-го уровня — у вас ${h.lvl}</small>` : ''}</div>${own ? `<button class="btn ${cur ? '' : 'main'}" data-pick="${id}" ${cur ? 'disabled' : ''}>${cur ? 'Ваш конь' : 'Выбрать'}</button>` : `<button class="btn main" data-buy="${id}" ${lock || h.gold < M.price ? 'disabled' : ''}>${moneyHtml(M.price)}</button>`}</div>`; }).join(''), draw = () => `<h2>Конюшня</h2><p class="who">Конюший Прохор: «Доброго коня, путник, на дороге не сыщешь. Мои — сытые, кованые, к седлу приучены. Сядешь — и до Столицы мигом».</p><div class="stl">${rowsHtml()}</div><p class="hint">${T('Сесть верхом — Z или кнопка с подковой', 'Сесть верхом — кнопка с подковой')}: 1,5 с, не в бою. Удар по вам, свой удар или умение — и вы спешились. В подземельях коня не позвать.</p><div class="row"><button class="btn" data-x="no">Закрыть</button></div>`;
+  const m = modal(draw(), 'stablewin');
+  const bind = () => {
+    for (const cv of m.querySelectorAll('canvas.hpic')) { const sp = mountSpr(cv.dataset.c, null, 'fs', 'idle', 0, {}); const g = cv.getContext('2d'); g.clearRect(0, 0, cv.width, cv.height); if (sp) { const k = 1.55; g.drawImage(sp.cv, cv.width / 2 - sp.ox * k, cv.height + 8 - (sp.oy + 12) * k, sp.w * k, sp.h * k); } }
+    for (const b of m.querySelectorAll('[data-buy]')) b.onclick = () => { if (buyMount(G, b.dataset.buy)) { onChange && onChange(); redraw(); } };
+    for (const b of m.querySelectorAll('[data-pick]')) b.onclick = () => { pickMount(G, b.dataset.pick); onChange && onChange(); redraw(); };
+    m.querySelector('[data-x=no]').onclick = () => m.close();
+  };
+  const redraw = () => { m.querySelector('.stl').innerHTML = rowsHtml(); bind(); };
+  bind(); closeOnE(m); return m;
 }
 
 // ---------------------------------------------------------------- v107: зачарование — распыление и чары

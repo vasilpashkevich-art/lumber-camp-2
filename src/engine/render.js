@@ -34,6 +34,7 @@ import { vein, glint, outcrop } from '../art/ore.js';
 import { BAR_H } from '../art/beasts.js';
 import * as MF from '../art/mobfx.js';
 import { padLeft, colsOf } from '../systems/boss.js';
+import { MOUNTS } from '../../data/mounts.js';
 import { entrance as templeEntrance, interior as templeInterior, column as templeColumn, brazier as templeBrazier, restFire, rubble as templeRubble, font as templeFont, throne as templeThrone, portal as templePortal } from '../art/temple.js';
 import * as FOR from '../art/forest.js';
 import { drawFace, drawRim, drawRampWhole, softGlow, footShadow, TINT, poly as rpoly } from '../art/relief.js';
@@ -42,7 +43,7 @@ import { LH } from '../world/relief.js';
 import { ORES, veinColor, MINE } from '../../data/mining.js';
 import { miningSkill } from '../systems/mining.js';
 import { SWING_N, swingOf } from '../art/toon.js';
-import { sprite, styled, PEOPLE_K, drawSpr, flashOf, heroSpr, mobSpr, MOB_SCALE, MOB_LOOK, personSpr, beastSpr, drawFrame, GUARD_LOOK, MERCH_LOOK, viewOf, viewOf8, sideways, sprBox, FRAMES, treeSpr, TREE_K, bldSpr, mountainSpr } from '../art/sprites.js';
+import { sprite, styled, PEOPLE_K, drawSpr, flashOf, heroSpr, mobSpr, MOB_SCALE, MOB_LOOK, personSpr, beastSpr, drawFrame, GUARD_LOOK, MERCH_LOOK, viewOf, viewOf8, sideways, sprBox, FRAMES, treeSpr, TREE_K, bldSpr, mountainSpr , mountSpr } from '../art/sprites.js';
 import { treesIn, GATE_W } from '../world/world.js';
 import { lookOf, fxListOf } from '../systems/items.js';
 import { gearFx } from '../art/gearfx.js';
@@ -175,7 +176,8 @@ function buildStatics(W) {
   // v102: посёлок мультяшными постройками (вид спереди-сверху), ×1,15 — двери 1,2–1,3 роста героя
   const KV = 1.15, vil = (key, fn) => sprite('v|' + key, 460, 440, 230, 400, 1.8, styled(g => { g.scale(KV, KV); fn(g); }));
   if (!oldBld()) Object.assign(ART, { house: v => vil('house' + v, g => TVIL.house(g, v)), inn: () => vil('inn', TVIL.inn), barn: () => vil('barn', TVIL.barn), forge: () => vil('forge', TVIL.forge) });
-  const LBLV = { inn: 290, barn: 200, house: 170, forge: 170 };
+  ART.stable = () => vil('stable', TVIL.stable);   // v121: конюшня Конного двора
+  const LBLV = { inn: 290, barn: 200, house: 170, forge: 170, stable: 300 };
   // v86: объёмные постройки столицы (мягкий облик), размер картинки — по основанию
   const B2 = (key, v) => { if (key === 'stall' && !oldMarket()) return tStallSpr(); const [w, d, lh] = FOOT[key] || [200, 150, 200]; const pw = w + d * 0.3 + 280, ph = lh + 220; return sprite('b2|' + key + (v || 0), pw, ph, w / 2 + 140, ph - 60, 1.6, styled(g => { if (key === 'stall') { g.save(); g.translate(0, -44); g.scale(PEOPLE_K, PEOPLE_K); person(g, MERCH_LOOK, 'front', {}); g.restore(); } ((!oldBld() && TB2[key]) || BLD2[key])(g, v || 0, 0.4); })); };
   const LBL = { herbal: 185, bank: 205, castle: 455, market: 195, stall: 195, cart: 150, forge: 170, tavern: 210, miners: 200, enchant: 210, inn: 230, barn: 190 };
@@ -188,6 +190,18 @@ function buildStatics(W) {
   }
   if (W.village) { const v = W.village, sp = v.well !== false ? sprite('well', 80, 90, 40, 74, 2, oldProps() ? g => well(g) : styled(g => TP.well(g))) : null; S.push({ y: v.y + 10, draw: g => sp && drawSpr(g, sp, v.x, v.y + 10), label: v.name, lx: v.x, ly: v.y - v.R + 30 });
     if (v.camp) { const fx = v.x + 140, fy = v.y + 120; S.push({ y: fy, fire: true, x: fx, draw: (g, t) => campfire(g, fx, fy, t) }); } }
+  // v121: Конный двор — поилка, загон с конями, конюший, указатель, подпись места
+  if (W.yard) { const Y = W.yard, P0 = Y.paddock;
+    const trS = sprite('trough', 130, 60, 65, 40, 2, styled(g => { g.scale(KV, KV); TVIL.trough(g, 0); })); S.push({ y: Y.y + Y.trough.dy, x: Y.x + Y.trough.dx, draw: g => drawSpr(g, trS, Y.x + Y.trough.dx, Y.y + Y.trough.dy) });
+    const fH = (len, sd) => sprite('fenceH' + Math.round(len), len + 20, 50, 10, 40, 2, styled(g => TP.fence(g, len, true, sd))), fV = len => sprite('fenceV' + Math.round(len), 30, len + 50, 15, 40, 2, styled(g => TP.fence(g, len, false, 4)));
+    for (const [x, y, sp] of [[P0.x0, P0.y0, fH(P0.x1 - P0.x0, 3)], [P0.x0, P0.y1, fH(P0.gate[0] - P0.x0, 6)], [P0.gate[1], P0.y1, fH(P0.x1 - P0.gate[1], 7)]]) S.push({ y, x, draw: g => drawSpr(g, sp, x, y) });
+    for (const x of [P0.x0, P0.x1]) { const sp = fV(P0.y1 - P0.y0); S.push({ y: P0.y0 + 4, x, draw: g => drawSpr(g, sp, x, P0.y0 + 4) }); }
+    for (const [coat, x, y, view, dir, graze] of Y.horses) { const sp = mountSpr(coat, null, view, 'idle', 0, { bare: true, graze }); S.push({ y, x, draw: g => { g.fillStyle = 'rgba(0,0,0,.22)'; g.beginPath(); g.ellipse(x + 2, y + 2, view === 'side' ? 34 : 24, 9, 0, 0, 7); g.fill(); drawFrame(g, sp, x, y, dir, PEOPLE_K); } }); }
+    const hy = P0.y0 + 50, hs = sprite('hay', 84, 84, 42, 70, 2, styled(g => TP.haystack(g))); S.push({ y: hy, x: P0.x1 - 55, draw: g => drawSpr(g, hs, P0.x1 - 55, hy) });
+    const K0 = Y.keeper, kx = Y.x + K0.dx, ky = Y.y + K0.dy; S.push({ y: ky, x: kx, label: K0.name, lx: kx, ly: ky - 82, draw: (g, t) => { g.fillStyle = 'rgba(0,0,0,.25)'; g.beginPath(); g.ellipse(kx, ky + 2, 15, 5, 0, 0, 7); g.fill(); drawFrame(g, personSpr(NPC_LOOK.farmer, 'front', 'idle', 0), kx, ky + Math.sin(t * 2) * 0.4, 1, PEOPLE_K); } });
+    const sg = sprite('sign', 120, 110, 60, 90, 2, styled(g => TP.signpost(g))), sx = Y.x + Y.sign.dx, sy = Y.y + Y.sign.dy; S.push({ y: sy, x: sx, draw: g => drawSpr(g, sg, sx, sy) });
+    S.push({ y: Y.y - Y.R, label: Y.name, lx: Y.x, ly: Y.y - 330, draw: () => {} });
+  }
   // кладбище (у стоянки купца в Грибном лесу его нет — возрождение у тележки)
   const gy = W.graveyard;
   if (!gy.hidden) for (let i = 0; i < 9; i++) {
@@ -642,7 +656,7 @@ export function render(R, G, now) {
   for (const f of G.fx) if ((f.k === 'teleCone' || f.k === 'teleLine') && vis(f.x, f.y, 500)) (f.k === 'teleCone' ? MF.teleCone : MF.teleLine)(c, f, 1 - f.t / f.max, f.max - f.t);
   for (const f of G.fx) if (f.k === 'tele' && vis(f.x, f.y, 300)) { const h = lift(f.x, f.y); c.save(); c.translate(0, -h); MF.telegraph(c, f, 1 - f.t / f.max, f.max - f.t); MF.gather(c, f, 1 - f.t / f.max); c.restore(); }
   // эффекты умений на земле (v73): под фигурами — руны и задние языки столпа, круг залпа, капканы, кольцо льда, трещины, пыль рывка, рёв ярости
-  const UNDER = { crush: V.crush, dashDust: V.dashDust, nova: V.nova, berserkCast: V.berserkCast, slam: MF.slam, ram: MF.ram, hoof: (g, f, a) => MF.hoofDust(g, f.x, f.y, a, f.seed), summon: MF.summonFx, fireSplash: MF.fireSplash, shed: MF.shed, kvakWave: MF.kvakWave };
+  const UNDER = { crush: V.crush, dashDust: V.dashDust, nova: V.nova, berserkCast: V.berserkCast, slam: MF.slam, ram: MF.ram, hoof: (g, f, a) => MF.hoofDust(g, f.x, f.y, a, f.seed), summon: MF.summonFx, fireSplash: MF.fireSplash, shed: MF.shed, kvakWave: MF.kvakWave, mountOn: (g, f, a) => MF.hoofDust(g, f.x, f.y, a, 11) };
   for (const f of G.fx) { const fn = UNDER[f.k]; if (!fn || !vis(f.x, f.y, 260)) continue; const h = lift(f.x, f.y); if (h) { c.save(); c.translate(0, -h); } fn(c, f, f.max - f.t); if (h) c.restore(); }
   for (const tr of G.traps || []) if (vis(tr.x, tr.y)) { const h = lift(tr.x, tr.y); c.save(); c.translate(0, -h); c.globalAlpha = Math.min(1, tr.t / 0.5); V.trap(c, tr.x, tr.y, tr.sprung ? Math.max(0, 1 - tr.sprung / 0.06) : 1, t); c.restore(); }
   for (const ar of G.areas || []) if (vis(ar.x, ar.y, 300)) { const h = lift(ar.x, ar.y), a = ar.max - ar.t; c.save(); c.translate(0, -h);
@@ -753,6 +767,9 @@ export function render(R, G, now) {
   if (P.hearth) { const q = Math.min(1, P.hearth.t / P.hearth.max), x = P.x - 40, y = P.y - 86 - hP, tt = performance.now() / 1000;   // v108: камень возвращения
     c.save(); c.globalCompositeOperation = 'lighter'; for (let k = 0; k < 3; k++) { const a = tt * 2 + k * 2.1; c.fillStyle = `rgba(120,200,255,${0.25 + 0.2 * q})`; c.beginPath(); c.ellipse(P.x + Math.cos(a) * 22, P.y - hP - 30 - Math.sin(a * 1.3) * 18 * q, 4 + q * 3, 4 + q * 3, 0, 0, 7); c.fill(); } c.fillStyle = `rgba(120,200,255,${0.12 + 0.25 * q})`; c.beginPath(); c.ellipse(P.x, P.y - hP, 26 + q * 10, 9 + q * 3, 0, 0, 7); c.fill(); c.restore();
     c.fillStyle = 'rgba(20,14,8,.9)'; c.fillRect(x - 1, y - 1, 82, 10); c.fillStyle = '#7ac8ff'; c.fillRect(x, y, 80 * q, 8); label(c, 'Возвращение домой', P.x, y - 5, '#d8f0ff', 13); }
+  if (P.mountCast) { const q = Math.min(1, P.mountCast.t / P.mountCast.max), x = P.x - 40, y = P.y - 86 - hP, tt = performance.now() / 1000;   // v121: подзывает коня — золотая пыль сходится
+    c.save(); c.globalCompositeOperation = 'lighter'; for (let i = 0; i < 18; i++) { const an = i * 0.9 + tt * 3, r = 60 * (1 - q) + 8; c.fillStyle = `rgba(255,220,120,${0.6 * (1 - q * 0.4)})`; c.beginPath(); c.arc(P.x + Math.cos(an) * r, P.y - hP + Math.sin(an) * r * 0.45 - 10 - q * 20 * Math.sin(i), 2.4, 0, 7); c.fill(); } c.restore();
+    c.fillStyle = 'rgba(20,14,8,.9)'; c.fillRect(x - 1, y - 1, 82, 10); c.fillStyle = '#ffd34d'; c.fillRect(x, y, 80 * q, 8); label(c, 'Подзываете коня', P.x, y - 5, '#ffe9a8', 13); }
   if (P.craft && P.craft.q[0]) {   // v112: ремесло — пар (зелье), искры (плавка), сиреневое сияние (чары, распыление, жезл)
     const k = P.craft.q[0].k, tt = performance.now() / 1000, x0 = P.x + 16, y0 = P.y - 34 - hP;
     c.save();
@@ -861,6 +878,13 @@ function drawHero(c, G, look, t) {
     c.save(); c.beginPath(); c.rect(P.x - 60, P.y - 120, 120, 120 + 5); c.clip(); drawFrame(c, sp, P.x, P.y + 10, P.dir, PEOPLE_K); c.restore();
     c.fillStyle = lc; c.strokeStyle = '#24180f'; c.lineWidth = 1.2; for (const ox of [-7, 7]) { c.beginPath(); c.ellipse(P.x + ox * P.dir, P.y + 7, 8, 4, 0, 0, 7); c.fill(); c.stroke(); }
     c.fillStyle = 'rgba(160,220,255,.7)'; const q = (t * 0.7) % 1; c.globalAlpha = 1 - q; c.font = 'bold 11px Georgia'; c.fillText('z', P.x + 14, P.y - 40 - q * 16); c.globalAlpha = 1;
+    return;
+  }
+  if (P.ride && !P.dead) {   // v121: верхом — конь со всадником; шаг рысью по пройденному пути
+    const M = MOUNTS[P.ride] || MOUNTS.bay, wf = Math.floor(((P.step / 4) % 1) * 8), sp = mountSpr(M.coat, look, view, P.moving ? 'walk' : 'idle', P.moving ? wf : 0);
+    const side = view === 'side' ? 1 : view === 'fs' || view === 'bs' ? 0.7 : 0.35; c.fillStyle = 'rgba(0,0,0,.24)'; c.beginPath(); c.ellipse(P.x + 2, P.y + 3, 14 + 22 * side, 7 + 3 * (1 - side), 0, 0, 7); c.fill();
+    drawFrame(c, P.hurt > 0 ? flashOf(sp) : sp, P.x, P.y, dir, PEOPLE_K, B.cloak > 0 ? 0.35 : 1);
+    if (!P.dead) gearFx(c, fxListOf(G.hero), P.x, P.y - 22 * PEOPLE_K, t, 37 * PEOPLE_K, dir);
     return;
   }
   if (P.mine) look = { ...look, weapon: { m: 'pick', P: PICK_P }, swing: 'chop', key: look.key + '|pick' };

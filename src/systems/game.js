@@ -7,6 +7,7 @@ import { MOBS } from '../../data/mobs.js';
 import { dgState, dgEnter, dgUnsealed, dgDone, chestLoot, bossLoot, NEVER } from './dungeon.js';
 import { qState, qObjs, qOnKill, qTick, qTalk, qUseObj, qObjNear, npcNear, npcsOf } from './quests.js';
 import { bossTick, bossReset, bossCancel, shieldBlocks, hazardsTick, ringBlocks } from './boss.js';
+import { rideK, rideOk, toggleMount, stopMountCast, dismount, mountTick } from './mount.js';
 import { HERO, MOBL, RESPAWN, LEASH, AGGRO, LOOT, ITEM, TRINKET_DROP, SHOP, armorCut, xpKill, lvlColor, xpNeed } from '../../data/balance.js';
 import { TRINKETS } from '../../data/trinkets.js';
 import { NEW_ABILS } from '../../data/talents.js';
@@ -17,7 +18,7 @@ import { MINE } from '../../data/mining.js';
 import { initVeins, veinNear, startMine, stopMine, mineTick, addStack } from './mining.js';
 import { initPlants, plantNear, startGather, stopGather, herbTick, drinkLast, elixirMods } from './herbs.js';
 import { HERBAL } from '../../data/herbs.js';
-import { moveTo, inCity } from '../world/world.js';
+import { moveTo, inCity, inSafe } from '../world/world.js';
 import { LH, nextWaypoint } from '../world/relief.js';
 import { dist, clamp, money } from '../engine/util.js';
 
@@ -34,6 +35,7 @@ export function createGame(hero, W, opts = {}) {
     },
     mobs: [], shots: [], ev: [], fx: [], corpses: [], corpseSeq: 0, areas: [], traps: [], fxSeq: 1,
   };
+  if (hero.riding && hero.mount && rideOk(W)) G.P.ride = hero.mount;   // v121: верхом — и после перехода в другой край
   if (G.P.hp <= 0) G.P.hp = Math.round(st.maxHp * 0.5);
   initVeins(G); initPlants(G);
   G.npcs = npcsOf(W.Z.id); G.bagAdd = bagAdd; qState(hero); qObjs(G);   // v95: жители и предметы заданий
@@ -118,15 +120,20 @@ export function update(G, dt, I) {
     const m = Math.hypot(mx, my);
     if (m > 1) { mx /= m; my /= m; }
     P.moving = m > 0.05 && !P.dash;
+    if (P.moving && P.mountCast) stopMountCast(G);
+    if (P.ride && (I.attack || I.attackTap || I.ability || I.ability2 || I.ability3 || I.ability4)) dismount(G);   // v121: удар или умение — с коня
+    if (I.mount) toggleMount(G);
+    mountTick(G, dt);
     if (P.moving || I.attack || I.attackTap || I.ability || I.ability2 || I.ability3 || I.ability4) { P.sit = false; if (P.mine) stopMine(G); if (P.gather) stopGather(G); if (P.hearth) stopHearth(G, 'Перенос сбит'); if (P.craft) stopCraft(G, 'Работа прервана'); }
     if (I.hearth) startHearth(G);   // v108: камень возвращения
     hearthTick(G, dt); craftTick(G, dt);   // v112: ремесло со временем
+    if (I.sit && P.ride) dismount(G);
     if (I.sit) { if (P.sit) P.sit = false; else if (G.t - P.lastCombat < 1.5) emit(G, { k: 'toast', s: 'В бою не присесть', id: 'sit' }); else P.sit = true; }
     P.rooted = Math.max(0, (P.rooted || 0) - dt);
     if (P.dash) dashTick(G, dt);
     else if (P.moving && P.rooted > 0) { P.moving = false; }   // v94: сжат кольцами змеи
     else if (P.moving) {
-      const sp = HERO.speed * (P.slow > 0 && !(P.buf.berserk > 0) ? 0.6 : 1) * (P.whirl > 0 ? 0.8 : 1) * (P.buf.wind > 0 ? 1.4 : 1) * elixirMods(G.hero).speed;
+      const sp = HERO.speed * rideK(G) * (P.slow > 0 && !(P.buf.berserk > 0) ? 0.6 : 1) * (P.whirl > 0 ? 0.8 : 1) * (P.buf.wind > 0 ? 1.4 : 1) * elixirMods(G.hero).speed;
       const [nx, ny] = moveTo(G.W, P.x, P.y, P.x + mx * sp * dt, P.y + my * sp * dt);
       if (!G.rings || !G.rings.length || !ringBlocks(G, P.x, P.y, nx, ny)) { P.x = nx; P.y = ny; }   // кольцо змеи не выпускает, кроме как через просвет
       if (Math.abs(mx) > 0.1) P.dir = mx < 0 ? -1 : 1;
@@ -135,7 +142,7 @@ export function update(G, dt, I) {
     // яд
     if (P.poison) { P.poison.t -= dt; hurtHero(G, P.poison.dps * dt, null, true); if (P.poison && P.poison.t <= 0) P.poison = null; }
     // отдых
-    const city = inCity(G.W, P.x, P.y);
+    const city = inSafe(G.W, P.x, P.y);
     const rate = Math.max(city ? HERO.regenCity : 0, P.sit ? LOOT.sitRegen : 0, G.t - P.lastCombat > HERO.outOfCombat ? HERO.regenOut : 0);
     if (rate) P.hp = Math.min(G.st.maxHp, P.hp + G.st.maxHp * rate * dt);
     if (G.st.p && G.st.p.regen > 0) P.hp = Math.min(G.st.maxHp, P.hp + G.st.p.regen * dt);   // свойство вещей: всегда, и в бою
@@ -660,7 +667,7 @@ function doInteract(G, t) {
   if (t.k === 'qobj') { qUseObj(G, t.o); return; }
   if (t.k === 'vein') { if (G.P.mine) stopMine(G); else startMine(G, t.v); return; }
   if (t.k === 'plant') { if (G.P.gather) stopGather(G); else startGather(G, t.v); return; }
-  if (t.k === 'b') { if (t.b.bind) emit(G, { k: 'inn', b: t.b }); else if (t.b.vendor) emit(G, { k: 'vendor', b: t.b }); else if (t.b.bank) emit(G, { k: 'bank', b: t.b }); else if (t.b.mentor) emit(G, { k: 'mentor', b: t.b }); else if (t.b.alchemy || t.b.brew) emit(G, { k: 'alchemy', b: t.b }); else if (t.b.enchant) emit(G, { k: 'enchant', b: t.b }); else if (t.b.guild) emit(G, { k: 'guild', b: t.b }); else if (t.b.smelt) emit(G, { k: 'smelt', b: t.b }); else emit(G, { k: 'toast', s: `${t.b.name}. ${t.b.note}`, id: 'bld' }); }
+  if (t.k === 'b') { if (t.b.stable) emit(G, { k: 'stable', b: t.b }); else if (t.b.bind) emit(G, { k: 'inn', b: t.b }); else if (t.b.vendor) emit(G, { k: 'vendor', b: t.b }); else if (t.b.bank) emit(G, { k: 'bank', b: t.b }); else if (t.b.mentor) emit(G, { k: 'mentor', b: t.b }); else if (t.b.alchemy || t.b.brew) emit(G, { k: 'alchemy', b: t.b }); else if (t.b.enchant) emit(G, { k: 'enchant', b: t.b }); else if (t.b.guild) emit(G, { k: 'guild', b: t.b }); else if (t.b.smelt) emit(G, { k: 'smelt', b: t.b }); else emit(G, { k: 'toast', s: `${t.b.name}. ${t.b.note}`, id: 'bld' }); }
   if (t.k === 'exit') { if (t.e.zone) emit(G, { k: 'zone', e: t.e }); else if (t.e.temple) emit(G, { k: 'toast', s: t.e.door ? 'Врата подземелья заперты — откроются в следующих версиях' : 'Врата Храма квакунов заперты. Внутри тихо — подземелье откроется в следующих версиях', id: 'exit' }); else emit(G, { k: 'toast', s: `Дорога в ${t.e.to} (ур. ${t.e.lvl}) откроется в следующих версиях`, id: 'exit' }); }
 }
 
@@ -681,14 +688,14 @@ function hurtHero(G, v, m, dot) {
     if (P.buf.thorns > 0 && m && m.state !== 'dead') strike(G, m, v * 0.3, 'thorns', { sure: true, noCrit: true, flat: true });   // Тотем шипов
     if (P.mine) stopMine(G, 'Копать помешали'); if (P.gather) stopGather(G, 'Собирать помешали'); if (P.hearth) stopHearth(G, 'Перенос сбит ударом'); if (P.craft) stopCraft(G, 'Работу прервали');
   }
-  P.hp -= v; P.lastCombat = G.t; P.sit = false;
+  P.hp -= v; P.lastCombat = G.t; P.sit = false; if (P.mountCast) stopMountCast(G); if (P.ride && v > 0) dismount(G, 'Вас сбросили с коня');
   if (!dot) trinketProc(G, 'hurt', m);
   if (P.hp > 0) trinketProc(G, 'low');
   if (P.hp <= 0 && !trinketProc(G, 'death')) heroDie(G);
 }
 
 function heroDie(G) {
-  const P = G.P; P.hp = 0; P.dead = true; P.deadT = 0; P.held = null; P.stunT = 0; P.target = null; P.auto = null; P.goal = null; P.poison = null; P.whirl = 0; P.volley = 0; P.dash = null; P.sit = false; P.buf.berserk = 0; G.areas = []; G.traps = [];
+  const P = G.P; P.hp = 0; P.dead = true; P.deadT = 0; P.held = null; P.stunT = 0; P.ride = null; P.mountCast = null; G.hero.riding = false; P.target = null; P.auto = null; P.goal = null; P.poison = null; P.whirl = 0; P.volley = 0; P.dash = null; P.sit = false; P.buf.berserk = 0; G.areas = []; G.traps = [];
   G.hero.stats.deaths++;
   for (const m of G.mobs) if (m.state === 'chase') m.state = 'return';
   emit(G, { k: 'die' });
@@ -735,14 +742,14 @@ function mobTick(G, m, dt) {
   m.stun = Math.max(0, m.stun - dt); m.root = Math.max(0, m.root - dt); m.chill = Math.max(0, m.chill - dt); m.frozen = Math.max(0, (m.frozen || 0) - dt); m.trapT = Math.max(0, (m.trapT || 0) - dt);
   if (m.stun > 0 || m.frozen > 0) { if (m.B && m.B.act) bossCancel(G, m); return; }   // оглушён или вмёрз в лёд — стоит (умение босса сбито)
   const dH = dist(m.x, m.y, P.x, P.y), dHome = dist(m.x, m.y, m.hx, m.hy), slowK = (m.chill > 0 ? 0.5 : 1) * (m.B ? m.B.haste : 1);
-  const go = (tx, ty, sp) => { if (m.state !== 'idle' && (G.W.relief || G.W.rooms) && m.root <= 0) { const w = steer(G, m, tx, ty, dt); if (w) { tx = w[0]; ty = w[1]; } } const d = dist(m.x, m.y, tx, ty); if (d < 1 || m.root > 0) { if (Math.abs(tx - m.x) > 2) m.face = tx < m.x ? -1 : 1; return; } sp *= slowK; const k = Math.min(1, sp * dt / d); let nx = m.x + (tx - m.x) * k, ny = m.y + (ty - m.y) * k; let ok = (a, b) => G.W.walkable(a, b) && !inCity(G.W, a, b) && G.W.stepOk(m.x, m.y, a, b); let ax = nx, ay = ny; if (!ok(ax, ay)) { if (ok(nx, m.y)) ay = m.y; else if (ok(m.x, ny)) ax = m.x; } if (ok(ax, ay)) { const nx2 = ax, ny2 = ay; nx = nx2; ny = ny2; const mv = Math.hypot(nx - m.x, ny - m.y); if (mv > 0.05) { m.mdx = nx - m.x; m.mdy = ny - m.y; m.moving = true; m.walkPh = (m.walkPh + mv / (m.D.humanoid ? 56 : 44)) % 1; } m.x = nx; m.y = ny; } if (Math.abs(tx - m.x) > 2) m.face = tx < m.x ? -1 : 1; };
+  const go = (tx, ty, sp) => { if (m.state !== 'idle' && (G.W.relief || G.W.rooms) && m.root <= 0) { const w = steer(G, m, tx, ty, dt); if (w) { tx = w[0]; ty = w[1]; } } const d = dist(m.x, m.y, tx, ty); if (d < 1 || m.root > 0) { if (Math.abs(tx - m.x) > 2) m.face = tx < m.x ? -1 : 1; return; } sp *= slowK; const k = Math.min(1, sp * dt / d); let nx = m.x + (tx - m.x) * k, ny = m.y + (ty - m.y) * k; let ok = (a, b) => G.W.walkable(a, b) && !inSafe(G.W, a, b) && G.W.stepOk(m.x, m.y, a, b); let ax = nx, ay = ny; if (!ok(ax, ay)) { if (ok(nx, m.y)) ay = m.y; else if (ok(m.x, ny)) ax = m.x; } if (ok(ax, ay)) { const nx2 = ax, ny2 = ay; nx = nx2; ny = ny2; const mv = Math.hypot(nx - m.x, ny - m.y); if (mv > 0.05) { m.mdx = nx - m.x; m.mdy = ny - m.y; m.moving = true; m.walkPh = (m.walkPh + mv / (m.D.humanoid ? 56 : 44)) % 1; } m.x = nx; m.y = ny; } if (Math.abs(tx - m.x) > 2) m.face = tx < m.x ? -1 : 1; };
 
   if (m.state === 'idle') {
     m.wander.t -= dt;
     if (m.wander.t <= 0) { const a = G.rand() * 6.28, r = G.rand() * (m.camp.r * 0.6); m.wander = { t: 3 + G.rand() * 5, x: m.hx + Math.cos(a) * r, y: m.hy + Math.sin(a) * r }; }
     if (m.D.trait !== 'dormant') go(m.wander.x, m.wander.y, m.D.speed * 0.25);   // пугало стоит неживым
     if (m.hp < m.max) m.hp = Math.min(m.max, m.hp + m.max * 0.1 * dt);
-    if (!P.dead && !inCity(G.W, P.x, P.y)) {
+    if (!P.dead && !inSafe(G.W, P.x, P.y)) {
       const gray = lvlColor(m.lvl, H.lvl) === '#9a9a9a';
       const ar = m.D.wake || AGGRO * clamp(1 + (m.lvl - H.lvl) * 0.1, 0.55, 1.6) * (gray ? 0.6 : 1);
       if (dH < ar) aggro(G, m);
@@ -759,7 +766,7 @@ function mobTick(G, m, dt) {
   }
   // погоня
   // v117: босс держит весь свой зал (раньше бросал бой в углу Тронного зала)
-  if (P.dead || dHome > (m.D.boss ? LEASH * 1.7 : LEASH) || inCity(G.W, P.x, P.y) && dH > 40) { m.state = 'return'; m.charge.t = 0; m.smash.wind = 0; if (P.target === m) P.target = null; return; }
+  if (P.dead || dHome > (m.D.boss ? LEASH * 1.7 : LEASH) || inSafe(G.W, P.x, P.y) && dH > 40) { m.state = 'return'; m.charge.t = 0; m.smash.wind = 0; if (P.target === m) P.target = null; return; }
   m.cd = Math.max(0, m.cd - dt * slowK);
   const D = m.D, reach = D.reach + m.r + 10;
   // призыв помощников (Мельник — ворон, шаман — сородича, Паучиха — выводок)

@@ -14,7 +14,21 @@ const NEW = !process.env.SIM_OLD;
 import { rng, dist } from '../src/engine/util.js';
 
 // путь: из столицы — через ближайшие к цели ворота; снаружи — в обход стены; внутрь — через ворота
-function via(W, P, tx, ty) {
+/** v121: Конный двор — загон и конюшня в обход по углам (углы с запасом, пересечение — по самому забору). */
+function yardDetour(W, P, tx, ty) {
+  if (W.yard) { const Y = W.yard, Pd = Y.paddock, sx = Y.x + Y.stable.dx, sy = Y.y + Y.stable.dy;
+    for (const [x0, y0, x1, y1] of [[Pd.x0, Pd.y0, Pd.x1, Pd.y1], [sx - 190, sy - 70, sx + 190, sy]]) {
+      const e = 18, hit = (ax, ay, bx, by) => { const L = Math.hypot(bx - ax, by - ay) || 1; for (let d = 26; d < L; d += 10) { const x = ax + (bx - ax) * d / L, y = ay + (by - ay) * d / L; if (x > x0 - e && x < x1 + e && y > y0 - e && y < y1 + e) return true; } return false; };
+      if (P.x > x0 && P.x < x1 && P.y > y0 && P.y < y1) continue;
+      if (!hit(P.x, P.y, tx, ty)) continue;
+      if (P.yc && dist(P.x, P.y, P.yc[0], P.yc[1]) > 30 && !hit(P.x, P.y, P.yc[0], P.yc[1])) return P.yc;   // держаться выбранного угла
+      const k = 60, cs = [[x0 - k, y0 - k], [x1 + k, y0 - k], [x1 + k, y1 + k], [x0 - k, y1 + k]].filter(([x, y]) => dist(P.x, P.y, x, y) > 30 && !hit(P.x, P.y, x, y));
+      if (cs.length) return (P.yc = cs.reduce((a, b) => dist(P.x, P.y, a[0], a[1]) + dist(a[0], a[1], tx, ty) < dist(P.x, P.y, b[0], b[1]) + dist(b[0], b[1], tx, ty) ? a : b));
+    } }
+  return null;
+}
+function via(W, P, tx, ty) { const w = via0(W, P, tx, ty); return yardDetour(W, P, w[0], w[1]) || w; }
+function via0(W, P, tx, ty) {
   // рельеф (v71): если прямо не пройти (обрыв) — по пути через склоны
   if (W.relief || W.rooms) {
     const S = P.botNav || (P.botNav = { t: 0, tx: 1e9, ty: 1e9 }); S.t -= 1 / 20;

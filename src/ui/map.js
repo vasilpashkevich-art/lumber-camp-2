@@ -79,6 +79,12 @@ function base(g, W, k, big, q = 1) {
   if (W.town) { g.fillStyle = W.cap ? '#d9c79a' : 'rgba(217,199,154,.8)'; g.strokeStyle = '#4a3a24'; g.lineWidth = big ? 3 : 1.5 * q; g.beginPath(); if (W.town.rect) { const R = W.town.rect; g.rect(R[0] * k, R[1] * k, (R[2] - R[0]) * k, (R[3] - R[1]) * k); } else g.arc(W.town.x * k, W.town.y * k, W.town.R * k, 0, 7); g.fill(); if (W.cap) g.stroke(); }
   if (W.castle) { const K = W.castle; g.fillStyle = '#c9bfa4'; g.strokeStyle = O; g.lineWidth = 1; g.fillRect((K.x - K.w / 2) * k, (K.y - 300) * k, K.w * k, 300 * k); if (big) g.strokeRect((K.x - K.w / 2) * k, (K.y - 300) * k, K.w * k, 300 * k); g.fillStyle = '#2f5d9a'; for (const sd of [-1, 0, 1]) { g.beginPath(); g.arc((K.x + sd * K.w * 0.4) * k, (K.y - 150) * k, (big ? 6 : 2.5 * q) * (sd ? 1 : 1.4), 0, 7); g.fill(); } }
   if (W.cap && W.cap.fountain) { g.fillStyle = '#4f8fb0'; g.beginPath(); g.arc((W.cap.x + (W.cap.fountain.x || 0)) * k, (W.cap.y + (W.cap.fountain.y || 0)) * k, Math.max(2, W.cap.fountain.r * k), 0, 7); g.fill(); }
+  if (W.yard) {   // v121: Конный двор — светлая площадка, загон, конюшня и подкова
+    const Y = W.yard, P0 = Y.paddock; g.fillStyle = 'rgba(217,199,154,.35)'; g.beginPath(); g.arc(Y.x * k, Y.y * k, Y.R * k, 0, 7); g.fill();
+    g.strokeStyle = '#8a6a3a'; g.lineWidth = big ? 1.5 : 0.8 * q; g.strokeRect(P0.x0 * k, P0.y0 * k, (P0.x1 - P0.x0) * k, (P0.y1 - P0.y0) * k);
+    g.fillStyle = '#7a4a28'; g.fillRect((Y.x + Y.stable.dx - 180) * k, (Y.y + Y.stable.dy - 60) * k, 360 * k, 60 * k);
+    const hx = Y.x * k, hy = (Y.y + 40) * k, hs = big ? 7 : 3.2 * q; g.lineCap = 'round'; g.strokeStyle = '#3a2410'; g.lineWidth = hs * 0.75; g.beginPath(); g.arc(hx, hy, hs, Math.PI * 0.8, Math.PI * 2.2); g.stroke(); g.strokeStyle = '#e8c25a'; g.lineWidth = hs * 0.45; g.stroke(); g.lineCap = 'butt';
+  }
   const gx = W.graveyard.x * k, gy = W.graveyard.y * k, cs = big ? 2.2 : q;
   if (!W.graveyard.hidden) { g.fillStyle = '#eee'; g.fillRect(gx - 1 * cs, gy - 4 * cs, 2 * cs, 8 * cs); g.fillRect(gx - 3 * cs, gy - 2 * cs, 6 * cs, 2 * cs); }
   for (const e of W.exits) { g.fillStyle = '#ffd34d'; g.strokeStyle = O; g.lineWidth = 1; g.beginPath(); g.arc(e.x * k, e.y * k, big ? 7 : 3 * q, 0, 7); g.fill(); if (big) g.stroke(); }
@@ -175,6 +181,7 @@ export function openMap(G) {
     }
     const c = W.town; if (c) text(g, c.name, c.x * k, c.y * k + 5, '#ffe9a8', W.cap ? 17 : 15);
     if (!W.graveyard.hidden) text(g, W.graveyard.name, W.graveyard.x * k, W.graveyard.y * k + 22, '#e8e0cc', 12, false);
+    if (W.yard) text(g, W.yard.name, W.yard.x * k, (W.yard.y + 40) * k + 22, '#ffe9a8', 13);
     for (const e of W.exits) { const ex = Math.min(CW - 70, e.x * k), ey = Math.min(CH - 24, e.y * k - 12); text(g, `${e.to} · ${e.lvl}`, ex, ey, '#ffd34d', 12); }
     questLayer(g, G, k, true);
     heroMark(g, G.P, k, 1.6); text(g, 'Вы', G.P.x * k, G.P.y * k - 16, '#fff', 12);

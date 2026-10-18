@@ -10,7 +10,7 @@ const sfx = (G, n) => G.ev.push({ k: 'sfx', n });
 
 /** Подходит ли место под жилу: проходимо, не на дороге, не в лагере, не в городе, не в поле и не у воды. */
 function goodSpot(W, x, y, A) {
-  if (!W.walkable(x, y) || W.edgeDist(x, y) < 70) return false;
+  if (!W.walkable(x, y) || (W.keepOut && W.keepOut.some(q => Math.hypot(x - q.x, y - q.y) < q.R)) || W.edgeDist(x, y) < 70) return false;
   // рельеф (v71): жила на том же ярусе, что середина области (на холме — на холме), не у края и не на склоне
   if (W.relief && (W.relief.levelAt(x, y) !== W.relief.levelAt(A.x, A.y) || !W.flatOk(x, y, 80))) return false;
   if (W.roadD(x, y) < 70) return false;
@@ -29,7 +29,7 @@ function placeIn(G, A) {
 /** Жилы зоны: из сохранения героя или новые. */
 export function initVeins(G) {
   const H = G.hero, Z = G.W.Z, areas = Z.ore || [];
-  H.veins = H.veins || {}; const list = H.veins[Z.id] = (H.veins[Z.id] || []).filter(v => areas[v.a] && v.metal === areas[v.a].metal && G.W.walkable(v.x, v.y) && G.W.edgeDist(v.x, v.y) >= 60);   // v114: за новой границей зоны — убрать (встанет заново внутри)
+  H.veins = H.veins || {}; const list = H.veins[Z.id] = (H.veins[Z.id] || []).filter(v => areas[v.a] && v.metal === areas[v.a].metal && G.W.walkable(v.x, v.y) && G.W.edgeDist(v.x, v.y) >= 60 && !(G.W.keepOut && G.W.keepOut.some(q => Math.hypot(v.x - q.x, v.y - q.y) < q.R)));   // v114: за новой границей зоны — убрать (встанет заново внутри)
   areas.forEach((A, a) => {
     let have = list.filter(v => v.a === a).length;
     while (have < A.n) { const p = placeIn(G, A); if (!p) break; list.push({ a, metal: A.metal, x: p.x, y: p.y, at: 0, s: Math.floor(G.rand() * 1000) }); have++; }
@@ -49,6 +49,7 @@ export const hasPick = H => H.bag.some(it => it.tool === 'pick');
 
 /** Начать копать (E у жилы). */
 export function startMine(G, v) {
+  if (G.P.ride) { G.P.ride = null; G.hero.riding = false; }   // v121: копать и собирать — пешком
   const H = G.hero, P = G.P, O = ORES[v.metal], sk = miningSkill(H);
   if (!sk) { emit(G, { k: 'toast', s: 'Чтобы копать руду, выучите горное дело в Гильдии рудокопов в Столице', id: 'mine' }); return; }
   if (!hasPick(H)) { emit(G, { k: 'toast', s: 'Нужна кирка — её продают в Гильдии рудокопов', id: 'mine' }); return; }

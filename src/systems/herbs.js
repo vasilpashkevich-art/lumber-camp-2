@@ -22,7 +22,7 @@ export const alchSkill = H => (H.prof && H.prof.alchemy) || 0;
 
 /** Место под куст: проходимо, не на дороге, не в посёлке и не в лагере, на ровном. Травы — ближе к дорогам и опушкам, чем жилы. */
 function goodSpot(W, x, y, A) {
-  if (!W.walkable(x, y) || W.edgeDist(x, y) < 60) return false;
+  if (!W.walkable(x, y) || (W.keepOut && W.keepOut.some(q => Math.hypot(x - q.x, y - q.y) < q.R)) || W.edgeDist(x, y) < 60) return false;
   if (W.relief && (W.relief.levelAt(x, y) !== W.relief.levelAt(A.x, A.y) || !W.flatOk(x, y, 60))) return false;
   if (W.roadD(x, y) < 40) return false;
   if (W.town && W.townD(x, y) < 60) return false;
@@ -40,7 +40,7 @@ function placeIn(G, A) {
 /** Кусты зоны: из сохранения героя или новые. */
 export function initPlants(G) {
   const H = G.hero, Z = G.W.Z, areas = Z.herbs || [];
-  H.plants = H.plants || {}; const list = H.plants[Z.id] = (H.plants[Z.id] || []).filter(v => areas[v.a] && v.herb === areas[v.a].herb && G.W.walkable(v.x, v.y) && G.W.edgeDist(v.x, v.y) >= 60);   // v114: за новой границей зоны — убрать (встанет заново внутри)
+  H.plants = H.plants || {}; const list = H.plants[Z.id] = (H.plants[Z.id] || []).filter(v => areas[v.a] && v.herb === areas[v.a].herb && G.W.walkable(v.x, v.y) && G.W.edgeDist(v.x, v.y) >= 60 && !(G.W.keepOut && G.W.keepOut.some(q => Math.hypot(v.x - q.x, v.y - q.y) < q.R)));   // v114: за новой границей зоны — убрать (встанет заново внутри)
   areas.forEach((A, a) => {
     let have = list.filter(v => v.a === a).length;
     while (have < A.n) { const p = placeIn(G, A); if (!p) break; list.push({ a, herb: A.herb, x: p.x, y: p.y, at: 0, s: Math.floor(G.rand() * 1000) }); have++; }
@@ -56,6 +56,7 @@ export function plantNear(G) {
 }
 /** Начать сбор (E у куста). */
 export function startGather(G, v) {
+  if (G.P.ride) { G.P.ride = null; G.hero.riding = false; }   // v121: копать и собирать — пешком
   const H = G.hero, P = G.P, Hb = HERBS[v.herb], sk = herbSkill(H);
   if (!sk) { emit(G, { k: 'toast', s: 'Чтобы собирать травы, выучите травничество у травницы в Столице', id: 'herb' }); return; }
   if (sk < Hb.req) { emit(G, { k: 'toast', s: `${Hb.name}: нужно травничество ${Hb.req} (у вас ${sk})`, id: 'herb' }); return; }
