@@ -126,7 +126,7 @@ function questLayer(g, G, k, big, q = 1) {
 function heroMark(g, P, k, s) {
   g.save(); g.translate(P.x * k, P.y * k); g.scale(s, s);
   g.fillStyle = 'rgba(255,255,255,.25)'; g.beginPath(); g.arc(0, 0, 9, 0, 7); g.fill();
-  g.rotate(P.dir < 0 ? Math.PI : 0); g.fillStyle = '#fff'; g.strokeStyle = '#000'; g.lineWidth = 1.4;
+  g.rotate(P.mvx || P.mvy ? Math.atan2(P.mvy || 0, P.mvx || 0) : P.dir < 0 ? Math.PI : 0); g.fillStyle = '#fff'; g.strokeStyle = '#000'; g.lineWidth = 1.4;
   g.beginPath(); g.moveTo(7, 0); g.lineTo(-5, -5); g.lineTo(-2.5, 0); g.lineTo(-5, 5); g.closePath(); g.fill(); g.stroke(); g.restore();
 }
 
