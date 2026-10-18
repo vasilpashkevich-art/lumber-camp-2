@@ -477,11 +477,17 @@ function horseHead(g, x, y, c, dir = 1) {
   g.restore();
 }
 function stable(g, t = 0) {
-  const w = 320, d = 130, H = 74;
+  const w = 320, d = 130, H = 116;   // v121: выше — второй ярус-сеновал (по просьбе Василия)
   shadowAt(g, w, d); logWall(g, -w / 2, -H, w, H - 10, '#a8743e'); stoneRect(g, -w / 2 - 3, -12, w + 6, 12, '#9a948a', 31, 6);
-  const top = roofSide(g, w, d, H, 46, SHINGLE, 'shingle');
-  // слуховое окно сеновала на крыше: сено торчит
-  rr(g, -20, top + 10, 40, 26, 6); paint(g, '#6a4224', 1.4); rr(g, -14, top + 15, 28, 21, 4); g.fillStyle = '#2a1a10'; g.fill(); hayT(g, 0, top + 37, 0.85);
+  rr(g, -w / 2 - 4, -78, w + 8, 7, 3.5); paint(g, '#6a4224', 1.4);   // балка между ярусами
+  const top = roofSide(g, w, d, H, 62, SHINGLE, 'shingle');
+  // сеновал: окна со ставнями во втором ярусе
+  for (const x of [-110, 110]) windowSq(g, x, -96, 22, 18, { shutters: '#7a3a2a' });
+  // фронтон сеновала над воротами: дверца с сеном, балка с блоком и верёвкой
+  const gy = -H + 6; g.beginPath(); g.moveTo(-46, gy); g.lineTo(0, gy - 58); g.lineTo(46, gy); g.closePath(); g.save(); g.clip(); logWall(g, -46, gy - 60, 92, 60, '#b88450', false); g.restore();
+  g.beginPath(); g.moveTo(-54, gy + 2); g.lineTo(0, gy - 64); g.lineTo(54, gy + 2); g.lineCap = 'round'; g.lineJoin = 'round'; g.strokeStyle = ink(SHINGLE); g.lineWidth = 9; g.stroke(); g.strokeStyle = SHINGLE; g.lineWidth = 6; g.stroke();
+  rr(g, -16, gy - 34, 32, 32, 4); g.fillStyle = '#2a1a10'; g.fill(); g.strokeStyle = ink('#6a4224'); g.lineWidth = 1.6; g.stroke(); hayT(g, 0, gy - 2, 0.9);
+  rr(g, -4, gy - 52, 40, 6, 3); paint(g, '#6a4224', 1.3); g.strokeStyle = '#c8a870'; g.lineWidth = 1.4; g.beginPath(); g.moveTo(30, gy - 46); g.lineTo(30, gy - 14); g.stroke(); g.beginPath(); g.arc(30, gy - 46, 3, 0, TAU); g.fillStyle = TB.iron; g.fill();
   // денники: нижняя половина двери закрыта, верх открыт — тёмный проём, в двух кони
   [-120, -64, 64, 120].forEach((x, i) => {
     rr(g, x - 20, -62, 40, 28, 4); g.fillStyle = '#2a1a10'; g.fill(); g.strokeStyle = ink('#6a4224'); g.lineWidth = 1.4; g.stroke();
@@ -496,8 +502,8 @@ function stable(g, t = 0) {
   for (const sx of [-1, 1]) { const x0 = sx < 0 ? -50 : 34; plankWall(g, x0, -64, 16, 64, '#8a5a32'); }
   rr(g, -38, -72, 76, 8, 4); paint(g, '#6a4224', 1.4);
   // вывеска с подковой
-  rr(g, -30, -H - 26, 60, 24, 6); paint(g, '#7a4a28', 1.6, -H - 26, -H - 2); g.beginPath(); g.arc(0, -H - 14, 8, Math.PI * 0.15, Math.PI * 0.85, true); g.lineCap = 'round'; g.strokeStyle = ink(TB.gold); g.lineWidth = 6; g.stroke(); g.strokeStyle = TB.gold; g.lineWidth = 4; g.stroke(); g.fillStyle = ink(TB.gold); for (const a of [0.35, 0.65, 1.15, 1.85, 2.35, 2.65]) { g.beginPath(); g.arc(Math.cos(Math.PI + a * 0.9) * 8, -H - 14 + Math.sin(Math.PI + a * 0.9) * 8, 0.9, 0, TAU); g.fill(); }
-  for (const x of [-20, 20]) { g.strokeStyle = '#4a3020'; g.lineWidth = 1.4; g.beginPath(); g.moveTo(x, -H - 26); g.lineTo(x, -H); g.stroke(); }
+  const SY = -90; rr(g, -30, SY - 26, 60, 24, 6); paint(g, '#7a4a28', 1.6, SY - 26, SY - 2); g.beginPath(); g.arc(0, SY - 14, 8, Math.PI * 0.15, Math.PI * 0.85, true); g.lineCap = 'round'; g.strokeStyle = ink(TB.gold); g.lineWidth = 6; g.stroke(); g.strokeStyle = TB.gold; g.lineWidth = 4; g.stroke(); g.fillStyle = ink(TB.gold); for (const a of [0.35, 0.65, 1.15, 1.85, 2.35, 2.65]) { g.beginPath(); g.arc(Math.cos(Math.PI + a * 0.9) * 8, SY - 14 + Math.sin(Math.PI + a * 0.9) * 8, 0.9, 0, TAU); g.fill(); }
+  for (const x of [-20, 20]) { g.strokeStyle = '#4a3020'; g.lineWidth = 1.4; g.beginPath(); g.moveTo(x, SY - 2); g.lineTo(x, -72); g.stroke(); }
   // фонари у ворот, сено и бочка у стены
   hayT(g, -w / 2 - 6, 2); hayT(g, -w / 2 + 16, 2, 0.8); barrelT(g, w / 2 + 6, 2, 0.95); barrelT(g, w / 2 - 14, 4, 0.8);
 }

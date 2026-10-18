@@ -44,11 +44,11 @@ function frame(now) {
   // конюшня
   at(600, 380, () => TVIL.stable(g, T), KV);
   at(790, 470, () => TVIL.trough(g, T), KV);
-  at(380, 420, () => TP.signpost(g), KV);
+  at(330, 500, () => TP.signpost(g), KV);
   // конюший у ворот, рядом пеший герой (масштаб), всадник на дороге
   man(640, 470, NPC_LOOK.farmer, 'front', 1, T);
-  g.font = 'bold 15px Georgia'; g.fillStyle = '#ffe9a8'; g.strokeStyle = 'rgba(20,14,8,.9)'; g.lineWidth = 4; g.strokeText('Конюший Прохор', 640, 380); g.fillText('Конюший Прохор', 640, 380);
-  g.font = '12px Georgia'; g.strokeText('‹Конный двор›', 640, 396); g.fillStyle = '#d8ccb0'; g.fillText('‹Конный двор›', 640, 396);
+  g.font = 'bold 15px Georgia'; g.fillStyle = '#ffe9a8'; g.strokeStyle = 'rgba(20,14,8,.9)'; g.lineWidth = 4; g.strokeText('Конюший Прохор', 640, 418); g.fillText('Конюший Прохор', 640, 418);
+  g.font = '12px Georgia'; g.strokeText('‹Конный двор›', 640, 434); g.fillStyle = '#d8ccb0'; g.fillText('‹Конный двор›', 640, 434);
   man(720, 500, WAR, 'fs', -1, T);
   steed(980 + ((T * 70) % 700) * -1 + 700, 690, 'bay', 'side', -1, { t: T, walk: (T * 1.6) % 1 }, ARCH);
   // подпись места
