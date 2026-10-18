@@ -528,7 +528,7 @@ export function trinketProc(G, on, m) {
   if (T.buf === 'cloak') { for (const o of G.mobs) if (o.state === 'chase') o.state = 'return'; P.target = null; P.auto = null; }
   if (T.heal) { const v = G.st.maxHp * T.heal; P.hp = Math.min(G.st.maxHp, P.hp + v); emit(G, { k: 'txt', x: P.x, y: P.y - 50, s: `+${Math.round(v)}`, col: '#7cff7c' }); }
   if (T.bolt) { const list = near(420).slice(0, 3); if (!list.length) return false; for (const o of list) { G.fx.push({ k: 'bolt', x: P.x, y: P.y - 30, x2: o.x, y2: o.y - o.r, t: 0.35, max: 0.35 }); strike(G, o, G.st.hit * T.bolt, 'spell', { sure: true, proc: true }); } }
-  if (T.id === 'hourglass') { const AB = abilsOf(G.hero); for (const a of AB.slice(0, 2)) P.acd[a.id] = 0; }
+  if (T.id === 'hourglass') { for (const a of abilsOf(G.hero)) if (a && a.id) P.acd[a.id] = 0; G.fx.push({ k: 'hourglass', x: P.x, y: P.y, t: 1.6, max: 1.6 }); emit(G, { k: 'txt', x: P.x, y: P.y - 150, s: 'время повернулось!', col: '#ffe08a' }); emit(G, { k: 'sfx', n: 'levelUp' }); }   // v123: все умения снова готовы
   if (T.id === 'gravity') {
     const list = near(300).filter(o => !o.D.boss); if (!list.length) return false;
     const cx = list.reduce((a, o) => a + o.x, 0) / list.length, cy = list.reduce((a, o) => a + o.y, 0) / list.length;
@@ -539,7 +539,7 @@ export function trinketProc(G, on, m) {
     P.hp = G.st.maxHp * 0.5; G.fx.push({ k: 'slam', x: P.x, y: P.y, r: 140, t: 0.8, max: 0.8 });
     for (const o of near(160)) strike(G, o, G.st.hit, 'spell', { sure: true, proc: true, fire: true });
   }
-  P.tcd = T.icd; sfx(G, 'trinket'); emit(G, { k: 'txt', x: P.x, y: P.y - 76, s: T.name, col: '#c8a0ff' });
+  P.tcd = T.icd; sfx(G, 'trinket'); emit(G, { k: 'txt', x: P.x, y: P.y - (T.id === 'hourglass' ? 125 : 76), s: T.name, col: '#c8a0ff' });
   return true;
 }
 /** Тень (Зеркало двойника) и призрачные волки (Клык вожака): раз в секунду бьют врагов рядом. */

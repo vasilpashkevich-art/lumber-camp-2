@@ -703,6 +703,7 @@ export function render(R, G, now) {
     else o.draw(c, t);
     if (hh) c.restore();
   }
+  for (const f of G.fx) if (f.k === 'hourglass') MF.hourglassFx(c, P.x, P.y - hP, f.max - f.t);   // v123: Песочные часы перевернулись
   // v117: обряд жрицы, язык Короля, плен, оглушение, ядовитый дождь
   for (const m of G.mobs) if (m.B && m.B.rite && m.state === 'chase') { const tot = G.mobs.filter(o => o.owner === m && o.D.still && o.state !== 'dead'); MF.riteBeams(c, m, tot, 1 - m.B.rite.t / m.B.rite.a.dur, t); }
   if (P.held && !P.dead) { const m = P.held.m, dir = Math.cos((m.B && m.B.dir) || 0) < 0 ? -1 : 1;

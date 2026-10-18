@@ -335,3 +335,30 @@ export function colCrack(g, x, y, i) {
   for (let k = 0; k < 2; k++) { let px = x - 6 + r() * 12, py = y - 120 + k * 50; g.beginPath(); g.moveTo(px, py); for (let j = 0; j < 4; j++) { px += (r() - 0.5) * 14; py += 10 + r() * 10; g.lineTo(px, py); } g.stroke(); }
   g.fillStyle = 'rgba(120,110,95,.9)'; for (let k = 0; k < 4; k++) { g.beginPath(); g.moveTo(x - 20 + r() * 40, y + 2); g.lineTo(x - 16 + r() * 40, y - 3); g.lineTo(x - 12 + r() * 40, y + 3); g.fill(); }
 }
+
+/** v123: Песочные часы перевернулись — над героем золотые часы делают полуоборот, песок сыплется вниз, искры кругом. a — возраст (0…1,6 с). */
+export function hourglassFx(g, x, y, a) {
+  const k = Math.min(1, a / 0.5), rot = (1 - Math.pow(1 - k, 3)) * Math.PI, fade = a < 1.1 ? 1 : Math.max(0, 1 - (a - 1.1) / 0.5), cy = y - 88 - Math.min(1, a / 0.3) * 6;
+  g.save(); g.globalAlpha = fade;
+  glow(g, x, cy, 46 + 8 * Math.sin(a * 10), '255,210,110', 0.55);
+  g.translate(x, cy); g.rotate(rot);
+  const W = 15, H = 22, gold = '#e0b040', ink = '#5a3a10';
+  // колба
+  g.beginPath(); g.moveTo(-W + 2, -H + 4); g.quadraticCurveTo(-W + 2, -3, -2, 0); g.quadraticCurveTo(-W + 2, 3, -W + 2, H - 4); g.lineTo(W - 2, H - 4); g.quadraticCurveTo(W - 2, 3, 2, 0); g.quadraticCurveTo(W - 2, -3, W - 2, -H + 4); g.closePath();
+  g.fillStyle = 'rgba(220,240,255,.45)'; g.fill(); g.strokeStyle = '#3a5a7a'; g.lineWidth = 1.6; g.stroke();
+  // песок: сверху убывает, снизу растёт (после переворота сыплется)
+  const q = Math.max(0, Math.min(1, (a - 0.45) / 1)), top = 1 - q, sand = '#f2c86a';
+  g.save(); g.clip();
+  g.fillStyle = sand; g.beginPath(); g.ellipse(0, -H + 4 + (H - 6) * (1 - top * 0.8), W - 4, (H - 8) * top * 0.6 + 0.5, 0, 0, Math.PI * 2); g.fill();
+  g.beginPath(); g.moveTo(-W + 3, H - 4); g.quadraticCurveTo(0, H - 4 - (H - 6) * (0.2 + q * 0.7), W - 3, H - 4); g.closePath(); g.fill();
+  if (a > 0.45 && q < 1) { g.strokeStyle = sand; g.lineWidth = 1.6; g.beginPath(); g.moveTo(0, -1); g.lineTo(0, H - 6); g.stroke(); }
+  g.restore();
+  // рамка: донца и стойки
+  for (const s of [-1, 1]) { g.beginPath(); g.roundRect(-W - 2, s * H - 3, (W + 2) * 2, 6, 3); g.fillStyle = gold; g.fill(); g.strokeStyle = ink; g.lineWidth = 1.4; g.stroke(); g.beginPath(); g.moveTo(s * (W - 1), -H + 2); g.lineTo(s * (W - 1), H - 2); g.lineWidth = 3.4; g.strokeStyle = ink; g.stroke(); g.lineWidth = 2; g.strokeStyle = gold; g.stroke(); }
+  g.fillStyle = 'rgba(255,255,255,.6)'; g.beginPath(); g.ellipse(-W + 6, -H + 9, 1.6, 5, 0.3, 0, Math.PI * 2); g.fill();
+  g.restore();
+  // искры по кругу у ног и песчинки, летящие к герою
+  const r = rng(91);
+  for (let i = 0; i < 14; i++) { const an = r() * 6.283 + a * 2, rr = 30 + r() * 26, life = (a * 1.4 + r()) % 1; g.fillStyle = `rgba(255,220,120,${(1 - life) * fade})`; g.beginPath(); g.arc(x + Math.cos(an) * rr * (1 - life * 0.4), y - 20 - life * 70 + Math.sin(an) * 8, 2.2, 0, 6.283); g.fill(); }
+  g.strokeStyle = `rgba(255,215,110,${0.7 * fade * Math.max(0, 1 - a)})`; g.lineWidth = 3; g.beginPath(); g.ellipse(x, y + 2, 26 + a * 50, (26 + a * 50) * 0.42, 0, 0, 6.283); g.stroke();
+}

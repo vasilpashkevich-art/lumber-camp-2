@@ -74,9 +74,9 @@ test('обновление: после выхода идёт час; внутр�
   const old = JSON.parse(JSON.stringify(newHero('С', 'mage'))); delete old.dungeons; assert.deepEqual(migrate(old).dungeons, {});
 });
 
-test('фиолетовые аксессуары (v110 — сами, с вероятностью): Песочные часы сбрасывают C и V, Камень притяжения стягивает и оглушает', () => {
+test('фиолетовые аксессуары (v110 — сами, с вероятностью): Песочные часы сбрасывают все умения, Камень притяжения стягивает и оглушает', () => {
   const h = hero(), G = createGame(h, W(), { rand: () => 0.01 });
-  h.eq.trinket = makeTrinket('warrior', 16, 'epic', rng(1), 'hourglass'); G.P.acd.charge = 5; G.P.acd.whirl = 5; assert.ok(trinketProc(G, 'ability')); assert.equal(G.P.acd.charge, 0); assert.equal(G.P.acd.whirl, 0); assert.ok(G.P.tcd > 0);
+  h.lvl = 20; h.eq.trinket = makeTrinket('warrior', 16, 'epic', rng(1), 'hourglass'); G.P.acd.charge = 5; G.P.acd.whirl = 5; G.P.acd.crush = 5; G.P.acd.berserk = 40; assert.ok(trinketProc(G, 'ability')); for (const k of ['charge', 'whirl', 'crush', 'berserk']) assert.equal(G.P.acd[k], 0, k); assert.ok(G.P.tcd > 0); assert.ok(G.fx.some(f => f.k === 'hourglass'), 'часы видно');   // v123: все умения
   const G2 = createGame(hero(), W(), { rand: () => 0.01 }); G2.hero.eq.trinket = makeTrinket('warrior', 16, 'epic', rng(1), 'gravity');
   const ms = G2.mobs.filter(m => m.camp.name === 'Казармы'); G2.P.x = 2000; G2.P.y = 2400; for (const m of ms) m.state = 'chase';
   assert.ok(trinketProc(G2, 'hit')); for (const m of ms) assert.ok(m.stun > 0, 'оглушён'); const cx = ms.reduce((a, m) => a + m.x, 0) / ms.length; for (const m of ms) assert.ok(Math.hypot(m.x - cx, m.y - ms[0].y) < 60, 'стянуты');
