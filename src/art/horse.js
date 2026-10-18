@@ -59,7 +59,7 @@ export function horse(g, coat, view, pose = {}) {
 
   // ---------------- хвост (за крупом)
   add(Zd(0, -16) - 0.5, () => {
-    const sway = walk >= 0 ? Math.sin(ph * 2) * 1.6 : Math.sin(t * 1.3) * 1;
+    const sway = pose.tail != null ? pose.tail * 2.8 : walk >= 0 ? Math.sin(ph * 2) * 1.6 : Math.sin(t * 1.3) * 1;   // v122: tail — взмах хвостом
     const r0 = P(0, -15.5, -28 + bob), r1 = P(sway * 0.4, -20, -20 + bob), r2 = P(sway, -19.5, -10 + bob);
     g.beginPath(); g.moveTo(r0[0], r0[1]); g.quadraticCurveTo(r1[0], r1[1], r2[0], r2[1]);
     g.lineCap = 'round'; g.strokeStyle = ink(C.mane); g.lineWidth = 6.6; g.stroke(); g.strokeStyle = C.mane; g.lineWidth = 5; g.stroke();
@@ -98,7 +98,8 @@ export function horse(g, coat, view, pose = {}) {
   });
 
   // ---------------- шея, грива, голова
-  const nod = walk >= 0 ? Math.sin(ph * 2) * 0.8 : pose.graze ? 15 + Math.sin(t * 3) * 0.6 : Math.sin(t * 1.6 + 1) * 0.4;   // пасётся — голова у земли
+  const gz = pose.graze === true ? 1 : +pose.graze || 0;   // v122: пасётся — 0…1 (голова опускается к траве), chew — морда жуёт
+  const nod = walk >= 0 ? Math.sin(ph * 2) * 0.8 : gz ? gz * 17 + (pose.chew ? 1.1 : 0) : Math.sin(t * 1.6 + 1) * 0.4;
   add(Zd(0, 15), () => {
     const nb = P(0, 11.5, -28 + bob), nt = P(0, 16.8, -38.8 + bob + nod), sk = P(0, 18.8, -41 + bob + nod), mz = P(0, 24.6, -34.8 + bob + nod);
     const neck = cap(g, nb[0], nb[1], nt[0], nt[1], 5.4, 3.6, C.body), head = cap(g, sk[0], sk[1], mz[0], mz[1], 3.9, 3.0, C.body);

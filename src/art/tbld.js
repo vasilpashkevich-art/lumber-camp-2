@@ -476,7 +476,7 @@ function horseHead(g, x, y, c, dir = 1) {
   shine(g, 0, -17, 4, 2, 0.3);
   g.restore();
 }
-function stable(g, t = 0) {
+function stable(g, t = 0, heads = true) {   // v122: heads = false — кони в денниках рисуются отдельно, живыми
   const w = 320, d = 130, H = 116;   // v121: выше — второй ярус-сеновал (по просьбе Василия)
   shadowAt(g, w, d); logWall(g, -w / 2, -H, w, H - 10, '#a8743e'); stoneRect(g, -w / 2 - 3, -12, w + 6, 12, '#9a948a', 31, 6);
   rr(g, -w / 2 - 4, -78, w + 8, 7, 3.5); paint(g, '#6a4224', 1.4);   // балка между ярусами
@@ -491,8 +491,8 @@ function stable(g, t = 0) {
   // денники: нижняя половина двери закрыта, верх открыт — тёмный проём, в двух кони
   [-120, -64, 64, 120].forEach((x, i) => {
     rr(g, x - 20, -62, 40, 28, 4); g.fillStyle = '#2a1a10'; g.fill(); g.strokeStyle = ink('#6a4224'); g.lineWidth = 1.4; g.stroke();
-    if (i === 0 || i === 3) horseHead(g, x + (i ? -2 : 2), -34, HORSE_HEAD[i === 0 ? 0 : 2], i ? -1 : 1);
-    if (i === 2) horseHead(g, x, -34, HORSE_HEAD[1], -1);
+    if (heads && (i === 0 || i === 3)) horseHead(g, x + (i ? -2 : 2), -34, HORSE_HEAD[i === 0 ? 0 : 2], i ? -1 : 1);
+    if (heads && i === 2) horseHead(g, x, -34, HORSE_HEAD[1], -1);
     plankWall(g, x - 20, -34, 40, 34, '#8a5a32'); g.strokeStyle = ink('#8a5a32'); g.lineWidth = 3.2; g.lineCap = 'round'; g.beginPath(); g.moveTo(x - 17, -31); g.lineTo(x + 17, -3); g.stroke(); g.strokeStyle = '#a87448'; g.lineWidth = 2; g.stroke();
     rr(g, x - 23, -64, 46, 5, 2.5); paint(g, '#6a4224', 1.2);
   });
@@ -552,6 +552,6 @@ function millBladesT(g, a = 0) {
 const scaled = f => (g, a, b) => { g.save(); g.scale(SC, SC); f(g, a, b); g.restore(); };
 export const TBLD = { bank: scaled(bank), house: scaled(house), forge: scaled(forge), tavern: scaled(tavern), enchant: scaled(enchant), miners: scaled(miners), herbal: scaled(herbal), inn: scaled(inn), palace: scaled(palace) };
 /** Посёлок (Хутор Подгорный, хутора): в своих размерах, без ×1,35. */
-export const TVIL = { house: vhouse, inn: vinn, forge: vforge, barn, farmstead, millBase: millBaseT, millBlades: millBladesT, stable, trough };
+export const TVIL = { house: vhouse, inn: vinn, forge: vforge, barn, farmstead, millBase: millBaseT, millBlades: millBladesT, stable, trough, horseHead, HORSE_HEAD, STALLS: [[-120, 0, 1], [64, 1, -1], [120, 2, -1]] };   // денники с конями: [x, масть, куда смотрит]
 /** Общие кисти для мелочей (tprops.js). */
 export const KIT = { sh, ink, rnd, paint, shine, rr, poly, stoneRect, barrelT, woodpileT, hayT, windowSq, chimneyT, roofFill, potT };

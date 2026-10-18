@@ -176,7 +176,7 @@ function buildStatics(W) {
   // v102: посёлок мультяшными постройками (вид спереди-сверху), ×1,15 — двери 1,2–1,3 роста героя
   const KV = 1.15, vil = (key, fn) => sprite('v|' + key, 460, 440, 230, 400, 1.8, styled(g => { g.scale(KV, KV); fn(g); }));
   if (!oldBld()) Object.assign(ART, { house: v => vil('house' + v, g => TVIL.house(g, v)), inn: () => vil('inn', TVIL.inn), barn: () => vil('barn', TVIL.barn), forge: () => vil('forge', TVIL.forge) });
-  ART.stable = () => vil('stable', TVIL.stable);   // v121: конюшня Конного двора
+  ART.stable = () => vil('stable2', g => TVIL.stable(g, 0, false));   // v121: конюшня Конного двора (v122: кони в денниках — отдельно, живые)
   const LBLV = { inn: 290, barn: 200, house: 170, forge: 170, stable: 300 };
   // v86: объёмные постройки столицы (мягкий облик), размер картинки — по основанию
   const B2 = (key, v) => { if (key === 'stall' && !oldMarket()) return tStallSpr(); const [w, d, lh] = FOOT[key] || [200, 150, 200]; const pw = w + d * 0.3 + 280, ph = lh + 220; return sprite('b2|' + key + (v || 0), pw, ph, w / 2 + 140, ph - 60, 1.6, styled(g => { if (key === 'stall') { g.save(); g.translate(0, -44); g.scale(PEOPLE_K, PEOPLE_K); person(g, MERCH_LOOK, 'front', {}); g.restore(); } ((!oldBld() && TB2[key]) || BLD2[key])(g, v || 0, 0.4); })); };
@@ -196,8 +196,14 @@ function buildStatics(W) {
     const fH = (len, sd) => sprite('fenceH' + Math.round(len), len + 20, 50, 10, 40, 2, styled(g => TP.fence(g, len, true, sd))), fV = len => sprite('fenceV' + Math.round(len), 30, len + 50, 15, 40, 2, styled(g => TP.fence(g, len, false, 4)));
     for (const [x, y, sp] of [[P0.x0, P0.y0, fH(P0.x1 - P0.x0, 3)], [P0.x0, P0.y1, fH(P0.gate[0] - P0.x0, 6)], [P0.gate[1], P0.y1, fH(P0.x1 - P0.gate[1], 7)]]) S.push({ y, x, draw: g => drawSpr(g, sp, x, y) });
     for (const x of [P0.x0, P0.x1]) { const sp = fV(P0.y1 - P0.y0); S.push({ y: P0.y0 + 4, x, draw: g => drawSpr(g, sp, x, P0.y0 + 4) }); }
-    for (const [coat, x, y, view, dir, graze] of Y.horses) { const sp = mountSpr(coat, null, view, 'idle', 0, { bare: true, graze }); S.push({ y, x, draw: g => { g.fillStyle = 'rgba(0,0,0,.22)'; g.beginPath(); g.ellipse(x + 2, y + 2, view === 'side' ? 34 : 24, 9, 0, 0, 7); g.fill(); drawFrame(g, sp, x, y, dir, PEOPLE_K); } }); }
-    const hy = P0.y0 + 50, hs = sprite('hay', 84, 84, 42, 70, 2, styled(g => TP.haystack(g))); S.push({ y: hy, x: P0.x1 - 55, draw: g => drawSpr(g, hs, P0.x1 - 55, hy) });
+    // v122: кони в загоне живут — пасутся (голова к траве, жуют), поднимают голову, машут хвостом, проходят пару шагов
+    Y.horses.forEach(([coat, x, y, view, dir, span], i) => S.push({ y, x, draw: (g, t) => { const A = horseAct(i, t, span, dir), hx = x + A.dx;
+      g.fillStyle = 'rgba(0,0,0,.22)'; g.beginPath(); g.ellipse(hx + 2, y + 2, 34, 9, 0, 0, 7); g.fill();
+      drawFrame(g, mountSpr(coat, null, view, A.walk >= 0 ? 'walk' : 'idle', A.walk >= 0 ? A.walk : 0, { bare: true, graze: A.g, chew: A.chew, tail: A.tail }), hx, y, A.dir, PEOPLE_K); } }));
+    // кони в денниках: качают головой, иногда уходят вглубь
+    { const sx = Y.x + Y.stable.dx, sy = Y.y + Y.stable.dy; S.push({ y: sy + 0.5, x: sx, draw: (g, t) => { for (const [cx, ci, cd] of TVIL.STALLS) { const u = (t * 0.7 + ci * 4.1) % 14, down = u < 9 ? -Math.max(0, Math.sin(t * 1.3 + ci)) * 1.5 : u < 10 ? (u - 9) * 32 : u < 13 ? 32 : (14 - u) * 32;
+      g.save(); g.translate(sx, sy); g.scale(KV, KV); g.beginPath(); g.rect(cx - 20, -62, 40, 28); g.clip(); TVIL.horseHead(g, cx + 2 * cd, -34 + down, TVIL.HORSE_HEAD[ci], cd); g.restore(); } } }); }
+    const hy = P0.y0 + 32, hs = sprite('hay', 84, 84, 42, 70, 2, styled(g => TP.haystack(g))); S.push({ y: hy, x: P0.x1 - 38, draw: g => drawSpr(g, hs, P0.x1 - 38, hy) });
     const K0 = Y.keeper, kx = Y.x + K0.dx, ky = Y.y + K0.dy; S.push({ y: ky, x: kx, label: K0.name, lx: kx, ly: ky - 82, draw: (g, t) => { g.fillStyle = 'rgba(0,0,0,.25)'; g.beginPath(); g.ellipse(kx, ky + 2, 15, 5, 0, 0, 7); g.fill(); drawFrame(g, personSpr(NPC_LOOK.farmer, 'front', 'idle', 0), kx, ky + Math.sin(t * 2) * 0.4, 1, PEOPLE_K); } });
     const sg = sprite('sign', 120, 110, 60, 90, 2, styled(g => TP.signpost(g))), sx = Y.x + Y.sign.dx, sy = Y.y + Y.sign.dy; S.push({ y: sy, x: sx, draw: g => drawSpr(g, sg, sx, sy) });
     S.push({ y: Y.y - Y.R, label: Y.name, lx: Y.x, ly: Y.y - 330, draw: () => {} });
@@ -824,6 +830,19 @@ function drawNpc(c, G, n, t) {
   const top = n.y - 62 * PEOPLE_K / 1.15 - 18;
   label(c, n.name, n.x, top + 2, '#ffe9a8', 13, true); label(c, `‹${n.title}›`, n.x, top + 16, '#d8ccb0', 11, false);
   const mk = npcMark(G.hero, n.id); if (mk) { if (UIK !== 1) { around(c, n.x, top - 14); UIK0(() => questMark(c, n.x, top - 14, mk, t)); c.restore(); } else questMark(c, n.x, top - 14, mk, t); }
+}
+/** v122: что делает конь в загоне в момент t (без состояния, по времени): пасётся → поднимает голову → стоит, машет хвостом → проходит пару шагов → опускает голову. */
+function horseAct(i, t, span, dir0) {
+  const T = t + i * 8.3, k = Math.floor(T / 24), u = T - k * 24, fwd = k % 2 === 0, A = { g: 0, chew: 0, tail: 0, walk: -1, dx: 0, dir: dir0 };
+  const q = v => Math.round(Math.max(0, Math.min(1, v)) * 4) / 4;   // голова — 5 положений (готовые кадры)
+  const p = Math.max(0, Math.min(1, (u - 14) / 3)); A.dx = (fwd ? p : 1 - p) * span;
+  A.dir = u < 14 ? (fwd ? -1 : 1) * Math.sign(span) * (dir0 === Math.sign(span) ? 1 : 1) : (fwd ? 1 : -1) * Math.sign(span);
+  if (u < 9 || u >= 18) { A.g = 1; A.chew = Math.floor(t * 3 + i) % 2; }
+  else if (u < 10) A.g = q(10 - u);
+  else if (u < 14) { const s = (t * 1.2 + i) % 3; A.tail = s < 0.5 ? (s < 0.25 ? 1 : -1) : 0; }
+  else if (u < 17) A.walk = Math.floor(((t * 1.9) % 1) * 8);
+  else A.g = q(u - 17);
+  return A;
 }
 function drawMob(c, G, m, t) {
   if (m.D.art === 'totem') { const A = QART.totem, sp = sprite('qtotemB', A[0] * 1.7, A[1] * 1.7, A[2] * 1.7, A[3] * 1.7, 2, gg => { gg.scale(1.7, 1.7); A[4](gg); }); drawSpr(c, m.hurt > 0 ? flashOf(sp) : sp, m.x, m.y); MF.totemGlow(c, m.x, m.y - 50, t); return; }   // v117: тотем тины у купели
