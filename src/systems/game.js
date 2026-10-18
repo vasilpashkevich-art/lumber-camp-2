@@ -57,7 +57,7 @@ function spawnMob(G, s, camp) {
     state: 'idle', cd: 0, face: G.rand() < 0.5 ? -1 : 1, hurt: 0,
     wander: { t: G.rand() * 4, x: s.x, y: s.y }, burn: null, bleed: null, fled: false, flee: 0,
     stun: 0, root: 0, chill: 0, frozen: 0, venom: null, trapT: 0, atkT: 0, atkDur: 0.35, walkPh: G.rand(), mdx: 0, mdy: 1, moving: false,
-    charge: { cd: 2, t: 0 }, smash: { t: D.smash ? D.smash.every : 0, wind: 0, x: 0, y: 0 }, anim: G.rand() * 10,
+    charge: { cd: 2, t: 0 }, smash: { t: D.smash ? D.smash.every : 0, wind: 0, x: 0, y: 0 }, anim: G.rand() * 10, look: D.look || null,
   };
 }
 
@@ -93,6 +93,22 @@ export function update(G, dt, I) {
   P.weak = Math.max(0, P.weak - dt); P.slow = Math.max(0, P.slow - dt); P.hurt = Math.max(0, P.hurt - dt);
   P.atkT = Math.max(0, P.atkT - dt); if (P.dead) P.deadT += dt;
   P.swing = Math.max(0, P.swing - dt); P.shot = Math.max(0, P.shot - dt); P.volley = Math.max(0, P.volley - dt);
+
+  // v117: плен у босса (язык, проглатывание) и оглушение кваком — ни шага, ни удара; из плена вырываются ударом
+  P.stunT = Math.max(0, (P.stunT || 0) - dt);
+  if (P.held && !P.dead) {
+    const Hd = P.held, m = Hd.m;
+    if (I.attackTap || I.attack && !P.heldPress || I.ability || I.ability2 || I.ability3 || I.ability4) { Hd.t -= 0.25; emit(G, { k: 'txt', x: P.x, y: P.y - 70, s: 'рвётся!', col: '#ffe08a' }); }
+    P.heldPress = !!I.attack; Hd.t -= dt;
+    if (m.state !== 'chase' || m.stun > 0 && Hd.kind !== 'swallow') Hd.t = 0;
+    hurtHero(G, G.st.maxHp * Hd.dps * dt, m, true);
+    if (P.held) {
+      const dir = Math.cos((m.B && m.B.dir) || 0) < 0 ? -1 : 1, tx = Hd.kind === 'swallow' ? m.x : m.x + dir * (m.r + 34), ty = Hd.kind === 'swallow' ? m.y - 2 : m.y + 6;
+      P.x += (tx - P.x) * Math.min(1, dt * 9); P.y += (ty - P.y) * Math.min(1, dt * 9);
+      if (Hd.t <= 0) { P.held = null; const dir2 = Math.cos((m.B && m.B.dir) || 0) < 0 ? -1 : 1, [nx, ny] = moveTo(G.W, P.x, P.y, m.x + dir2 * (m.r + 70), m.y + 20); P.x = nx; P.y = ny; emit(G, { k: 'txt', x: P.x, y: P.y - 70, s: 'вырвался!', col: '#c8ffb0' }); }
+    }
+  }
+  if ((P.held || P.stunT > 0) && !P.dead) { I = { pick: I.pick }; P.auto = null; P.goal = null; }
 
   if (!P.dead) {
     // движение
@@ -274,7 +290,7 @@ function killMob(G, m) {
   H.dead[m.key] = m.respawnAt; H.stats.kills++;
   qOnKill(G, m);   // v95: задания
   trinketProc(G, 'kill', m);   // v110: аксессуар — «когда враг убит»
-  if (m.D.boss && G.dg) { G.dg.bosses[m.kind] = true; emit(G, { k: 'boss', name: m.D.name, final: !!m.D.final }); if (dgUnsealed(H, G.W.Z) && G.W.sealed.size) { G.W.unseal(); emit(G, { k: 'toast', s: 'Запечатанный ход в Тронный зал открыт!', kind: 'good', id: 'seal' }); } if (dgDone(H, G.W.Z)) openPortal(G); }
+  if (m.D.boss && G.dg) { G.dg.bosses[m.kind] = true; emit(G, { k: 'boss', name: m.D.name, final: !!m.D.final, fem: !!m.D.fem }); if (dgUnsealed(H, G.W.Z) && G.W.sealed.size) { G.W.unseal(); emit(G, { k: 'toast', s: 'Запечатанный ход в Тронный зал открыт!', kind: 'good', id: 'seal' }); } if (dgDone(H, G.W.Z)) openPortal(G); }
   if (P.target === m) P.target = null;
   sfx(G, 'kill');
   // опыт
@@ -672,7 +688,7 @@ function hurtHero(G, v, m, dot) {
 }
 
 function heroDie(G) {
-  const P = G.P; P.hp = 0; P.dead = true; P.deadT = 0; P.target = null; P.auto = null; P.goal = null; P.poison = null; P.whirl = 0; P.volley = 0; P.dash = null; P.sit = false; P.buf.berserk = 0; G.areas = []; G.traps = [];
+  const P = G.P; P.hp = 0; P.dead = true; P.deadT = 0; P.held = null; P.stunT = 0; P.target = null; P.auto = null; P.goal = null; P.poison = null; P.whirl = 0; P.volley = 0; P.dash = null; P.sit = false; P.buf.berserk = 0; G.areas = []; G.traps = [];
   G.hero.stats.deaths++;
   for (const m of G.mobs) if (m.state === 'chase') m.state = 'return';
   emit(G, { k: 'die' });
@@ -686,6 +702,14 @@ export function respawnHero(G) {
 }
 
 // ---------------------------------------------------------------- мобы
+/** v117: что босс может сделать с миром — позвать помощника, поднять стражу, кинуть тину. */
+function bossApi(G, m) {
+  return m.api || (m.api = {
+    spawn: (kind, x, y, life) => { const o = spawnMob(G, { key: 'призыв', kind, lvl: Math.max(1, m.lvl - (MOBS[kind].still ? 0 : 2)), x, y }, m.camp); Object.assign(o, { summon: true, owner: m, life, state: 'chase' }); G.mobs.push(o); G.fx.push({ k: 'summon', x, y, kind, seed: Math.floor(G.rand() * 1e6), t: 1, max: 1 }); return o; },
+    aggro: o => aggro(G, o),
+    shot: o => { const P = G.P, a = Math.atan2(P.y - o.y, P.x - o.x); G.shots.push({ from: 'mob', kind: 'curse', x: o.x, y: o.y - 30, vx: Math.cos(a) * 360, vy: Math.sin(a) * 360, t: 2, dmg: o.dmg, m: o, slow: 2.5, say: 'тина вяжет' }); },
+  });
+}
 function mobTick(G, m, dt) {
   const P = G.P, H = G.hero;
   m.anim += dt; m.hurt = Math.max(0, m.hurt - dt); m.atkT = Math.max(0, m.atkT - dt); m.moving = false;
@@ -706,6 +730,8 @@ function mobTick(G, m, dt) {
     }
   }
   if (m.venom) { m.venom.t -= dt; m.hp -= m.venom.dps * dt; if (m.venom.t <= 0 || m.state === 'return') m.venom = null; if (m.hp <= 0) { killMob(G, m); return; } }
+  if (m.B) m.B.immune = Math.max(0, m.B.immune - dt);
+  if (m.D.still) { m.cd = 99; m.moving = false; return; }   // v117: тотем стоит и ничего не делает — его надо сломать
   m.stun = Math.max(0, m.stun - dt); m.root = Math.max(0, m.root - dt); m.chill = Math.max(0, m.chill - dt); m.frozen = Math.max(0, (m.frozen || 0) - dt); m.trapT = Math.max(0, (m.trapT || 0) - dt);
   if (m.stun > 0 || m.frozen > 0) { if (m.B && m.B.act) bossCancel(G, m); return; }   // оглушён или вмёрз в лёд — стоит (умение босса сбито)
   const dH = dist(m.x, m.y, P.x, P.y), dHome = dist(m.x, m.y, m.hx, m.hy), slowK = (m.chill > 0 ? 0.5 : 1) * (m.B ? m.B.haste : 1);
@@ -732,13 +758,14 @@ function mobTick(G, m, dt) {
     return;
   }
   // погоня
-  if (P.dead || dHome > LEASH || inCity(G.W, P.x, P.y) && dH > 40) { m.state = 'return'; m.charge.t = 0; m.smash.wind = 0; if (P.target === m) P.target = null; return; }
+  // v117: босс держит весь свой зал (раньше бросал бой в углу Тронного зала)
+  if (P.dead || dHome > (m.D.boss ? LEASH * 1.7 : LEASH) || inCity(G.W, P.x, P.y) && dH > 40) { m.state = 'return'; m.charge.t = 0; m.smash.wind = 0; if (P.target === m) P.target = null; return; }
   m.cd = Math.max(0, m.cd - dt * slowK);
   const D = m.D, reach = D.reach + m.r + 10;
   // призыв помощников (Мельник — ворон, шаман — сородича, Паучиха — выводок)
   if (D.summon && !m.summon) { const S = D.summon; m.sumT = (m.sumT ?? S.every * 0.5) - dt;
     if (m.sumT <= 0) { m.sumT = S.every; if (G.mobs.filter(o => o.owner === m && o.state !== 'dead').length < (S.max || S.n * 2)) { for (let i = 0; i < S.n; i++) { const a = G.rand() * 6.28, x = m.x + Math.cos(a) * 60, y = m.y + Math.sin(a) * 60; const o = spawnMob(G, { key: 'призыв', kind: S.kind, lvl: Math.max(1, m.lvl - 2), x, y }, m.camp); Object.assign(o, { summon: true, owner: m, life: 40, state: 'chase' }); G.mobs.push(o); G.fx.push({ k: 'summon', x, y, kind: S.kind, seed: Math.floor(G.rand() * 1e6), t: 1, max: 1 }); } emit(G, { k: 'txt', x: m.x, y: m.y - 70, s: S.say || 'зовёт ворон!', col: '#9affc8' }); } } }
-  if (D.ai && bossTick(G, m, dt, (v, dot) => hurtHero(G, v, m, dot), go, (s, big) => { if (big) emit(G, { k: 'toast', s: `${D.name}: ${s}`, id: 'boss' }); else emit(G, { k: 'txt', x: m.x, y: m.y - 80, s, col: '#ff8a2a' }); })) return;   // v94: умения и фазы босса
+  if (D.ai && bossTick(G, m, dt, (v, dot) => hurtHero(G, v, m, dot), go, (s, big) => { if (big) emit(G, { k: 'toast', s: `${D.name}: ${s}`, id: 'boss' }); else emit(G, { k: 'txt', x: m.x, y: m.y - (m.look && m.look !== m.D.look ? 190 : 80), s, col: '#ff8a2a' }); }, bossApi(G, m))) return;   // v94: умения и фазы босса
   if (m.flee > 0) { m.flee -= dt; const a = Math.atan2(m.y - P.y, m.x - P.x); go(m.x + Math.cos(a) * 100, m.y + Math.sin(a) * 100, D.speed * 0.9); return; }
   // элитный удар по площади
   if (D.smash) {

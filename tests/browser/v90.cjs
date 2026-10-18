@@ -20,7 +20,7 @@ const URL = 'file://' + path.resolve(__dirname, '../../index.html') + '#dev';
   await ev(() => { const G = window.__G.G; G.st.maxHp = G.P.hp = 99999; });
   console.log('зона:', await ev(() => window.__G.G.hero.zone));
   const go = async (x, y) => { await ev(([x, y]) => { const G = window.__G.G; G.P.x = x; G.P.y = y; G.P.nav = null; G.P.goal = null; G.mobs.forEach(m => { if (m.state === 'chase') { m.state = 'idle'; m.x = m.hx; m.y = m.hy; } }); }, [x, y]); await p.waitForTimeout(400); };
-  const kill = async kind => ev(k => { const G = window.__G.G, m = G.mobs.find(m => m.kind === k && m.state !== 'dead'); m.hp = 1; m.stun = 6; G.P.x = m.x - 50; G.P.y = m.y; G.P.target = m; return m.D.name; }, kind);
+  const kill = async kind => ev(k => { const G = window.__G.G, m = G.mobs.find(m => m.kind === k && m.state !== 'dead'); if (k === 'boss_king') { G.mobs.forEach(o => { if (o.camp.name === 'Стража Короля') { o.state = 'dead'; o.respawnAt = 1e12; } }); if (m.B) m.B.immune = 0; }   /* v117: на троне неуязвим, пока жива стража */ m.hp = 1; m.stun = 6; G.P.x = m.x - 50; G.P.y = m.y; G.P.target = m; return m.D.name; }, kind);
   // окно внутри
   await p.keyboard.press('KeyJ'); await shot('dg-win-inside', 400); console.log('окно внутри:', await ev(() => document.querySelector('.dgwin .dgst').textContent)); await p.keyboard.press('Escape');
   // сундук в Казармах: подойти, E — подсумок с вещью

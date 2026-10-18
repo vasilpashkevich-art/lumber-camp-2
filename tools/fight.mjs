@@ -18,7 +18,8 @@ export function duel(cls, seed = 7, o = {}) {
   const G = createGame(h, W, { rand: rng(seed) });
   const ms = G.mobs.filter(m => m.kind === kind).slice(0, pack);
   if (ms.length < pack) throw new Error('мало мобов ' + kind);
-  for (const o of G.mobs) if (!ms.includes(o)) { o.state = 'dead'; o.respawnAt = 1e12; }
+  const keep = (process.env.KEEP || '').split(',').filter(Boolean);   // KEEP='Стража Короля' — эти лагеря остаются (v117)
+  for (const o of G.mobs) if (!ms.includes(o) && !keep.includes(o.camp.name)) { o.state = 'dead'; o.respawnAt = 1e12; }
   const A = cls === 'warrior' ? 50 : 260, x0 = ms[0].hx - A, y0 = ms[0].hy;
   ms.forEach((m, i) => { const max = Math.round(MOBL.hp(ML) * m.D.hp); Object.assign(m, { state: 'chase', hp: max, max, lvl: ML, armor: MOBL.armor(ML), dmg: MOBL.dmg(ML) * m.D.dmg, x: x0 + A + (i % 2) * 34, y: y0 + (i - 1) * 30, hx: x0 + A, hy: y0 }); });
   G.P.x = x0; G.P.y = y0; G.P.hp = G.st.maxHp;
@@ -27,7 +28,7 @@ export function duel(cls, seed = 7, o = {}) {
     const tg = ms.find(m => m.state !== 'dead'); if (!tg) break; G.P.target = tg;
     const I = { attack: true }; if (G.P.hp < G.st.maxHp * 0.4 && h.potions > 0) I.potion = true; const ready = k => AB[k] && !(G.P.acd[AB[k].id] > 0) && h.lvl >= AB[k].lvl;
     if (!process.env.NOAB) { if (ready(0)) I.ability = true; if (ready(1)) I.ability2 = true; if (ready(2)) I.ability3 = true; if (ready(4)) I.ability4 = true; }
-    if (process.env.DODGE) Object.assign(I, dodge(G, tg));   // DODGE=1 — герой уходит от умений босса (v94)
+    if (process.env.DODGE) { const d = dodge(G, tg); if (d.target) { G.P.target = d.target; delete d.target; } Object.assign(I, d); }   // DODGE=1 — герой уходит от умений босса (v94); v117 — бьёт тотемы, стражу, головастиков
     update(G, 0.05, I); G.ev.length = 0; t += 0.05;
     if (G.P.hp <= 0 || G.P.dead) return { win: false, t, hp: 0 };
   }

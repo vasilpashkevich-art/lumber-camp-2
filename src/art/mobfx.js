@@ -184,7 +184,7 @@ export function teleCone(g, f, q, age = 1) {
 }
 /** Полоса рывка или броска: от (x,y) до (x2,y2) шириной w. */
 export function teleLine(g, f, q, age = 1) {
-  const { x, y, x2, y2, w } = f, inA = clamp(age / 0.15), k = '255,200,140', an = Math.atan2(y2 - y, x2 - x), L = Math.hypot(x2 - x, y2 - y);
+  const { x, y, x2, y2, w } = f, inA = clamp(age / 0.15), k = f.col || '255,200,140', an = Math.atan2(y2 - y, x2 - x), L = Math.hypot(x2 - x, y2 - y);
   g.save(); g.translate(x, y); g.rotate(an);
   const ky = 0.5 + 0.5 * Math.abs(Math.cos(an)), hw = w / 2 * ky;   // ширина сплющена по взгляду сверху
   g.fillStyle = `rgba(${k},${(0.12 + 0.1 * q) * inA})`; g.fillRect(0, -hw, L, hw * 2);
@@ -246,4 +246,92 @@ export function immuneShell(g, x, y, w, h, t) {
   const p = 0.5 + 0.5 * Math.sin(t * 6);
   g.strokeStyle = `rgba(200,255,170,${0.5 + 0.3 * p})`; g.lineWidth = 2.5; g.beginPath(); g.ellipse(x, y - h * 0.45, w * 0.75, h * 0.62, 0, 0, TAU); g.stroke();
   g.fillStyle = `rgba(170,255,140,${0.08 + 0.06 * p})`; g.fill();
+}
+
+// ---------------------------------------------------------------- v117: Жрица Квакша и Король квакунов
+// Язык формы и цвета: лист кувшинки — укрытие (доброе: круглое, тёплое зелёное); дождь, тина, обряд — опасное (острое, ядовитое).
+
+/** Лист кувшинки на лужице воды. left — сколько секунд ещё держится (0 — утонул), up — сколько держится всего. */
+export function lilyPad(g, p, left, t) {
+  const r = rng(p.seed || 3), R = p.r;
+  // лужица всегда: тут появится лист
+  g.save(); g.translate(p.x, p.y); g.scale(1, 0.55);
+  const gw = g.createRadialGradient(0, 0, R * 0.2, 0, 0, R * 1.15); gw.addColorStop(0, 'rgba(90,150,150,.55)'); gw.addColorStop(1, 'rgba(60,100,100,0)');
+  g.fillStyle = gw; g.beginPath(); g.arc(0, 0, R * 1.15, 0, TAU); g.fill();
+  for (let i = 0; i < 2; i++) { const q = (t * 0.5 + i * 0.5 + r()) % 1; g.strokeStyle = `rgba(200,240,240,${0.35 * (1 - q)})`; g.lineWidth = 1.6; g.beginPath(); g.arc(0, 0, R * (0.4 + q * 0.8), 0, TAU); g.stroke(); }
+  if (left > 0) {
+    const sink = left < 1.6, bl = sink ? 0.55 + 0.45 * Math.sin(t * 16) : 1, k = Math.min(1, (p.up - left) / 0.35 + 0.2), sc = sink ? 0.85 + 0.15 * (left / 1.6) : 1;
+    g.globalAlpha = bl * k; g.scale(sc, sc);
+    g.fillStyle = '#2c5a24'; g.beginPath(); g.arc(3, 4, R, 0.25, TAU - 0.25); g.lineTo(3, 4); g.closePath(); g.fill();   // тень и обводка
+    const gl = g.createRadialGradient(-R * 0.35, -R * 0.35, R * 0.1, 0, 0, R); gl.addColorStop(0, '#9ad860'); gl.addColorStop(0.7, '#5aa83a'); gl.addColorStop(1, '#3f8a2a');
+    g.fillStyle = gl; g.strokeStyle = '#2a5a1e'; g.lineWidth = 3; g.beginPath(); g.arc(0, 0, R, 0.25, TAU - 0.25); g.lineTo(0, 0); g.closePath(); g.fill(); g.stroke();
+    g.strokeStyle = 'rgba(40,90,30,.55)'; g.lineWidth = 2; for (let i = 0; i < 7; i++) { const a = 0.5 + i / 7 * (TAU - 1); g.beginPath(); g.moveTo(0, 0); g.lineTo(Math.cos(a) * R * 0.85, Math.sin(a) * R * 0.85); g.stroke(); }
+    g.fillStyle = 'rgba(255,255,230,.45)'; g.beginPath(); g.ellipse(-R * 0.4, -R * 0.42, R * 0.28, R * 0.14, -0.5, 0, TAU); g.fill();
+    if (p.i % 2 === 0) { g.fillStyle = '#f4b8d0'; g.strokeStyle = '#9a4a6a'; g.lineWidth = 1.5; for (let i = 0; i < 6; i++) { const a = i / 6 * TAU; g.beginPath(); g.ellipse(R * 0.42 + Math.cos(a) * 6, R * 0.25 + Math.sin(a) * 6, 6, 3.6, a, 0, TAU); g.fill(); g.stroke(); } g.fillStyle = '#ffe070'; g.beginPath(); g.arc(R * 0.42, R * 0.25, 3.5, 0, TAU); g.fill(); }
+  }
+  g.restore();
+}
+/** Ядовитый дождь: острые зелёные струи по видимой части зала и мутная дымка. */
+export function poisonRain(g, x0, y0, w, h, t) {
+  g.fillStyle = 'rgba(80,140,30,.10)'; g.fillRect(x0, y0, w, h);
+  const N = Math.round(w * h / 9000), r = rng(77);
+  g.strokeStyle = 'rgba(170,240,70,.55)'; g.lineWidth = 1.6; g.beginPath();
+  for (let i = 0; i < N; i++) { const sx = r() * w, sp = 0.6 + r() * 0.5, q = (t * sp + r()) % 1, x = x0 + (sx + q * 40) % w, y = y0 + q * h; g.moveTo(x, y); g.lineTo(x - 7, y - 22); }
+  g.stroke();
+  g.fillStyle = 'rgba(190,255,90,.6)'; for (let i = 0; i < N / 3; i++) { const q = (t * 1.3 + r()) % 1, x = x0 + r() * w, y = y0 + r() * h; if (q < 0.3) { g.beginPath(); g.ellipse(x, y, 2 + q * 14, (2 + q * 14) * 0.4, 0, 0, TAU); g.globalAlpha = 1 - q / 0.3; g.fill(); } }
+  g.globalAlpha = 1;
+}
+/** Обряд: из тотемов к жрице тянутся рваные нити тины, над купелью — ядовитое сияние. q — сколько обряда прошло. */
+export function riteBeams(g, m, totems, q, t) {
+  const cx = m.x, cy = m.y - 40;
+  glowE(g, cx, m.y - 10, 120 + 30 * Math.sin(t * 5), 60, '150,230,60', 0.25 + 0.25 * q);
+  for (const o of totems) {
+    const sx = o.x, sy = o.y - 70, n = 9; g.strokeStyle = `rgba(160,240,70,${0.55 + 0.3 * Math.sin(t * 9 + o.x)})`; g.lineWidth = 3; g.beginPath(); g.moveTo(sx, sy);
+    for (let i = 1; i <= n; i++) { const k = i / n, x = sx + (cx - sx) * k + (i < n ? Math.sin(t * 13 + i * 2.1 + o.x) * 10 : 0), y = sy + (cy - sy) * k - Math.sin(k * Math.PI) * 40; g.lineTo(x, y); }
+    g.stroke(); g.strokeStyle = 'rgba(40,70,10,.6)'; g.lineWidth = 1; g.stroke();
+  }
+  // песок обряда: кольцо над жрицей, сжимается к концу
+  g.strokeStyle = `rgba(220,255,140,.85)`; g.lineWidth = 3; g.beginPath(); g.arc(cx, cy - 46, 16, -Math.PI / 2, -Math.PI / 2 + TAU * (1 - q)); g.stroke();
+}
+/** Свечение тотема (над картинкой). */
+export function totemGlow(g, x, y, t) { glowE(g, x, y - 70, 22 + 4 * Math.sin(t * 7 + x), 22, '170,250,80', 0.55); }
+/** Король набирает воздуха: красная граница растёт по залу, за целыми колоннами — синие тени укрытия. */
+export function kvakWind(g, m, cols, q, t) {
+  const R = 160 + q * 700;
+  g.save(); g.translate(m.x, m.y); g.scale(1, 0.5); g.strokeStyle = `rgba(255,90,60,${0.35 + 0.5 * q})`; g.lineWidth = 5; g.setLineDash([18, 12]); g.lineDashOffset = -t * 60; g.beginPath(); g.arc(0, 0, R, 0, TAU); g.stroke(); g.setLineDash([]); g.restore();
+  for (const c of cols) {
+    const a = Math.atan2(c.y - m.y, c.x - m.x), L = 240, w0 = 30, w1 = 62, px = -Math.sin(a), py = Math.cos(a);
+    const x1 = c.x + Math.cos(a) * L, y1 = c.y + Math.sin(a) * L;
+    g.fillStyle = `rgba(110,170,255,${0.18 + 0.2 * q + 0.08 * Math.sin(t * 8)})`; g.strokeStyle = `rgba(160,210,255,${0.5 + 0.4 * q})`; g.lineWidth = 2;
+    g.beginPath(); g.moveTo(c.x + px * w0, c.y + py * w0 * 0.5); g.lineTo(x1 + px * w1, y1 + py * w1 * 0.5); g.lineTo(x1 - px * w1, y1 - py * w1 * 0.5); g.lineTo(c.x - px * w0, c.y - py * w0 * 0.5); g.closePath(); g.fill(); g.stroke();
+  }
+}
+/** «КВАК!»: волна по полу от Короля. */
+export function kvakWave(g, e, a) {
+  const q = clamp(a / 1.0), R = 60 + easeOut(q) * e.r;
+  g.save(); g.translate(e.x, e.y); g.scale(1, 0.5);
+  g.strokeStyle = `rgba(255,220,160,${0.8 * (1 - q)})`; g.lineWidth = 16 * (1 - q) + 2; g.beginPath(); g.arc(0, 0, R, 0, TAU); g.stroke();
+  g.strokeStyle = `rgba(255,120,80,${0.6 * (1 - q)})`; g.lineWidth = 4; g.beginPath(); g.arc(0, 0, R * 0.8, 0, TAU); g.stroke();
+  g.restore();
+}
+/** Язык Короля: от пасти до героя (в плену). */
+export function tongue(g, x0, y0, x1, y1, t) {
+  const mx = (x0 + x1) / 2, my = (y0 + y1) / 2 - 12 + Math.sin(t * 10) * 3;
+  g.lineCap = 'round'; g.strokeStyle = '#6a1a2a'; g.lineWidth = 13; g.beginPath(); g.moveTo(x0, y0); g.quadraticCurveTo(mx, my, x1, y1); g.stroke();
+  g.strokeStyle = '#e0607a'; g.lineWidth = 9; g.stroke(); g.strokeStyle = 'rgba(255,200,210,.7)'; g.lineWidth = 2.5; g.stroke();
+  g.fillStyle = '#e0607a'; g.strokeStyle = '#6a1a2a'; g.lineWidth = 2; g.beginPath(); g.ellipse(x1, y1, 10, 7, 0, 0, TAU); g.fill(); g.stroke(); g.lineCap = 'butt';
+}
+/** Над пленником: полоска «вырваться» и подсказка. q — сколько осталось (1 → 0). */
+export function heldBar(g, x, y, q, txt, t) {
+  const w = 90, h = 10; g.fillStyle = 'rgba(20,14,8,.85)'; g.fillRect(x - w / 2 - 2, y - 2, w + 4, h + 4);
+  g.fillStyle = '#e0607a'; g.fillRect(x - w / 2, y, w * clamp(q), h);
+  g.strokeStyle = '#ffd34d'; g.lineWidth = 1.5; g.strokeRect(x - w / 2 - 2, y - 2, w + 4, h + 4);
+  g.font = 'bold 13px Georgia, serif'; g.textAlign = 'center'; g.lineWidth = 3.5; g.strokeStyle = 'rgba(20,14,8,.92)'; const s = 1 + 0.06 * Math.sin(t * 12);
+  g.save(); g.translate(x, y + h + 18); g.scale(s, s); g.strokeText(txt, 0, 0); g.fillStyle = '#ffe9a8'; g.fillText(txt, 0, 0); g.restore();
+}
+/** Трещины на колонне, которая выдержала один квак. */
+export function colCrack(g, x, y, i) {
+  const r = rng(i * 13 + 5); g.strokeStyle = 'rgba(30,24,18,.85)'; g.lineWidth = 2; g.lineJoin = 'miter';
+  for (let k = 0; k < 2; k++) { let px = x - 6 + r() * 12, py = y - 120 + k * 50; g.beginPath(); g.moveTo(px, py); for (let j = 0; j < 4; j++) { px += (r() - 0.5) * 14; py += 10 + r() * 10; g.lineTo(px, py); } g.stroke(); }
+  g.fillStyle = 'rgba(120,110,95,.9)'; for (let k = 0; k < 4; k++) { g.beginPath(); g.moveTo(x - 20 + r() * 40, y + 2); g.lineTo(x - 16 + r() * 40, y - 3); g.lineTo(x - 12 + r() * 40, y + 3); g.fill(); }
 }

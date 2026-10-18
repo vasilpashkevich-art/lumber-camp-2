@@ -33,6 +33,7 @@ import { herbSkill, skillColor } from '../systems/herbs.js';
 import { vein, glint, outcrop } from '../art/ore.js';
 import { BAR_H } from '../art/beasts.js';
 import * as MF from '../art/mobfx.js';
+import { padLeft, colsOf } from '../systems/boss.js';
 import { entrance as templeEntrance, interior as templeInterior, column as templeColumn, brazier as templeBrazier, restFire, rubble as templeRubble, font as templeFont, throne as templeThrone, portal as templePortal } from '../art/temple.js';
 import * as FOR from '../art/forest.js';
 import { drawFace, drawRim, drawRampWhole, softGlow, footShadow, TINT, poly as rpoly } from '../art/relief.js';
@@ -198,11 +199,12 @@ function buildStatics(W) {
   // указатели на выходах
   if (W.rooms) {   // v77: убранство подземелья — колонны, жаровни, костёр возрождения, обвалы, сундуки
     const D = W.Z.decor || {}, col = sprite('tcol', 60, 160, 30, 150, 2, g => templeColumn(g, 0, 0, 130, 24, 3));
-    for (const [x, y] of D.columns || []) S.push({ y, x, oc: occ(col, x, y), draw: g => drawSpr(g, col, x, y) });
+    const colB = sprite('tcolB', 110, 80, 55, 60, 2, g => { templeRubble(g, 0, 4, 9, 41); templeColumn(g, 0, 0, 46, 24, 1); });   // v117: разбитая кваком колонна
+    (D.columns || []).forEach(([x, y], i) => S.push({ y, x, oc: occ(col, x, y), draw: g => { const hit = (W.colHit && W.colHit[i]) || 0; if (hit >= 2) { drawSpr(g, colB, x, y); return; } drawSpr(g, col, x, y); if (hit) MF.colCrack(g, x, y, i); } }));
     for (const [x, y] of D.braziers || []) S.push({ y, x, draw: (g, t) => templeBrazier(g, x, y, t) });
     for (const [x, y] of D.rubble || []) { const sp = sprite('trub' + x, 100, 50, 50, 40, 2, g => templeRubble(g, 0, 0, 7, x | 0)); S.push({ y, x, draw: g => drawSpr(g, sp, x, y) }); }
     (D.chests || []).forEach(([x, y], i) => S.push({ y, x, draw: (g, t) => chestBig(g, x, y, !!(W.dg && W.dg.chests[i]), t) }));   // v96: мультяшный сундук   // v90: открытый — по состоянию похода
-    if (D.font) S.push({ y: D.font[1] + D.font[2] * 0.5, x: D.font[0], draw: (g, t) => templeFont(g, D.font[0], D.font[1], D.font[2], t) });
+    if (D.font) S.push({ y: D.font[1] - D.font[2] * 0.5,   /* v117: всё, что в купели (жрица в обряде), — поверх неё */ x: D.font[0], draw: (g, t) => templeFont(g, D.font[0], D.font[1], D.font[2], t) });
     if (D.throne) S.push({ y: D.throne[1], x: D.throne[0], draw: g => templeThrone(g, D.throne[0], D.throne[1]) });
     if (D.portal) S.push({ y: D.portal[1], x: D.portal[0], draw: (g, t) => { if (W.exits.some(e => e.portal)) templePortal(g, D.portal[0], D.portal[1], t); }, label: 'Портал', lx: D.portal[0], ly: D.portal[1] - 130, when: () => W.exits.some(e => e.portal) });
     const gy = W.graveyard; if (gy.fire) S.push({ y: gy.y, x: gy.x, draw: (g, t) => restFire(g, gy.x, gy.y, t), label: 'Костёр', lx: gy.x, ly: gy.y - 60 });
@@ -635,10 +637,12 @@ export function render(R, G, now) {
   // v94: лужи яда, кольца змеи, конусы и полосы боссов
   for (const h of G.hazards || []) if (vis(h.x, h.y, 100)) MF.puddle(c, h, t);
   for (const r of G.rings || []) if (vis(r.x, r.y, 300)) MF.coilRing(c, r, 1 - r.t / r.max, t);
+  for (const p of G.pads || []) if (vis(p.x, p.y, 120)) MF.lilyPad(c, p, padLeft(G, p), t);   // v117: листья кувшинок под дождём
+  for (const m of G.mobs) if (m.B && m.B.kvak && m.state === 'chase') { const a = m.B.kvak, cs = colsOf(G, m).filter(q => ((W.colHit && W.colHit[q.i]) || 0) < a.a.hits); MF.kvakWind(c, m, cs, 1 - a.t / a.a.wind, t); }
   for (const f of G.fx) if ((f.k === 'teleCone' || f.k === 'teleLine') && vis(f.x, f.y, 500)) (f.k === 'teleCone' ? MF.teleCone : MF.teleLine)(c, f, 1 - f.t / f.max, f.max - f.t);
   for (const f of G.fx) if (f.k === 'tele' && vis(f.x, f.y, 300)) { const h = lift(f.x, f.y); c.save(); c.translate(0, -h); MF.telegraph(c, f, 1 - f.t / f.max, f.max - f.t); MF.gather(c, f, 1 - f.t / f.max); c.restore(); }
   // эффекты умений на земле (v73): под фигурами — руны и задние языки столпа, круг залпа, капканы, кольцо льда, трещины, пыль рывка, рёв ярости
-  const UNDER = { crush: V.crush, dashDust: V.dashDust, nova: V.nova, berserkCast: V.berserkCast, slam: MF.slam, ram: MF.ram, hoof: (g, f, a) => MF.hoofDust(g, f.x, f.y, a, f.seed), summon: MF.summonFx, fireSplash: MF.fireSplash, shed: MF.shed };
+  const UNDER = { crush: V.crush, dashDust: V.dashDust, nova: V.nova, berserkCast: V.berserkCast, slam: MF.slam, ram: MF.ram, hoof: (g, f, a) => MF.hoofDust(g, f.x, f.y, a, f.seed), summon: MF.summonFx, fireSplash: MF.fireSplash, shed: MF.shed, kvakWave: MF.kvakWave };
   for (const f of G.fx) { const fn = UNDER[f.k]; if (!fn || !vis(f.x, f.y, 260)) continue; const h = lift(f.x, f.y); if (h) { c.save(); c.translate(0, -h); } fn(c, f, f.max - f.t); if (h) c.restore(); }
   for (const tr of G.traps || []) if (vis(tr.x, tr.y)) { const h = lift(tr.x, tr.y); c.save(); c.translate(0, -h); c.globalAlpha = Math.min(1, tr.t / 0.5); V.trap(c, tr.x, tr.y, tr.sprung ? Math.max(0, 1 - tr.sprung / 0.06) : 1, t); c.restore(); }
   for (const ar of G.areas || []) if (vis(ar.x, ar.y, 300)) { const h = lift(ar.x, ar.y), a = ar.max - ar.t; c.save(); c.translate(0, -h);
@@ -670,7 +674,7 @@ export function render(R, G, now) {
     if (hh) { c.save(); c.translate(0, -hh); }
     if (o.tree) { const tr = o.tree, sp = treeSpr(tr.kind, tr.v), fade = !P.dead && Math.abs(P.x - tr.x) < 26 * tr.s * TREE_K && P.y < tr.y - 4 && P.y > tr.y - 80 * tr.s * TREE_K ? 0.42 : 1; drawSpr(c, sp, tr.x, tr.y, fade, tr.s); }
     else if (o.mob) drawMob(c, G, o.mob, t);
-    else if (o.hero) drawHero(c, G, look, t);
+    else if (o.hero) { if (!(P.held && P.held.kind === 'swallow')) drawHero(c, G, look, t); }
     else if (o.corpse) drawCorpse(c, o.corpse, t);
     else if (o.oc) { // постройка, стена, скала, шатёр: прозрачнее, если за ней герой
       const want = hides(o, see); o.fa = o.fa == null ? want : o.fa + (want - o.fa) * Math.min(1, fdt * 8);
@@ -679,6 +683,13 @@ export function render(R, G, now) {
     else o.draw(c, t);
     if (hh) c.restore();
   }
+  // v117: обряд жрицы, язык Короля, плен, оглушение, ядовитый дождь
+  for (const m of G.mobs) if (m.B && m.B.rite && m.state === 'chase') { const tot = G.mobs.filter(o => o.owner === m && o.D.still && o.state !== 'dead'); MF.riteBeams(c, m, tot, 1 - m.B.rite.t / m.B.rite.a.dur, t); }
+  if (P.held && !P.dead) { const m = P.held.m, dir = Math.cos((m.B && m.B.dir) || 0) < 0 ? -1 : 1;
+    if (P.held.kind === 'tongue') MF.tongue(c, m.x + dir * m.r * 0.9, m.y - 34, P.x, P.y - 22, t);
+    MF.heldBar(c, P.x, P.held.kind === 'swallow' ? m.y + 34 : P.y + 26, P.held.t / P.held.max, TOUCH ? 'Жмите удар — вырывайтесь!' : 'Жмите пробел — вырывайтесь!', t); }
+  if (P.stunT > 0 && !P.dead) V.stunStars(c, P.x, P.y - 78, t);
+  if (G.rain) MF.poisonRain(c, x0, y0, zw, zh, t);
   for (const f of G.qfires || []) if (vis(f.x, f.y)) { const a = Math.min(1, f.t / 3); for (let i = 0; i < 4; i++) V.flame(c, f.x - 30 + i * 20, f.y - 6 - (i % 2) * 18, 46 + (i % 2) * 18, 18, t * 7 + i, a, 0.4); }
   // выстрелы
   const nP = R.parts.length;
@@ -798,14 +809,15 @@ function drawNpc(c, G, n, t) {
   const mk = npcMark(G.hero, n.id); if (mk) { if (UIK !== 1) { around(c, n.x, top - 14); UIK0(() => questMark(c, n.x, top - 14, mk, t)); c.restore(); } else questMark(c, n.x, top - 14, mk, t); }
 }
 function drawMob(c, G, m, t) {
-  const hum = !!MOB_LOOK[m.kind], sc = MOB_SCALE[m.kind] || 1;
+  if (m.D.art === 'totem') { const A = QART.totem, sp = sprite('qtotemB', A[0] * 1.7, A[1] * 1.7, A[2] * 1.7, A[3] * 1.7, 2, gg => { gg.scale(1.7, 1.7); A[4](gg); }); drawSpr(c, m.hurt > 0 ? flashOf(sp) : sp, m.x, m.y); MF.totemGlow(c, m.x, m.y - 50, t); return; }   // v117: тотем тины у купели
+  const ak = m.look || m.kind, hum = !!MOB_LOOK[ak], sc = MOB_SCALE[m.kind] || MOB_SCALE[ak] || 1;
   let dx = m.mdx, dy = m.mdy;
   if (!m.moving && (m.state === 'chase' || m.atkT > 0)) { dx = G.P.x - m.x; dy = G.P.y - m.y; }
   const view = hum ? viewOf8(dx, dy) : viewOf(dx, dy), dir = sideways(view) ? (dx < 0 ? -1 : 1) : 1;
   const mode = m.atkT > 0 ? 'atk' : m.moving ? 'walk' : 'idle';
   const f = mode === 'atk' ? frameOf('atk', 1 - m.atkT / (m.atkDur || 0.35)) : mode === 'walk' ? frameOf('walk', m.walkPh) : 0;
-  const vN = hum && mode === 'atk' ? (m.atkVar || 0) % (SWING_N[swingOf(MOB_LOOK[m.kind])] || 1) : 0;   // v116: люди-мобы тоже бьют по-разному
-  const sp = mobFrame(m.kind, view, vN ? 'atk' + vN : mode, f);
+  const vN = hum && mode === 'atk' ? (m.atkVar || 0) % (SWING_N[swingOf(MOB_LOOK[ak])] || 1) : 0;   // v116: люди-мобы тоже бьют по-разному
+  const sp = mobFrame(ak, view, vN ? 'atk' + vN : mode, f);
   if (hum) { c.fillStyle = 'rgba(0,0,0,.25)'; c.beginPath(); c.ellipse(m.x, m.y + 2, 14 * sc, 5 * sc, 0, 0, 7); c.fill(); }
   c.save(); if (m.state === 'return') c.globalAlpha = 0.6;
   const seed = (m.key ? m.key.length * 31 : 7) + Math.round(m.hx) % 97;
@@ -815,8 +827,9 @@ function drawMob(c, G, m, t) {
   if (m.jumpH) { c.fillStyle = 'rgba(0,0,0,.3)'; c.beginPath(); c.ellipse(m.x, m.y + 2, 26 * sc, 9 * sc, 0, 0, 7); c.fill(); }
   drawFrame(c, m.hurt > 0 ? flashOf(sp) : sp, m.x - (m.hurt > 0 ? dir * 2 : 0), m.y + breathe - (m.jumpH || 0), dir, sc, m.state === 'return' ? 0.6 : 1);
   c.restore();
-  const tt = performance.now() / 1000, top = m.y - (m.D.humanoid ? 58 * sc : (BAR_H[m.kind] || 44) - 10);
-  const hgt = m.D.humanoid ? 60 * sc : Math.max(26, (BAR_H[m.kind] || 44) - 12), wid = m.D.humanoid ? 34 * sc : m.r * 2.4 + 8;
+  const humD = m.look ? hum : m.D.humanoid, tt = performance.now() / 1000, top = m.y - (humD ? 58 * sc : (BAR_H[ak] || 44) - 10);
+  const hgt = humD ? 60 * sc : Math.max(26, (BAR_H[ak] || 44) - 12), wid = humD ? 34 * sc : m.r * 2.4 + 8;
+  if (G.P.held && G.P.held.m === m && G.P.held.kind === 'swallow') { const q = Math.sin(tt * 18); c.fillStyle = 'rgba(255,200,210,.25)'; c.beginPath(); c.ellipse(m.x + q * 3, m.y - hgt * 0.4, wid * 0.5, hgt * 0.35, 0, 0, 7); c.fill(); }
   if (m.burn) V.burning(c, m.x, m.y, tt, seed, Math.min(1, m.burn.t / 0.6));
   if (m.venom) { c.fillStyle = 'rgba(120,220,80,.7)'; for (let i = 0; i < 3; i++) { const q = (tt * 0.9 + i / 3) % 1; c.beginPath(); c.arc(m.x - 8 + i * 8, m.y - hgt * 0.6 - q * 22, 2.2, 0, 7); c.fill(); } }
   if (m.bleed) V.wound(c, m.x, m.y, tt, seed, hgt * 0.7);

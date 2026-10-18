@@ -25,7 +25,7 @@ import { dist } from './engine/util.js';
 import { $, toast, zoneTitle, TOUCH, T } from './ui/dom.js';
 import { RAR_COL } from '../data/balance.js';
 
-const VERSION = 116;
+const VERSION = 117;
 /** Приближение камеры на шаг: +1 ближе, −1 дальше. */
 let zoomT = 0;
 function zoomBy(d) {
@@ -166,7 +166,7 @@ function frameInner(now) {
     if (e.k === 'hearth') { goZone({ zone: e.zone, at: e.at }); toast(`Вы дома: ${e.name}`, 'good', 'hearth'); break; }   // v108: камень возвращения в другую зону
     if (e.k === 'cam') { R.cam.x = G.P.x; R.cam.y = G.P.y - G.W.hAt(G.P.x, G.P.y); }
     if (e.k === 'inn' && !document.querySelector('.modal')) openInn(G, e.b, () => { hud.update(); persist(); }, () => profWin({ brew: true, tab: 'alchemy' }));
-    if (e.k === 'boss') { toast(e.final ? `<b>${e.name}</b> повержен! Храм очищен — у трона открылся портал наружу` : `<b>${e.name}</b> повержен!`, 'good'); sfx('levelUp'); }
+    if (e.k === 'boss') { toast(e.final ? `<b>${e.name}</b> повержен! Храм очищен — у трона открылся портал наружу` : `<b>${e.name}</b> ${e.fem ? 'повержена' : 'повержен'}!`, 'good'); sfx('levelUp'); }
     if (e.k === 'lootOpen' && !document.querySelector('.modal')) { lootWin = openLoot(G, e.c, () => hud.update()); const oc = lootWin.onclose; lootWin.onclose = () => { lootWin = null; oc && oc(); }; }
     if (e.k === 'die') { sfx('die'); setTimeout(() => G && showDeath(G, () => hud.update()), 900); }
   }

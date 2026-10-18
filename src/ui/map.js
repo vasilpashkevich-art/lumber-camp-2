@@ -4,6 +4,7 @@ import { qState, qAreas, npcMark, npcsOf, QUESTS } from '../systems/quests.js';
 import { TOUCH } from './dom.js';
 import { lvlColor } from '../../data/balance.js';
 import { modal } from './dom.js';
+import { MOBS } from '../../data/mobs.js';
 
 const O = '#24180f';
 // цвет области логова по виду
@@ -84,7 +85,17 @@ function base(g, W, k, big, q = 1) {
 }
 
 /** Области логов. heroL — для цвета уровней. */
-function lairs(g, W, k, big, q = 1) {
+// v117: в подземелье у обычных групп — только круг (без значка), у боссов — звезда; убитый босс — тусклая
+const bossOf = cp => (Array.isArray(cp.mob) ? cp.mob : [cp.mob]).find(id => MOBS[id] && MOBS[id].boss);
+function lairs(g, W, k, big, q = 1, dead = null) {
+  if (W.rooms) {
+    for (const cp of W.camps) {
+      const b = bossOf(cp), x = cp.x * k, y = cp.y * k;
+      if (!b) { const r = Math.max(big ? 18 : 5 * q, (cp.r + 90) * k); g.fillStyle = `rgba(220,120,90,${big ? 0.2 : 0.3})`; g.beginPath(); g.arc(x, y, r, 0, 7); g.fill(); g.setLineDash(big ? [6, 5] : []); g.strokeStyle = 'rgba(230,140,100,.85)'; g.lineWidth = big ? 1.6 : q; g.stroke(); g.setLineDash([]); continue; }
+      g.save(); if (dead && dead[b]) g.globalAlpha = 0.35; lairGlyph(g, 'star', x, y, big ? 1.5 : 0.8 * q); g.restore();
+    }
+    return;
+  }
   for (const cp of W.camps) {
     const x = cp.x * k, y = cp.y * k, r = Math.max(big ? 18 : 5 * q, (cp.r + 90) * k), col = TINT[cp.lair] || '255,255,255';
     g.fillStyle = `rgba(${col},${big ? 0.22 : 0.35})`; g.beginPath(); g.arc(x, y, r, 0, 7); g.fill();
@@ -127,10 +138,10 @@ export function miniZoom(d) { miniZ = Math.max(0, Math.min(MINI_Z.length - 1, mi
 export const miniZoomLevel = () => miniZ;
 export function drawMini(cv, G, cache) {
   const c = cv.getContext('2d'), W = G.W, w = cv.width, h = cv.height, mz = MINI_Z[miniZ], k = Math.min(w / W.W, h / W.H) * mz, q = w / 200;
-  const key = W.Z.id + ':' + miniZ;
+  const key = W.Z.id + ':' + miniZ + (G.dg ? ':' + Object.keys(G.dg.bosses).length : '');
   if (cache.miniKey !== key) {   // подложка — один раз на край и шаг приближения
     const b = document.createElement('canvas'); b.width = Math.ceil(W.W * k); b.height = Math.ceil(W.H * k); const g = b.getContext('2d');
-    base(g, W, k, false, q); lairs(g, W, k, false, q * Math.min(1.6, Math.sqrt(mz))); cache.mini = b; cache.miniKey = key;
+    base(g, W, k, false, q); lairs(g, W, k, false, q * Math.min(1.6, Math.sqrt(mz)), G.dg && G.dg.bosses); cache.mini = b; cache.miniKey = key;
   }
   const P = G.P, B = cache.mini;
   // сдвиг: герой в середине, но край зоны не уходит внутрь рамки
@@ -155,7 +166,7 @@ export function openMap(G) {
   const cv = m.querySelector('canvas'), g = cv.getContext('2d'), k = CW / W.W;
   const draw = () => {
     g.setTransform(2, 0, 0, 2, 0, 0); g.clearRect(0, 0, CW, CH);
-    base(g, W, k, true); lairs(g, W, k, true);
+    base(g, W, k, true); lairs(g, W, k, true, 1, G.dg && G.dg.bosses);
     // подписи логов
     for (const cp of W.camps) {
       const x = cp.x * k, y = cp.y * k, r = Math.max(18, (cp.r + 90) * k), col = lvlColor(cp.lvl[1], G.hero.lvl);

@@ -75,7 +75,8 @@ export function buildWorld(Z) {
   if (Z.village) { for (const b of Z.village.buildings) block(Z.village.x + b.dx, Z.village.y + b.dy, b.col || 70); if (Z.village.well !== false) block(Z.village.x, Z.village.y + 10, 26); }
   for (const f of Z.farmsteads || []) block(f.x + (f.burned ? 20 : 50), f.y, f.burned ? 80 : 128);
   if (Z.mill) block(Z.mill.x, Z.mill.y, 58);
-  for (const [x, y] of (Z.decor && Z.decor.columns) || []) W.blocks.push({ x, y: y - 4, rx: 16, ry: 9 });   // v77: колонны подземелья
+  ((Z.decor && Z.decor.columns) || []).forEach(([x, y], i) => W.blocks.push({ x, y: y - 4, rx: 16, ry: 9, col: i }));   // v77: колонны подземелья (v117: col — номер; разбитая — off)
+  W.colHit = {};
   for (const [x, y] of (Z.decor && Z.decor.chests) || []) W.blocks.push({ rect: true, x0: x - 30, y0: y - 16, x1: x + 30, y1: y + 2 });   // v96: сундук крупный — сквозь него не пройти
   // v76: фасад Храма квакунов — стена по обе стороны от врат, в проём можно войти до порога
   if (Z.temple) { const T = Z.temple; rect(T.x - 370, T.y - 300, T.x - 32, T.y); rect(T.x + 32, T.y - 300, T.x + 370, T.y); rect(T.x - 32, T.y - 300, T.x + 32, T.y - 70); W.temple = { ...T }; }
@@ -117,7 +118,7 @@ export function buildWorld(Z) {
   const inPond = (x, y, pad) => PONDS.some(([px, py, rx, ry]) => ((x - px) / (rx + pad)) ** 2 + ((y - py) / (ry + pad * 0.6)) ** 2 < 1);
   W.water = (x, y, pad = 0) => (PONDS.length && inPond(x, y, pad)) || R && W.riverD(x, y) < R.w / 2 + pad && !R.bridgeAt.some(b => { const dx = x - b.x, dy = y - b.y, u = -dx * Math.sin(b.ra) + dy * Math.cos(b.ra), l = dx * Math.cos(b.ra) + dy * Math.sin(b.ra); return Math.abs(u) < 36 && Math.abs(l) < b.len / 2; });
   // препятствия по клеткам (быстро для поиска пути и мобов); сетка пересобирается, когда препятствий стало больше
-  const BC = 200, hitB = (b, x, y) => b.rect ? x > b.x0 && x < b.x1 && y > b.y0 && y < b.y1 : Math.abs(x - b.x) < b.rx && ((x - b.x) / b.rx) ** 2 + ((y - b.y) / b.ry) ** 2 < 1;
+  const BC = 200, hitB = (b, x, y) => b.off ? false : b.rect ? x > b.x0 && x < b.x1 && y > b.y0 && y < b.y1 : Math.abs(x - b.x) < b.rx && ((x - b.x) / b.rx) ** 2 + ((y - b.y) / b.ry) ** 2 < 1;
   let bgrid = null, bn = -1;
   const bgridOf = () => { if (bn === W.blocks.length) return bgrid; bn = W.blocks.length; bgrid = new Map();
     for (const b of W.blocks) { const x0 = b.rect ? b.x0 : b.x - b.rx, x1 = b.rect ? b.x1 : b.x + b.rx, y0 = b.rect ? b.y0 : b.y - b.ry, y1 = b.rect ? b.y1 : b.y + b.ry;

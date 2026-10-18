@@ -533,7 +533,7 @@ export function openDungeons(G) {
   L.innerHTML = DUNGEONS.map(Z => {
     const S = dgState(H, Z.id), nCh = ((Z.decor && Z.decor.chests) || []).length, opened = Object.keys(S.chests).length;
     const bosses = dgBosses(Z).map(b => { const D = MOBS[b.kind], dead = S.bosses[b.kind];
-      return `<li class="${dead ? 'dead' : ''}"><details><summary>${dead ? '☠' : b.final ? '♛' : '★'} ${b.name}${b.final ? ' — главный' : ''}${dead ? ' <small>повержен</small>' : ''} <span class="tac">тактика</span></summary>${D.abil ? `<ul class="abl2">${D.abil.map(x => `<li>${x}</li>`).join('')}</ul>` : ''}${D.tactic ? `<p class="tactic"><b>Как победить:</b> ${D.tactic}</p>` : ''}</details></li>`; }).join('');
+      return `<li class="${dead ? 'dead' : ''}"><details><summary>${dead ? '☠' : b.final ? '♛' : '★'} ${b.name}${b.final ? ' — главный' : ''}${dead ? ` <small>${D.fem ? 'повержена' : 'повержен'}</small>` : ''} <span class="tac">тактика</span></summary>${D.abil ? `<ul class="abl2">${D.abil.map(x => `<li>${x}</li>`).join('')}</ul>` : ''}${D.tactic ? `<p class="tactic"><b>Как победить:</b> ${D.tactic}</p>` : ''}</details></li>`; }).join('');
     return `<div class="ware2 dg"><div class="dgh"><b>${Z.name}</b> <span class="c1">уровни ${Z.lvl[0]}–${Z.lvl[1]}</span></div><div class="hint2">Вход: ${Z.entry || '—'}</div><p class="hint">${Z.desc || ''}</p><ul class="bosses">${bosses}</ul><div class="hint2">Сундуков открыто: ${opened} из ${nCh} · походов: ${S.runs}</div><div class="dgst" data-z="${Z.id}">${stOf(Z)}</div></div>`;
   }).join('') || '<p class="hint">Подземелий пока нет.</p>';
   const draw = () => { for (const Z of DUNGEONS) { const e = L.querySelector(`.dgst[data-z="${Z.id}"]`); if (e) e.innerHTML = stOf(Z); } };
