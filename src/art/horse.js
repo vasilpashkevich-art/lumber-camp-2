@@ -80,8 +80,8 @@ export function horse(g, coat, view, pose = {}) {
     const [ux, uy] = P(0, 0, -16.5 + bob); g.fillStyle = 'rgba(20,10,4,.14)'; g.beginPath(); g.ellipse(ux + 1, uy, 12 * Asa + 5 * Aca, 2.2, 0, 0, TAU); g.fill();
   });
 
-  // ---------------- попона, седло, стремена
-  add(0.3, () => {
+  // ---------------- попона, седло, стремена (у неосёдланного коня в загоне — нет)
+  if (!pose.bare) add(0.3, () => {
     const [cx, cy] = P(0, -0.5, -31.6 + bob), hw = Math.sqrt((6.6 * sa) ** 2 + (8.2 * ca) ** 2), drop = 7.5 * Asa + 3 * Aca;
     // попона: сверху по спине и вниз по боку
     g.beginPath(); g.moveTo(cx - hw, cy - 1); g.quadraticCurveTo(cx, cy - 3.4, cx + hw, cy - 1); g.lineTo(cx + hw * 0.92, cy + drop); g.quadraticCurveTo(cx, cy + drop + 1.6, cx - hw * 0.92, cy + drop); g.closePath();
@@ -98,7 +98,7 @@ export function horse(g, coat, view, pose = {}) {
   });
 
   // ---------------- шея, грива, голова
-  const nod = walk >= 0 ? Math.sin(ph * 2) * 0.8 : Math.sin(t * 1.6 + 1) * 0.4;
+  const nod = walk >= 0 ? Math.sin(ph * 2) * 0.8 : pose.graze ? 15 + Math.sin(t * 3) * 0.6 : Math.sin(t * 1.6 + 1) * 0.4;   // пасётся — голова у земли
   add(Zd(0, 15), () => {
     const nb = P(0, 11.5, -28 + bob), nt = P(0, 16.8, -38.8 + bob + nod), sk = P(0, 18.8, -41 + bob + nod), mz = P(0, 24.6, -34.8 + bob + nod);
     const neck = cap(g, nb[0], nb[1], nt[0], nt[1], 5.4, 3.6, C.body), head = cap(g, sk[0], sk[1], mz[0], mz[1], 3.9, 3.0, C.body);
@@ -125,7 +125,8 @@ export function horse(g, coat, view, pose = {}) {
     g.beginPath(); g.moveTo(b1[0], b1[1]); g.lineTo(b2[0], b2[1]); g.moveTo(b3[0], b3[1]); g.lineTo(b4[0], b4[1]); g.stroke();
     g.fillStyle = '#e0b840'; g.beginPath(); g.arc(b2[0], b2[1], 0.6, 0, TAU); g.fill();
     const hand = pose.rider ? P(0, 5.5, -38 + bob) : P(0, 12.4, -31 + bob);
-    g.strokeStyle = '#3a2210'; g.lineWidth = 0.6; for (const d of [-0.6, 0.6]) { g.beginPath(); g.moveTo(b2[0] + d, b2[1]); g.quadraticCurveTo((b2[0] + hand[0]) / 2 + d, Math.max(b2[1], hand[1]) + 3, hand[0] + d, hand[1]); g.stroke(); }
+    if (!pose.bare) {
+    g.strokeStyle = '#3a2210'; g.lineWidth = 0.6; for (const d of [-0.6, 0.6]) { g.beginPath(); g.moveTo(b2[0] + d, b2[1]); g.quadraticCurveTo((b2[0] + hand[0]) / 2 + d, Math.max(b2[1], hand[1]) + 3, hand[0] + d, hand[1]); g.stroke(); } }
     // блик на шее
     g.fillStyle = 'rgba(255,255,255,.18)'; g.beginPath(); g.ellipse((nb[0] + nt[0]) / 2 - 1.5, (nb[1] + nt[1]) / 2, 1.2, 4, 0.4 * Math.sign(sa || 1), 0, TAU); g.fill();
   });

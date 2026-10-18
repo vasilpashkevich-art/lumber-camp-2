@@ -460,6 +460,55 @@ function barn(g, t = 0) {
   for (const x of [-70, 70]) windowSq(g, x, -44, 18, 18, { frame: '#f2e8d2' });
   hayT(g, -w / 2 - 6, 2); hayT(g, -w / 2 + 14, 2, 0.8);
 }
+// v121: конюшня Конного двора — длинная, из брёвен, тесовая крыша вдоль, четыре денника с половинчатыми дверями
+// (в двух выглядывают кони), посередине широкие ворота, над ними вывеска с подковой; у стены сено и бочка.
+const HORSE_HEAD = [['#a0602e', '#2a1a12', '#6a3a1e', true], ['#34303a', '#16141c', '#46404c', false], ['#cfcfca', '#6e6e72', '#9a9a98', false]];
+function horseHead(g, x, y, c, dir = 1) {
+  const [body, mane, muzzle, blaze] = c; g.save(); g.translate(x, y); g.scale(dir, 1);
+  rr(g, -9, -4, 18, 22, 8); paint(g, body, 1.2, -4, 18);                        // шея в проёме
+  g.beginPath(); g.ellipse(4, -12, 9, 8, -0.3, 0, TAU); paint(g, body, 1.3, -20, -4);   // голова
+  g.beginPath(); g.ellipse(13, -6, 6.4, 5.4, -0.2, 0, TAU); paint(g, muzzle, 1.2, -11, -1);   // морда
+  g.fillStyle = sh(muzzle, -0.5); g.beginPath(); g.ellipse(17, -6, 1.2, 1.6, 0, 0, TAU); g.fill();
+  for (const ex of [-2, 3]) { g.beginPath(); g.moveTo(ex - 2.4, -18); g.quadraticCurveTo(ex - 1.6, -27, ex + 0.6, -27); g.quadraticCurveTo(ex + 2.6, -22, ex + 2.2, -18); g.closePath(); paint(g, body, 1, -27, -18); }
+  g.fillStyle = mane; g.beginPath(); g.ellipse(-4, -14, 4, 7, 0.4, 0, TAU); g.fill(); g.beginPath(); g.ellipse(-7, -2, 3.4, 9, 0.1, 0, TAU); g.fill();
+  if (blaze) { g.strokeStyle = '#f4ece0'; g.lineWidth = 2.4; g.lineCap = 'round'; g.beginPath(); g.moveTo(6, -18); g.lineTo(12, -8); g.stroke(); }
+  g.fillStyle = '#1c1410'; g.beginPath(); g.ellipse(5, -13, 1.6, 1.9, 0, 0, TAU); g.fill(); g.fillStyle = '#fff'; g.beginPath(); g.arc(4.5, -13.7, 0.6, 0, TAU); g.fill();
+  shine(g, 0, -17, 4, 2, 0.3);
+  g.restore();
+}
+function stable(g, t = 0) {
+  const w = 320, d = 130, H = 74;
+  shadowAt(g, w, d); logWall(g, -w / 2, -H, w, H - 10, '#a8743e'); stoneRect(g, -w / 2 - 3, -12, w + 6, 12, '#9a948a', 31, 6);
+  const top = roofSide(g, w, d, H, 46, SHINGLE, 'shingle');
+  // слуховое окно сеновала на крыше: сено торчит
+  rr(g, -20, top + 10, 40, 26, 6); paint(g, '#6a4224', 1.4); rr(g, -14, top + 15, 28, 21, 4); g.fillStyle = '#2a1a10'; g.fill(); hayT(g, 0, top + 37, 0.85);
+  // денники: нижняя половина двери закрыта, верх открыт — тёмный проём, в двух кони
+  [-120, -64, 64, 120].forEach((x, i) => {
+    rr(g, x - 20, -62, 40, 28, 4); g.fillStyle = '#2a1a10'; g.fill(); g.strokeStyle = ink('#6a4224'); g.lineWidth = 1.4; g.stroke();
+    if (i === 0 || i === 3) horseHead(g, x + (i ? -2 : 2), -34, HORSE_HEAD[i === 0 ? 0 : 2], i ? -1 : 1);
+    if (i === 2) horseHead(g, x, -34, HORSE_HEAD[1], -1);
+    plankWall(g, x - 20, -34, 40, 34, '#8a5a32'); g.strokeStyle = ink('#8a5a32'); g.lineWidth = 3.2; g.lineCap = 'round'; g.beginPath(); g.moveTo(x - 17, -31); g.lineTo(x + 17, -3); g.stroke(); g.strokeStyle = '#a87448'; g.lineWidth = 2; g.stroke();
+    rr(g, x - 23, -64, 46, 5, 2.5); paint(g, '#6a4224', 1.2);
+  });
+  // широкие ворота посередине: створки распахнуты, внутри сено
+  rr(g, -34, -66, 68, 66, 6); g.fillStyle = '#24160c'; g.fill(); g.strokeStyle = ink('#6a4224'); g.lineWidth = 1.6; g.stroke();
+  hayT(g, -10, -2, 1.1); hayT(g, 14, -2, 0.8);
+  for (const sx of [-1, 1]) { const x0 = sx < 0 ? -50 : 34; plankWall(g, x0, -64, 16, 64, '#8a5a32'); }
+  rr(g, -38, -72, 76, 8, 4); paint(g, '#6a4224', 1.4);
+  // вывеска с подковой
+  rr(g, -30, -H - 26, 60, 24, 6); paint(g, '#7a4a28', 1.6, -H - 26, -H - 2); g.beginPath(); g.arc(0, -H - 14, 8, Math.PI * 0.15, Math.PI * 0.85, true); g.lineCap = 'round'; g.strokeStyle = ink(TB.gold); g.lineWidth = 6; g.stroke(); g.strokeStyle = TB.gold; g.lineWidth = 4; g.stroke(); g.fillStyle = ink(TB.gold); for (const a of [0.35, 0.65, 1.15, 1.85, 2.35, 2.65]) { g.beginPath(); g.arc(Math.cos(Math.PI + a * 0.9) * 8, -H - 14 + Math.sin(Math.PI + a * 0.9) * 8, 0.9, 0, TAU); g.fill(); }
+  for (const x of [-20, 20]) { g.strokeStyle = '#4a3020'; g.lineWidth = 1.4; g.beginPath(); g.moveTo(x, -H - 26); g.lineTo(x, -H); g.stroke(); }
+  // фонари у ворот, сено и бочка у стены
+  hayT(g, -w / 2 - 6, 2); hayT(g, -w / 2 + 16, 2, 0.8); barrelT(g, w / 2 + 6, 2, 0.95); barrelT(g, w / 2 - 14, 4, 0.8);
+}
+/** Поилка: долблёная колода на ножках с водой. */
+function trough(g, t = 0) {
+  g.fillStyle = 'rgba(20,12,6,.18)'; g.beginPath(); g.ellipse(4, 2, 48, 8, 0, 0, TAU); g.fill();
+  for (const x of [-34, 34]) { rr(g, x - 4, -14, 8, 15, 3); paint(g, '#6a4224', 1.2); }
+  g.beginPath(); g.moveTo(-44, -26); g.lineTo(44, -26); g.quadraticCurveTo(46, -10, 38, -8); g.lineTo(-38, -8); g.quadraticCurveTo(-46, -10, -44, -26); g.closePath(); paint(g, '#9a6a3a', 1.6, -26, -8);
+  g.beginPath(); g.ellipse(0, -26, 42, 5, 0, 0, TAU); paint(g, '#7a4a28', 1.2); g.beginPath(); g.ellipse(0, -25.4, 38, 3.6, 0, 0, TAU); const gw = g.createLinearGradient(0, -29, 0, -22); gw.addColorStop(0, '#9ad0e0'); gw.addColorStop(1, '#4a86a0'); g.fillStyle = gw; g.fill();
+  const q = (t * 0.6) % 1; g.strokeStyle = `rgba(255,255,255,${0.5 * (1 - q)})`; g.lineWidth = 1; g.beginPath(); g.ellipse(-8, -25.4, 6 + q * 14, 1.2 + q * 1.6, 0, 0, TAU); g.stroke(); shine(g, 14, -26.4, 8, 0.9, 0.5, 0);
+}
 function farmstead(g, burned = false, t = 0) {
   if (burned) {
     g.fillStyle = 'rgba(30,20,14,.25)'; g.beginPath(); g.ellipse(0, 0, 150, 24, 0, 0, TAU); g.fill();
@@ -497,6 +546,6 @@ function millBladesT(g, a = 0) {
 const scaled = f => (g, a, b) => { g.save(); g.scale(SC, SC); f(g, a, b); g.restore(); };
 export const TBLD = { bank: scaled(bank), house: scaled(house), forge: scaled(forge), tavern: scaled(tavern), enchant: scaled(enchant), miners: scaled(miners), herbal: scaled(herbal), inn: scaled(inn), palace: scaled(palace) };
 /** Посёлок (Хутор Подгорный, хутора): в своих размерах, без ×1,35. */
-export const TVIL = { house: vhouse, inn: vinn, forge: vforge, barn, farmstead, millBase: millBaseT, millBlades: millBladesT };
+export const TVIL = { house: vhouse, inn: vinn, forge: vforge, barn, farmstead, millBase: millBaseT, millBlades: millBladesT, stable, trough };
 /** Общие кисти для мелочей (tprops.js). */
 export const KIT = { sh, ink, rnd, paint, shine, rr, poly, stoneRect, barrelT, woodpileT, hayT, windowSq, chimneyT, roofFill, potT };
