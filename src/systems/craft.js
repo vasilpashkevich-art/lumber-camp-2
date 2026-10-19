@@ -8,8 +8,12 @@ import { ENCHANTS, ENCH, ENCH_MATS } from '../../data/enchanting.js';
 import { smelt, countOf, miningSkill } from './mining.js';
 import { brew, canBrew, alchSkill } from './herbs.js';
 import { enchant, disenchant, canDisenchant, craftRod, canEnchant, hasRod, enchSkill } from './enchant.js';
+import { JEWEL_RECIPES, JEWEL_TIME } from '../../data/jewelcraft.js';
+import { makeJewel, canJewel, jewelSkill } from './jewel.js';
 
 const emit = (G, e) => G.ev.push(e);
+/** Время одной штуки: у ювелира — по роду рецепта (v131). */
+const timeOf = j => j.k === 'jewel' ? JEWEL_TIME[JEWEL_RECIPES[j.a].k] : CRAFT[j.k];
 /** Что делается: название для полоски. */
 export function craftLabel(j) {
   if (!j) return '';
@@ -18,6 +22,7 @@ export function craftLabel(j) {
   if (j.k === 'ench') return `Чары: ${ENCHANTS[j.a].name}`;
   if (j.k === 'de') return `Распыление: ${j.a.name}`;
   if (j.k === 'rod') return 'Жезл чародея';
+  if (j.k === 'jewel') return `Ювелир: ${JEWEL_RECIPES[j.a].name}`;
   return '';
 }
 /** Можно ли сделать ещё одну штуку (без траты; сообщения — у самих функций при попытке). */
@@ -28,6 +33,7 @@ function canOne(G, j) {
   if (j.k === 'ench') return hasRod(H) && enchSkill(H) >= ENCHANTS[j.a].req && canEnchant(H, j.a) > 0 && !!j.b;
   if (j.k === 'de') return hasRod(H) && enchSkill(H) > 0 && canDisenchant(H, j.a);
   if (j.k === 'rod') return !hasRod(H) && countOf(H, 'bar', 'copper') >= ENCH.rodBars;
+  if (j.k === 'jewel') return jewelSkill(H) >= JEWEL_RECIPES[j.a].req && canJewel(H, j.a) > 0;
   return false;
 }
 /** Сделать одну штуку — прежними функциями профессий (они и тратят, и поднимают навык, и пишут сообщения). */
@@ -37,6 +43,7 @@ function doOne(G, j) {
   if (j.k === 'ench') return enchant(G, j.a, j.b);
   if (j.k === 'de') { const got = disenchant(G, j.a, !!j.quiet); if (got && j.sum) { for (const [m, k] of Object.entries(got)) j.sum[m] = (j.sum[m] || 0) + k; j.cnt.n++; } return !!got; }
   if (j.k === 'rod') return craftRod(G);
+  if (j.k === 'jewel') return !!makeJewel(G, j.a);
   return false;
 }
 /** Поставить в очередь: k — вид, a — что (руда/рецепт/вещь), n — сколько штук (999 — всё, что хватит), b — цель чар. */
@@ -45,8 +52,8 @@ export function startCraft(G, k, a, n = 1, b = null, opt = {}) {
   const j = { k, a, b, n, quiet: opt.quiet, sum: opt.sum, cnt: opt.cnt };
   if (!canOne(G, j)) { doOne(G, j); return false; }   // нельзя — пусть сама функция скажет почему (при нехватке она ничего не тратит)
   if (k === 'de' && P.craft && P.craft.q.some(x => x.k === 'de' && x.a === a)) return false;   // эта вещь уже в очереди
-  if (!P.craft) { P.craft = { q: [], t: 0, max: CRAFT[k] }; P.sit = false; P.auto = null; P.goal = null; }
-  P.craft.q.push(j); if (P.craft.q.length === 1) { P.craft.t = 0; P.craft.max = CRAFT[k]; }
+  if (!P.craft) { P.craft = { q: [], t: 0, max: timeOf(j) }; P.sit = false; P.auto = null; P.goal = null; }
+  P.craft.q.push(j); if (P.craft.q.length === 1) { P.craft.t = 0; P.craft.max = timeOf(j); }
   emit(G, { k: 'craft' }); return true;
 }
 /** Прервать (сделанное остаётся). */
@@ -61,6 +68,7 @@ function maxOf(G, j) {
   if (j.k === 'smelt') return Math.floor(countOf(H, 'ore', j.a) / MINE.smelt);
   if (j.k === 'brew') return POTIONS[j.a].heal ? Math.min(canBrew(H, j.a), 10 - H.potions) : canBrew(H, j.a);
   if (j.k === 'ench') return canEnchant(H, j.a);
+  if (j.k === 'jewel') return canJewel(H, j.a);
   return 1;
 }
 /** Сколько ещё осталось в очереди (для полоски): штук всего, вместе с той, что делается. */
@@ -84,5 +92,5 @@ export function craftTick(G, dt) {
   if (!ok || j.n <= 0 || !canOne(G, j)) { C.q.shift(); if (j.after) j.after(j); }
   C.t = 0; const nx = C.q[0];
   if (!nx) { P.craft = null; emit(G, { k: 'craft' }); return; }
-  C.max = CRAFT[nx.k];
+  C.max = timeOf(nx);
 }

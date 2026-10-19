@@ -10,6 +10,13 @@ export const GEMS = {
   tigerseye: { name: 'Тигровый глаз', price: 40, col: '#d8a040', bonus: { main: 3 } },
   amethyst:  { name: 'Аметист', price: 100, col: '#a86ad8', bonus: { stam: 6 } },
   emerald:   { name: 'Изумруд', price: 250, col: '#3ac878', bonus: { crit: 2 } },
+  // v131: огранённые камни ювелира (из обычных камней и слитков; `cut` — не падают из руды, `rar` — цвет стопки)
+  tiger_cut:  { name: 'Огранённый тигровый глаз', price: 120, col: '#f0b850', bonus: { main: 5 }, cut: true, rar: 'good', icon: 'gem_tigerseye' },
+  ameth_cut:  { name: 'Огранённый аметист',       price: 260, col: '#c08af0', bonus: { stam: 10 }, cut: true, rar: 'good', icon: 'gem_amethyst' },
+  emer_cut:   { name: 'Огранённый изумруд',       price: 600, col: '#5ae898', bonus: { crit: 3 }, cut: true, rar: 'rare', icon: 'gem_emerald' },
+  sunstone:   { name: 'Солнечный камень',         price: 400, col: '#ffcc40', bonus: { main: 3, stam: 5 }, cut: true, rar: 'rare', icon: 'gem_sunstone' },
+  stormgem:   { name: 'Грозовой камень',          price: 500, col: '#7ab8ff', bonus: { crit: 2, haste: 2 }, cut: true, rar: 'rare', icon: 'gem_stormgem' },
+  bloodstone: { name: 'Кровавик',                 price: 900, col: '#e03a5a', bonus: { main: 6, stam: 6 }, cut: true, rar: 'rare', icon: 'gem_bloodstone' },
 };
 // v92: гнёзда под камни — в оружии, шлеме (v93), нагруднике, штанах и шее, по одному. Синие и фиолетовые — всегда, зелёные — 30%.
 export const SOCKET = { slots: ['weapon', 'head', 'chest', 'legs', 'neck'], good: 0.3 };   // v93: и шлем

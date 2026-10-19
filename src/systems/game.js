@@ -528,6 +528,7 @@ export function trinketProc(G, on, m) {
   const near = r => G.mobs.filter(o => hostile(o) && dist(P.x, P.y, o.x, o.y) < r).sort((a, b) => dist(P.x, P.y, a.x, a.y) - dist(P.x, P.y, b.x, b.y));
   if (T.buf) { P.buf[T.buf] = T.t; if (T.buf === 'mirror' || T.buf === 'pack') P.petT = 0.4; }
   if (T.buf === 'cloak') { for (const o of G.mobs) if (o.state === 'chase') o.state = 'return'; P.target = null; P.auto = null; }
+  if (T.chill) { for (const o of near(T.chillR || 200)) setStatus(G, o, 'chill', T.chill); G.fx.push({ k: 'slam', x: P.x, y: P.y, r: T.chillR || 200, t: 0.5, max: 0.5 }); }   // v131: Серебряный колокольчик
   if (T.heal) { const v = G.st.maxHp * T.heal; P.hp = Math.min(G.st.maxHp, P.hp + v); emit(G, { k: 'txt', x: P.x, y: P.y - 50, s: `+${Math.round(v)}`, col: '#7cff7c' }); }
   if (T.bolt) { const list = near(420).slice(0, 3); if (!list.length) return false; for (const o of list) { G.fx.push({ k: 'bolt', x: P.x, y: P.y - 30, x2: o.x, y2: o.y - o.r, t: 0.35, max: 0.35 }); strike(G, o, G.st.hit * T.bolt, 'spell', { sure: true, proc: true }); } }
   if (T.id === 'hourglass') { for (const a of abilsOf(G.hero)) if (a && a.id) P.acd[a.id] = 0; G.fx.push({ k: 'hourglass', x: P.x, y: P.y, t: 1.6, max: 1.6 }); emit(G, { k: 'txt', x: P.x, y: P.y - 150, s: 'время повернулось!', col: '#ffe08a' }); emit(G, { k: 'sfx', n: 'levelUp' }); }   // v123: все умения снова готовы
@@ -671,7 +672,7 @@ function doInteract(G, t) {
   if (t.k === 'board') { G.P.auto = null; emit(G, { k: 'board', b: t.b }); return; }   // v126
   if (t.k === 'vein') { if (G.P.mine) stopMine(G); else startMine(G, t.v); return; }
   if (t.k === 'plant') { if (G.P.gather) stopGather(G); else startGather(G, t.v); return; }
-  if (t.k === 'b') { if (t.b.stable) emit(G, { k: 'stable', b: t.b }); else if (t.b.bind) emit(G, { k: 'inn', b: t.b }); else if (t.b.vendor) emit(G, { k: 'vendor', b: t.b }); else if (t.b.bank) emit(G, { k: 'bank', b: t.b }); else if (t.b.mentor) emit(G, { k: 'mentor', b: t.b }); else if (t.b.alchemy || t.b.brew) emit(G, { k: 'alchemy', b: t.b }); else if (t.b.enchant) emit(G, { k: 'enchant', b: t.b }); else if (t.b.guild) emit(G, { k: 'guild', b: t.b }); else if (t.b.smelt) emit(G, { k: 'smelt', b: t.b }); else emit(G, { k: 'toast', s: `${t.b.name}. ${t.b.note}`, id: 'bld' }); }
+  if (t.k === 'b') { if (t.b.stable) emit(G, { k: 'stable', b: t.b }); else if (t.b.bind) emit(G, { k: 'inn', b: t.b }); else if (t.b.vendor) emit(G, { k: 'vendor', b: t.b }); else if (t.b.bank) emit(G, { k: 'bank', b: t.b }); else if (t.b.mentor) emit(G, { k: 'mentor', b: t.b }); else if (t.b.alchemy || t.b.brew) emit(G, { k: 'alchemy', b: t.b }); else if (t.b.enchant) emit(G, { k: 'enchant', b: t.b }); else if (t.b.jeweler) emit(G, { k: 'jewel', b: t.b }); else if (t.b.guild) emit(G, { k: 'guild', b: t.b }); else if (t.b.smelt) emit(G, { k: 'smelt', b: t.b }); else emit(G, { k: 'toast', s: `${t.b.name}. ${t.b.note}`, id: 'bld' }); }
   if (t.k === 'exit') { if (t.e.zone) emit(G, { k: 'zone', e: t.e }); else if (t.e.temple) emit(G, { k: 'toast', s: t.e.door ? 'Врата подземелья заперты — откроются в следующих версиях' : 'Врата Храма квакунов заперты. Внутри тихо — подземелье откроется в следующих версиях', id: 'exit' }); else emit(G, { k: 'toast', s: `Дорога в ${t.e.to} (ур. ${t.e.lvl}) откроется в следующих версиях`, id: 'exit' }); }
 }
 

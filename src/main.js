@@ -28,7 +28,7 @@ import * as ORD from './systems/orders.js';
 import { $, toast, zoneTitle, TOUCH, T } from './ui/dom.js';
 import { RAR_COL } from '../data/balance.js';
 
-const VERSION = 130;
+const VERSION = 131;
 /** Приближение камеры на шаг: +1 ближе, −1 дальше. */
 let zoomT = 0;
 function zoomBy(d) {
@@ -173,6 +173,7 @@ function frameInner(now) {
     if (e.k === 'smelt' && !document.querySelector('.modal')) openSmelt(G, () => hud.update());
     if (e.k === 'alchemy' && !document.querySelector('.modal')) profWin({ teach: !!e.b.alchemy, brew: true, tab: 'alchemy' });
     if (e.k === 'enchant' && !document.querySelector('.modal')) profWin({ teachEnch: true, tab: 'enchant' });
+    if (e.k === 'jewel' && !document.querySelector('.modal')) profWin({ teachJewel: true, tab: 'jewel' });
     if (e.k === 'skill') toast(e.s, 'good', 'skill');
     if (e.k === 'craft') craftRedraw();   // v112: окно ремесла — новые числа после каждой вещи
     if (e.k === 'barSwap') { persist(); toast('Ячейки панели поменяны местами — клавиши остались у ячеек', '', 'bar'); }

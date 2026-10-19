@@ -16,7 +16,9 @@ const deQueued = (G, it) => !!(G.P.craft && G.P.craft.q.some(j => j.k === 'de' &
 function hookCraft(m, fn) { craftHook = fn; const oc = m.onclose; m.onclose = () => { if (craftHook === fn) craftHook = null; oc && oc(); }; }
 import { herbSkill, alchSkill, skillColor, learnHerbal, learnAlchemy, buyFlask, brew, canBrew, drinkElixir } from '../systems/herbs.js';
 import { RAR_COL, RAR_NAME, LOOT, armorCut, PROPS } from '../../data/balance.js';
-import { itemIcon, anyIcon, accIcon, moneyHtml, potionIcon, DE_SVG } from './icons.js';
+import { itemIcon, anyIcon, accIcon, moneyHtml, potionIcon, DE_SVG, PROF_ICON } from './icons.js';
+import { JEWEL, JEWEL_RECIPES, JEWEL_TIME } from '../../data/jewelcraft.js';
+import { jewelSkill, learnJewel, canJewel, jewelMats } from '../systems/jewel.js';
 import { itemLines, itemNums, lookOf, isStackKind, hasSocket, fxListOf, makeItem } from '../systems/items.js';
 import { compareItem } from '../entities/hero.js';
 import { stashPut, stashTake, stashMove, stashSwap, stashMaterials, store } from '../systems/bank.js';
@@ -544,10 +546,28 @@ function enchTab(G, B, se, redraw, skbar, leg) {
   }
 }
 
+/** v131: вкладка ювелирного дела — камни в сумке, рецепты по разделам (огранка, украшения, аксессуары), «Сделать» / «Все». */
+function jewelTab(G, B, sj, redraw, skbar, leg) {
+  const h = G.hero, C_ = { orange: '#ff9a40', yellow: '#ffd84a', green: '#5fd35f', gray: '#9a9a9a', red: '#e07a6a' };
+  const gems = Object.keys(GEMS).filter(k => countOf(h, 'gem', k) > 0).map(k => `<span class="emat">${accIcon('gem_' + k, GEMS[k].rar || (k === 'emerald' ? 'rare' : k === 'amethyst' ? 'good' : 'common'), 30)}<b>${countOf(h, 'gem', k)}</b></span>`).join('');
+  const bars = ['copper', 'tin', 'iron'].filter(k => countOf(h, 'bar', k) > 0).map(k => `<span class="emat">${accIcon('bar_' + k, 'common', 30)}<b>${countOf(h, 'bar', k)}</b></span>`).join('');
+  B.innerHTML = skbar('Ювелирное дело', sj, JEWEL.cap) + `<p class="hint2">Делать можно где угодно, инструмента не нужно. Камни — из оловянных и железных жил, слитки — из кузницы. Огранённые камни вставляются в гнёзда, как обычные; кольца и ожерелья выходят под ваш класс.</p><div class="emats">${gems || bars ? gems + bars : '<span class="hint">Камней и слитков в сумке нет</span>'}</div>` + leg + `<div class="recipes"></div>`;
+  const R_ = B.querySelector('.recipes'), SEC = { gem: 'Огранка', item: 'Украшения', trinket: 'Аксессуары' }; let last = null;
+  for (const [id, R] of Object.entries(JEWEL_RECIPES)) {
+    if (R.k !== last) { R_.append(el('h3', '', SEC[R.k])); last = R.k; }
+    const c = skillColor(sj, R.req, JEWEL.colors).c, n = canJewel(h, id), low = sj < R.req;
+    const mt = jewelMats(h, id).map(([nm, k, have]) => `<span style="color:${have >= k ? '#9ad87a' : '#e07a6a'}">${k} × ${nm.toLowerCase()} (${have})</span>`).join(', ');
+    const ico = R.k === 'gem' ? accIcon('gem_' + R.out, GEMS[R.out].rar, 44) : R.k === 'item' ? accIcon(R.slot, R.rar, 44, GEMS[R.mats.find(m => m[0] === 'gem')?.[1] || 'tigerseye']?.col) : accIcon(R.trinket, 'rare', 44);
+    const r = el('div', 'ware2', `${ico}<div><b style="color:${C_[c] || '#a89878'}">${R.name}</b> <small>ювелирное дело ${R.req} · ${JEWEL_TIME[R.k]} с</small><small>${R.d}</small><small>${mt}</small></div>${low ? `<div class="need">Нужно ювелирное дело ${R.req}<br>у вас ${sj}</div>` : `<div class="col"><button class="btn" data-x="one" ${n > 0 ? '' : 'disabled'}>Сделать</button>${R.k === 'gem' ? `<button class="btn" data-x="all" ${n > 1 ? '' : 'disabled'}>Все (${n})</button>` : ''}</div>`}`);
+    if (!low) { r.querySelector('[data-x=one]').onclick = () => { startCraft(G, 'jewel', id, 1); redraw(); }; const a = r.querySelector('[data-x=all]'); if (a) a.onclick = () => { startCraft(G, 'jewel', id, 999); redraw(); }; }
+    R_.append(r);
+  }
+}
+
 /** Профессии (v84): кнопка P — вкладки по выученным профессиям. opts.teach — у травницы (учит травничество и алхимию), opts.brew — рядом котёл (можно варить), opts.tab — какую открыть. */
 export function openProf(G, onChange, opts = {}) {
   const h = G.hero, COLN = { none: 'не изучено', red: 'рано', orange: 'оранжевая', yellow: 'жёлтая', green: 'зелёная', gray: 'серая' };
-  const who = opts.teachEnch ? `<p class="who">Чародейка Велена: «Старый меч, что пылится в сумке, — это не хлам, а пыль сияния. Развей его — и вложи силу в тот клинок, что у тебя в руке».</p>` : opts.teach ? `<p class="who">Травница Агафья: «Трава, путник, растёт у всякой тропы — только знать надо, какую рвать. А выучишься варить — сам себе и лекарь, и силач».</p>` : opts.brew ? `<p class="who">Котёл кипит — можно варить зелья.</p>` : '';
+  const who = opts.teachJewel ? `<p class="who">Ювелир Златан: «Камень из жилы — это только обещание. Огранка делает из него силу, а слиток — оправу, чтобы эту силу носить».</p>` : opts.teachEnch ? `<p class="who">Чародейка Велена: «Старый меч, что пылится в сумке, — это не хлам, а пыль сияния. Развей его — и вложи силу в тот клинок, что у тебя в руке».</p>` : opts.teach ? `<p class="who">Травница Агафья: «Трава, путник, растёт у всякой тропы — только знать надо, какую рвать. А выучишься варить — сам себе и лекарь, и силач».</p>` : opts.brew ? `<p class="who">Котёл кипит — можно варить зелья.</p>` : '';
   const m = modal(`<h2>Профессии</h2>${who}<div class="learn"></div><div class="tabs"></div><div class="pbody"></div>`, 'wide profwin');
   let tab = opts.tab || null;
   const skbar = (n, sk, cap) => `<div class="skillb"><div class="skrow"><span>${n}</span><span>${sk} / ${cap}</span></div><div class="skbar"><i style="width:${sk / cap * 100}%"></i></div></div>`;
@@ -569,11 +589,16 @@ export function openProf(G, onChange, opts = {}) {
       const q = el('div', 'ware2', `${accIcon('rod', 'common', 44)}<div><b>Медный жезл чародея</b><small>${rod ? 'У вас уже есть' : `Без него не распылить и не зачаровать. Из ${ENCH.rodBars} медных слитков — у вас <b style="color:${bars >= ENCH.rodBars ? '#9ad87a' : '#e07a6a'}">${bars}</b>`}</small></div><button class="btn" ${rod || bars < ENCH.rodBars ? 'disabled' : ''}>${rod ? 'Есть' : 'Сделать'}</button>`);
       q.querySelector('.btn').onclick = () => { startCraft(G, 'rod', null); onChange(); draw(); }; L.append(q);
     }
-    const tabs = [['mining', 'Горное дело', sm], ['herbal', 'Травничество', sh], ['alchemy', 'Алхимия', sa], ['enchant', 'Зачарование', se]].filter(t => t[2]);
+    const sj = jewelSkill(h);
+    if (opts.teachJewel) {   // v131: Ювелирная мастерская — учит ювелирному делу
+      const r = el('div', 'ware2', `${accIcon('gem_sunstone', 'rare', 44)}<div><b>Ювелирное дело</b><small>${sj ? `Навык: ${sj} / ${JEWEL.cap}` : 'Огранять камни, делать кольца, ожерелья и аксессуары из слитков. Учу бесплатно.'}</small></div><button class="btn" ${sj ? 'disabled' : ''}>${sj ? 'Изучено' : 'Выучить'}</button>`);
+      r.querySelector('.btn').onclick = () => { learnJewel(G); onChange(); draw(); }; L.append(r);
+    }
+    const tabs = [['mining', 'Горное дело', sm], ['herbal', 'Травничество', sh], ['alchemy', 'Алхимия', sa], ['enchant', 'Зачарование', se], ['jewel', 'Ювелирное дело', sj]].filter(t => t[2]);
     const T_ = m.querySelector('.tabs'), B = m.querySelector('.pbody');
-    if (!tabs.length) { T_.innerHTML = ''; B.innerHTML = `<p class="hint">Профессий пока нет. Горное дело учат в Гильдии рудокопов, травничество и алхимию — у травницы (дом у южных ворот Столицы), зачарование — в Мастерской чар. Профессии — приработок к охоте: руда, травы и зелья.</p>`; return; }
+    if (!tabs.length) { T_.innerHTML = ''; B.innerHTML = `<p class="hint">Профессий пока нет. Горное дело учат в Гильдии рудокопов, ювелирное дело — у ювелира рядом, травничество и алхимию — у травницы (дом у южных ворот Столицы), зачарование — в Мастерской чар. Профессии — приработок к охоте: руда, травы и зелья.</p>`; return; }
     if (!tab || !tabs.some(t => t[0] === tab)) tab = tabs[0][0];
-    T_.innerHTML = tabs.map(t => `<button class="tab ${t[0] === tab ? 'on' : ''}" data-t="${t[0]}">${t[1]} <span class="c1">${t[2]}</span></button>`).join('');
+    T_.innerHTML = tabs.map(t => `<button class="tab ${t[0] === tab ? 'on' : ''}" data-t="${t[0]}">${PROF_ICON[t[0]] || ''}${t[1]} <span class="c1">${t[2]}</span></button>`).join('');
     for (const b of T_.querySelectorAll('.tab')) b.onclick = () => { tab = b.dataset.t; draw(); };
     B.innerHTML = '';
     if (tab === 'mining') {
@@ -581,6 +606,7 @@ export function openProf(G, onChange, opts = {}) {
     } else if (tab === 'herbal') {
       B.innerHTML = skbar('Травничество', sh, HERBAL.cap) + `<table class="ores"><tr><th>Трава</th><th>Где</th><th>Нужно</th><th>Сейчас</th><th>В сумке</th></tr>${Object.entries(HERBS).map(([k, Hb]) => { const c = Hb.rare ? 'none' : skillColor(sh, Hb.req).c; return `<tr><td><span style="color:${Hb.col}">●</span> ${Hb.name}</td><td>${Hb.where}</td><td>${Hb.rare ? '—' : Hb.req}</td><td style="color:${MINE.colorHex[c] || '#6a5a40'}">${Hb.rare ? `${Math.round(HERBAL.rare * 100)}% с любой` : COLN[c]}</td><td>${countOf(h, 'herb', k)}</td></tr>`; }).join('')}</table>` + leg + `<p class="hint">Травы растут кустиками у троп, опушек и во мху — на карте не отмечены, ищите по пути: серебристая искорка видна издалека. ${T('Подойдите и нажмите E — 2 секунды собирать.', 'Коснитесь куста — герой подойдёт и соберёт.')} Собранный куст вырастает через 4–8 минут в другом месте. Инструмент не нужен.</p>`;
     } else if (tab === 'enchant') { enchTab(G, B, se, () => { onChange(); draw(); }, skbar, leg); 
+    } else if (tab === 'jewel') { jewelTab(G, B, sj, () => { onChange(); draw(); }, skbar, leg); 
     } else {
       const fl = countOf(h, 'flask', 'flask');
       B.innerHTML = skbar('Алхимия', sa, ALCH.cap) + `<p class="hint2">Склянок в сумке: <b>${fl}</b> — продают все торговцы по ${moneyHtml(ALCH.flaskPrice)}. ${opts.brew ? 'Котёл рядом — можно варить.' : '<b>Варить можно у котла</b>: у травницы в Столице или в трактире Хутора Подгорного.'} Зелья: боевое и защитное действуют по одному, новое заменяет прежнее.</p><div class="recipes"></div>` + leg;
@@ -599,7 +625,7 @@ export function openProf(G, onChange, opts = {}) {
   const onKey = e => { if (e.code === 'KeyP' && !e.repeat) { e.preventDefault(); e.stopPropagation(); m.close(); } };
   addEventListener('keydown', onKey, true);
   const oc = () => removeEventListener('keydown', onKey, true);
-  if (opts.teach || opts.brew || opts.teachEnch) closeOnE(m, oc); else m.onclose = () => { hideTip(); oc(); };
+  if (opts.teach || opts.brew || opts.teachEnch || opts.teachJewel) closeOnE(m, oc); else m.onclose = () => { hideTip(); oc(); };
   hookCraft(m, () => { onChange(); draw(); }); draw(); return m;
 }
 

@@ -111,7 +111,7 @@ export function rollDrop(cls, mobL, rare, r = Math.random, table = null) {
 /** Аксессуар: способность вместо параметров. Только синие и фиолетовые; id — из TRINKETS (без него — случайный нужного цвета). */
 export function makeTrinket(cls, ilvl, rar = 'rare', r = Math.random, id = null) {
   r = r || Math.random;
-  const pool = TRINKETS.filter(t => t.rar === rar), T = (id && TRINKETS.find(t => t.id === id)) || pool[Math.floor(r() * pool.length)];
+  const pool = TRINKETS.filter(t => t.rar === rar && !t.craft), T = (id && TRINKETS.find(t => t.id === id)) || pool[Math.floor(r() * pool.length)];
   const it = { id: uid(), cls, slot: 'trinket', ilvl, rar: T.rar, tier: 3, trinket: T.id, name: T.name, price: Math.round((40 + ilvl * 12) * (T.rar === 'epic' ? 3 : 1)), seed: 1 + Math.floor(r() * 2147483000) };
   return trinketStats(it, cls);
 }
@@ -138,7 +138,7 @@ export function makeStack(kind, metal, n = 1) {
   if (kind === 'potion') return { id: uid(), kind, metal, n, name: POTIONS[metal].name, rar: POTIONS[metal].req >= 125 ? 'rare' : POTIONS[metal].req >= 50 ? 'good' : 'common', price: POTIONS[metal].price || 0 };
   if (kind === 'flask') return { id: uid(), kind, metal: 'flask', n, name: 'Пустая склянка', rar: 'common', price: ALCH.flaskSell };
   if (kind === 'ench') return { id: uid(), kind, metal, n, name: ENCH_MATS[metal].name, rar: ENCH_MATS[metal].rar, price: ENCH_MATS[metal].price };   // v107: материалы чар
-  if (kind === 'gem') return { id: uid(), kind, metal, n, name: GEMS[metal].name, rar: metal === 'emerald' ? 'rare' : metal === 'amethyst' ? 'good' : 'common', price: GEMS[metal].price };
+  if (kind === 'gem') return { id: uid(), kind, metal, n, name: GEMS[metal].name, rar: GEMS[metal].rar || (metal === 'emerald' ? 'rare' : metal === 'amethyst' ? 'good' : 'common'), price: GEMS[metal].price };
   const O = ORES[metal];
   return { id: uid(), kind, metal, n, name: kind === 'ore' ? O.ore : O.bar, rar: 'common', price: kind === 'ore' ? O.oreP : O.barP };
 }
@@ -169,7 +169,7 @@ export function itemLines(it) {
   const L = [];
   if (it.kind === 'ore') return [['t', `Руда для плавки: ${2} — на слиток`], ['n', `В стопке: ${it.n} из ${LOOT.stack}`]];
   if (it.kind === 'bar') return [['t', 'Слиток. Пока его можно продать — позже из слитков будет ковать кузнец'], ['n', `В стопке: ${it.n} из ${LOOT.stack}`]];
-  if (it.kind === 'gem') return [['t', `Камень для гнезда: ${(() => { const b = (GEMS[it.metal] || {}).bonus || {}; return b.main ? `+${b.main} к главной характеристике` : b.stam ? `+${b.stam} к выносливости` : `+${b.crit}% к криту`; })()}. Вставляется в оружие, шлем, нагрудник, штаны или шею с гнездом — насовсем, вынуть нельзя, можно только заменить`], ['n', `В стопке: ${it.n} из ${LOOT.stack}`]];
+  if (it.kind === 'gem') return [['t', `Камень для гнезда: ${gemBonusText((GEMS[it.metal] || {}).bonus || {}, 'к главной характеристике')}. Вставляется в оружие, шлем, нагрудник, штаны или шею с гнездом — насовсем, вынуть нельзя, можно только заменить`], ['n', `В стопке: ${it.n} из ${LOOT.stack}`]];
   if (it.kind === 'tool' && it.tool === 'hearth') return [['t', 'Переносит домой — на постоялый двор, где вы остановились. 10 секунд, перезарядка 20 минут']];
   if (it.kind === 'tool') return [['t', it.tool === 'rod' ? 'Нужен, чтобы распылять вещи и накладывать чары. Достаточно держать в сумке' : 'Нужна, чтобы копать руду. Достаточно держать в сумке']];
   if (it.kind === 'ench') { const M = ENCH_MATS[it.metal]; return [['t', `${M.d}. Для зачарования`], ['n', `В стопке: ${it.n} из ${LOOT.stack}`]]; }
@@ -215,12 +215,14 @@ export function enchLine(it) {
   const parts = []; if (b.main) parts.push(`+${b.main} ${MS}`); if (b.stam) parts.push(`+${b.stam} к выносливости`); for (const k of ['crit', 'haste', 'regen', 'dodge']) if (b[k]) parts.push(`+${f(b[k])}${PROPS[k].unit} ${PROPS[k].name}`);
   return ['ench', `✦ Чары «${R.name}»: ${parts.join(', ')}`, true, '#c8a0ff'];
 }
+/** v131: бонус камня словами (камни с двумя свойствами). */
+export const gemBonusText = (b, MS) => [b.main ? `+${b.main} ${MS}` : '', b.stam ? `+${b.stam} к выносливости` : '', b.crit ? `+${b.crit}% к криту` : '', b.haste ? `+${b.haste}% к скорости удара` : ''].filter(Boolean).join(', ');
 /** Строка гнезда для подсказки. */
 export function socketLine(it) {
   if (!hasSocket(it)) return null;
   if (!it.gem || !GEMS[it.gem]) return ['sock', '◇ Пустое гнездо — сюда можно вставить камень', false];
   const G = GEMS[it.gem], b = G.bonus, MS = MAIN_STAT_TO[it.cls] || 'к силе';
-  return ['sock', `◆ ${G.name}: ${b.main ? `+${b.main} ${MS}` : b.stam ? `+${b.stam} к выносливости` : `+${b.crit}% к криту`}`, true, G.col];
+  return ['sock', `◆ ${G.name}: ${gemBonusText(b, MS)}`, true, G.col];
 }
 /** Старые фиолетовые вещи получают героическую модель (ярус 5) и новое название. Повторный вызов ничего не меняет. */
 export function epicUpgrade(it) {

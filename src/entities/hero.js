@@ -31,7 +31,7 @@ export function heroStats(h, eq = h.eq) {
     armor += it.armor || 0; stam += it.stam || 0;
     if (it.cls === h.cls) { main += it.main || 0; for (const [k, v] of Object.entries(it.props || {})) if (k in p) p[k] += v; }
     if (it.slot === 'weapon') wdmg = it.dmg || 0;
-    if (it.gem && GEMS[it.gem] && hasSocket(it)) { const b = GEMS[it.gem].bonus; main += b.main || 0; stam += b.stam || 0; p.crit += b.crit || 0; }   // v92: камень в гнезде
+    if (it.gem && GEMS[it.gem] && hasSocket(it)) { const b = GEMS[it.gem].bonus; main += b.main || 0; stam += b.stam || 0; p.crit += b.crit || 0; p.haste += b.haste || 0; }   // v92: камень в гнезде
     if (it.ench && ENCHANTS[it.ench]) { const b = ENCHANTS[it.ench].bonus; main += b.main || 0; stam += b.stam || 0; for (const k of ['crit', 'haste', 'regen', 'dodge']) p[k] += b[k] || 0; }   // v107: чары
   }
   if (h.cls === 'archer') p.crit += main / ITEM.agiCrit;

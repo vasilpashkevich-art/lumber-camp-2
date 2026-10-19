@@ -19,6 +19,14 @@ export const TRINKETS = [
   { id: 'thorns', rar: 'rare', name: 'Колючий оберег', stat: 'armor', on: 'hurt', ch: 0.15, icd: 30, buf: 'thorns', t: 8,
     d: 'На 8 с враги получают 30% урона, что наносят вам' },
   // фиолетовые
+  // v131: ремесленные (ювелир, не падают с вожаков и не продаются за печати — `craft`)
+  { id: 'amber', rar: 'rare', craft: true, name: 'Янтарный талисман', stat: 'stam', on: 'kill', ch: 0.35, icd: 15, heal: 0.08,
+    d: 'Лечит на 8% здоровья, когда враг убит' },
+  { id: 'bell', rar: 'rare', craft: true, name: 'Серебряный колокольчик', stat: 'haste', on: 'hurt', ch: 0.15, icd: 25, chill: 3, chillR: 220,
+    d: 'Звон замедляет всех врагов вокруг на 3 с' },
+  { id: 'obsidian', rar: 'rare', craft: true, name: 'Обсидиановый глаз', stat: 'crit', on: 'ability', ch: 0.25, icd: 30, buf: 'rage', t: 8,
+    d: 'После умения — удары на 8 с быстрее' },
+  // фиолетовые
   { id: 'phoenix', rar: 'epic', name: 'Перо феникса', stat: 'stam', on: 'death', ch: 1, icd: 600,
     d: 'Вместо гибели встаёте с половиной здоровья, вокруг — огненная вспышка' },
   { id: 'mirror', rar: 'epic', name: 'Зеркало двойника', stat: 'crit', on: 'hit', ch: 0.06, icd: 60, buf: 'mirror', t: 10,

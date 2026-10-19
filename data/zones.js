@@ -52,7 +52,7 @@ export const PINE = {
       // Ремесленный квартал
       { id: 'miners', name: 'Гильдия рудокопов', dx: 400, dy: -320, art: 'miners', guild: true, smelt: true, note: 'Горное дело' },
       { id: 'forge', name: 'Кузница', dx: 820, dy: -320, art: 'forge', smelt: true, note: 'Плавка руды. Ремонт и ковка — скоро' },
-      { id: 'jeweler', name: 'Ювелирная мастерская', dx: 560, dy: 90, art: 'jeweler', jeweler: true, note: 'Ювелир Златан: огранка и украшения — скоро' },
+      { id: 'jeweler', name: 'Ювелирная мастерская', dx: 560, dy: 90, art: 'jeweler', jeweler: true, note: 'Ювелир Златан: огранка камней, кольца, ожерелья, аксессуары' },
       // площадь и восточные ворота
       { id: 'market', name: 'Рынок', dx: -220, dy: -60, art: 'stall', vendor: true, jewel: { good: 800, rare: 2500 } },
       { id: 'market2', dx: 220, dy: -60, art: 'stall' },
