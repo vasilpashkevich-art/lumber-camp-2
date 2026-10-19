@@ -52,8 +52,11 @@ export function createHud(In) {
   const CB = $('#castBar'); if (CB && CB.parentNode !== document.body) document.body.append(CB);   // поверх окон: вне контейнера интерфейса
   if (CB) CB.querySelector('.cbx').onclick = () => H.G && stopCraft(H.G, 'Работа прервана');
   let cbKey = '';
+  const playTime = sec => { const m = Math.round(sec / 60); return m < 60 ? `${m} мин` : `${Math.floor(m / 60)} ч ${m % 60} мин`; };
+  let clockK = '';
   H.update = () => {
     const G = H.G, P = G.P, h = G.hero, st = G.st, C = CLASSES[h.cls];
+    { const d = new Date(), k = `${d.getHours()}:${String(d.getMinutes()).padStart(2, '0')}`; if (k !== clockK) { clockK = k; const c = $('#clock'); if (c) { c.textContent = k; c.title = `Время на часах · в игре ${playTime(h.play || 0)}`; } } }   // v133: часы
     if (CB) { const c = P.craft, j = c && c.q[0];
       if (!j) { if (!CB.hidden) CB.hidden = true; cbKey = ''; }
       else { CB.hidden = false; const n = craftLeft(G), k = craftLabel(j) + '|' + n; if (k !== cbKey) { cbKey = k; CB.querySelector('.cbt').textContent = craftLabel(j); CB.querySelector('.cbn').textContent = n > 1 ? `осталось ${n}` : ''; }

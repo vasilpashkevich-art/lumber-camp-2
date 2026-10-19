@@ -88,3 +88,9 @@ test('v129: где выполнять — области на карте по в
   const T2 = { ...ORDERS.pine.find(o => o.id === 'copper'), zone: 'pine', key: 'pine|copper', need: 5 }; h.prof.mining = 1; oTake(G, T2);
   assert.ok(oAreas(W, h).some(a => a.name === T2.name)); assert.match(orderWhere(T2), /Медная жила/);
 });
+
+test('v133: до новых заказов — до полуночи по часам игрока, словами', async () => {
+  const { untilNewDay, untilText } = await import('../src/systems/orders.js');
+  const d = new Date(2026, 9, 19, 18, 18, 0).getTime(); assert.equal(Math.round(untilNewDay(d) / 60000), 342); assert.equal(untilText(d), '5 ч 42 мин');
+  const e = new Date(2026, 9, 19, 23, 50, 30).getTime(); assert.equal(untilText(e), '10 мин'); assert.ok(untilNewDay(e) > 0);
+});

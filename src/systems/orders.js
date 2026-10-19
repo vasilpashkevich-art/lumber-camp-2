@@ -22,6 +22,9 @@ const toast = (G, s, kind = '') => emit(G, { k: 'toast', s, kind, id: 'orders' }
 
 /** Номер дня по часам игрока (полночь). now — для тестов. */
 export function dayOf(now = Date.now()) { const d = new Date(now); return Math.floor((d.getTime() - d.getTimezoneOffset() * 60000) / 86400000); }
+/** v133: до новых заказов (полночь по часам игрока): миллисекунды и словами «5 ч 12 мин». */
+export function untilNewDay(now = Date.now()) { const d = new Date(now), m = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1, 0, 0, 0, 0); return Math.max(0, m.getTime() - now); }
+export function untilText(now = Date.now()) { const mn = Math.ceil(untilNewDay(now) / 60000), h = Math.floor(mn / 60), m = mn % 60; return h ? `${h} ч ${m} мин` : `${m} мин`; }
 /** Состояние заказов героя; при новом дне — очищается. */
 export function oState(h, now = Date.now()) {
   if (!h.orders) h.orders = { day: -1, act: {}, done: {}, bonus: {} };

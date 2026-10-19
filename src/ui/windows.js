@@ -42,7 +42,7 @@ import { NPC_LOOK } from '../art/npc.js';
 import { soundState, setSound, setVol } from '../engine/audio.js';
 import { prefs } from '../engine/save.js';
 import { fmt1, due, rng, plural } from '../engine/util.js';
-import { oState, boardOf, greyFor, orderGoal, orderProgress, orderReady, orderReward, oTake, oDrop, oTurnIn, royalWares, royalName, buyRoyal, orderWhere, activeOrders } from '../systems/orders.js';
+import { oState, boardOf, greyFor, orderGoal, orderProgress, orderReady, orderReward, oTake, oDrop, oTurnIn, royalWares, royalName, buyRoyal, orderWhere, activeOrders, untilText, untilNewDay } from '../systems/orders.js';
 import { ORDER, ORDERS } from '../../data/orders.js';
 import { TRINKETS } from '../../data/trinkets.js';
 import { CONTINENT } from '../../data/zones.js';
@@ -431,12 +431,13 @@ export const tokensHtml = (n, s = 18) => `<span class="tok">${SEAL_SVG(s)}<b>${n
 export function openBoard(G, zone, onChange) {
   const h = G.hero;
   const draw = () => { const S = oState(h), L = boardOf(zone), grey = greyFor(h, zone), zn = (CONTINENT.find(z => z.id === zone) || {}).name || '';
-    return `<h2>Доска заказов</h2><p class="who">${zn} · заказы на сегодня, новые — в полночь. У вас ${tokensHtml(h.tokens || 0)} ${plural(h.tokens || 0, 'печать', 'печати', 'печатей')}${grey ? ' · <span class="need">край младше вас — опыта и денег меньше</span>' : ''}</p>
+    return `<h2>Доска заказов</h2><p class="who">${zn} · заказы на сегодня, новые через <b class="until">${untilText()}</b>. У вас ${tokensHtml(h.tokens || 0)} ${plural(h.tokens || 0, 'печать', 'печати', 'печатей')}${grey ? ' · <span class="need">край младше вас — опыта и денег меньше</span>' : ''}</p>
     <div class="olist">${L.map(T => { const act = !!S.act[T.key], done = !!S.done[T.key], rd = orderReady(h, T), pr = orderProgress(h, T), R = orderReward(h, T);
       return `<div class="ware2 ord${done ? ' done' : ''}"><div><b>${T.name}${done ? ' — выполнен' : ''}</b><small>${T.text}</small><small class="goal">${orderGoal(T)}${act && !done ? ` · <span class="${rd ? 'ok' : ''}">${pr}/${T.need}</span>` : ''}</small><small class="rew">Награда: ${R.tok ? tokensHtml(R.tok, 14) + ' · ' : ''}${moneyHtml(R.money)} · ${R.xp} опыта</small></div>${done ? '' : rd ? `<button class="btn main" data-turn="${T.key}">Сдать</button>` : act ? `<button class="btn" data-drop="${T.key}">Отказаться</button>` : `<button class="btn main" data-take="${T.key}">Взять</button>`}</div>`; }).join('')}</div>
     <p class="hint">${S.bonus[zone] ? 'Все заказы дня выполнены — награда за усердие получена.' : `Выполните все три — ещё +${ORDER.bonus} ${plural(ORDER.bonus, 'печать', 'печати', 'печатей')}. Печати тратятся у королевского квартирмейстера Остромира у дворца Столицы.`}</p>
     <div class="row"><button class="btn" data-x="no">Закрыть</button></div>`; };
   const m = modal(draw(), 'boardwin');
+  const tick = setInterval(() => { const u = m.querySelector('.until'); if (!u) return; u.textContent = untilText(); if (untilNewDay() < 1000) redraw(); }, 30000); const oc0 = m.onclose; m.onclose = () => { clearInterval(tick); oc0 && oc0(); };
   const bind = () => { const L = boardOf(zone), by = k => L.find(T => T.key === k);
     for (const b of m.querySelectorAll('[data-take]')) b.onclick = () => { if (oTake(G, by(b.dataset.take))) redraw(); };
     for (const b of m.querySelectorAll('[data-drop]')) b.onclick = () => { if (oDrop(G, by(b.dataset.drop))) redraw(); };
@@ -714,7 +715,7 @@ export function openJournal(G, onChange) {
     const ids = Object.keys(S.act); m.querySelector('.cnt').textContent = `${ids.length} из ${Q_MAX}`;
     // v129: взятые заказы доски — отдельным разделом, во всех краях
     const OL = []; for (const z of Object.keys(ORDERS)) OL.push(...activeOrders(h, z));
-    const ordHtml = OL.length ? `<h4>Заказы дня</h4>${OL.map(T => `<div class="ware2 jq ord${'o:' + T.key === cur ? ' sel' : ''}" data-q="o:${T.key}"><b class="qm blue">${orderReady(h, T) ? '?' : '!'}</b><b>${T.name}</b><small>${ZN[T.zone] || T.zone}</small></div>`).join('')}` : '';
+    const ordHtml = OL.length ? `<h4>Заказы дня <small class="hint">новые через ${untilText()}</small></h4>${OL.map(T => `<div class="ware2 jq ord${'o:' + T.key === cur ? ' sel' : ''}" data-q="o:${T.key}"><b class="qm blue">${orderReady(h, T) ? '?' : '!'}</b><b>${T.name}</b><small>${ZN[T.zone] || T.zone}</small></div>`).join('')}` : '';
     if (!ids.length && !OL.length) { listEl.innerHTML = `<p class="hint">Заданий нет. Ищите жителей со знаком <b class="qm gold">!</b> над головой — в Столице капитан стражи Гордей у южных ворот. Заказы дня — на доске заказов со знаком <b class="qm blue">!</b>.</p>`; det.innerHTML = ''; return; }
     if (!cur || !(S.act[cur] || (cur.startsWith('o:') && OL.some(T => 'o:' + T.key === cur)))) cur = ids[0] ? ids[0] : 'o:' + OL[0].key;
     const byZ = {}; for (const id of ids) (byZ[QUESTS[id].zone] = byZ[QUESTS[id].zone] || []).push(id);
