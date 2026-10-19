@@ -38,7 +38,8 @@ import { DEFAULT_BAR } from '../engine/input.js';
 import { NPCS, QUESTS, Q_MAX, qState, qStatus, npcQuests, goalText, goalDone, qReward, qChoice, qAccept, qTurnIn, qAbandon, qTrack } from '../systems/quests.js';
 import { NPC_LOOK } from '../art/npc.js';
 import { soundState, setSound, setVol } from '../engine/audio.js';
-import { fmt1 } from '../engine/util.js';
+import { prefs } from '../engine/save.js';
+import { fmt1, due } from '../engine/util.js';
 import { statRows } from './stathelp.js';
 import { installHtml, bindInstall } from './install.js';
 
@@ -168,7 +169,7 @@ export function openChar(G, onChange) {
   const { drag, drop } = makeDnD(() => { onChange(); draw(); });
   drop(m.parentElement, src => { if (src.it) throwAsk(G, src.it, () => { onChange(); draw(); }); }, true);   // v91: вынес вещь из окна на землю — выбросить
   m.isChar = true;
-  { const cv = m.querySelector('canvas'); const anim = now => { if (!m.isConnected) return; if (dollFx.length) { const g = cv.getContext('2d'); g.setTransform(2, 0, 0, 2, 0, 0); g.clearRect(0, 0, 170, 236); doll(g, 85, 184, 3.9, 1, lookOf(G.hero), 0.3); gearFx(g, dollFx, 85, 184 + 12.6 * 3.9, now / 1000, 37 * 3.9); } requestAnimationFrame(anim); }; requestAnimationFrame(anim); }
+  { const cv = m.querySelector('canvas'); const PACE = {}, anim = now => { if (!m.isConnected) return; if (dollFx.length && due(PACE, now, 1000 / 30)) { const g = cv.getContext('2d'); g.setTransform(2, 0, 0, 2, 0, 0); g.clearRect(0, 0, 170, 236); doll(g, 85, 184, 3.9, 1, lookOf(G.hero), 0.3); gearFx(g, dollFx, 85, 184 + 12.6 * 3.9, now / 1000, 37 * 3.9); } requestAnimationFrame(anim); }; requestAnimationFrame(anim); }
   const onKey = e => { if ((e.code === 'KeyI' || e.code === 'KeyB') && !e.repeat) { e.preventDefault(); e.stopPropagation(); m.close(); } };
   addEventListener('keydown', onKey, true);
   m.onclose = () => { hideTip(); removeEventListener('keydown', onKey, true); removeEventListener('keydown', deEsc, true); }; hookCraft(m, () => { onChange(); draw(); }); draw(); return m;
@@ -388,6 +389,7 @@ export function openMenu({ onExit, inGame }) {
   const m = modal(`<h2>Меню</h2>
     <label class="tgl"><input type="checkbox" ${s.on ? 'checked' : ''}> Звук</label>
     ${[['m', 'Музыка'], ['a', 'Шум города'], ['f', 'Звуки']].map(([k, n]) => `<label class="vol">${n}<input type="range" min="0" max="1" step="0.05" value="${s.vol[k]}" data-k="${k}"></label>`).join('')}
+    <label class="tgl fpst"><input type="checkbox" ${prefs.get('fps', false) ? 'checked' : ''}> Показывать частоту кадров</label>
     <div class="row"><button class="btn" data-x="howto">Как играть</button></div>
     ${installHtml()}
     <div class="row">${inGame ? '<button class="btn" data-x="exit">Выйти к выбору героя</button>' : ''}<button class="btn main" data-x="ok">Продолжить</button></div>`);
@@ -396,6 +398,7 @@ export function openMenu({ onExit, inGame }) {
   m.querySelector('[data-x=ok]').onclick = () => m.close();
   const ex = m.querySelector('[data-x=exit]'); if (ex) ex.onclick = () => { m.close(); onExit(); };
   m.querySelector('[data-x=howto]').onclick = () => openHowTo();
+  m.querySelector('.fpst input').onchange = e => prefs.set('fps', e.target.checked);   // v125
   bindInstall(m);
   return m;
 }

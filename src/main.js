@@ -7,7 +7,7 @@ import { buildNav } from './world/relief.js';
 import { buildWorld, inCity } from './world/world.js';
 import { createGame, update, abilsOf, refreshStats, trinketProc } from './systems/game.js';
 import { addStack } from './systems/mining.js';
-import { loadHero, saveHero, migrate, loadShared, saveShared } from './engine/save.js';
+import { loadHero, saveHero, migrate, loadShared, saveShared, prefs } from './engine/save.js';
 import { createRenderer, render, ZOOM } from './engine/render.js';
 import { createInput } from './engine/input.js';
 import { soundInit, sfx, music, setSound, soundState } from './engine/audio.js';
@@ -22,11 +22,11 @@ import { spriteClear, spriteStats } from './art/sprites.js';
 import { initInstall } from './ui/install.js';
 import { rollDrop, makeItem, makeTrinket, makeStack, makePick } from './systems/items.js';
 import { LOOT, CRAFT } from '../data/balance.js';
-import { dist } from './engine/util.js';
+import { dist, due } from './engine/util.js';
 import { $, toast, zoneTitle, TOUCH, T } from './ui/dom.js';
 import { RAR_COL } from '../data/balance.js';
 
-const VERSION = 124;
+const VERSION = 125;
 /** Приближение камеры на шаг: +1 ближе, −1 дальше. */
 let zoomT = 0;
 function zoomBy(d) {
@@ -126,9 +126,19 @@ function profWin(opts = {}) { if (!G) return; const m = document.querySelector('
 let lootWin = null;
 function menu() { if (!G) return; paused = true; const m = openMenu({ inGame: true, onExit: () => toSelect() }); const oc = m.onclose; m.onclose = () => { paused = false; oc && oc(); }; }
 
+/** v125: счётчик кадров (галочка в меню) — сколько кадров в секунду рисует игра. */
+function fpsTick(now) {
+  if (!prefs.get('fps', false)) { if (FPS.el) { FPS.el.remove(); FPS.el = null; } return; }
+  if (!FPS.el) { FPS.el = document.createElement('div'); FPS.el.id = 'fpsBox'; document.body.append(FPS.el); FPS.t = now; FPS.n = 0; }
+  FPS.n++; if (now - FPS.t >= 1000) { FPS.el.textContent = Math.round(FPS.n * 1000 / (now - FPS.t)) + ' кадр/с'; FPS.t = now; FPS.n = 0; }
+}
 /** v109: кадр под защитой — ошибка в окне или рисовании не останавливает игру (раньше герой «зависал» до перезахода). */
 let crashT = 0;
+const PACE = {}, FPS = { n: 0, t: 0, el: null };
 function frame(now) {
+  // v125: не больше 60 кадров (экраны 90–120 Гц рисовали бы вдвое больше), при открытом окне — 30
+  if (G && !due(PACE, now, document.querySelector('.modal') ? 1000 / 30 : 1000 / 60)) { raf = requestAnimationFrame(frame); return; }
+  if (FPS.el || prefs.get('fps', false)) fpsTick(now);
   try { frameInner(now); }
   catch (err) {
     console.error('кадр', err); if (G) G.ev.length = 0;

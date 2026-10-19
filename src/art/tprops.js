@@ -20,8 +20,12 @@ function ringWall(g, R, ry, h, col, seed, n = 14) {
 }
 
 // ---------------------------------------------------------------- фонтан (те же размеры, что прежний: R — радиус бассейна)
-export function fountain(g, t, R = 100) {
-  const ry = R * 0.5, st = STONE, W = R + 12;
+/** part (v125): без него — всё сразу; 'lo' — чаша с водой (неподвижное), 'rings' — круги по воде, 'hi' — столб, чаши, струи (неподвижное), 'drops' — капли. Неподвижное рисуется один раз в картинку. */
+export function fountain(g, t, R = 100, part) {
+  const ry = R * 0.5, st = STONE, W = R + 12, all = !part;
+  if (part === 'rings') { g.strokeStyle = 'rgba(230,248,255,.6)'; g.lineWidth = 2; for (let k = 0; k < 3; k++) { const q = (t * 0.5 + k / 3) % 1, r0 = 22 + q * (R - 30); g.globalAlpha = 1 - q; g.beginPath(); g.ellipse(0, -24, r0, r0 * 0.5, 0, 0, TAU); g.stroke(); } g.globalAlpha = 1; return; }
+  if (part === 'drops') { g.fillStyle = 'rgba(240,252,255,.95)'; fDrops(g, t); return; }
+  if (all || part === 'lo') {
   g.fillStyle = 'rgba(20,12,6,.08)'; g.beginPath(); g.ellipse(6, 10, W + 14, ry + 14, 0, 0, TAU); g.fill();
   ringWall(g, W, ry + 8, 24, st, 11, 16);
   // широкий бортик-кольцо и вода
@@ -29,10 +33,12 @@ export function fountain(g, t, R = 100) {
   g.save(); g.beginPath(); g.ellipse(0, -24, R - 4, ry - 4, 0, 0, TAU); g.clip();
   const wg = g.createLinearGradient(0, -24 - ry, 0, -24 + ry); wg.addColorStop(0, '#2f6f98'); wg.addColorStop(1, '#5aaad0'); g.fillStyle = wg; g.fillRect(-R, -24 - ry, R * 2, ry * 2);
   g.fillStyle = 'rgba(20,50,80,.3)'; g.beginPath(); g.ellipse(0, -24 - ry * 0.55, R, ry * 0.5, 0, 0, TAU); g.fill();
-  g.strokeStyle = 'rgba(230,248,255,.6)'; g.lineWidth = 2;
-  for (let k = 0; k < 3; k++) { const q = (t * 0.5 + k / 3) % 1, r0 = 22 + q * (R - 30); g.globalAlpha = 1 - q; g.beginPath(); g.ellipse(0, -24, r0, r0 * 0.5, 0, 0, TAU); g.stroke(); }
+  if (all) { g.strokeStyle = 'rgba(230,248,255,.6)'; g.lineWidth = 2;
+  for (let k = 0; k < 3; k++) { const q = (t * 0.5 + k / 3) % 1, r0 = 22 + q * (R - 30); g.globalAlpha = 1 - q; g.beginPath(); g.ellipse(0, -24, r0, r0 * 0.5, 0, 0, TAU); g.stroke(); } }
   g.globalAlpha = 1; for (const [x, y, w] of [[-R * 0.55, -24 + ry * 0.25, 16], [R * 0.4, -24 + ry * 0.45, 12], [-R * 0.15, -24 + ry * 0.6, 10]]) shine(g, x, y, w, 2.2, 0.45, 0);
   g.restore(); g.beginPath(); g.ellipse(0, -24, R - 4, ry - 4, 0, 0, TAU); g.strokeStyle = ink(st); g.lineWidth = 1.4; g.stroke();
+  }
+  if (part === 'lo') return;
   // столб, чаши, шар
   const col = (y, h, w) => { rr(g, -w / 2, y - h, w, h, w / 2.4); paint(g, st, 1.6); const gr = g.createLinearGradient(-w / 2, 0, w / 2, 0); gr.addColorStop(0, 'rgba(255,255,255,.3)'); gr.addColorStop(1, 'rgba(20,12,6,.25)'); g.fillStyle = gr; rr(g, -w / 2, y - h, w, h, w / 2.4); g.fill(); for (const yy of [y - 4, y - h + 4]) { rr(g, -w / 2 - 4, yy - 4, w + 8, 8, 4); paint(g, sh(st, 0.08), 1.3); } };
   const bowl = (y, w) => { g.beginPath(); g.moveTo(-w - 2, y); g.quadraticCurveTo(-w + 2, y + w * 0.5, 0, y + w * 0.52); g.quadraticCurveTo(w - 2, y + w * 0.5, w + 2, y); g.closePath(); paint(g, sh(st, -0.04), 1.7, y, y + w * 0.5); g.beginPath(); g.ellipse(0, y, w + 2, w * 0.26, 0, 0, TAU); paint(g, sh(st, 0.18), 1.6); g.beginPath(); g.ellipse(0, y, w - 6, w * 0.18, 0, 0, TAU); paint(g, '#4f9cc4', 1); shine(g, -w * 0.4, y - 1, w * 0.25, 1.6, 0.5, 0); };
@@ -42,7 +48,10 @@ export function fountain(g, t, R = 100) {
   g.lineCap = 'round';
   for (const sd of [-1, 1]) for (const [a, b] of [[[sd * 24, -126], [sd * 38, -94]], [[sd * 48, -90], [sd * 74, -34]]]) { g.beginPath(); g.moveTo(a[0], a[1]); g.quadraticCurveTo(a[0] + sd * 14, a[1] + 2, b[0], b[1]); g.strokeStyle = 'rgba(160,215,245,.7)'; g.lineWidth = 4.6; g.stroke(); g.strokeStyle = 'rgba(240,252,255,.95)'; g.lineWidth = 2; g.stroke(); }
   g.beginPath(); g.moveTo(0, -152); g.lineTo(0, -168); g.strokeStyle = 'rgba(240,252,255,.9)'; g.lineWidth = 3; g.stroke();
-  g.fillStyle = 'rgba(240,252,255,.95)';
+  if (part === 'hi') return;
+  g.fillStyle = 'rgba(240,252,255,.95)'; fDrops(g, t);
+}
+function fDrops(g, t) {
   for (let k = 0; k < 14; k++) { const q = (t * 1.3 + k / 14) % 1, sd = k % 2 ? 1 : -1, big = k % 4 < 2; const x = sd * (big ? 48 + q * 28 : 24 + q * 14), y = big ? -90 + q * q * 58 : -126 + q * q * 34; g.beginPath(); g.arc(x, y, 2.2, 0, TAU); g.fill(); }
   for (let k = 0; k < 6; k++) { const q = (t * 2 + k / 6) % 1; g.beginPath(); g.arc(Math.sin(k * 2.3) * 5, -160 - Math.sin(q * Math.PI) * 16, 2, 0, TAU); g.fill(); }
 }
@@ -145,13 +154,16 @@ export function signpost(g) {
   g.strokeStyle = sh('#c8954a', -0.4); g.lineWidth = 1.6; g.lineCap = 'round'; g.beginPath(); g.moveTo(-20, -51); g.lineTo(16, -51); g.stroke();
 }
 /** Костёр: кольцо круглых камней, крест поленьев, пламя слоями (живое). */
-export function campfire(g, x, y, t) {
+/** part (v125): без него — всё; 'back' — отсвет, задние камни, поленья; 'front' — передние камни (неподвижное — один раз в картинку); 'flame' — пламя; 'sparks' — искры. */
+export function campfire(g, x, y, t, part) {
+  const all = !part;
+  if (all || part === 'back') {
   g.fillStyle = 'rgba(255,150,50,.16)'; g.beginPath(); g.arc(x, y - 6, 60, 0, TAU); g.fill();
   for (let i = 0; i < 9; i++) { const a = i / 9 * TAU + 0.3; if (Math.sin(a) < 0) { g.beginPath(); g.ellipse(x + Math.cos(a) * 16, y + Math.sin(a) * 7, 5, 4, 0, 0, TAU); paint(g, i % 2 ? '#8a867d' : '#9a968c', 1); } }
-  for (const s of [-1, 1]) { g.save(); g.translate(x, y - 3); g.rotate(s * 0.35); rr(g, -14, -3.5, 28, 7, 3.5); paint(g, '#7a5232', 1.2); g.restore(); }
-  for (let i = 0; i < 3; i++) { const f = 1 + 0.15 * Math.sin(t * 9 + i * 2); g.fillStyle = ['#ff6a2a', '#ffb347', '#fff2a0'][i]; const w = 9 - i * 2.8, h = (22 - i * 6) * f; g.beginPath(); g.moveTo(x - w, y - 2); g.quadraticCurveTo(x - w * 1.1, y - h * 0.5, x + Math.sin(t * 6 + i) * 2, y - h); g.quadraticCurveTo(x + w * 1.1, y - h * 0.5, x + w, y - 2); g.closePath(); g.fill(); }
-  for (let i = 0; i < 9; i++) { const a = i / 9 * TAU + 0.3; if (Math.sin(a) >= 0) { g.beginPath(); g.ellipse(x + Math.cos(a) * 16, y + Math.sin(a) * 7, 5, 4, 0, 0, TAU); paint(g, i % 2 ? '#8a867d' : '#9a968c', 1); } }
-  for (let k = 0; k < 4; k++) { const q = (t * 0.8 + k / 4) % 1; g.fillStyle = `rgba(255,200,90,${1 - q})`; g.beginPath(); g.arc(x + Math.sin(k * 3 + t * 2) * 6, y - 20 - q * 30, 1.6, 0, TAU); g.fill(); }
+  for (const s of [-1, 1]) { g.save(); g.translate(x, y - 3); g.rotate(s * 0.35); rr(g, -14, -3.5, 28, 7, 3.5); paint(g, '#7a5232', 1.2); g.restore(); } }
+  if (all || part === 'flame') for (let i = 0; i < 3; i++) { const f = 1 + 0.15 * Math.sin(t * 9 + i * 2); g.fillStyle = ['#ff6a2a', '#ffb347', '#fff2a0'][i]; const w = 9 - i * 2.8, h = (22 - i * 6) * f; g.beginPath(); g.moveTo(x - w, y - 2); g.quadraticCurveTo(x - w * 1.1, y - h * 0.5, x + Math.sin(t * 6 + i) * 2, y - h); g.quadraticCurveTo(x + w * 1.1, y - h * 0.5, x + w, y - 2); g.closePath(); g.fill(); }
+  if (all || part === 'front') for (let i = 0; i < 9; i++) { const a = i / 9 * TAU + 0.3; if (Math.sin(a) >= 0) { g.beginPath(); g.ellipse(x + Math.cos(a) * 16, y + Math.sin(a) * 7, 5, 4, 0, 0, TAU); paint(g, i % 2 ? '#8a867d' : '#9a968c', 1); } }
+  if (all || part === 'sparks') for (let k = 0; k < 4; k++) { const q = (t * 0.8 + k / 4) % 1; g.fillStyle = `rgba(255,200,90,${1 - q})`; g.beginPath(); g.arc(x + Math.sin(k * 3 + t * 2) * 6, y - 20 - q * 30, 1.6, 0, TAU); g.fill(); }
 }
 /** Ограда кладбища (в землю): круглые столбики с перекладиной по эллипсу, калитка в сторону ga. */
 export function graveFence(g, cx, cy, rx, ry, ga) {

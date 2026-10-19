@@ -6,7 +6,7 @@ import { listHeroes, deleteHero, saveHero, exportAll, importAll, MAX_SLOTS } fro
 import { newHero } from '../entities/hero.js';
 import { lookOf, starterLook, fxListOf } from '../systems/items.js';
 import { gearFx } from '../art/gearfx.js';
-import { rng, plural } from '../engine/util.js';
+import { rng, plural, due } from '../engine/util.js';
 import { CONTINENT } from '../../data/zones.js';
 import { $, el, modal, toast } from './dom.js';
 import { moneyHtml } from './icons.js';
@@ -34,8 +34,10 @@ export function showSelect({ onEnter, onSettings }) {
   function resize() { const d = Math.min(2, devicePixelRatio || 1); cv.width = innerWidth * d; cv.height = innerHeight * d; cv.style.width = innerWidth + 'px'; cv.style.height = innerHeight + 'px'; }
   resize(); addEventListener('resize', resize);
 
+  const PACE = {};
   function draw(now) {
     if (!alive) return;
+    if (!due(PACE, now, 1000 / 30)) { raf = requestAnimationFrame(draw); return; }   // v125: экран входа — спокойная сцена, 30 кадров хватает
     const d = Math.min(2, devicePixelRatio || 1), Wd = innerWidth, Hd = innerHeight, t = now / 1000;
     c.setTransform(d, 0, 0, d, 0, 0);
     scene(c, Wd, Hd, t);

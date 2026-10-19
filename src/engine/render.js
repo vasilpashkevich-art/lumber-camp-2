@@ -114,7 +114,7 @@ function cityStatics(S, W, c) {
   for (const sd of [-1, 1]) { const x = cx + C.x1 + th + 40, y = cy + C.eastGate + sd * 80; S.push({ y, draw: (g, t) => guard(g, x, y, 'side', -1, t) }); }
   if (K) for (const dx of [-56, 56]) S.push({ y: K.y + 14, draw: (g, t) => guard(g, cx + dx, K.y + 14, 'front', 1, t) });
   // фонтан
-  if (c.fountain) { const fx = cx + c.fountain.x, fy = cy + c.fountain.y; S.push({ y: fy + 30, x: fx, draw: (g, t) => { g.save(); g.translate(fx, fy); g.scale(0.84, 0.84); (oldProps() ? fountain : TP.fountain)(g, t, 110); g.restore(); } }); }
+  if (c.fountain) { const fx = cx + c.fountain.x, fy = cy + c.fountain.y; S.push({ y: fy + 30, x: fx, draw: (g, t) => drawFountain(g, fx, fy, t) }); }
   // дворы и убранство
   for (const d of c.decor || []) {
     const [k, dx, dy, a] = d, x = cx + dx, y = cy + dy;
@@ -161,7 +161,7 @@ function buildStatics(W) {
       for (const [dx, dy] of [[-56, 14], [56, 14], [-150, K.front + 22], [150, K.front + 22]]) S.push({ y: fy + dy, draw: (g, t) => guard(g, cx + dx, fy + dy, 'front', 1, t) });
     }
     // фонтан и фонари
-    if (c.fountain) S.push({ y: c.y + 30, x: c.x, draw: (g, t) => { g.save(); g.translate(c.x, c.y); g.scale(0.84, 0.84); (oldProps() ? fountain : TP.fountain)(g, t, 110); g.restore(); } });
+    if (c.fountain) S.push({ y: c.y + 30, x: c.x, draw: (g, t) => drawFountain(g, c.x, c.y, t) });
     const lampSpr = sprite('lamp', 50, 130, 25, 120, 2, oldProps() ? g => { g.scale(0.8, 0.8); lamp(g, 0, false); } : styled(g => { g.scale(0.8, 0.8); TP.lamp(g, 0, false); }));
     for (const [dx, dy] of c.lamps || []) { const x = c.x + dx, y = c.y + dy; S.push({ y, x, draw: g => drawSpr(g, lampSpr, x, y) }); }
   }
@@ -307,8 +307,17 @@ function signpost(g) {
   g.fillStyle = '#b48a5a'; g.beginPath(); g.moveTo(-30, -58); g.lineTo(26, -58); g.lineTo(34, -50); g.lineTo(26, -42); g.lineTo(-30, -42); g.closePath(); g.fill(); g.stroke();
   g.strokeStyle = 'rgba(36,24,15,.55)'; g.lineWidth = 1.5; g.beginPath(); g.moveTo(-22, -50); g.lineTo(20, -50); g.stroke();
 }
+/** v125: фонтан — чаша и столб нарисованы один раз в картинки, каждый кадр — только круги на воде и капли (было: весь фонтан заново, −15–20% кадров на площади). */
+function drawFountain(g, x, y, t) {
+  if (oldProps()) { g.save(); g.translate(x, y); g.scale(0.84, 0.84); fountain(g, t, 110); g.restore(); return; }
+  const K = 0.84, lo = sprite('fount|lo', 340 * K, 240 * K, 170 * K, 125 * K, 2, gg => { gg.scale(K, K); TP.fountain(gg, 0, 110, 'lo'); }), hi = sprite('fount|hi', 200 * K, 200 * K, 100 * K, 185 * K, 2, gg => { gg.scale(K, K); TP.fountain(gg, 0, 110, 'hi'); });
+  drawSpr(g, lo, x, y); g.save(); g.translate(x, y); g.scale(K, K); TP.fountain(g, t, 110, 'rings'); g.restore();
+  drawSpr(g, hi, x, y); g.save(); g.translate(x, y); g.scale(K, K); TP.fountain(g, t, 110, 'drops'); g.restore();
+}
 function campfire(g, x, y, t) {
-  if (!oldProps()) return TP.campfire(g, x, y, t);
+  if (!oldProps()) {   // v125: камни и поленья — готовыми картинками, каждый кадр — только пламя и искры
+    const bk = sprite('cfire|back', 140, 140, 70, 75, 2, gg => TP.campfire(gg, 0, 0, 0, 'back')), fr = sprite('cfire|front', 60, 30, 30, 10, 2, gg => TP.campfire(gg, 0, 0, 0, 'front'));
+    drawSpr(g, bk, x, y); TP.campfire(g, x, y, t, 'flame'); drawSpr(g, fr, x, y); TP.campfire(g, x, y, t, 'sparks'); return; }
   LOOK.use(g);
   g.fillStyle = 'rgba(255,150,50,.18)'; g.beginPath(); g.arc(x, y - 6, 60, 0, 7); g.fill();
   for (let i = 0; i < 8; i++) { const a = i / 8 * 6.283; g.fillStyle = i % 2 ? '#7a776f' : '#8a867d'; g.strokeStyle = '#24180f'; g.lineWidth = 0.8; g.beginPath(); g.ellipse(x + Math.cos(a) * 14, y + Math.sin(a) * 6, 4, 3, 0, 0, 7); g.fill(); g.stroke(); }
@@ -327,7 +336,7 @@ function chunk(R, i, j) {
   if (cv) { R.chunks.delete(key); R.chunks.set(key, cv); return cv; }
   const W = R.W, x0 = i * CHUNK, y0 = j * CHUNK;
   cv = document.createElement('canvas'); cv.width = cv.height = CHUNK * CQ;
-  const g = cv.getContext('2d');
+  const g = cv.getContext('2d', { alpha: false });   // v125: кусок земли всегда непрозрачный — так он кладётся на экран дешевле
   if (W.relief) reliefChunk(R, g, i, j);
   else { g.scale(CQ, CQ); g.translate(-x0, -y0); paintGround(g, W, x0, y0, CHUNK, CHUNK, i, j); }
   R.chunks.set(key, cv); R.built = (R.built || 0) + 1; if (R.chunks.size > (TOUCH ? 16 : 30)) R.chunks.delete(R.chunks.keys().next().value);
@@ -585,24 +594,22 @@ function canopy(Rd, c, G, x0, y0, zw, zh, t) {
   const W = G.W, P = G.P, list = W.giants.filter(gi => Math.abs(gi.x - (x0 + zw / 2)) < zw / 2 + 700 && gi.y > y0 - 200 && gi.y < y0 + zh + 900);
   if (!list.length) return;
   const cv = Rd.cv, z = Rd.cam.z, zoomRel = Rd.uz / ZOOM.def, PAR = 0.0006 * zoomRel, cx0 = x0 + zw / 2, cy0 = y0 + zh / 2;
-  let cc = Rd.canopyCv; if (!cc || cc.width !== cv.width || cc.height !== cv.height) { cc = Rd.canopyCv = document.createElement('canvas'); cc.width = cv.width; cc.height = cv.height; }
-  const q = cc.getContext('2d'); q.setTransform(1, 0, 0, 1, 0, 0); q.clearRect(0, 0, cc.width, cc.height); q.setTransform(z, 0, 0, z, -x0 * z, -y0 * z); q.lineJoin = q.lineCap = 'round';
   const hh = W.hAt(P.x, P.y), hx = P.x, hy = P.y - hh - 30;
-  let under = false;
-  for (const gi of list.sort((a, b) => a.y - b.y)) {
-    const Gd = GIANT[gi.kind], h = W.hAt(gi.x, gi.y), bx = gi.x, by = gi.y - h - Gd.low;
-    let cx = gi.x, cy = gi.y - h - Gd.high; const k = Gd.high * PAR; cx += (cx - cx0) * k; cy += (cy - cy0) * k;
-    const sp = sprite('gcrown|' + gi.kind + '|' + gi.s, Gd.crownR * 2.6, Gd.crownR * 2.4, Gd.crownR * 1.3, Gd.crownR * 1.25, 1.2, g => giantCrown(g, gi.kind, gi.s));
-    giantUpper(q, gi.kind, bx, by, cx, cy + Gd.crownR * 0.25); drawSpr(q, sp, cx, cy);
-    if (Math.hypot(hx - cx, (hy - cy) * 0.8) < Gd.crownR * 1.1) under = true;
-  }
-  if (!P.dead && (under || zoomRel > 1.3)) {   // ныряешь под листву
-    const Rr = zoomRel > 1.3 ? 175 : 150, a = zoomRel > 1.3 ? Math.min(0.85, 0.55 + (zoomRel - 1.3) * 0.6) : 0.55;
+  const items = list.sort((a, b) => a.y - b.y).map(gi => { const Gd = GIANT[gi.kind], h = W.hAt(gi.x, gi.y), k = Gd.high * PAR; let cx = gi.x, cy = gi.y - h - Gd.high; cx += (cx - cx0) * k; cy += (cy - cy0) * k; return { gi, Gd, bx: gi.x, by: gi.y - h - Gd.low, cx, cy }; });
+  const under = items.some(o => Math.hypot(hx - o.cx, (hy - o.cy) * 0.8) < o.Gd.crownR * 1.1), hole = !P.dead && (under || zoomRel > 1.3);
+  const paint = q => { for (const { gi, Gd, bx, by, cx, cy } of items) { const sp = sprite('gcrown|' + gi.kind + '|' + gi.s, Gd.crownR * 2.6, Gd.crownR * 2.4, Gd.crownR * 1.3, Gd.crownR * 1.25, 1.2, g => giantCrown(g, gi.kind, gi.s)); giantUpper(q, gi.kind, bx, by, cx, cy + Gd.crownR * 0.25); drawSpr(q, sp, cx, cy); } };
+  // v125: окно в листве не нужно — кроны прямо на экран (без лишнего холста во весь экран: −2 полных прохода за кадр)
+  if (!hole) { c.save(); c.lineJoin = c.lineCap = 'round'; paint(c); c.restore(); }
+  else {
+    let cc = Rd.canopyCv; if (!cc || cc.width !== cv.width || cc.height !== cv.height) { cc = Rd.canopyCv = document.createElement('canvas'); cc.width = cv.width; cc.height = cv.height; }
+    const q = cc.getContext('2d'); q.setTransform(1, 0, 0, 1, 0, 0); q.clearRect(0, 0, cc.width, cc.height); q.setTransform(z, 0, 0, z, -x0 * z, -y0 * z); q.lineJoin = q.lineCap = 'round';
+    paint(q);
+    const Rr = zoomRel > 1.3 ? 175 : 150, a = zoomRel > 1.3 ? Math.min(0.85, 0.55 + (zoomRel - 1.3) * 0.6) : 0.55;   // ныряешь под листву
     q.globalCompositeOperation = 'destination-out';
     const gr = q.createRadialGradient(hx, hy, Rr * 0.25, hx, hy, Rr); gr.addColorStop(0, `rgba(0,0,0,${a})`); gr.addColorStop(1, 'rgba(0,0,0,0)');
     q.fillStyle = gr; q.fillRect(hx - Rr, hy - Rr, Rr * 2, Rr * 2); q.globalCompositeOperation = 'source-over';
+    c.save(); c.setTransform(1, 0, 0, 1, 0, 0); c.drawImage(cc, 0, 0); c.restore();
   }
-  c.save(); c.setTransform(1, 0, 0, 1, 0, 0); c.drawImage(cc, 0, 0); c.restore();
   // лучи света сквозь листву вблизи
   if (zoomRel > 1.3) for (const gi of list) { const h = W.hAt(gi.x, gi.y); if (Math.hypot(P.x - gi.x, P.y - gi.y) > 420) continue; c.globalCompositeOperation = 'lighter';
     for (let i = 0; i < 4; i++) { const x = gi.x - 120 + i * 80 + Math.sin(t * 0.4 + i) * 10, gr = c.createLinearGradient(x, gi.y - h - 400, x + 60, gi.y - h + 40); gr.addColorStop(0, 'rgba(255,240,170,.10)'); gr.addColorStop(1, 'rgba(255,240,170,0)'); c.fillStyle = gr; c.beginPath(); c.moveTo(x, gi.y - h - 400); c.lineTo(x + 30, gi.y - h - 400); c.lineTo(x + 110, gi.y - h + 40); c.lineTo(x + 60, gi.y - h + 40); c.fill(); }
@@ -636,7 +643,9 @@ export function render(R, G, now) {
   const x0 = R.cam.x - zw / 2 + (Math.random() - 0.5) * sh, y0 = R.cam.y - zh / 2 + (Math.random() - 0.5) * sh;
   c.setTransform(R.cam.z, 0, 0, R.cam.z, -x0 * R.cam.z, -y0 * R.cam.z);
   c.imageSmoothingEnabled = true;
-  c.fillStyle = '#1c2a1a'; c.fillRect(x0, y0, zw, zh);
+  // v125: подложка нужна только за пределами кусков земли (куски непрозрачны) — иначе это лишний проход во весь экран
+  { const i0 = Math.floor(x0 / CHUNK), i1 = Math.floor((x0 + zw) / CHUNK), j0 = Math.floor(y0 / CHUNK), j1 = Math.floor((y0 + zh) / CHUNK);
+    if (i0 < -1 || j0 < -1 || i1 * CHUNK > W.W + CHUNK || j1 * CHUNK > W.H + CHUNK) { c.fillStyle = '#1c2a1a'; c.fillRect(x0, y0, zw, zh); } }
   // земля
   const nC = R.built || 0;
   for (let i = Math.floor(x0 / CHUNK); i <= Math.floor((x0 + zw) / CHUNK); i++)
@@ -743,9 +752,11 @@ export function render(R, G, now) {
   c.globalAlpha = 1; R.parts = R.parts.filter(p => p.t > 0);
   // туман Грибного леса: лёгкий везде, густые клочья в низинах (полоски здоровья и уровни рисуются поверх)
   if (W.Z.fog) { const dense = W.Z.fog.map(([x, y, r]) => [x, y - lift(x, y), r]).filter(([x, y, R]) => x + R > x0 - 100 && x - R < x0 + zw + 100 && y + R > y0 - 100 && y - R < y0 + zh + 100); // рисуется в холст в 4 раза меньше и растягивается — туман мягкий, а кадр дешевле
-    const k = 0.25, fw = Math.ceil(zw * k) + 2, fh = Math.ceil(zh * k) + 2; let fc = R.fogCv; if (!fc || fc.width !== fw || fc.height !== fh) { fc = R.fogCv = document.createElement('canvas'); fc.width = fw; fc.height = fh; }
-    const q = fc.getContext('2d'); q.setTransform(1, 0, 0, 1, 0, 0); q.clearRect(0, 0, fw, fh); q.setTransform(k, 0, 0, k, -x0 * k, -y0 * k); FOR.fog(q, x0, y0, zw, zh, t * 8, dense);
-    c.drawImage(fc, x0, y0, fw / k, fh / k); }
+    // v125: туман медленный — перерисовывается через кадр, с запасом по краям (M), в промежуточном кадре кладётся прежний на своё место в мире
+    const k = 0.25, M = 60, fw = Math.ceil((zw + 2 * M) * k) + 2, fh = Math.ceil((zh + 2 * M) * k) + 2; let fc = R.fogCv; const fresh = !fc || fc.width !== fw || fc.height !== fh; if (fresh) { fc = R.fogCv = document.createElement('canvas'); fc.width = fw; fc.height = fh; }
+    R.fogN = (R.fogN || 0) + 1;
+    if (fresh || R.fogN % 2 || Math.abs(x0 - R.fogX) > M * 0.8 || Math.abs(y0 - R.fogY) > M * 0.8) { const fx = x0 - M, fy = y0 - M, q = fc.getContext('2d'); q.setTransform(1, 0, 0, 1, 0, 0); q.clearRect(0, 0, fw, fh); q.setTransform(k, 0, 0, k, -fx * k, -fy * k); FOR.fog(q, x0, y0, zw, zh, t * 8, dense); R.fogX = x0; R.fogY = y0; }
+    c.drawImage(fc, R.fogX - M, R.fogY - M, fw / k, fh / k); }
   if (RF && W.giants.length) canopy(R, c, G, x0, y0, zw, zh, t);
   // подписи построек
   c.textAlign = 'center';

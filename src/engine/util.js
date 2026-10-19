@@ -11,6 +11,8 @@ export function rng(seed) {
   };
 }
 
+/** v125: не чаще одного кадра за ms — на экранах 90–120 Гц рисуем 60, при открытом окне 30 (телефон меньше греется). st — {next}. */
+export function due(st, now, ms) { const n = st.next || 0; if (now < n - 2) return false; st.next = now - n > ms ? now + ms : n + ms; return true; }
 export const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
 export const dist = (ax, ay, bx, by) => Math.hypot(ax - bx, ay - by);
 export const lerp = (a, b, t) => a + (b - a) * t;
