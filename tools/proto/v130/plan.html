@@ -1,0 +1,81 @@
+<title>Кварталы Столицы</title>
+<style>
+body{margin:0;background:#2a1e12;color:#f0e2c0;font:15px Georgia,serif;padding:16px}
+h1{font-size:22px;margin:0 0 6px}h2{font-size:17px;margin:18px 0 6px;color:#ffd98a}
+.row{display:flex;gap:24px;flex-wrap:wrap;align-items:flex-start}
+canvas{background:#1a1008;border:2px solid #6a4a22;border-radius:8px;max-width:100%}
+p{max-width:900px;line-height:1.45;margin:6px 0}
+ul{margin:4px 0 4px 18px;max-width:900px;line-height:1.45}
+.leg span{display:inline-block;width:14px;height:14px;border-radius:3px;vertical-align:-2px;margin-right:4px}
+</style>
+<h1>Столица — три квартала профессий (эскиз структуры, v130)</h1>
+<p>Слева — как сейчас, справа — предлагаемая планировка. Стены, ворота, дворец, площадь, улицы и фонтан не двигаются. Голубые стрелки — что переезжает.</p>
+<div class="row"><canvas id="a" width="640" height="560"></canvas><canvas id="b" width="640" height="560"></canvas></div>
+<p class="leg"><span style="background:#6a4ad8"></span>Чародейский квартал &nbsp; <span style="background:#c8742a"></span>Ремесленный квартал &nbsp; <span style="background:#4a9a3a"></span>Травяной квартал &nbsp; <span style="background:#b89a4a"></span>Площадь, банк, рынок &nbsp; <span style="background:#8a6a4a"></span>Постоялая улица (жильё, отдых)</p>
+<h2>Как это будет на картах</h2>
+<div class="row"><canvas id="k" width="560" height="420"></canvas><canvas id="m" width="300" height="300"></canvas></div>
+<p>Карта K: кварталы — цветные области с названием и значком (молот, руна, лист), как сейчас подписаны логова. Мини-карта: те же области цветом, значок квартала — когда город в кадре; при приближении — и подписи.</p>
+<h2>Логика</h2>
+<ul>
+<li><b>Ремесленный квартал</b> (северо-восток, у кузницы): Гильдия рудокопов переезжает с южной улицы к Кузнице, рядом — новая <b>Ювелирная мастерская</b> (эскиз постройки — следующим). Руда → плавка → слитки и камни → украшения, всё в трёх шагах. Двор: вагонетка с рудой, наковальня, бочки с углём, поленница.</li>
+<li><b>Чародейский квартал</b> (северо-запад): Мастерская чар остаётся, к ней переезжает Наставник (таланты — тоже учёба). Двор: кристаллы-фонари, книжный лоток, руны на мостовой.</li>
+<li><b>Травяной квартал</b> (запад, у Лавки травницы): лавка остаётся, на месте избы Наставника — аптекарский огород с грядками, сушильня трав и котёл под навесом. Двор: грядки, кадки с цветами, пчелиные колоды.</li>
+<li><b>Банк</b> — к восточным воротам (прежнее место избы): с дороги сразу в банк, рядом рынок и площадь.</li>
+<li><b>Постоялая улица</b> (юг): таверна, постоялый двор, избы — отдых и дом. Две избы переезжают на освободившиеся места, одна убирается.</li>
+<li>У входа в каждый квартал с главной улицы — <b>арка-вывеска</b> с названием и значком; мостовая квартала своего оттенка (ремесленный — тёмный булыжник, чародейский — синеватые плиты, травяной — дорожка в траве).</li>
+<li>Для старых сохранений ничего не теряется: дом героя — постоялый двор/таверна, они не двигаются; задания к постройкам не привязаны.</li>
+</ul>
+<script>
+const W=2100,H=1700,X0=-1050,Y0=-880;
+function plan(id,title,B,D,arrows,quarters){
+  const c=document.getElementById(id),g=c.getContext('2d'),k=560/W,ox=40,oy=70;
+  const px=x=>ox+(x-X0)*k,py=y=>oy+(y-Y0)*k;
+  g.fillStyle='#ffe9a8';g.font='bold 16px Georgia';g.fillText(title,ox,34);
+  // кварталы
+  for(const q of quarters){g.fillStyle=q.c;g.globalAlpha=.22;g.fillRect(px(q.x0),py(q.y0),(q.x1-q.x0)*k,(q.y1-q.y0)*k);g.globalAlpha=1;g.fillStyle=q.c;g.font='bold 12px Georgia';g.fillText(q.n,px(q.x0)+6,py(q.y1)-6);}
+  // стена
+  g.strokeStyle='#9a8a6a';g.lineWidth=6;g.strokeRect(px(X0),py(Y0),W*k,H*k);
+  // ворота
+  g.fillStyle='#1a1008';g.fillRect(px(-70),py(820)-4,140*k,10);g.fillRect(px(1050)-4,py(95),10,140*k);
+  g.fillStyle='#d9c79a';g.font='11px Georgia';g.fillText('южные ворота',px(-110),py(820)+22);g.fillText('вост. ворота',px(1050)-70,py(95)-6);
+  // улицы
+  g.fillStyle='#8a7a5a';
+  for(const s of [[-70,-440,140,1300],[-980,110,2080,110],[-960,-300,1920,90],[-1040,560,2080,90]])g.fillRect(px(s[0]),py(s[1]),s[2]*k,s[3]*k);
+  g.fillStyle='#a89a78';g.fillRect(px(-300),py(-140),600*k,420*k);g.fillRect(px(-400),py(-535),800*k,100*k);
+  g.fillStyle='#4f8fb0';g.beginPath();g.arc(px(0),py(60),92*k,0,7);g.fill();
+  // дворец
+  g.fillStyle='#6a5a7a';g.fillRect(px(-450),py(-860),900*k,300*k);g.fillStyle='#fff';g.font='11px Georgia';g.textAlign='center';g.fillText('Королевский дворец',px(0),py(-700));
+  for(const b of B){const w=b.w||230,h=b.h||175;g.fillStyle=b.c||'#5a4a3a';g.fillRect(px(b.x-w/2),py(b.y-h),w*k,h*k);g.strokeStyle='#e8d8b0';g.lineWidth=1;g.strokeRect(px(b.x-w/2),py(b.y-h),w*k,h*k);g.fillStyle='#fff';g.font=(b.b?'bold ':'')+'10px Georgia';const L=b.n.split('|');L.forEach((t,i)=>g.fillText(t,px(b.x),py(b.y-h/2)+i*11-(L.length-1)*5+4));}
+  for(const d of D){g.fillStyle='#e0d0a0';g.font='9px Georgia';g.fillText(d[0],px(d[1]),py(d[2]));}
+  g.textAlign='left';
+  for(const a of arrows){g.strokeStyle='#5ad0ff';g.lineWidth=2;g.setLineDash([5,3]);g.beginPath();g.moveTo(px(a[0]),py(a[1]));g.lineTo(px(a[2]),py(a[3]));g.stroke();g.setLineDash([]);g.fillStyle='#5ad0ff';g.beginPath();g.arc(px(a[2]),py(a[3]),4,0,7);g.fill();}
+}
+const now=[{x:-760,y:-320,n:'Мастерская|чар',w:216,c:'#4a3a7a'},{x:440,y:-320,n:'Банк',w:300,h:200,c:'#8a7a3a'},{x:820,y:-320,n:'Кузница',w:270,h:190,c:'#8a4a2a'},
+{x:-220,y:-60,n:'Рынок',w:150,h:80,c:'#8a7a3a'},{x:220,y:-60,n:'Рынок',w:150,h:80,c:'#8a7a3a'},{x:-880,y:90,n:'Лавка|травницы',w:243,c:'#3a6a2a'},{x:-560,y:90,n:'Наставник',c:'#5a4a3a'},
+{x:560,y:90,n:'изба'},{x:880,y:90,n:'изба'},{x:-900,y:540,n:'изба'},{x:-520,y:540,n:'Таверна',w:330,h:225,c:'#6a4a3a'},{x:520,y:540,n:'Гильдия|рудокопов',w:256,h:190,c:'#8a4a2a'},{x:900,y:540,n:'Постоялый|двор',w:324,h:200,c:'#6a4a3a'}];
+plan('a','Сейчас',now,[['доска',430,330]],[],[]);
+const next=[{x:-760,y:-320,n:'Мастерская|чар',w:216,c:'#4a3a7a',b:1},{x:-420,y:-320,n:'Наставник',c:'#4a3a7a',b:1},
+{x:400,y:-320,n:'Гильдия|рудокопов',w:256,h:190,c:'#8a4a2a',b:1},{x:820,y:-320,n:'Кузница',w:270,h:190,c:'#8a4a2a',b:1},{x:560,y:90,n:'Ювелирная|мастерская',w:240,h:180,c:'#a86a2a',b:1},
+{x:-220,y:-60,n:'Рынок',w:150,h:80,c:'#8a7a3a'},{x:220,y:-60,n:'Рынок',w:150,h:80,c:'#8a7a3a'},{x:880,y:90,n:'Банк',w:300,h:200,c:'#8a7a3a',b:1},
+{x:-880,y:90,n:'Лавка|травницы',w:243,c:'#3a6a2a',b:1},{x:-560,y:90,n:'Огород, сушильня,|котёл',w:260,h:150,c:'#2a5a2a'},
+{x:-900,y:540,n:'изба'},{x:-520,y:540,n:'Таверна',w:330,h:225,c:'#6a4a3a'},{x:520,y:540,n:'изба'},{x:900,y:540,n:'Постоялый|двор',w:324,h:200,c:'#6a4a3a'}];
+const dec=[['арка «Чародейский»',-330,-250],['арка «Ремесленный»',120,-250],['арка «Травяной»',-330,260],['доска',430,330],['вагонетка, уголь',300,-420],['кристаллы',-600,-420],['грядки, колоды',-700,230]];
+const q=[{x0:-1040,y0:-540,x1:-100,y1:-170,c:'#6a4ad8',n:'Чародейский квартал'},{x0:100,y0:-540,x1:1040,y1:230,c:'#c8742a',n:'Ремесленный квартал'},{x0:-1040,y0:-150,x1:-100,y1:260,c:'#4a9a3a',n:'Травяной квартал'},{x0:-1040,y0:330,x1:1040,y1:810,c:'#8a6a4a',n:'Постоялая улица'}];
+plan('b','Предлагаю',next,dec,[[520,540,400,-320],[440,-320,880,90],[-560,90,-420,-320],[880,90,520,540]],q);
+// карта K (кусок) и мини-карта
+function kmap(id,S,labels){const c=document.getElementById(id),g=c.getContext('2d');g.fillStyle='#2f5a2f';g.fillRect(0,0,c.width,c.height);const k=S,ox=c.width/2,oy=c.height/2;
+  g.fillStyle='#d9c79a';g.fillRect(ox+X0*k,oy+Y0*k,W*k,H*k);g.strokeStyle='#4a3a24';g.lineWidth=2;g.strokeRect(ox+X0*k,oy+Y0*k,W*k,H*k);
+  for(const z of q){g.fillStyle=z.c;g.globalAlpha=.35;g.fillRect(ox+z.x0*k,oy+z.y0*k,(z.x1-z.x0)*k,(z.y1-z.y0)*k);g.globalAlpha=1;}
+  g.fillStyle='#8a7a5a';g.fillRect(ox-70*k,oy-440*k,140*k,1300*k);g.fillRect(ox-980*k,oy+110*k,2080*k,110*k);g.fillRect(ox-960*k,oy-300*k,1920*k,90*k);g.fillRect(ox-1040*k,oy+560*k,2080*k,90*k);
+  g.fillStyle='#6a5a7a';g.fillRect(ox-450*k,oy-860*k,900*k,300*k);g.fillStyle='#4f8fb0';g.beginPath();g.arc(ox,oy+60*k,92*k,0,7);g.fill();
+  g.textAlign='center';
+  const ic={rune:(x,y)=>{g.strokeStyle='#cbb0ff';g.lineWidth=2;g.beginPath();g.moveTo(x,y-7);g.lineTo(x+6,y+5);g.lineTo(x-6,y+5);g.closePath();g.stroke();g.beginPath();g.moveTo(x,y+5);g.lineTo(x,y-1);g.stroke();},
+    hammer:(x,y)=>{g.strokeStyle='#ffd080';g.lineWidth=3;g.beginPath();g.moveTo(x-6,y+7);g.lineTo(x+4,y-3);g.stroke();g.fillStyle='#ffd080';g.fillRect(x+1,y-9,9,6);},
+    leaf:(x,y)=>{g.fillStyle='#9ae07a';g.beginPath();g.moveTo(x,y-8);g.quadraticCurveTo(x+8,y-2,x,y+8);g.quadraticCurveTo(x-8,y-2,x,y-8);g.fill();},
+    bed:(x,y)=>{g.fillStyle='#ffe0a0';g.fillRect(x-7,y-3,14,7);g.fillRect(x-7,y-7,4,4);}};
+  for(const L of labels){ic[L.i](ox+L.x*k,oy+L.y*k-(L.f?16:0));if(L.f){g.fillStyle='#ffe9a8';g.font='bold '+L.f+'px Georgia';g.strokeStyle='#000';g.lineWidth=3;g.strokeText(L.n,ox+L.x*k,oy+L.y*k+10);g.fillText(L.n,ox+L.x*k,oy+L.y*k+10);}}
+  g.fillStyle='#ffe9a8';g.font='bold 15px Georgia';g.strokeStyle='#000';g.lineWidth=3;g.strokeText('Столица',ox,oy+40*k+40);g.fillText('Столица',ox,oy+40*k+40);
+  g.fillStyle='#e8d8b0';g.font='12px Georgia';g.textAlign='left';g.fillText(id==='k'?'Карта K (Столица крупно)':'Мини-карта',8,16);}
+kmap('k',0.22,[{x:-570,y:-330,i:'rune',n:'Чародейский',f:11},{x:570,y:-120,i:'hammer',n:'Ремесленный',f:11},{x:-570,y:60,i:'leaf',n:'Травяной',f:11},{x:0,y:580,i:'bed',n:'Постоялая улица',f:11}]);
+kmap('m',0.11,[{x:-570,y:-330,i:'rune'},{x:570,y:-120,i:'hammer'},{x:-570,y:60,i:'leaf'},{x:0,y:580,i:'bed'}]);
+</script>
