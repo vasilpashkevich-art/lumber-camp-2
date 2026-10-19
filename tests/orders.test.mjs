@@ -7,7 +7,7 @@ import { MOUNTS } from '../data/mounts.js';
 import { buildWorld } from '../src/world/world.js';
 import { newHero } from '../src/entities/hero.js';
 import { createGame, update, interactTarget } from '../src/systems/game.js';
-import { boardOf, oState, oTake, oTurnIn, oDrop, orderReady, orderProgress, orderReward, greyFor, buyRoyal, dayOf } from '../src/systems/orders.js';
+import { boardOf, oState, oTake, oTurnIn, oDrop, orderReady, orderProgress, orderReward, greyFor, buyRoyal, dayOf, boardMark } from '../src/systems/orders.js';
 import { countOf, addStack } from '../src/systems/mining.js';
 import { makeStack } from '../src/systems/items.js';
 import { migrate } from '../src/engine/save.js';
@@ -48,14 +48,16 @@ test('orders: принести — считает сумку, сдача заб�
   const T2 = { ...ORDERS.pine[0], zone: 'pine', key: 'pine|' + ORDERS.pine[0].id, need: 5 }; oTake(G, T2); oState(h).act[T2.key].n = 3; assert.ok(oDrop(G, T2)); assert.equal(orderProgress(h, T2), 0);
 });
 
-test('orders: бонус за все три; серая зона — без печатей; новый день очищает доску', () => {
+test('orders: бонус за все три; печати и в серой зоне; новый день очищает доску; знак над доской', () => {
   const G = setup(5), h = G.hero, L = boardOf('pine');
   for (const T of L) { if (T.prof) h.prof[T.prof] = 1; oTake(G, T); if (T.k === 'gather') addStack(h, makeStack(T.kind, T.metal, T.need)); else oState(h).act[T.key].n = T.need; }
   let tok = 0; for (const T of L) { assert.ok(oTurnIn(G, T)); tok += orderReward(h, T).tok; }
   assert.equal(h.tokens, tok + ORDER.bonus); assert.ok(oState(h).bonus.pine);
-  const G2 = setup(12), h2 = G2.hero; assert.ok(greyFor(h2, 'pine')); assert.equal(orderReward(h2, L[0]).tok, 0); assert.ok(orderReward(h2, L[0]).money > 0);
+  const G2 = setup(12), h2 = G2.hero; assert.ok(greyFor(h2, 'pine')); assert.ok(orderReward(h2, L[0]).tok >= 1, 'v128: печати на любом уровне'); assert.ok(orderReward(h2, L[0]).money > 0);
   assert.equal(greyFor(setup(9).hero, 'pine'), false);
   const S = oState(h); S.day = dayOf() - 1; const S2 = oState(h); assert.equal(Object.keys(S2.done).length, 0); assert.equal(S2.day, dayOf());
+  assert.equal(boardMark(h, 'pine'), '!'); const T0 = boardOf('pine')[0]; if (T0.prof) h.prof[T0.prof] = 1; oTake(G, T0); if (T0.k === 'gather') addStack(h, makeStack(T0.kind, T0.metal, T0.need)); else oState(h).act[T0.key].n = T0.need; assert.equal(boardMark(h, 'pine'), '?'); oTurnIn(G, T0); assert.equal(boardMark(h, 'pine'), '!');
+  for (const T of boardOf('pine').slice(1)) { if (T.prof) h.prof[T.prof] = 1; oTake(G, T); } assert.equal(boardMark(h, 'pine'), '');
 });
 
 test('royal: баран за печати (с 15-го), синяя вещь в выбранное место, фиолетовый аксессуар, сундучок; не хватает — нет', () => {

@@ -26,12 +26,13 @@ export const NPC_LOOK = {
 /** Знак над жителем: '!' золотой — есть задание, '?' золотой — сдать, 'wait' — серый «?», 'low' — серый «!». */
 export function questMark(g, x, y, mark, t) {
   if (!mark) return;
-  const gold = mark === '!' || mark === '?', ch = mark === '?' || mark === 'wait' ? '?' : '!', bob = Math.sin(t * 3) * 2.5;
+  const blue = mark === 'b!' || mark === 'b?', gold = mark === '!' || mark === '?' || blue, ch = mark === '?' || mark === 'wait' || mark === 'b?' ? '?' : '!', bob = Math.sin(t * 3) * 2.5;   // v128: b! / b? — голубые знаки доски заказов
   g.save(); g.translate(x, y + bob);
-  if (gold) { const r = 18 + Math.sin(t * 4) * 1.5, gr = g.createRadialGradient(0, -12, 2, 0, -12, r); gr.addColorStop(0, 'rgba(255,220,90,.55)'); gr.addColorStop(1, 'rgba(255,200,60,0)'); g.fillStyle = gr; g.beginPath(); g.arc(0, -12, r, 0, 7); g.fill(); }
+  if (gold) { const r = 18 + Math.sin(t * 4) * 1.5, gr = g.createRadialGradient(0, -12, 2, 0, -12, r); gr.addColorStop(0, blue ? 'rgba(120,200,255,.55)' : 'rgba(255,220,90,.55)'); gr.addColorStop(1, blue ? 'rgba(80,170,255,0)' : 'rgba(255,200,60,0)'); g.fillStyle = gr; g.beginPath(); g.arc(0, -12, r, 0, 7); g.fill(); }
   g.font = 'bold 30px Georgia, serif'; g.textAlign = 'center'; g.lineJoin = 'round';
   g.lineWidth = 5; g.strokeStyle = 'rgba(30,18,6,.95)'; g.strokeText(ch, 0, 0);
-  if (gold) { const gr = g.createLinearGradient(0, -24, 0, 0); gr.addColorStop(0, '#fff3a0'); gr.addColorStop(0.5, '#ffd23a'); gr.addColorStop(1, '#d08a10'); g.fillStyle = gr; }
+  if (blue) { const gr = g.createLinearGradient(0, -24, 0, 0); gr.addColorStop(0, '#d8f2ff'); gr.addColorStop(0.5, '#5ab8ff'); gr.addColorStop(1, '#1a6ad0'); g.fillStyle = gr; }
+  else if (gold) { const gr = g.createLinearGradient(0, -24, 0, 0); gr.addColorStop(0, '#fff3a0'); gr.addColorStop(0.5, '#ffd23a'); gr.addColorStop(1, '#d08a10'); g.fillStyle = gr; }
   else g.fillStyle = '#b8b0a0';
   g.fillText(ch, 0, 0);
   g.restore();

@@ -31,11 +31,13 @@ export function oState(h, now = Date.now()) {
   return h.orders;
 }
 /** Заказы на доске зоны сегодня: ORDER.perDay разных, по зерну дня. */
+const BOARD_CACHE = new Map();
 export function boardOf(zone, now = Date.now()) {
   const L = ORDERS[zone] || []; if (!L.length) return [];
-  const day = dayOf(now), r = rng(day * 7919 + zone.length * 131 + zone.charCodeAt(0)), pool = L.slice(), out = [];
+  const day = dayOf(now), ck = zone + ':' + day; if (BOARD_CACHE.has(ck)) return BOARD_CACHE.get(ck);   // v128: знак над доской спрашивает каждый кадр
+  const r = rng(day * 7919 + zone.length * 131 + zone.charCodeAt(0)), pool = L.slice(), out = [];
   while (out.length < Math.min(ORDER.perDay, L.length)) { const i = Math.floor(r() * pool.length); const T = pool.splice(i, 1)[0]; out.push({ ...T, zone, key: zone + '|' + T.id, need: T.n[0] + Math.floor(r() * (T.n[1] - T.n[0] + 1)) }); }
-  return out;
+  BOARD_CACHE.set(ck, out); return out;
 }
 const zoneLvl = zone => (CONTINENT.find(z => z.id === zone) || { lvl: [1, 6] }).lvl;
 /** Зона «серая» для героя — печатей не дают. */
@@ -59,7 +61,7 @@ export const orderReady = (h, T) => !!oState(h).act[T.key] && orderProgress(h, T
 /** Награда за заказ: печати (0 в серой зоне), деньги, опыт. */
 export function orderReward(h, T) {
   const L = zoneLvl(T.zone), lv = Math.round((L[0] + L[1]) / 2), grey = greyFor(h, T.zone);
-  return { tok: grey ? 0 : (T.tok ?? ORDER.tok), money: Math.round(lv * 10 * ORDER.moneyK), xp: Math.round(xpKill(lv, h.lvl) * ORDER.xpK), grey };
+  return { tok: T.tok ?? ORDER.tok, money: Math.round(lv * 10 * ORDER.moneyK), xp: Math.round(xpKill(lv, h.lvl) * ORDER.xpK), grey };   // v128: печати — на любом уровне (решение Василия 19.10.2026)
 }
 /** Взять заказ. */
 export function oTake(G, T) {
@@ -78,10 +80,10 @@ export function oTurnIn(G, T) {
   delete S.act[T.key]; S.done[T.key] = true;
   const R = orderReward(h, T); h.gold += R.money; h.stats.gold = (h.stats.gold || 0) + R.money; h.tokens += R.tok;
   if (addXp(h, R.xp)) { G.st = heroStats(h); G.P.hp = G.st.maxHp; emit(G, { k: 'lvl', L: h.lvl }); sfx(G, 'levelUp'); }
-  let s = `Заказ выполнен: <b>${T.name}</b>. ` + (R.tok ? `+${R.tok} ${plural(R.tok, TOKEN.short, 'печати', 'печатей')}` : 'Печатей нет — вы переросли этот край');
+  let s = `Заказ выполнен: <b>${T.name}</b>. +${R.tok} ${plural(R.tok, TOKEN.short, 'печати', 'печатей')}`;
   // все заказы дня этой зоны — ещё печати
   const all = boardOf(T.zone).every(o => S.done[o.key]);
-  if (all && !S.bonus[T.zone] && !R.grey) { S.bonus[T.zone] = true; h.tokens += ORDER.bonus; s += `. Все заказы дня — ещё +${ORDER.bonus}!`; }
+  if (all && !S.bonus[T.zone]) { S.bonus[T.zone] = true; h.tokens += ORDER.bonus; s += `. Все заказы дня — ещё +${ORDER.bonus}!`; }
   emit(G, { k: 'coins', v: R.money }); emit(G, { k: 'txt', x: G.P.x, y: G.P.y - 90, s: `+${R.xp} опыта`, col: '#c8a0ff' }); sfx(G, 'coin'); toast(G, s, 'good'); emit(G, { k: 'orders' }); return true;
 }
 /** Из killMob: засчитать убийство во взятые заказы этой зоны. */
@@ -92,6 +94,8 @@ export function oOnKill(G, m) {
     if (A.n >= need) toast(G, `<b>${T0.name}</b> — готово! Сдайте на доске заказов`, 'good'); else emit(G, { k: 'txt', x: m.x, y: m.y - 60, s: `${T0.name}: ${A.n}/${need}`, col: '#ffe08a' });
   }
 }
+/** v128: знак над доской: '?' — есть что сдать, '!' — есть невзятые, '' — всё сделано или всё взято. */
+export function boardMark(h, zone) { const S = oState(h), L = boardOf(zone); if (L.some(T => orderReady(h, T))) return '?'; if (L.some(T => !S.act[T.key] && !S.done[T.key])) return '!'; return ''; }
 /** Взятые заказы в этой зоне (для отслеживания). */
 export function activeOrders(h, zone) { const S = oState(h); return boardOf(zone).filter(T => S.act[T.key]); }
 

@@ -1,6 +1,7 @@
 // Карта зоны: одна отрисовка для большой карты (K) и мини-карты.
 // Логова показываются областью с названием и уровнями; самих мобов на карте нет.
 import { qState, qAreas, npcMark, npcsOf, QUESTS } from '../systems/quests.js';
+import { boardMark } from '../systems/orders.js';
 import { TOUCH } from './dom.js';
 import { lvlColor } from '../../data/balance.js';
 import { modal } from './dom.js';
@@ -126,6 +127,7 @@ function questLayer(g, G, k, big, q = 1) {
     g.restore(); g.strokeStyle = 'rgba(255,214,90,.8)'; g.lineWidth = big ? 1.6 : q; g.beginPath(); g.arc(x, y, r, 0, 7); g.stroke();
     if (big) text(g, QUESTS[id].name, x, y - r - 4, '#ffd96a', 12);
   }
+  for (const bd of W.boards || []) { const mk = boardMark(G.hero, bd.zone); if (!mk) continue; text(g, mk, bd.x * k, bd.y * k + (big ? 6 : 4 * q), '#5ab8ff', big ? 20 : 13 * q); if (big) text(g, 'Доска заказов', bd.x * k, bd.y * k + 20, '#d8f2ff', 11, false); }   // v128
   for (const n of npcsOf(W.Z.id)) { const mk = npcMark(G.hero, n.id); if (!mk) continue; const gold = mk === '!' || mk === '?'; text(g, mk === '?' || mk === 'wait' ? '?' : '!', n.x * k, n.y * k + (big ? 6 : 4 * q), gold ? '#ffd23a' : '#b8b0a0', big ? 20 : 13 * q); if (big) text(g, n.name, n.x * k, n.y * k + 20, '#fff2d8', 11, false); }
 }
 
@@ -168,7 +170,7 @@ export function drawMini(cv, G, cache) {
 /** Большая карта зоны поверх игры. Закрывается по K, Esc или кнопке. */
 export function openMap(G) {
   const W = G.W, CW = 1100, CH = Math.round(CW * W.H / W.W);
-  const m = modal(`<h2>${W.Z.name} <small style="font-size:15px;color:#a89878">ур. ${W.Z.lvl[0]}–${W.Z.lvl[1]}</small></h2><canvas width="${CW * 2}" height="${CH * 2}"></canvas><p class="hint">Цвет подписи — насколько опасно для вас: зелёный — легко, жёлтый — по силам, оранжевый и красный — опасно. Жёлтые кружки на краю — дороги в другие края. Золотая штриховка — где искать цели ваших заданий, «!» и «?» — жители с заданиями.</p><div class="row"><button class="btn main" data-x="ok">Закрыть${TOUCH ? '' : ' (K)'}</button></div>`, 'map');
+  const m = modal(`<h2>${W.Z.name} <small style="font-size:15px;color:#a89878">ур. ${W.Z.lvl[0]}–${W.Z.lvl[1]}</small></h2><canvas width="${CW * 2}" height="${CH * 2}"></canvas><p class="hint">Цвет подписи — насколько опасно для вас: зелёный — легко, жёлтый — по силам, оранжевый и красный — опасно. Жёлтые кружки на краю — дороги в другие края. Золотая штриховка — где искать цели ваших заданий, «!» и «?» — жители с заданиями, голубые — доска заказов.</p><div class="row"><button class="btn main" data-x="ok">Закрыть${TOUCH ? '' : ' (K)'}</button></div>`, 'map');
   const cv = m.querySelector('canvas'), g = cv.getContext('2d'), k = CW / W.W;
   const draw = () => {
     g.setTransform(2, 0, 0, 2, 0, 0); g.clearRect(0, 0, CW, CH);

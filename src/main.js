@@ -24,10 +24,11 @@ import { rollDrop, makeItem, makeTrinket, makeStack, makePick } from './systems/
 import { LOOT, CRAFT } from '../data/balance.js';
 import { dist, due } from './engine/util.js';
 import { NPCS } from '../data/quests.js';
+import * as ORD from './systems/orders.js';
 import { $, toast, zoneTitle, TOUCH, T } from './ui/dom.js';
 import { RAR_COL } from '../data/balance.js';
 
-const VERSION = 127;
+const VERSION = 128;
 /** Приближение камеры на шаг: +1 ближе, −1 дальше. */
 let zoomT = 0;
 function zoomBy(d) {
@@ -74,7 +75,7 @@ function boot() {
   miniBtns();
   $('#btnBag').onclick = () => charWin(); $('#btnHearth').onclick = () => { if (G && !document.querySelector('.modal')) startHearth(G); }; $('#btnMount').onclick = () => { if (G && !document.querySelector('.modal')) { toggleMount(G); hud.update(); } }; $('#btnMenu').onclick = () => menu(); $('#btnMap').onclick = () => mapWin(); $('#btnProf').onclick = () => profWin(); $('#btnDg').onclick = () => dgWin(); $('#btnQuest').onclick = () => qWin(); $('#qtrack').onclick = () => qWin(); $('#mini').onclick = () => mapWin(); $('#pfRing').onclick = () => { if (G && !document.querySelector('.modal')) devWin(); };
   $('#ver').textContent = 'версия ' + VERSION;
-  if (location.hash === '#dev') window.__G = { get G() { return G; }, start, toSelect, R: () => R, rollDrop, makeItem, doll, makeTrinket, makeStack, makePick, addStack, refresh: () => { refreshStats(G); hud.update(); }, spriteStats, Q, trinketProc, CRAFT, openHowTo };
+  if (location.hash === '#dev') window.__G = { get G() { return G; }, start, toSelect, R: () => R, rollDrop, makeItem, doll, makeTrinket, makeStack, makePick, addStack, refresh: () => { refreshStats(G); hud.update(); }, spriteStats, Q, trinketProc, CRAFT, openHowTo, orders: ORD };
   toSelect();
 }
 

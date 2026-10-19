@@ -1,5 +1,6 @@
 // Отрисовка мира: земля кусками, предметы по глубине, мобы, герой, выстрелы, эффекты, всплывающие числа.
 import { TOUCH } from '../ui/dom.js';
+import { boardMark } from '../systems/orders.js';   // v128
 import { LOOK } from '../art/look.js';
 import { lairSpr } from '../art/lairs.js';
 import { chestBig } from '../art/chest.js';
@@ -236,7 +237,7 @@ function buildStatics(W) {
     const sp = sprite('sign', 120, 110, 60, 90, 2, oldProps() ? g => signpost(g) : styled(g => TP.signpost(g)));
     S.push({ y: e.y, draw: g => drawSpr(g, sp, e.x - 40, e.y), label: `${e.to} · ${e.lvl}`, lx: e.x - 40, ly: e.y - 100 });
   }
-  for (const bd of W.boards || []) { const sp = sprite('board', 140, 130, 70, 110, 2, styled(g => TP.board(g))); S.push({ y: bd.y, x: bd.x, draw: g => drawSpr(g, sp, bd.x, bd.y), label: 'Доска заказов', lx: bd.x, ly: bd.y - 115 }); }   // v126
+  for (const bd of W.boards || []) { const sp = sprite('board', 140, 130, 70, 110, 2, styled(g => TP.board(g))); S.push({ y: bd.y, x: bd.x, draw: (g, t) => { drawSpr(g, sp, bd.x, bd.y); const mk = boardMark(G_CUR.hero, bd.zone); if (mk) { if (UIK !== 1) { around(g, bd.x, bd.y - 112); UIK0(() => questMark(g, bd.x, bd.y - 112, 'b' + mk, t)); g.restore(); } else questMark(g, bd.x, bd.y - 112, 'b' + mk, t); } }, label: 'Доска заказов', lx: bd.x, ly: bd.y - 130 }); }   // v126; v128: голубой знак над доской
   // приметы логов: нора, логово, лёжка, паутина, шатры; у людей — костёр
   for (const cp of W.camps) {
     const sp = lairSpr(cp.lair), ly = cp.y - 10;
@@ -618,11 +619,11 @@ function canopy(Rd, c, G, x0, y0, zw, zh, t) {
 }
 
 // ---------------------------------------------------------------- кадр
-let R_PARTS = null, EXEC = 0;
+let R_PARTS = null, EXEC = 0, G_CUR = null;
 /** Эффекты над фигурами (v73): взрывы, удары, вспышки. thirst — от тела к герою (в мировых координатах). */
 const OVER = { venom: MF.venom, sporeBurst: MF.sporeBurst, curseHit: MF.curseHit, impact: V.impact, explosion: V.explosion, frostHit: V.frostHit, bloodHit: V.bloodHit, critBurst: V.critBurst, igniteFlash: V.igniteFlash, trapSnap: V.trapSnap, thirst: V.thirst, herbPick: herbBurst, drink: drinkFx };
 export function render(R, G, now) {
-  const { ctx: c, cv } = R, W = G.W, P = G.P; R_PARTS = R.parts;
+  const { ctx: c, cv } = R, W = G.W, P = G.P; R_PARTS = R.parts; G_CUR = G;
   if (R.W !== W) { R.W = W; R.chunks.clear(); R.statics = buildStatics(W); }
   if (W.sealedVer !== R.sealedVer) { R.sealedVer = W.sealedVer; R.chunks.clear(); }   // v90: запечатанный ход открылся — землю перерисовать
   // события → всплывающие числа и частицы
