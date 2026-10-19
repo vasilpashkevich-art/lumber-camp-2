@@ -549,8 +549,54 @@ function millBladesT(g, a = 0) {
   g.beginPath(); g.arc(0, 0, 7, 0, TAU); paint(g, '#6a4a2c', 1.4); g.beginPath(); g.arc(0, 0, 3, 0, TAU); paint(g, TB.iron, 1);
 }
 
+// ---------------------------------------------------------------- v130: ювелирная мастерская — светлый камень, медная крыша с патиной и золотым шаром,
+// витрина с украшениями под полосатым навесом, дверь с латунью, вывеска-кольцо, точильный круг и ларец с камнями у стены (эскиз tools/proto/v130)
+function jeweler(g, t = 0) {
+  const w = 176, d = 130, H = 102, stone = '#e6dcc6', roof = '#4e9a86', brass = TB.gold;
+  shadowAt(g, w + 50, d);
+  stoneRect(g, -w / 2, -H, w, H, stone, 71, 16);
+  // цоколь из тёмного камня и бордюр
+  stoneRect(g, -w / 2 - 3, -16, w + 6, 16, '#9a948a', 72, 7);
+  const top = roofSide(g, w, d, H, 48, roof, 'slate', true);
+  // золотой шар на коньке и труба
+  chimneyT(g, w * 0.3, top + 16, 22, '#a89a8a', 2);
+  rr(g, -4, top - 8, 8, 10, 2); paint(g, brass, 1.1); g.beginPath(); g.arc(0, top - 14, 7, 0, TAU); paint(g, brass, 1.4, top - 21, top - 7); shine(g, -2.5, top - 16.5, 2.4, 1.4, 0.75);
+  // круглое окошко в мансарде
+  g.beginPath(); g.arc(-40, -H - 14, 9, 0, TAU); paint(g, sh(stone, 0.05), 1.3); g.beginPath(); g.arc(-40, -H - 14, 6, 0, TAU); paint(g, '#fff0b0', 1.1); g.strokeStyle = ink(stone); g.lineWidth = 1; g.beginPath(); g.moveTo(-46, -H - 14); g.lineTo(-34, -H - 14); g.moveTo(-40, -H - 20); g.lineTo(-40, -H - 8); g.stroke();
+  // витрина слева: широкое арочное окно с золотой рамой, внутри — подушка с кольцом, ожерельем и камнями
+  const vx = -42, vw = 72, vh = 56, vy = -24;
+  rr(g, vx - vw / 2 - 6, vy - vh - 6, vw + 12, vh + 6, 14); paint(g, brass, 1.5, vy - vh - 6, vy);
+  rr(g, vx - vw / 2, vy - vh, vw, vh, 10); const gr = g.createLinearGradient(vx - vw / 2, vy - vh, vx + vw / 2, vy); gr.addColorStop(0, '#2a2438'); gr.addColorStop(1, '#4a3a5a'); g.fillStyle = gr; g.fill(); g.strokeStyle = ink(brass); g.lineWidth = 1.3; g.stroke();
+  // подушка бархат
+  rr(g, vx - 28, vy - 20, 56, 14, 6); paint(g, '#8a2a3a', 1.1, vy - 20, vy - 6);
+  // ожерелье на подставке
+  g.strokeStyle = brass; g.lineWidth = 1.6; g.beginPath(); g.moveTo(vx - 20, vy - 40); g.quadraticCurveTo(vx - 10, vy - 22, vx, vy - 24); g.quadraticCurveTo(vx + 10, vy - 22, vx + 20, vy - 40); g.stroke();
+  g.beginPath(); g.moveTo(vx, vy - 24); g.lineTo(vx + 4, vy - 30); g.lineTo(vx, vy - 36); g.lineTo(vx - 4, vy - 30); g.closePath(); paint(g, '#4ad0a0', 1, vy - 36, vy - 24); shine(g, vx - 1.2, vy - 32, 1.2, 0.8, 0.8);
+  // кольцо и камни
+  g.beginPath(); g.arc(vx - 18, vy - 14, 5, 0, TAU); g.strokeStyle = brass; g.lineWidth = 2.4; g.stroke(); g.beginPath(); g.arc(vx - 18, vy - 19.5, 2.4, 0, TAU); paint(g, '#d84a6a', 0.8);
+  for (const [dx, col] of [[8, '#e0a040'], [16, '#a86ad8'], [24, '#3ac878']]) { g.beginPath(); g.moveTo(vx + dx, vy - 18); g.lineTo(vx + dx + 3.2, vy - 13); g.lineTo(vx + dx, vy - 8); g.lineTo(vx + dx - 3.2, vy - 13); g.closePath(); paint(g, col, 0.9, vy - 18, vy - 8); shine(g, vx + dx - 1, vy - 15, 1, 0.7, 0.8); }
+  // блик стекла
+  g.save(); rr(g, vx - vw / 2, vy - vh, vw, vh, 10); g.clip(); g.fillStyle = 'rgba(255,255,255,.14)'; g.beginPath(); g.moveTo(vx - vw / 2, vy - vh); g.lineTo(vx - vw / 2 + 26, vy - vh); g.lineTo(vx - vw / 2 + 8, vy); g.lineTo(vx - vw / 2, vy); g.fill(); g.restore();
+  // полосатый навес над витриной (провис)
+  const ay = vy - vh - 10, aw = vw + 24; g.save(); g.beginPath(); g.moveTo(vx - aw / 2, ay - 14); g.lineTo(vx + aw / 2, ay - 14); g.lineTo(vx + aw / 2 + 4, ay + 2); for (let x = vx + aw / 2 + 4; x > vx - aw / 2 - 4; x -= 12) g.quadraticCurveTo(x - 6, ay + 10, x - 12, ay + 2); g.closePath(); g.clip();
+  for (let x = vx - aw / 2 - 6, i = 0; x < vx + aw / 2 + 6; x += 13, i++) { g.fillStyle = i % 2 ? '#f2e6cc' : '#8a2a3a'; g.fillRect(x, ay - 16, 13, 30); } g.fillStyle = 'rgba(0,0,0,.12)'; g.fillRect(vx - aw / 2 - 6, ay - 2, aw + 12, 14); g.restore();
+  g.beginPath(); g.moveTo(vx - aw / 2, ay - 14); g.lineTo(vx + aw / 2, ay - 14); g.lineTo(vx + aw / 2 + 4, ay + 2); for (let x = vx + aw / 2 + 4; x > vx - aw / 2 - 4; x -= 12) g.quadraticCurveTo(x - 6, ay + 10, x - 12, ay + 2); g.closePath(); g.strokeStyle = '#4a1a22'; g.lineWidth = 1.5; g.stroke();
+  // дверь справа с латунными полосами и круглым окошком
+  doorSq(g, 46, 36, 62, '#5a3a2a', '#a89a8a'); for (const by of [0.25, 0.72]) { rr(g, 28, -62 * by - 2.4, 36, 4.8, 2); paint(g, brass, 1); } g.beginPath(); g.arc(46, -48, 5, 0, TAU); paint(g, '#fff0b0', 1.1);
+  // вывеска: кольцо с камнем
+  signT(g, w / 2 + 2, -H + 18, gg => { gg.beginPath(); gg.arc(0, 2, 6, 0, TAU); gg.strokeStyle = brass; gg.lineWidth = 3; gg.stroke(); gg.beginPath(); gg.moveTo(0, -9); gg.lineTo(4, -4); gg.lineTo(0, 1); gg.lineTo(-4, -4); gg.closePath(); paint(gg, '#4ad0a0', 0.9); });
+  lampT(g, -w / 2 + 6, -44, true);
+  // у левой стены под навесом: точильный круг на стойке и ларец с самоцветами
+  const px = -w / 2 - 30; rr(g, px - 14, -8, 28, 8, 3); paint(g, '#7a5232', 1.2); rr(g, px - 3, -30, 6, 22, 2); paint(g, '#7a5232', 1.1);
+  g.beginPath(); g.arc(px, -30, 13, 0, TAU); paint(g, '#8a8478', 1.4, -43, -17); g.beginPath(); g.arc(px, -30, 4, 0, TAU); paint(g, TB.iron, 1); g.strokeStyle = sh('#8a8478', -0.3); g.lineWidth = 1; g.beginPath(); g.arc(px, -30, 9, 0, TAU); g.stroke();
+  g.strokeStyle = '#7a5232'; g.lineWidth = 2.6; g.beginPath(); g.moveTo(px + 13, -30); g.lineTo(px + 24, -16); g.stroke();
+  const bx = w / 2 + 30; rr(g, bx - 14, -14, 28, 14, 4); paint(g, '#6a3e22', 1.3, -14, 0); rr(g, bx - 15, -20, 30, 8, 4); paint(g, '#7a4a2a', 1.3, -20, -12); rr(g, bx - 14, -13, 28, 3, 1.5); paint(g, brass, 0.9);
+  for (const [dx, col] of [[-7, '#e0a040'], [0, '#a86ad8'], [7, '#3ac878']]) { g.beginPath(); g.moveTo(bx + dx, -26); g.lineTo(bx + dx + 3, -21); g.lineTo(bx + dx, -16); g.lineTo(bx + dx - 3, -21); g.closePath(); paint(g, col, 0.9, -26, -16); }
+  potT(g, w / 2 + 6, 2, '#5f9a44');
+}
+
 const scaled = f => (g, a, b) => { g.save(); g.scale(SC, SC); f(g, a, b); g.restore(); };
-export const TBLD = { bank: scaled(bank), house: scaled(house), forge: scaled(forge), tavern: scaled(tavern), enchant: scaled(enchant), miners: scaled(miners), herbal: scaled(herbal), inn: scaled(inn), palace: scaled(palace) };
+export const TBLD = { bank: scaled(bank), house: scaled(house), forge: scaled(forge), tavern: scaled(tavern), enchant: scaled(enchant), jeweler: scaled(jeweler), miners: scaled(miners), herbal: scaled(herbal), inn: scaled(inn), palace: scaled(palace) };
 /** Посёлок (Хутор Подгорный, хутора): в своих размерах, без ×1,35. */
 export const TVIL = { house: vhouse, inn: vinn, forge: vforge, barn, farmstead, millBase: millBaseT, millBlades: millBladesT, stable, trough, horseHead, HORSE_HEAD, STALLS: [[-120, 0, 1], [64, 1, -1], [120, 2, -1]] };   // денники с конями: [x, масть, куда смотрит]
 /** Общие кисти для мелочей (tprops.js). */
