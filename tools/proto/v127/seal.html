@@ -1,0 +1,32 @@
+<title>Королевская печать</title><style>body{margin:0;background:#2a1e12;color:#f0e2c0;font:15px Georgia,serif;padding:18px}h1{font-size:24px;margin:0 0 10px}.row{display:flex;gap:40px;align-items:flex-end;flex-wrap:wrap}.c{text-align:center}.c b{display:block;margin-top:6px}.sm{display:inline-flex;gap:8px;align-items:center;background:#1a1008;border:2px solid #6a4a22;border-radius:8px;padding:6px 10px;margin-top:8px}.sm i{color:#ffd34d;font-style:normal;font-weight:bold}</style>
+<h1>Королевская печать — значок</h1>
+<div class="row" id="r"></div>
+<script>
+const CUR = `<circle cx="10" cy="10" r="9" fill="#b83a3a" stroke="#5a1a1a" stroke-width="1.2"/><circle cx="10" cy="10" r="6" fill="none" stroke="#e8c070" stroke-width="1.1"/><path d="M6 12 L7 8 L10 10.5 L13 8 L14 12 Z" fill="#e8c070"/><circle cx="7" cy="7" r="1.4" fill="rgba(255,255,255,.55)"/>`;
+// А: красный сургуч с золотым гербом — корона над щитом с солнцем
+const A = `<defs><radialGradient id="ga" cx="40%" cy="35%"><stop offset="0" stop-color="#d85a52"/><stop offset=".7" stop-color="#a82e2e"/><stop offset="1" stop-color="#7a1c1c"/></radialGradient></defs>
+<path d="M10 1.2 l1.6 1.1 1.9-.5 1 1.7 1.9.4.2 1.9 1.6 1.1-.6 1.8 1.1 1.6-1.3 1.4.3 1.9-1.8.8-.5 1.9-1.9-.1-1.2 1.5-1.7-.9-1.7.9-1.2-1.5-1.9.1-.5-1.9-1.8-.8.3-1.9L1.7 10l1.1-1.6-.6-1.8 1.6-1.1.2-1.9 1.9-.4 1-1.7 1.9.5z" fill="url(#ga)" stroke="#4a1212" stroke-width=".9"/>
+<circle cx="10" cy="10.2" r="6.6" fill="none" stroke="#e8c070" stroke-width=".9"/>
+<path d="M6.6 12.4 V8.2 h6.8 v4.2 c0 2-1.7 3.2-3.4 3.9-1.7-.7-3.4-1.9-3.4-3.9z" fill="#e8c070" stroke="#5a1a1a" stroke-width=".5"/>
+<circle cx="10" cy="11.2" r="1.7" fill="#a82e2e"/><g stroke="#a82e2e" stroke-width=".7" stroke-linecap="round"><path d="M10 8.6v.9M10 13v.9M7.5 11.2h.9M11.6 11.2h.9M8.2 9.4l.6.6M11.2 12.4l.6.6M11.8 9.4l-.6.6M8.8 12.4l-.6.6"/></g>
+<path d="M6.8 7.6 l.6-2.4 1.4 1.2 L10 4.2 l1.2 2.2 1.4-1.2.6 2.4z" fill="#e8c070" stroke="#5a1a1a" stroke-width=".5"/>
+<ellipse cx="6.4" cy="5.8" rx="2.2" ry="1.2" transform="rotate(-35 6.4 5.8)" fill="rgba(255,255,255,.35)"/>`;
+// Б: золотая медаль-жетон с короной и солнцем, красная лента сверху
+const B = `<defs><linearGradient id="gb" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f6dc8a"/><stop offset=".5" stop-color="#d8a844"/><stop offset="1" stop-color="#a87820"/></linearGradient></defs>
+<path d="M7 0.6 h6 l-1 4.2 h-4z" fill="#b83a3a" stroke="#5a1a1a" stroke-width=".6"/>
+<circle cx="10" cy="11.4" r="8" fill="url(#gb)" stroke="#5a3a08" stroke-width="1"/><circle cx="10" cy="11.4" r="6.2" fill="none" stroke="#7a5410" stroke-width=".6" stroke-dasharray="1.2 .9"/>
+<circle cx="10" cy="12.2" r="2.4" fill="#b83a3a" stroke="#5a1a1a" stroke-width=".4"/><g stroke="#5a3a08" stroke-width=".8" stroke-linecap="round"><path d="M10 8.2v1M10 15.2v1M6 12.2h1M13 12.2h1M7.2 9.4l.7.7M12.1 15l.7.7M12.8 9.4l-.7.7M7.9 15l-.7.7"/></g>
+<path d="M7.4 8.4 l.5-2.2 1.3 1.1 L10 5.2 l.8 2.1 1.3-1.1.5 2.2z" fill="#fff0b8" stroke="#5a3a08" stroke-width=".5"/>
+<ellipse cx="6.6" cy="7.6" rx="2" ry="1" transform="rotate(-35 6.6 7.6)" fill="rgba(255,255,255,.5)"/>`;
+// В: синий сургуч с золотом, щит с солнцем и два меча, корона
+const C = `<defs><radialGradient id="gc" cx="40%" cy="35%"><stop offset="0" stop-color="#5a8ad8"/><stop offset=".7" stop-color="#2f5a9a"/><stop offset="1" stop-color="#1c3a6a"/></radialGradient></defs>
+<path d="M10 1.2 l1.6 1.1 1.9-.5 1 1.7 1.9.4.2 1.9 1.6 1.1-.6 1.8 1.1 1.6-1.3 1.4.3 1.9-1.8.8-.5 1.9-1.9-.1-1.2 1.5-1.7-.9-1.7.9-1.2-1.5-1.9.1-.5-1.9-1.8-.8.3-1.9L1.7 10l1.1-1.6-.6-1.8 1.6-1.1.2-1.9 1.9-.4 1-1.7 1.9.5z" fill="url(#gc)" stroke="#12284a" stroke-width=".9"/>
+<circle cx="10" cy="10.2" r="6.6" fill="none" stroke="#e8c070" stroke-width=".9"/>
+<g stroke="#e8c070" stroke-width="1" stroke-linecap="round"><path d="M5.6 15.4 L14.4 6.2M14.4 15.4 L5.6 6.2"/></g>
+<path d="M6.8 12.2 V8.4 h6.4 v3.8 c0 1.9-1.6 3-3.2 3.6-1.6-.6-3.2-1.7-3.2-3.6z" fill="#b83a3a" stroke="#e8c070" stroke-width=".7"/>
+<circle cx="10" cy="11" r="1.6" fill="#f6dc8a"/><g stroke="#f6dc8a" stroke-width=".6" stroke-linecap="round"><path d="M10 8.6v.8M10 12.6v.8M7.8 11h.8M11.4 11h.8"/></g>
+<path d="M7 7.8 l.5-2.2 1.3 1.1 L10 4.4 l1.2 2.3 1.3-1.1.5 2.2z" fill="#e8c070" stroke="#12284a" stroke-width=".5"/>
+<ellipse cx="6.4" cy="5.8" rx="2.2" ry="1.2" transform="rotate(-35 6.4 5.8)" fill="rgba(255,255,255,.35)"/>`;
+const svg = (b, s) => `<svg width="${s}" height="${s}" viewBox="0 0 20 20">${b}</svg>`;
+document.getElementById('r').innerHTML = [['Сейчас', CUR], ['А — красный сургуч, корона над щитом с солнцем', A], ['Б — золотой жетон с лентой, корона и солнце', B], ['В — синий сургуч, щит с солнцем и мечи', C]].map(([n, b]) => `<div class="c">${svg(b, 160)}<br>${svg(b, 48)} ${svg(b, 28)}<div class="sm">${svg(b, 18)}<i>65</i> печатей</div><b>${n}</b></div>`).join('');
+</script>
