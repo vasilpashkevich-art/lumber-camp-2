@@ -29,6 +29,7 @@ export const PINE = {
     square: { x0: -1050, x1: 1050, y0: -880, y1: 820, th: 64, H: 136, towerR: 80, towerH: 200, gate: { w: 140, towerR: 58, towerH: 210 }, southGate: 0, eastGate: 165 },
     castle: { dy: -560, w: 900, d: 300 },
     fountain: { x: 0, y: 60, r: 92 },
+    board: { dx: 330, dy: 300 },   // v126: доска заказов — у площади, справа от южной улицы
     // улицы и площади (мощение и трава не растёт)
     streets: [
       { x: -70, y: -440, w: 140, h: 1300 }, { x: -980, y: 110, w: 2080, h: 110 }, { x: -960, y: -300, w: 1920, h: 90 }, { x: -1040, y: 560, w: 2080, h: 90 },
@@ -133,6 +134,7 @@ export const FARMS = {
   // посёлок без стены: торговец, отдых, кладбище рядом
   village: {
     name: 'Хутор Подгорный', x: 3000, y: 1050, R: 430,
+    board: { dx: 60, dy: 40 },   // v126: доска заказов у колодца
     buildings: [
       { id: 'inn', name: 'Постоялый двор', dx: -170, dy: -110, col: 96, art: 'inn', brew: true, bind: true, note: 'Отдых: здоровье восстанавливается быстро. В трактире есть котёл — варить зелья' },
       { id: 'market', name: 'Лавка', dx: 190, dy: -70, col: 60, art: 'stall', vendor: true, jewel: { good: 1800, rare: 5000 } },
@@ -219,6 +221,7 @@ export const SHROOM = {
   // стоянка купца: безопасное место без колодца и кладбища — здесь же возрождение
   village: {
     name: 'Стоянка купца', x: K(3000), y: K(2560), R: 300, well: false, camp: true,
+    board: { dx: 150, dy: -40 },   // v126: доска заказов у тележки
     buildings: [{ id: 'cart', name: 'Тележка купца', dx: -40, dy: -95, col: 56, art: 'cart', vendor: true, jewel: { good: 2800, rare: 7000 } }],
   },
   graveyard: { x: K(3080), y: K(2660), name: 'Стоянка купца', hidden: true },

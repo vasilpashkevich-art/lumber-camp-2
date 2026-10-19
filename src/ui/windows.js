@@ -17,7 +17,7 @@ function hookCraft(m, fn) { craftHook = fn; const oc = m.onclose; m.onclose = ()
 import { herbSkill, alchSkill, skillColor, learnHerbal, learnAlchemy, buyFlask, brew, canBrew, drinkElixir } from '../systems/herbs.js';
 import { RAR_COL, RAR_NAME, LOOT, armorCut, PROPS } from '../../data/balance.js';
 import { itemIcon, anyIcon, accIcon, moneyHtml, potionIcon, DE_SVG } from './icons.js';
-import { itemLines, itemNums, lookOf, isStackKind, hasSocket, fxListOf } from '../systems/items.js';
+import { itemLines, itemNums, lookOf, isStackKind, hasSocket, fxListOf, makeItem } from '../systems/items.js';
 import { compareItem } from '../entities/hero.js';
 import { stashPut, stashTake, stashMove, stashSwap, stashMaterials, store } from '../systems/bank.js';
 import { dropItem, equip, unequip, sellItem, buyPotion, shopStock, buyShop, POTION_PRICE, respawnHero, lootTake, hasLoot, bagMove, abilsOf, buyBack } from '../systems/game.js';
@@ -39,7 +39,11 @@ import { NPCS, QUESTS, Q_MAX, qState, qStatus, npcQuests, goalText, goalDone, qR
 import { NPC_LOOK } from '../art/npc.js';
 import { soundState, setSound, setVol } from '../engine/audio.js';
 import { prefs } from '../engine/save.js';
-import { fmt1, due } from '../engine/util.js';
+import { fmt1, due, rng, plural } from '../engine/util.js';
+import { oState, boardOf, greyFor, orderGoal, orderProgress, orderReady, orderReward, oTake, oDrop, oTurnIn, royalWares, royalName, buyRoyal } from '../systems/orders.js';
+import { ORDER } from '../../data/orders.js';
+import { TRINKETS } from '../../data/trinkets.js';
+import { CONTINENT } from '../../data/zones.js';
 import { statRows } from './stathelp.js';
 import { installHtml, bindInstall } from './install.js';
 
@@ -419,6 +423,48 @@ export function openHowTo(onClose) {
   return m;
 }
 
+// ---------------------------------------------------------------- v126: доска заказов и лавка квартирмейстера
+export const SEAL_SVG = (s = 18) => `<svg class="seal" width="${s}" height="${s}" viewBox="0 0 20 20"><circle cx="10" cy="10" r="9" fill="#b83a3a" stroke="#5a1a1a" stroke-width="1.2"/><circle cx="10" cy="10" r="6" fill="none" stroke="#e8c070" stroke-width="1.1"/><path d="M6 12 L7 8 L10 10.5 L13 8 L14 12 Z" fill="#e8c070"/><circle cx="7" cy="7" r="1.4" fill="rgba(255,255,255,.55)"/></svg>`;
+export const tokensHtml = (n, s = 18) => `<span class="tok">${SEAL_SVG(s)}<b>${n}</b></span>`;
+export function openBoard(G, zone, onChange) {
+  const h = G.hero;
+  const draw = () => { const S = oState(h), L = boardOf(zone), grey = greyFor(h, zone), zn = (CONTINENT.find(z => z.id === zone) || {}).name || '';
+    return `<h2>Доска заказов</h2><p class="who">${zn} · заказы на сегодня, новые — в полночь. У вас ${tokensHtml(h.tokens || 0)} ${plural(h.tokens || 0, 'печать', 'печати', 'печатей')}${grey ? ' · <span class="need">вы переросли этот край — только деньги, без печатей</span>' : ''}</p>
+    <div class="olist">${L.map(T => { const act = !!S.act[T.key], done = !!S.done[T.key], rd = orderReady(h, T), pr = orderProgress(h, T), R = orderReward(h, T);
+      return `<div class="ware2 ord${done ? ' done' : ''}"><div><b>${T.name}${done ? ' — выполнен' : ''}</b><small>${T.text}</small><small class="goal">${orderGoal(T)}${act && !done ? ` · <span class="${rd ? 'ok' : ''}">${pr}/${T.need}</span>` : ''}</small><small class="rew">Награда: ${R.tok ? tokensHtml(R.tok, 14) + ' · ' : ''}${moneyHtml(R.money)} · ${R.xp} опыта</small></div>${done ? '' : rd ? `<button class="btn main" data-turn="${T.key}">Сдать</button>` : act ? `<button class="btn" data-drop="${T.key}">Отказаться</button>` : `<button class="btn main" data-take="${T.key}">Взять</button>`}</div>`; }).join('')}</div>
+    <p class="hint">${S.bonus[zone] ? 'Все заказы дня выполнены — награда за усердие получена.' : `Выполните все три — ещё +${ORDER.bonus} ${plural(ORDER.bonus, 'печать', 'печати', 'печатей')}. Печати тратятся у королевского квартирмейстера Остромира у дворца Столицы.`}</p>
+    <div class="row"><button class="btn" data-x="no">Закрыть</button></div>`; };
+  const m = modal(draw(), 'boardwin');
+  const bind = () => { const L = boardOf(zone), by = k => L.find(T => T.key === k);
+    for (const b of m.querySelectorAll('[data-take]')) b.onclick = () => { if (oTake(G, by(b.dataset.take))) redraw(); };
+    for (const b of m.querySelectorAll('[data-drop]')) b.onclick = () => { if (oDrop(G, by(b.dataset.drop))) redraw(); };
+    for (const b of m.querySelectorAll('[data-turn]')) b.onclick = () => { if (oTurnIn(G, by(b.dataset.turn))) { onChange && onChange(); redraw(); } };
+    m.querySelector('[data-x=no]').onclick = () => m.close(); };
+  const redraw = () => { m.innerHTML = draw(); const x = el('button', 'xclose', '×'); x.onclick = () => m.close(); m.prepend(x); bind(); };
+  bind(); closeOnE(m); return m;
+}
+const SLOT_RU = { weapon: 'Оружие', head: 'Голова', chest: 'Грудь', legs: 'Ноги', ring: 'Кольцо', neck: 'Шея' };
+export function openRoyal(G, onChange) {
+  const h = G.hero;
+  const chestIcon = W => anyIcon({ kind: W.kind, metal: W.choices[W.kind === 'gem' ? 1 : 0], rar: W.kind === 'gem' ? 'good' : 'common' }, 44);
+  const draw = () => `<h2>Королевский квартирмейстер</h2><p class="who">Остромир: «Печати Короны — за службу Столице. Что не купишь за золото, выдаю за них». У вас ${tokensHtml(h.tokens || 0)} ${plural(h.tokens || 0, 'печать', 'печати', 'печатей')}.</p>
+    <div class="rlist">${royalWares().map(W => { const M = W.k === 'mount' ? MOUNTS[W.mount] : null, own = M && h.mounts.includes(W.mount), cur = M && h.mount === W.mount, can = (h.tokens || 0) >= W.price;
+      return `<div class="ware2 rw">${M ? `<canvas class="hpic" data-c="${M.coat}" data-a="${M.art}" width="120" height="92"></canvas>` : W.k === 'item' ? itemIcon(makeItem(h.cls, 'chest', h.lvl, 'rare', rng(h.lvl * 7 + 3)), 44) : W.k === 'trinket' ? accIcon('phoenix', 'epic', 44) : chestIcon(W)}<div><b>${royalName(W)}</b><small>${M ? M.note + ` Бег ×${String(M.speed).replace('.', ',')}.` + (h.lvl < M.lvl ? ` С ${M.lvl}-го уровня.` : '') : W.d}</small></div>${own ? `<button class="btn ${cur ? '' : 'main'}" data-pick="${W.mount}" ${cur ? 'disabled' : ''}>${cur ? 'Ваш баран' : 'Выбрать'}</button>` : `<button class="btn main" data-buy="${W.id}" ${can && !(M && h.lvl < M.lvl) ? '' : 'disabled'}>${tokensHtml(W.price, 15)}</button>`}</div>`; }).join('')}</div>
+    <div class="row"><button class="btn" data-x="no">Закрыть</button></div>`;
+  const m = modal(draw(), 'royalwin');
+  const choose = (W) => { const opts = W.k === 'item' ? Object.entries(SLOT_RU) : W.k === 'trinket' ? TRINKETS.filter(t => t.rar === 'epic').map(t => [t.id, t.name, t.d]) : W.choices.map(c => [c, W.kind === 'gem' ? GEMS[c].name : W.kind === 'herb' ? HERBS[c].name : W.kind === 'bar' ? ORES[c].bar : ENCH_MATS[c].name]);
+    const q = modal(`<h2>${royalName(W)}</h2><p class="who">${W.k === 'item' ? 'Куда вещь?' : W.k === 'trinket' ? 'Какой аксессуар?' : 'Что внутри?'}</p><div class="clist">${opts.map(([id, n, d]) => `<button class="btn" data-c="${id}"><b>${n}</b>${d ? `<small>${d}</small>` : ''}${W.nOf && W.nOf[id] ? `<small>× ${W.nOf[id]}</small>` : W.k === 'chest' ? `<small>× ${W.n}</small>` : ''}</button>`).join('')}</div><div class="row"><button class="btn" data-x="no">Назад</button></div>`, 'choosewin');
+    for (const b of q.querySelectorAll('[data-c]')) b.onclick = () => { if (buyRoyal(G, W, b.dataset.c)) { q.close(); onChange && onChange(); redraw(); } };
+    q.querySelector('[data-x=no]').onclick = () => q.close(); };
+  const bind = () => {
+    for (const cv of m.querySelectorAll('canvas.hpic')) { const sp = mountSpr(cv.dataset.c, null, 'fs', 'idle', 0, { art: cv.dataset.a }); const g = cv.getContext('2d'); g.clearRect(0, 0, cv.width, cv.height); if (sp) { const k = 1.55; g.drawImage(sp.cv, cv.width / 2 - sp.ox * k, cv.height + 8 - (sp.oy + 12) * k, sp.w * k, sp.h * k); } }
+    for (const b of m.querySelectorAll('[data-buy]')) b.onclick = () => { const W = royalWares().find(w => w.id === b.dataset.buy); if (W.k === 'mount') { if (buyRoyal(G, W)) { onChange && onChange(); redraw(); } } else choose(W); };
+    for (const b of m.querySelectorAll('[data-pick]')) b.onclick = () => { pickMount(G, b.dataset.pick); onChange && onChange(); redraw(); };
+    m.querySelector('[data-x=no]').onclick = () => m.close(); };
+  const redraw = () => { m.innerHTML = draw(); const x = el('button', 'xclose', '×'); x.onclick = () => m.close(); m.prepend(x); bind(); };
+  bind(); closeOnE(m); return m;
+}
+
 /** Гибель: возрождение у кладбища. */
 export function showDeath(G, onDone) {
   const gy = G.W.graveyard, where = gy.fire ? `к костру в Преддверии храма` : gy.hidden ? `к Стоянке купца` : G.W.cap ? `к кладбищу у Столицы` : `к кладбищу у ${G.W.town ? G.W.town.name.replace(/^Хутор /, 'Хутора ') : 'посёлка'}`;
@@ -443,11 +489,11 @@ export function openInn(G, b, onChange, toBrew) {
 
 // ---------------------------------------------------------------- v121: Конный двор — конюший продаёт коней
 export function openStable(G, onChange) {
-  const h = G.hero, rowsHtml = () => Object.entries(MOUNTS).map(([id, M]) => { const own = h.mounts.includes(id), cur = h.mount === id, lock = h.lvl < M.lvl;
-      return `<div class="ware2"><canvas class="hpic" data-c="${M.coat}" width="120" height="92"></canvas><div><b>${M.name}</b><small>${M.note} Бег ×${String(M.speed).replace('.', ',')}.</small>${lock ? `<small class="need">С ${M.lvl}-го уровня — у вас ${h.lvl}</small>` : ''}</div>${own ? `<button class="btn ${cur ? '' : 'main'}" data-pick="${id}" ${cur ? 'disabled' : ''}>${cur ? 'Ваш конь' : 'Выбрать'}</button>` : `<button class="btn main" data-buy="${id}" ${lock || h.gold < M.price ? 'disabled' : ''}>${moneyHtml(M.price)}</button>`}</div>`; }).join(''), draw = () => `<h2>Конюшня</h2><p class="who">Конюший Прохор: «Доброго коня, путник, на дороге не сыщешь. Мои — сытые, кованые, к седлу приучены. Сядешь — и до Столицы мигом».</p><div class="stl">${rowsHtml()}</div><p class="hint">${T('Сесть верхом — Z или кнопка с подковой', 'Сесть верхом — кнопка с подковой')}: 1,5 с, не в бою. Удар по вам, свой удар или умение — и вы спешились. В подземельях коня не позвать.</p><div class="row"><button class="btn" data-x="no">Закрыть</button></div>`;
+  const h = G.hero, rowsHtml = () => Object.entries(MOUNTS).filter(([id, M]) => !M.tokens || h.mounts.includes(id)).map(([id, M]) => { const own = h.mounts.includes(id), cur = h.mount === id, lock = h.lvl < M.lvl;
+      return `<div class="ware2"><canvas class="hpic" data-c="${M.coat}" data-a="${M.art || ''}" width="120" height="92"></canvas><div><b>${M.name}</b><small>${M.note} Бег ×${String(M.speed).replace('.', ',')}.</small>${lock ? `<small class="need">С ${M.lvl}-го уровня — у вас ${h.lvl}</small>` : ''}</div>${own ? `<button class="btn ${cur ? '' : 'main'}" data-pick="${id}" ${cur ? 'disabled' : ''}>${cur ? 'Ваш конь' : 'Выбрать'}</button>` : `<button class="btn main" data-buy="${id}" ${lock || h.gold < M.price ? 'disabled' : ''}>${moneyHtml(M.price)}</button>`}</div>`; }).join(''), draw = () => `<h2>Конюшня</h2><p class="who">Конюший Прохор: «Доброго коня, путник, на дороге не сыщешь. Мои — сытые, кованые, к седлу приучены. Сядешь — и до Столицы мигом».</p><div class="stl">${rowsHtml()}</div><p class="hint">${T('Сесть верхом — Z или кнопка с подковой', 'Сесть верхом — кнопка с подковой')}: 1,5 с, не в бою. Удар по вам, свой удар или умение — и вы спешились. В подземельях коня не позвать.</p><div class="row"><button class="btn" data-x="no">Закрыть</button></div>`;
   const m = modal(draw(), 'stablewin');
   const bind = () => {
-    for (const cv of m.querySelectorAll('canvas.hpic')) { const sp = mountSpr(cv.dataset.c, null, 'fs', 'idle', 0, {}); const g = cv.getContext('2d'); g.clearRect(0, 0, cv.width, cv.height); if (sp) { const k = 1.55; g.drawImage(sp.cv, cv.width / 2 - sp.ox * k, cv.height + 8 - (sp.oy + 12) * k, sp.w * k, sp.h * k); } }
+    for (const cv of m.querySelectorAll('canvas.hpic')) { const sp = mountSpr(cv.dataset.c, null, 'fs', 'idle', 0, { art: cv.dataset.a || undefined }); const g = cv.getContext('2d'); g.clearRect(0, 0, cv.width, cv.height); if (sp) { const k = 1.55; g.drawImage(sp.cv, cv.width / 2 - sp.ox * k, cv.height + 8 - (sp.oy + 12) * k, sp.w * k, sp.h * k); } }
     for (const b of m.querySelectorAll('[data-buy]')) b.onclick = () => { if (buyMount(G, b.dataset.buy)) { onChange && onChange(); redraw(); } };
     for (const b of m.querySelectorAll('[data-pick]')) b.onclick = () => { pickMount(G, b.dataset.pick); onChange && onChange(); redraw(); };
     m.querySelector('[data-x=no]').onclick = () => m.close();

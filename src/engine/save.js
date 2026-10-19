@@ -46,7 +46,8 @@ export function migrate(h) {
   // v61: кольцо, шея, аксессуар; горное дело; гарантия аксессуара; жилы
   h.eq = Object.assign({ head: null, neck: null, chest: null, legs: null, weapon: null, ring: null, trinket: null }, h.eq || {});
   h.mounts = Array.isArray(h.mounts) ? h.mounts : []; if (h.mount && !h.mounts.includes(h.mount)) h.mount = null; h.mount = h.mount || null; h.riding = !!h.riding && !!h.mount;   // v121: кони
-  if (h.howTo == null) h.howTo = (h.stats.play || 0) > 0;   // v124: окно «Как играть» — новому герою при первом входе
+  if (h.howTo == null) h.howTo = (h.stats.play || 0) > 0;
+  if (h.tokens == null) h.tokens = 0; if (!h.orders) h.orders = { day: -1, act: {}, done: {}, bonus: {} };   // v126: печати и заказы   // v124: окно «Как играть» — новому герою при первом входе
   h.prof = Object.assign({ mining: 0, herbal: 0, alchemy: 0 }, h.prof || {}); h.tPity = h.tPity || 0; h.veins = h.veins || {};
   // v84: травы, зелья
   h.plants = h.plants || {};

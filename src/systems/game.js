@@ -5,6 +5,7 @@ import { stopCraft, craftTick } from './craft.js';
 import { CLASSES } from '../../data/classes.js';
 import { MOBS } from '../../data/mobs.js';
 import { dgState, dgEnter, dgUnsealed, dgDone, chestLoot, bossLoot, NEVER } from './dungeon.js';
+import { oOnKill } from './orders.js';
 import { qState, qObjs, qOnKill, qTick, qTalk, qUseObj, qObjNear, npcNear, npcsOf } from './quests.js';
 import { bossTick, bossReset, bossCancel, shieldBlocks, hazardsTick, ringBlocks } from './boss.js';
 import { rideK, rideOk, toggleMount, stopMountCast, dismount, mountTick } from './mount.js';
@@ -296,6 +297,7 @@ function killMob(G, m) {
   m.state = 'dead'; m.hp = 0; m.bleed = null; m.burn = null; m.venom = null; m.frozen = 0; m.respawnAt = G.W.Z.dungeon ? NEVER : G.t + (m.D.rare ? RESPAWN.rare : RESPAWN.normal);   // v90: в подземелье не возрождаются до обновления
   H.dead[m.key] = m.respawnAt; H.stats.kills++;
   qOnKill(G, m);   // v95: задания
+  oOnKill(G, m);   // v126: заказы доски
   trinketProc(G, 'kill', m);   // v110: аксессуар — «когда враг убит»
   if (m.D.boss && G.dg) { G.dg.bosses[m.kind] = true; emit(G, { k: 'boss', name: m.D.name, final: !!m.D.final, fem: !!m.D.fem }); if (dgUnsealed(H, G.W.Z) && G.W.sealed.size) { G.W.unseal(); emit(G, { k: 'toast', s: 'Запечатанный ход в Тронный зал открыт!', kind: 'good', id: 'seal' }); } if (dgDone(H, G.W.Z)) openPortal(G); }
   if (P.target === m) P.target = null;
@@ -635,6 +637,7 @@ export function interactTarget(G) {
   const pl = plantNear(G); if (pl) return { k: 'plant', v: pl, x: pl.x, y: pl.y };
   { const o = qObjNear(G); if (o) return { k: 'qobj', o, x: o.x, y: o.y }; }
   { const n = npcNear(G); if (n) return { k: 'npc', n, x: n.x, y: n.y }; }
+  for (const bd of G.W.boards || []) if (dist(P.x, P.y, bd.x, bd.y + 10) < 90) return { k: 'board', b: bd, x: bd.x, y: bd.y };   // v126: доска заказов
   for (const b of G.W.houses) { if (!b.name) continue; if (dist(P.x, P.y, b.x, b.y + 40) < 95) return { k: 'b', b, x: b.x, y: b.y }; }
   const ch = chestNear(G); if (ch) return ch;
   for (const e of G.W.exits) if (dist(P.x, P.y, e.x, e.y) < (e.portal ? 110 : 220)) return { k: 'exit', e, x: e.x, y: e.y };
@@ -665,6 +668,7 @@ function doInteract(G, t) {
   if (t.k === 'chest') { G.P.auto = null; openChest(G, t.i); return; }
   if (t.k === 'npc') { G.P.auto = null; qTalk(G, t.n.id); return; }
   if (t.k === 'qobj') { qUseObj(G, t.o); return; }
+  if (t.k === 'board') { G.P.auto = null; emit(G, { k: 'board', b: t.b }); return; }   // v126
   if (t.k === 'vein') { if (G.P.mine) stopMine(G); else startMine(G, t.v); return; }
   if (t.k === 'plant') { if (G.P.gather) stopGather(G); else startGather(G, t.v); return; }
   if (t.k === 'b') { if (t.b.stable) emit(G, { k: 'stable', b: t.b }); else if (t.b.bind) emit(G, { k: 'inn', b: t.b }); else if (t.b.vendor) emit(G, { k: 'vendor', b: t.b }); else if (t.b.bank) emit(G, { k: 'bank', b: t.b }); else if (t.b.mentor) emit(G, { k: 'mentor', b: t.b }); else if (t.b.alchemy || t.b.brew) emit(G, { k: 'alchemy', b: t.b }); else if (t.b.enchant) emit(G, { k: 'enchant', b: t.b }); else if (t.b.guild) emit(G, { k: 'guild', b: t.b }); else if (t.b.smelt) emit(G, { k: 'smelt', b: t.b }); else emit(G, { k: 'toast', s: `${t.b.name}. ${t.b.note}`, id: 'bld' }); }

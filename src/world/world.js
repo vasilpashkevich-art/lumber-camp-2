@@ -47,6 +47,7 @@ export function buildWorld(Z) {
   // v121: Конный двор — конюшня (постройка с конюшим), поилка, загон; безопасное место
   W.yard = Z.yard || null;
   if (W.yard) { const Y = W.yard; W.houses.push({ id: 'stable', art: 'stable', name: 'Конюшня', stable: true, x: Y.x + Y.stable.dx, y: Y.y + Y.stable.dy }); }
+  W.boards = T0 && T0.board ? [{ x: T0.x + T0.board.dx, y: T0.y + T0.board.dy, zone: Z.id }] : [];   // v126: доска заказов
   W.safes = [];   // безопасные места кроме города (пока нет: на Конном дворе мобы не живут, но погоня туда заходит — как в WoW)
   W.keepOut = W.yard ? [{ x: W.yard.x, y: W.yard.y, R: W.yard.R }] : [];   // жилы и травы здесь не растут
   // препятствия: эллипс под основанием построек (столица, посёлок, хутора, мельница)

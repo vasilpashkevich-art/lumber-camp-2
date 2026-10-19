@@ -4,4 +4,8 @@ export const MOUNTS = {
   bay: { name: 'Гнедой конь', coat: 'bay', lvl: 15, speed: 1.6, price: 7500, note: 'Рыжий, с белой проточиной на морде.' },
   black: { name: 'Вороной конь', coat: 'black', lvl: 15, speed: 1.6, price: 7500, note: 'Чёрный, как ночь над лесом.' },
   grey: { name: 'Серый в яблоках', coat: 'grey', lvl: 15, speed: 1.6, price: 7500, note: 'Светлый, в тёмных яблоках.' },
+  // v126: боевые бараны — только за Королевские печати у квартирмейстера (data/orders.js ROYAL), в конюшне не продаются
+  ram_snow: { name: 'Белогорский баран', art: 'ram', coat: 'snow', lvl: 15, speed: 1.7, tokens: 50, note: 'Сливочная шерсть, янтарные рога, красная попона.' },
+  ram_night: { name: 'Баран Чёрный утёс', art: 'ram', coat: 'night', lvl: 15, speed: 1.7, tokens: 50, note: 'Тёмная шерсть, светлые рога, синяя попона.' },
+  ram_ember: { name: 'Баран Рыжий гром', art: 'ram', coat: 'ember', lvl: 15, speed: 1.7, tokens: 50, note: 'Рыжая шерсть, тёмные рога, зелёная попона.' },
 };

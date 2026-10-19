@@ -153,6 +153,28 @@ export function signpost(g) {
   g.beginPath(); g.moveTo(-30, -60); g.lineTo(24, -60); g.quadraticCurveTo(36, -51, 24, -42); g.lineTo(-30, -42); g.quadraticCurveTo(-33, -51, -30, -60); g.closePath(); paint(g, '#c8954a', 1.6, -60, -42); shine(g, -16, -57, 10, 1.2, 0.35, 0);
   g.strokeStyle = sh('#c8954a', -0.4); g.lineWidth = 1.6; g.lineCap = 'round'; g.beginPath(); g.moveTo(-20, -51); g.lineTo(16, -51); g.stroke();
 }
+/** v126: доска заказов — два столба, широкая доска с крышей-козырьком, приколотые листки с печатями. Высота ≈ 1,6 роста. */
+export function board(g, t = 0) {
+  shadow(g, 48, 9);
+  for (const x of [-34, 34]) stick(g, x, 0, x, -74, 7, '#6a4a2c');
+  // доска
+  g.beginPath(); g.roundRect(-46, -72, 92, 48, 5); paint(g, '#8a5a30', 1.6, -72, -24);
+  g.strokeStyle = sh('#8a5a30', -0.4); g.lineWidth = 0.9; for (const y of [-56, -40]) { g.beginPath(); g.moveTo(-42, y); g.lineTo(42, y); g.stroke(); }
+  g.beginPath(); g.roundRect(-43, -69, 86, 42, 4); g.strokeStyle = sh('#8a5a30', -0.3); g.lineWidth = 1; g.stroke();
+  // козырёк черепицей
+  g.beginPath(); g.moveTo(-52, -72); g.lineTo(-44, -86); g.lineTo(44, -86); g.lineTo(52, -72); g.closePath(); paint(g, '#a84a3a', 1.6, -86, -72);
+  g.strokeStyle = sh('#a84a3a', -0.4); g.lineWidth = 0.8; for (let x = -40; x <= 40; x += 10) { g.beginPath(); g.moveTo(x, -85); g.lineTo(x + 2, -73); g.stroke(); }
+  shine(g, -30, -80, 12, 1.4, 0.3, 0);
+  // листки
+  for (const [x, y, a, w, h, seal] of [[-30, -62, -0.08, 22, 26, '#b83a3a'], [-4, -64, 0.05, 20, 24, '#3a6ab8'], [20, -60, -0.04, 22, 28, '#b83a3a']]) {
+    g.save(); g.translate(x, y); g.rotate(a); g.beginPath(); g.roundRect(-w / 2, 0, w, h, 2); paint(g, '#f0e4c4', 1, 0, h);
+    g.strokeStyle = 'rgba(60,40,20,.45)'; g.lineWidth = 1; for (let i = 1; i < 4; i++) { g.beginPath(); g.moveTo(-w / 2 + 4, 5 + i * 4.5); g.lineTo(w / 2 - 4 - (i % 2) * 5, 5 + i * 4.5); g.stroke(); }
+    g.beginPath(); g.arc(w / 2 - 5, h - 5, 3.2, 0, TAU); paint(g, seal, 0.8); g.fillStyle = 'rgba(255,255,255,.5)'; g.beginPath(); g.arc(w / 2 - 6, h - 6, 1, 0, TAU); g.fill();
+    g.beginPath(); g.arc(0, 1.5, 1.6, 0, TAU); paint(g, '#e0b840', 0.6); g.restore();
+  }
+  // золотая печать на козырьке
+  g.beginPath(); g.arc(0, -79, 4.2, 0, TAU); paint(g, '#e0b840', 1); g.strokeStyle = sh('#e0b840', -0.5); g.lineWidth = 0.9; g.beginPath(); g.arc(0, -79, 2.2, 0, TAU); g.stroke();
+}
 /** Костёр: кольцо круглых камней, крест поленьев, пламя слоями (живое). */
 /** part (v125): без него — всё; 'back' — отсвет, задние камни, поленья; 'front' — передние камни (неподвижное — один раз в картинку); 'flame' — пламя; 'sparks' — искры. */
 export function campfire(g, x, y, t, part) {

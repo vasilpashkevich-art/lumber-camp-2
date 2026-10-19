@@ -4,6 +4,7 @@ import { BLD } from './bld.js';
 import { BEASTS, beast, BOX, setBeastInk, captureShadows } from './beasts.js';
 import { person, doll } from './body.js';
 import { horse } from './horse.js';
+import { ram } from './ram.js';   // v126: боевой баран
 import { RIG } from './toon.js';
 import { palette, setInk, INK, INK_HARD } from './gear.js';
 import { mossTree, giantShroom } from './forest.js';
@@ -106,9 +107,9 @@ export function personSpr(L, view, mode, f) {
 }
 /** v121: конь (со всадником L или без; bare — без седла, graze — пасётся). Начало — как у человека: земля на +12,6. Кадры шага 0…7. */
 export function mountSpr(coat, L, view, mode, f, o = {}) {
-  const key = 'mt|' + coat + '|' + (L ? lookKey(L) : '-') + '|' + view + '|' + mode + '|' + f + (o.bare ? 'b' : '') + (o.graze ? 'g' + (+o.graze || 1) : '') + (o.chew ? 'c' : '') + (o.tail ? 't' + o.tail : '') + SK();
+  const key = 'mt|' + (o.art || 'h') + coat + '|' + (L ? lookKey(L) : '-') + '|' + view + '|' + mode + '|' + f + (o.bare ? 'b' : '') + (o.graze ? 'g' + (+o.graze || 1) : '') + (o.chew ? 'c' : '') + (o.tail ? 't' + o.tail : '') + SK();
   return sprite(key, 160, 150, 80, 108, 2, styled(g => { g.translate(0, RIG.FOOT); g.scale(RIG.K, RIG.K);
-    horse(g, coat, view, { walk: mode === 'walk' ? f / 8 : -1, t: 1, bare: o.bare, graze: o.graze, chew: o.chew, tail: o.tail, rider: !!L, riderFn: L ? (seat, rx) => { g.save(); g.translate(rx, seat + 18.6); g.scale(1 / RIG.K, 1 / RIG.K); g.translate(0, -RIG.FOOT); person(g, L, view, { ride: true, t: 1 }); g.restore(); } : null }); }));
+    (o.art === 'ram' ? ram : horse)(g, coat, view, { walk: mode === 'walk' ? f / 8 : -1, t: 1, bare: o.bare, graze: o.graze, chew: o.chew, tail: o.tail, rider: !!L, riderFn: L ? (seat, rx) => { g.save(); g.translate(rx, seat + 18.6); g.scale(1 / RIG.K, 1 / RIG.K); g.translate(0, -RIG.FOOT); person(g, L, view, { ride: true, t: 1 }); g.restore(); } : null }); }));
 }
 /** Кадр зверя. Начало — земля под ним. */
 export function beastSpr(kind, view, mode, f) {

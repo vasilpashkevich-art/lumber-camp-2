@@ -14,7 +14,7 @@ import { soundInit, sfx, music, setSound, soundState } from './engine/audio.js';
 import { showSelect } from './ui/select.js';
 import { createHud } from './ui/hud.js';
 import { talentRows, talentFree } from './systems/talents.js';
-import { openChar, openVendor, openMenu, showDeath, hideTip, openLoot, openAbils, openGuild, openSmelt, openBank, openProf, openDungeons, openNpc, openJournal , openInn, openStable, craftRedraw, openHowTo } from './ui/windows.js';
+import { openChar, openVendor, openMenu, showDeath, hideTip, openLoot, openAbils, openGuild, openSmelt, openBank, openProf, openDungeons, openNpc, openJournal , openInn, openStable, craftRedraw, openHowTo, openBoard, openRoyal } from './ui/windows.js';
 import { dgLeave } from './systems/dungeon.js';
 import { openMap, miniZoom, miniZoomLevel, MINI_Z } from './ui/map.js';
 import { doll } from './art/body.js';
@@ -23,10 +23,11 @@ import { initInstall } from './ui/install.js';
 import { rollDrop, makeItem, makeTrinket, makeStack, makePick } from './systems/items.js';
 import { LOOT, CRAFT } from '../data/balance.js';
 import { dist, due } from './engine/util.js';
+import { NPCS } from '../data/quests.js';
 import { $, toast, zoneTitle, TOUCH, T } from './ui/dom.js';
 import { RAR_COL } from '../data/balance.js';
 
-const VERSION = 125;
+const VERSION = 126;
 /** Приближение камеры на шаг: +1 ближе, −1 дальше. */
 let zoomT = 0;
 function zoomBy(d) {
@@ -163,7 +164,8 @@ function frameInner(now) {
     if (e.k === 'loot') { toast(`Добыча: <b style="color:${RAR_COL[e.it.rar]}">${e.it.name}</b>`, '', null); sfx('loot'); }
     if (e.k === 'lvl') { toast(`Новый уровень: ${e.L}! Здоровье восстановлено.`, 'good'); const A = abilsOf(G.hero).find(a => a.lvl === e.L); if (A) toast(A.key === 'passive' ? `Новое умение: <b>${A.name}</b> — работает само. ${A.d}` : `Новое умение: <b>${A.name}</b> — ${T('клавиша ' + A.key, 'новая кнопка справа')}. ${A.d}`, 'good'); if (talentRows(G.hero).some(r => r.lvl === e.L)) toast(`Открыт ряд талантов! ${T('Щёлкните', 'Коснитесь')} портрет героя и выберите один.`, 'good'); }
     if (e.k === 'vendor' && !document.querySelector('.modal')) openVendor(G, () => hud.update(), e.b);
-    if (e.k === 'npc' && !document.querySelector('.modal')) openNpc(G, e.id, () => { hud.update(); persist(); });
+    if (e.k === 'npc' && !document.querySelector('.modal')) { if (NPCS[e.id] && NPCS[e.id].special === 'royal') openRoyal(G, () => { hud.update(); persist(); }); else openNpc(G, e.id, () => { hud.update(); persist(); }); }   // v126: квартирмейстер
+    if (e.k === 'board' && !document.querySelector('.modal')) openBoard(G, e.b.zone, () => { hud.update(); persist(); });   // v126: доска заказов
     if (e.k === 'guild' && !document.querySelector('.modal')) openGuild(G, () => hud.update());
     if (e.k === 'mentor' && !document.querySelector('.modal')) devWin(true);
     if (e.k === 'bank' && !document.querySelector('.modal')) { const bm = openBank(G, () => hud.update()), oc = bm.onclose; bm.onclose = () => { oc && oc(); persist(); }; }

@@ -5,6 +5,8 @@
 //   goals — цели: kill {mob, n, label} · loot {mob, item, chance, n} · obj {spots, n, item|verb, art} · talk {npc, item} · explore {x, y, r, label},
 //   reward: { k — сколько «убийств» опыта (по умолчанию 7), money — множитель денег, choice — вещи на выбор (слоты), rar }.
 export const NPCS = {
+  // v126: Королевский квартирмейстер — лавка за Королевские печати (special: 'royal' — окно лавки вместо заданий), стоит у дворца
+  royal: { name: 'Остромир', title: 'королевский квартирмейстер', zone: 'pine', x: 2570, y: 1905, look: 'captain', face: 'front', special: 'royal' },
   gordey: { name: 'Гордей', title: 'капитан стражи', zone: 'pine', x: 3070, y: 2955, look: 'captain', face: 'front',
     hi: 'Ворота держим, а за стеной — сам видишь. Людей не хватает.' },
   frol: { name: 'Фрол', title: 'лесничий', zone: 'pine', x: 4460, y: 2430, look: 'forester', face: 'front',

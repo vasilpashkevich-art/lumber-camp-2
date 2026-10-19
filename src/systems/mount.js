@@ -20,7 +20,7 @@ export function buyMount(G, id) {
   if (H.gold < M.price) { toast(G, 'Не хватает денег'); return false; }
   H.gold -= M.price;
   H.mounts.push(id); H.mount = id; sfx(G, 'levelUp');
-  toast(G, `Куплен <b>${M.name}</b>! Сесть верхом — ${'Z'} или кнопка с подковой`); emit(G, { k: 'mounts' }); return true;
+  toast(G, `Куплен <b>${M.name}</b>! Сесть верхом — Z или кнопка с подковой`); emit(G, { k: 'mounts' }); return true;
 }
 /** Выбрать, на каком коне ездить. */
 export function pickMount(G, id) { const H = G.hero; if (!H.mounts.includes(id)) return false; H.mount = id; if (G.P.ride) G.P.ride = id; emit(G, { k: 'mounts' }); return true; }

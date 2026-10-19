@@ -236,6 +236,7 @@ function buildStatics(W) {
     const sp = sprite('sign', 120, 110, 60, 90, 2, oldProps() ? g => signpost(g) : styled(g => TP.signpost(g)));
     S.push({ y: e.y, draw: g => drawSpr(g, sp, e.x - 40, e.y), label: `${e.to} · ${e.lvl}`, lx: e.x - 40, ly: e.y - 100 });
   }
+  for (const bd of W.boards || []) { const sp = sprite('board', 140, 130, 70, 110, 2, styled(g => TP.board(g))); S.push({ y: bd.y, x: bd.x, draw: g => drawSpr(g, sp, bd.x, bd.y), label: 'Доска заказов', lx: bd.x, ly: bd.y - 115 }); }   // v126
   // приметы логов: нора, логово, лёжка, паутина, шатры; у людей — костёр
   for (const cp of W.camps) {
     const sp = lairSpr(cp.lair), ly = cp.y - 10;
@@ -788,7 +789,7 @@ export function render(R, G, now) {
   if (P.goal && P.goal.k === 'ground') { c.strokeStyle = 'rgba(255,233,168,.8)'; c.lineWidth = 2; c.beginPath(); c.ellipse(P.goal.x, P.goal.y - lift(P.goal.x, P.goal.y), 14 + 3 * Math.sin(now / 150), 6, 0, 0, 7); c.stroke(); }
   // подсказка «E»
   const it = !P.dead && interactTarget(G);
-  if (it && !P.mine && !P.gather && !TOUCH) label(c, it.k === 'npc' ? `E — поговорить: ${it.n.name}` : it.k === 'qobj' ? `E — ${it.o.verb}` : it.k === 'b' ? `E — ${it.b.name}` : it.k === 'exit' ? (it.e.temple ? 'E — врата' : it.e.portal ? 'E — портал' : it.e.door ? 'E — выход' : 'E — дорога') : it.k === 'vein' ? 'E — копать' : it.k === 'plant' ? 'E — собрать' : it.k === 'chest' ? 'E — открыть сундук' : 'E — обыскать', P.x, P.y - 78 - hP, '#fff2a0', 14);   // на телефоне вместо надписи — кнопка действия
+  if (it && !P.mine && !P.gather && !TOUCH) label(c, it.k === 'npc' ? `E — поговорить: ${it.n.name}` : it.k === 'qobj' ? `E — ${it.o.verb}` : it.k === 'board' ? 'E — доска заказов' : it.k === 'b' ? `E — ${it.b.name}` : it.k === 'exit' ? (it.e.temple ? 'E — врата' : it.e.portal ? 'E — портал' : it.e.door ? 'E — выход' : 'E — дорога') : it.k === 'vein' ? 'E — копать' : it.k === 'plant' ? 'E — собрать' : it.k === 'chest' ? 'E — открыть сундук' : 'E — обыскать', P.x, P.y - 78 - hP, '#fff2a0', 14);   // на телефоне вместо надписи — кнопка действия
   // полоска копания
   if (P.mine) { const q = Math.min(1, P.mine.t / P.mine.max), x = P.x - 40, y = P.y - 86 - hP; c.fillStyle = 'rgba(20,14,8,.9)'; c.fillRect(x - 1, y - 1, 82, 10); c.fillStyle = '#e0a060'; c.fillRect(x, y, 80 * q, 8); label(c, ORES[P.mine.v.metal].ore, P.x, y - 5, '#ffe9a8', 13); }
   if (P.hearth) { const q = Math.min(1, P.hearth.t / P.hearth.max), x = P.x - 40, y = P.y - 86 - hP, tt = performance.now() / 1000;   // v108: камень возвращения
@@ -921,7 +922,7 @@ function drawHero(c, G, look, t) {
     return;
   }
   if (P.ride && !P.dead) {   // v121: верхом — конь со всадником; шаг рысью по пройденному пути
-    const M = MOUNTS[P.ride] || MOUNTS.bay, wf = Math.floor(((P.step / 4) % 1) * 8), sp = mountSpr(M.coat, look, view, P.moving ? 'walk' : 'idle', P.moving ? wf : 0);
+    const M = MOUNTS[P.ride] || MOUNTS.bay, wf = Math.floor(((P.step / 4) % 1) * 8), sp = mountSpr(M.coat, look, view, P.moving ? 'walk' : 'idle', P.moving ? wf : 0, { art: M.art });
     const side = view === 'side' ? 1 : view === 'fs' || view === 'bs' ? 0.7 : 0.35; c.fillStyle = 'rgba(0,0,0,.24)'; c.beginPath(); c.ellipse(P.x + 2, P.y + 3, 14 + 22 * side, 7 + 3 * (1 - side), 0, 0, 7); c.fill();
     drawFrame(c, P.hurt > 0 ? flashOf(sp) : sp, P.x, P.y, dir, PEOPLE_K, B.cloak > 0 ? 0.35 : 1);
     if (!P.dead) gearFx(c, fxListOf(G.hero), P.x, P.y - 22 * PEOPLE_K, t, 37 * PEOPLE_K, dir);
