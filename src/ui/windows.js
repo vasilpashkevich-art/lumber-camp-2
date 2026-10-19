@@ -40,8 +40,8 @@ import { NPC_LOOK } from '../art/npc.js';
 import { soundState, setSound, setVol } from '../engine/audio.js';
 import { prefs } from '../engine/save.js';
 import { fmt1, due, rng, plural } from '../engine/util.js';
-import { oState, boardOf, greyFor, orderGoal, orderProgress, orderReady, orderReward, oTake, oDrop, oTurnIn, royalWares, royalName, buyRoyal } from '../systems/orders.js';
-import { ORDER } from '../../data/orders.js';
+import { oState, boardOf, greyFor, orderGoal, orderProgress, orderReady, orderReward, oTake, oDrop, oTurnIn, royalWares, royalName, buyRoyal, orderWhere, activeOrders } from '../systems/orders.js';
+import { ORDER, ORDERS } from '../../data/orders.js';
 import { TRINKETS } from '../../data/trinkets.js';
 import { CONTINENT } from '../../data/zones.js';
 import { statRows } from './stathelp.js';
@@ -686,11 +686,17 @@ export function openJournal(G, onChange) {
   const ZN = { pine: 'Сосновый дол', farms: 'Хуторские угодья', shroom: 'Грибной лес', temple: 'Храм квакунов' };
   const draw = () => {
     const ids = Object.keys(S.act); m.querySelector('.cnt').textContent = `${ids.length} из ${Q_MAX}`;
-    if (!ids.length) { listEl.innerHTML = `<p class="hint">Заданий нет. Ищите жителей со знаком <b class="qm gold">!</b> над головой — в Столице капитан стражи Гордей у южных ворот.</p>`; det.innerHTML = ''; return; }
-    if (!cur || !S.act[cur]) cur = ids[0];
+    // v129: взятые заказы доски — отдельным разделом, во всех краях
+    const OL = []; for (const z of Object.keys(ORDERS)) OL.push(...activeOrders(h, z));
+    const ordHtml = OL.length ? `<h4>Заказы дня</h4>${OL.map(T => `<div class="ware2 jq ord${'o:' + T.key === cur ? ' sel' : ''}" data-q="o:${T.key}"><b class="qm blue">${orderReady(h, T) ? '?' : '!'}</b><b>${T.name}</b><small>${ZN[T.zone] || T.zone}</small></div>`).join('')}` : '';
+    if (!ids.length && !OL.length) { listEl.innerHTML = `<p class="hint">Заданий нет. Ищите жителей со знаком <b class="qm gold">!</b> над головой — в Столице капитан стражи Гордей у южных ворот. Заказы дня — на доске заказов со знаком <b class="qm blue">!</b>.</p>`; det.innerHTML = ''; return; }
+    if (!cur || !(S.act[cur] || (cur.startsWith('o:') && OL.some(T => 'o:' + T.key === cur)))) cur = ids[0] ? ids[0] : 'o:' + OL[0].key;
     const byZ = {}; for (const id of ids) (byZ[QUESTS[id].zone] = byZ[QUESTS[id].zone] || []).push(id);
-    listEl.innerHTML = Object.entries(byZ).map(([z, L]) => `<h4>${ZN[z] || z}</h4>${L.map(id => `<div class="ware2 jq${id === cur ? ' sel' : ''}" data-q="${id}">${markHtml(qStatus(h, id))}<b>${QUESTS[id].name}</b>${S.track.includes(id) ? '<span class="trk" title="Отслеживается">◉</span>' : ''}</div>`).join('')}`).join('');
+    listEl.innerHTML = Object.entries(byZ).map(([z, L]) => `<h4>${ZN[z] || z}</h4>${L.map(id => `<div class="ware2 jq${id === cur ? ' sel' : ''}" data-q="${id}">${markHtml(qStatus(h, id))}<b>${QUESTS[id].name}</b>${S.track.includes(id) ? '<span class="trk" title="Отслеживается">◉</span>' : ''}</div>`).join('')}`).join('') + ordHtml;
     listEl.querySelectorAll('[data-q]').forEach(b => b.onclick = () => { cur = b.dataset.q; draw(); if (TOUCH) det.scrollIntoView({ block: 'start' }); });
+    if (cur.startsWith('o:')) { const T = OL.find(T => 'o:' + T.key === cur), rd = orderReady(h, T), pr = orderProgress(h, T), R = orderReward(h, T);
+      det.innerHTML = `<h3 class="qname">${T.name}</h3>${rd ? '<p class="qready">Готово! Сдайте на доске заказов — ' + (ZN[T.zone] || T.zone) + '.</p>' : ''}<p class="qtext">${T.text}</p><ul class="goals"><li class="${rd ? 'done' : ''}">${orderGoal(T)} — ${pr}/${T.need}</li></ul><p class="hint">Где: ${orderWhere(T)}. На карте (K) и мини-карте — голубая штриховка. Заказы сдаются на доске той зоны, где взяты; новые — в полночь.</p><p class="rew">Награда: ${tokensHtml(R.tok, 14)} · ${moneyHtml(R.money)} · ${R.xp} опыта</p><div class="row"><button class="btn danger" data-x="od">Отказаться</button></div>`;
+      det.querySelector('[data-x=od]').onclick = () => { oDrop(G, T); onChange && onChange(); cur = null; draw(); }; return; }
     const Q = QUESTS[cur], st = qStatus(h, cur), N = NPCS[Q.turn || Q.giver];
     det.innerHTML = `<h3 class="qname">${Q.name}</h3>${st === 'ready' ? `<p class="qready">Готово! Вернитесь: <b>${N.name}</b>, ${N.title}.</p>` : ''}<p class="qtext">${Q.text}</p>${goalsHtml(h, cur)}${rewardHtml(G, cur)}<div class="row"><button class="btn" data-x="trk">${S.track.includes(cur) ? 'Не следить' : 'Следить'}</button><button class="btn danger" data-x="ab">Бросить</button></div>`;
     det.querySelectorAll('[data-ci]').forEach(c => { const it = qChoice(h, cur)[+c.dataset.ci]; hov(c, e => tip(e, it, G)); c.onclick = () => { hideTip(); if (TOUCH) itemSheet(G, it, []); }; });

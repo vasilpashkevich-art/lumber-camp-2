@@ -8,7 +8,7 @@ import { ram } from './ram.js';   // v126: боевой баран
 import { RIG } from './toon.js';
 import { palette, setInk, INK, INK_HARD } from './gear.js';
 import { mossTree, giantShroom } from './forest.js';
-import { giantShroom as tShroom } from './tforest.js';
+import { giantShroom as tShroom, shroomGlow } from './tforest.js';
 
 // v70: готовые картинки держатся в пределах бюджета памяти: давно не нужные выбрасываются (нарисуются заново, если понадобятся).
 // Телефон — меньше: у браузера на нём жёсткий предел памяти, при переполнении вкладка перезагружается сама.
@@ -164,7 +164,7 @@ export const TREE_K = 1.5;
 export function treeSpr(kind, v) {
   const vb = Math.floor(v * 4) % 4, k = TREE_K;
   if (kind === 'moss') return sprite('t|moss|' + vb, 200, 230, 100, 210, 1.6, g => mossTree(g, 118 + vb * 6, vb * 7 + 3));
-  if (kind === 'gshroom') return (typeof window !== 'undefined' && window.__oldLairs) ? sprite('t|gshroom|' + vb, 140, 170, 70, 160, 1.6, g => giantShroom(g, 88 + vb * 6, vb === 3 ? 2 : vb % 2)) : sprite('t|tgshroom|' + vb, 150, 180, 75, 168, 1.6, styled(g => tShroom(g, 88 + vb * 6, vb === 3 ? 2 : vb % 2)));
+  if (kind === 'gshroom') return (typeof window !== 'undefined' && window.__oldLairs) ? sprite('t|gshroom|' + vb, 140, 170, 70, 160, 1.6, g => giantShroom(g, 88 + vb * 6, vb === 3 ? 2 : vb % 2)) : sprite('t|tgshroom|' + vb, 180, 190, 90, 168, 1.6, g => { const h = 88 + vb * 6, kind = vb === 3 ? 2 : vb % 2; if (kind === 2) shroomGlow(g, h * 0.44, -h * 0.78); styled(gg => tShroom(gg, h, kind, 0, true))(g); })   // v129: свечение до контура;
   return sprite('t|' + kind + '|' + vb, 90 * k, 116 * k, 45 * k, 94 * k, 1.6, g => { g.scale(k, k); LOOK.use(g); LOOK.tree(kind, 0, 0, 1, (vb + 0.5) / 4, 1.2); });
 }
 

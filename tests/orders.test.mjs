@@ -78,3 +78,13 @@ test('royal: верхом на баране — скорость по баран
   const h2 = migrate(JSON.parse(JSON.stringify(h))); assert.deepEqual(h2.mounts, ['ram_snow']); assert.equal(h2.tokens, 0); assert.ok(h2.orders);
   const old = migrate({ v: 1, name: 'С', cls: 'mage', lvl: 3 }); assert.equal(old.tokens, 0); assert.ok(old.orders);
 });
+
+test('v129: где выполнять — области на карте по взятым заказам, готовый — доска; словами', async () => {
+  const { oAreas, orderWhere } = await import('../src/systems/orders.js');
+  const G = setup(5), h = G.hero; assert.equal(oAreas(W, h).length, 0);
+  const T = { ...ORDERS.pine.find(o => o.id === 'boars'), zone: 'pine', key: 'pine|boars', need: 3 }; oTake(G, T);
+  const A = oAreas(W, h); assert.ok(A.length >= 1 && A.every(a => a.name === T.name && !a.board)); assert.ok(/кабан/i.test(orderWhere(T).toLowerCase()) || orderWhere(T).length > 3);
+  oState(h).act[T.key].n = 3; const B = oAreas(W, h); assert.ok(B.length === 1 && B[0].board);
+  const T2 = { ...ORDERS.pine.find(o => o.id === 'copper'), zone: 'pine', key: 'pine|copper', need: 5 }; h.prof.mining = 1; oTake(G, T2);
+  assert.ok(oAreas(W, h).some(a => a.name === T2.name)); assert.match(orderWhere(T2), /Медная жила/);
+});

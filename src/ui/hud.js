@@ -1,6 +1,7 @@
 // Интерфейс во время игры (в духе WoW): портрет с уровнем, здоровьем и опытом; рамка цели;
 // панель действий внизу; мини-карта, зона и золото справа сверху.
 import { CLASSES } from '../../data/classes.js';
+import { activeOrders, orderProgress, orderReady, orderGoal } from '../systems/orders.js';   // v129
 import { xpNeed, lvlColor } from '../../data/balance.js';
 import { lookOf } from '../systems/items.js';
 import { doll } from '../art/body.js';
@@ -105,8 +106,8 @@ export function createHud(In) {
     const E = h.elixir || {}, ek = ['battle', 'guard'].map(k => E[k] ? E[k].id + ':' + Math.ceil(E[k].t / 5) : '').join('|');
     if (ek !== H.elixK) { H.elixK = ek; $('#pfElix').innerHTML = ['battle', 'guard'].map(k => { const e = E[k]; if (!e) return ''; const tt = Math.ceil(e.t), m = Math.floor(tt / 60), sec = tt % 60; return `<div class="ex" title="${POTIONS[e.id].name}: ${POTIONS[e.id].d}">${potionIcon(e.id, 'common', 38)}<i>${tt >= 60 ? m + ':' + String(sec).padStart(2, '0') : sec + ' с'}</i></div>`; }).join(''); }
     // v95: отслеживание заданий под мини-картой (перестраивается только при изменении)
-    { const S = qState(h), qk = S.track.map(id => id + ':' + (S.act[id] ? S.act[id].n.join(',') : '') + (qReady(h, id) ? 'R' : '')).join('|');
-      if (qk !== H.qK) { H.qK = qk; $('#qtrack').hidden = !S.track.length; $('#qtrack').innerHTML = S.track.filter(id => S.act[id]).map(id => { const Q = QUESTS[id], rd = qReady(h, id), N = NPCS[Q.turn || Q.giver]; return `<div class="qt${rd ? ' rd' : ''}"><b>${Q.name}</b>${rd ? `<span class="ok">✔ Вернитесь: ${N.name}</span>` : Q.goals.map((g, i) => `<span class="${goalDone(h, id, i) ? 'ok' : ''}">${goalDone(h, id, i) ? '✔' : '–'} ${goalText(h, id, i, true)}</span>`).join('')}</div>`; }).join(''); } }
+    { const S = qState(h), OA = activeOrders(h, G.W.Z.id), qk = S.track.map(id => id + ':' + (S.act[id] ? S.act[id].n.join(',') : '') + (qReady(h, id) ? 'R' : '')).join('|') + '#' + OA.map(T => T.key + ':' + orderProgress(h, T)).join('|');
+      if (qk !== H.qK) { H.qK = qk; $('#qtrack').hidden = !S.track.length && !OA.length; $('#qtrack').innerHTML = OA.map(T => { const rd = orderReady(h, T), pr = orderProgress(h, T); return `<div class="qt ord${rd ? ' rd' : ''}"><b>${T.name}</b>${rd ? '<span class="ok">✔ Сдайте на доске заказов</span>' : `<span>– ${orderGoal(T).replace(/ — \d+$/, '')}: ${pr}/${T.need}</span>`}</div>`; }).join('') + S.track.filter(id => S.act[id]).map(id => { const Q = QUESTS[id], rd = qReady(h, id), N = NPCS[Q.turn || Q.giver]; return `<div class="qt${rd ? ' rd' : ''}"><b>${Q.name}</b>${rd ? `<span class="ok">✔ Вернитесь: ${N.name}</span>` : Q.goals.map((g, i) => `<span class="${goalDone(h, id, i) ? 'ok' : ''}">${goalDone(h, id, i) ? '✔' : '–'} ${goalText(h, id, i, true)}</span>`).join('')}</div>`; }).join(''); } }
     const gk = h.gold; if (gk !== H.goldK) { H.goldK = gk; $('#gold').innerHTML = moneyHtml(gk); }
     $('#pfFist').hidden = !st.unarmed;
     drawMini($('#mini'), G, H);

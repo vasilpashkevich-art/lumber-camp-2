@@ -8,7 +8,9 @@ function stick(g, x0, y0, x1, y1, w, col) { g.lineCap = 'round'; g.beginPath(); 
 function mini(g, x, y, cap, s = 1) { g.save(); g.translate(x, y); g.scale(s, s); rr(g, -1.2, -4.5, 2.4, 4.5, 1.2); paint(g, '#f2ead6', 0.6); g.beginPath(); g.moveTo(-3.6, -4); g.quadraticCurveTo(-3.4, -8.6, 0, -8.8); g.quadraticCurveTo(3.4, -8.6, 3.6, -4); g.quadraticCurveTo(0, -3, -3.6, -4); g.closePath(); paint(g, cap, 0.7, -9, -3); g.fillStyle = 'rgba(255,255,255,.6)'; g.beginPath(); g.arc(-1.4, -6.6, 0.8, 0, TAU); g.fill(); g.restore(); }
 
 /** Гриб-великан: пухлая ножка с юбочкой, толстая шляпка-подушка с крупными пятнами, глянец; синий светится. */
-export function giantShroom(g, h = 90, kind = 0, t = 0) {
+/** v129: свечение синего гриба — рисуется отдельно, до мягкого контура (иначе контур давал серую «дымку» квадратом). */
+export function shroomGlow(g, cw, cy) { const r = cw * 1.3, gl = g.createRadialGradient(0, cy - cw * 0.2, 4, 0, cy - cw * 0.2, r); gl.addColorStop(0, 'rgba(150,215,255,.38)'); gl.addColorStop(0.55, 'rgba(150,215,255,.12)'); gl.addColorStop(1, 'rgba(150,215,255,0)'); g.fillStyle = gl; g.beginPath(); g.arc(0, cy - cw * 0.2, r, 0, TAU); g.fill(); }
+export function giantShroom(g, h = 90, kind = 0, t = 0, noGlow = false) {
   const caps = [['#c8402e', '#fff4e0'], ['#a07a52', '#f2e2c4'], ['#4a78c0', '#d8ecff']], [capC, spot] = caps[kind % 3], cw = h * 0.44, sw = h * 0.12, cy = -h * 0.78;
   shadow(g, cw * 0.9, cw * 0.26);
   g.beginPath(); g.moveTo(-sw * 1.25, 0); g.bezierCurveTo(-sw * 1.35, -h * 0.25, -sw * 0.8, -h * 0.55, -sw * 0.85, cy); g.lineTo(sw * 0.85, cy); g.bezierCurveTo(sw * 0.8, -h * 0.55, sw * 1.35, -h * 0.25, sw * 1.25, 0); g.quadraticCurveTo(0, sw * 0.5, -sw * 1.25, 0); g.closePath();
@@ -16,7 +18,7 @@ export function giantShroom(g, h = 90, kind = 0, t = 0) {
   g.beginPath(); g.moveTo(-sw * 1.7, -h * 0.5); g.quadraticCurveTo(0, -h * 0.44, sw * 1.7, -h * 0.5); g.quadraticCurveTo(sw * 1.4, -h * 0.58, 0, -h * 0.58); g.quadraticCurveTo(-sw * 1.4, -h * 0.58, -sw * 1.7, -h * 0.5); g.closePath(); paint(g, '#f4ead4', 1.2);
   g.beginPath(); g.ellipse(0, cy, cw * 0.86, cw * 0.16, 0, 0, TAU); paint(g, '#e2d0aa', 1.1); g.strokeStyle = 'rgba(140,100,60,.45)'; g.lineWidth = 0.8; for (let i = -6; i <= 6; i++) { g.beginPath(); g.moveTo(i * cw / 8, cy - cw * 0.1); g.lineTo(i * cw / 10, cy + cw * 0.1); g.stroke(); }
   const cap = () => { g.beginPath(); g.moveTo(-cw, cy); g.bezierCurveTo(-cw * 1.04, cy - cw * 0.92, cw * 1.04, cy - cw * 0.92, cw, cy); g.quadraticCurveTo(cw * 0.6, cy + cw * 0.16, 0, cy + cw * 0.14); g.quadraticCurveTo(-cw * 0.6, cy + cw * 0.16, -cw, cy); g.closePath(); };
-  if (kind % 3 === 2) { const gl = g.createRadialGradient(0, cy - cw * 0.3, 2, 0, cy - cw * 0.3, cw * 1.5); gl.addColorStop(0, 'rgba(140,210,255,.4)'); gl.addColorStop(1, 'rgba(140,210,255,0)'); g.fillStyle = gl; g.beginPath(); g.arc(0, cy - cw * 0.3, cw * 1.5, 0, TAU); g.fill(); }
+  if (kind % 3 === 2 && !noGlow) shroomGlow(g, cw, cy);
   cap(); paint(g, capC, 1.8, cy - cw * 0.7, cy + cw * 0.1, 0.22);
   g.save(); cap(); g.clip(); const r = rnd(kind * 7 + 3 + Math.round(h));
   for (let i = 0; i < 7; i++) { const x = (r() - 0.5) * cw * 1.6, y = cy - cw * (0.12 + r() * 0.5), s = cw * (0.08 + r() * 0.06); g.beginPath(); g.ellipse(x, y, s, s * 0.75, 0, 0, TAU); paint(g, spot, 0.9); }

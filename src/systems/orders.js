@@ -3,7 +3,7 @@
 // key = zone + '|' + id. День — по часам игрока (полночь); с новым днём доска очищается, взятые вчера — пропадают.
 // Без рисования и DOM: окно рисует UI по данным отсюда; события — в G.ev.
 import { ORDERS, ORDER, TOKEN, ROYAL } from '../../data/orders.js';
-import { CONTINENT } from '../../data/zones.js';
+import { CONTINENT, ZONES } from '../../data/zones.js';
 import { MOBS } from '../../data/mobs.js';
 import { MOUNTS } from '../../data/mounts.js';
 import { ORES, GEMS } from '../../data/mining.js';
@@ -51,6 +51,13 @@ export function orderGoal(T) {
   if (T.k === 'gather') return `Принести: ${stackName(T.kind, T.metal)} — ${T.need}`;
   return '';
 }
+/** v129: где выполнять — словами (для журнала). */
+export function orderWhere(T) {
+  const Z = ZONES[T.zone];
+  if (T.k === 'gather') { if (T.kind === 'herb') return `кусты «${HERBS[T.metal].name}» в краю ${Z.name}`; return T.kind === 'bar' ? `выплавить из руды в кузнице (${ORES[T.metal].vein.toLowerCase()} — ${Z.name})` : `${ORES[T.metal].vein} — ${Z.name}`; }
+  const ms = Array.isArray(T.mob) ? T.mob : [T.mob], camps = (Z.camps || []).filter(c => [].concat(c.mob).some(k => ms.includes(k))).map(c => c.name);
+  return camps.length ? camps.join(', ') : Z.name;
+}
 /** Сколько сделано (для gather — сколько в сумке). */
 export function orderProgress(h, T) {
   const S = oState(h), A = S.act[T.key]; if (!A) return 0;
@@ -96,8 +103,23 @@ export function oOnKill(G, m) {
 }
 /** v128: знак над доской: '?' — есть что сдать, '!' — есть невзятые, '' — всё сделано или всё взято. */
 export function boardMark(h, zone) { const S = oState(h), L = boardOf(zone); if (L.some(T => orderReady(h, T))) return '?'; if (L.some(T => !S.act[T.key] && !S.done[T.key])) return '!'; return ''; }
+/** v129: где выполнять взятые заказы этой зоны — области для карт (голубая штриховка): логова с нужными мобами, жилы и травы, готовый — доска. */
+export function oAreas(W, h) {
+  const out = [];
+  for (const T of activeOrders(h, W.Z.id)) {
+    if (orderReady(h, T)) { for (const bd of W.boards || []) out.push({ x: bd.x, y: bd.y, r: 90, name: T.name, board: true }); continue; }
+    if (T.k === 'gather') { const L = T.kind === 'herb' ? (W.Z.herbs || []) : (W.Z.ore || []); for (const a of L) if ((T.kind === 'herb' ? a.herb : a.metal) === T.metal) out.push({ x: a.x, y: a.y, r: a.r, name: T.name }); continue; }
+    const ms = Array.isArray(T.mob) ? T.mob : [T.mob];
+    for (const c of W.camps || []) { const kinds = [].concat(c.mob); if (ms.some(k => kinds.includes(k))) out.push({ x: c.x, y: c.y, r: (c.r || 150) + 90, name: T.name }); }
+  }
+  return out;
+}
 /** Взятые заказы в этой зоне (для отслеживания). */
-export function activeOrders(h, zone) { const S = oState(h); return boardOf(zone).filter(T => S.act[T.key]); }
+export function activeOrders(h, zone) {
+  const S = oState(h), out = [];
+  for (const key of Object.keys(S.act)) { const [z, id] = key.split('|'); if (z !== zone) continue; const T0 = (ORDERS[z] || []).find(o => o.id === id); if (!T0) continue; out.push({ ...T0, zone: z, key, need: S.act[key].need || T0.n[1] }); }
+  return out;
+}
 
 // ---------------------------------------------------------------- лавка квартирмейстера
 export const royalWares = () => ROYAL;
