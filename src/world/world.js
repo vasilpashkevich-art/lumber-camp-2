@@ -60,6 +60,7 @@ export function buildWorld(Z) {
     for (const b of cap.buildings) { const [x0, y0, x1, y1] = footRect(b.art, cap.x + b.dx, cap.y + b.dy); rect(x0, y0, x1, y1); }
     if (cap.fountain) W.blocks.push({ x: cap.x + cap.fountain.x, y: cap.y + cap.fountain.y - 18, rx: cap.fountain.r + 8, ry: (cap.fountain.r + 8) * 0.55 });
     for (const d of cap.decor || []) if (d[0] === 'well') W.blocks.push({ x: cap.x + d[1], y: cap.y + d[2] - 10, rx: 26, ry: 12 }); else if (d[0] === 'haystack') W.blocks.push({ x: cap.x + d[1], y: cap.y + d[2] - 10, rx: 34, ry: 14 });
+    else if (d[0] === 'herbGarden') { W.blocks.push({ x: cap.x + d[1] + 100, y: cap.y + d[2] - 8, rx: 30, ry: 12 }); W.blocks.push({ x: cap.x + d[1] + 15, y: cap.y + d[2] - 4, rx: 40, ry: 8 }); } else if (d[0] === 'oreCart') W.blocks.push({ x: cap.x + d[1], y: cap.y + d[2] - 8, rx: 28, ry: 10 }); else if (d[0] === 'quarterSign') W.blocks.push({ x: cap.x + d[1], y: cap.y + d[2] - 2, rx: 9, ry: 5 });   // v130
     W.castle = { x: cap.x, y: cap.y + cap.castle.dy, ...cap.castle };
     // ворота: снаружи и внутри — для автоигрока и проверок
     W.gates = [{ x: cap.x + SQ.southGate, y: cap.y + SQ.y1 + SQ.th / 2, out: [cap.x + SQ.southGate, cap.y + SQ.y1 + SQ.th + 90], in: [cap.x + SQ.southGate, cap.y + SQ.y1 - 90] },

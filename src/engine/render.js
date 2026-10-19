@@ -120,6 +120,12 @@ function cityStatics(S, W, c) {
   for (const d of c.decor || []) {
     const [k, dx, dy, a] = d, x = cx + dx, y = cy + dy;
     if (k === 'lamp') { const lampSpr = sprite('lamp', 50, 130, 25, 120, 2, oldProps() ? g => { g.scale(0.8, 0.8); lamp(g, 0, false); } : styled(g => { g.scale(0.8, 0.8); TP.lamp(g, 0, false); })); S.push({ y, x, draw: g => drawSpr(g, lampSpr, x, y) }); continue; }
+    // v130: кварталы — табличка квартала, аптекарский огород, вагонетка с рудой (свои размеры картинки)
+    if (k === 'quarterSign' || k === 'herbGarden' || k === 'oreCart') {
+      const q = k === 'quarterSign' ? (c.quarters || []).find(z => z.id === a) : null, [pw, ph] = k === 'herbGarden' ? [340, 180] : k === 'quarterSign' ? [240, 160] : [120, 90];
+      const sp = sprite('cd|' + k + '|' + (a || 0), pw, ph, pw / 2, ph - 20, 2, styled(g => { if (k === 'quarterSign') { if (q) TP.quarterSign(g, q); } else TP[k](g); }));
+      S.push({ y: y + 1, x, draw: g => drawSpr(g, sp, x, y) }); continue;
+    }
     const sp = sprite('cd|' + k + '|' + (a || 0), 200, 120, 100, 100, 2, styled(g => drawYardItem(g, [k, 0, 0, a], 0)));
     S.push({ y: y + 1, x, draw: g => drawSpr(g, sp, x, y) });
   }
@@ -181,9 +187,9 @@ function buildStatics(W) {
   const LBLV = { inn: 290, barn: 200, house: 170, forge: 170, stable: 300 };
   // v86: объёмные постройки столицы (мягкий облик), размер картинки — по основанию
   const B2 = (key, v) => { if (key === 'stall' && !oldMarket()) return tStallSpr(); const [w, d, lh] = FOOT[key] || [200, 150, 200]; const pw = w + d * 0.3 + 280, ph = lh + 220; return sprite('b2|' + key + (v || 0), pw, ph, w / 2 + 140, ph - 60, 1.6, styled(g => { if (key === 'stall') { g.save(); g.translate(0, -44); g.scale(PEOPLE_K, PEOPLE_K); person(g, MERCH_LOOK, 'front', {}); g.restore(); } ((!oldBld() && TB2[key]) || BLD2[key])(g, v || 0, 0.4); })); };
-  const LBL = { herbal: 185, bank: 205, castle: 455, market: 195, stall: 195, cart: 150, forge: 170, tavern: 210, miners: 200, enchant: 210, inn: 230, barn: 190 };
+  const LBL = { herbal: 185, bank: 205, jeweler: 240, castle: 455, market: 195, stall: 195, cart: 150, forge: 170, tavern: 210, miners: 200, enchant: 210, inn: 230, barn: 190 };
   for (const b of W.houses) {
-    const sq = c && c.square && BLD2[b.art];
+    const sq = c && c.square && (BLD2[b.art] || TB2[b.art]);
     const sp = sq ? B2(b.art, b.v) : ART[b.art] ? ART[b.art](b.v || 0) : null;
     // у объёмных построек рамка заслона — по стенам и крыше, без дыма из трубы (иначе герой на улице перед домом «прячется» за ним)
     const oc = sp && (sq ? (() => { const [w, d, lh] = FOOT[b.art] || [200, 150, 200]; return { x0: b.x - w / 2 - 10, y0: b.y - lh + 30, x1: b.x + w / 2 + (oldBld() ? d * 0.3 : 0) + 10, y1: b.y }; })() : occ(sp, b.x, b.y));

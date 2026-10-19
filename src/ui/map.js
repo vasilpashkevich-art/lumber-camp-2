@@ -3,6 +3,7 @@
 import { qState, qAreas, npcMark, npcsOf, QUESTS } from '../systems/quests.js';
 import { boardMark, oAreas } from '../systems/orders.js';
 import { TOUCH } from './dom.js';
+import { quarterIcon } from '../art/tprops.js';
 import { lvlColor } from '../../data/balance.js';
 import { modal } from './dom.js';
 import { MOBS } from '../../data/mobs.js';
@@ -79,6 +80,10 @@ function base(g, W, k, big, q = 1) {
   for (const f of W.Z.farmsteads || []) { const x = f.x * k, y = f.y * k, s = big ? 1 : 0.5 * q; g.fillStyle = f.burned ? '#4a3a32' : '#c98a4a'; g.beginPath(); g.moveTo(x - 6 * s, y + 4 * s); g.lineTo(x - 6 * s, y - 2 * s); g.lineTo(x, y - 7 * s); g.lineTo(x + 6 * s, y - 2 * s); g.lineTo(x + 6 * s, y + 4 * s); g.closePath(); g.fill(); }
   if (W.town) { g.fillStyle = W.cap ? '#d9c79a' : 'rgba(217,199,154,.8)'; g.strokeStyle = '#4a3a24'; g.lineWidth = big ? 3 : 1.5 * q; g.beginPath(); if (W.town.rect) { const R = W.town.rect; g.rect(R[0] * k, R[1] * k, (R[2] - R[0]) * k, (R[3] - R[1]) * k); } else g.arc(W.town.x * k, W.town.y * k, W.town.R * k, 0, 7); g.fill(); if (W.cap) g.stroke(); }
   if (W.castle) { const K = W.castle; g.fillStyle = '#c9bfa4'; g.strokeStyle = O; g.lineWidth = 1; g.fillRect((K.x - K.w / 2) * k, (K.y - 300) * k, K.w * k, 300 * k); if (big) g.strokeRect((K.x - K.w / 2) * k, (K.y - 300) * k, K.w * k, 300 * k); g.fillStyle = '#2f5d9a'; for (const sd of [-1, 0, 1]) { g.beginPath(); g.arc((K.x + sd * K.w * 0.4) * k, (K.y - 150) * k, (big ? 6 : 2.5 * q) * (sd ? 1 : 1.4), 0, 7); g.fill(); } }
+  // v130: кварталы Столицы — цветные области со значком (руна, молот, лист, кровать); названия — на большой карте
+  if (W.cap && W.cap.quarters) for (const Q of W.cap.quarters) { const x0 = (W.cap.x + Q.x0) * k, y0 = (W.cap.y + Q.y0) * k, w = (Q.x1 - Q.x0) * k, h = (Q.y1 - Q.y0) * k;
+    g.fillStyle = Q.col; g.globalAlpha = 0.28; g.beginPath(); g.roundRect(x0, y0, w, h, Math.min(8, w / 4)); g.fill(); g.globalAlpha = 1;
+    if (w > 18) { const r = big ? 9 : Math.max(3, 4 * q); g.save(); g.translate(x0 + w / 2, y0 + (big ? h * 0.42 : h / 2)); g.fillStyle = 'rgba(0,0,0,.35)'; g.beginPath(); g.arc(0, 0, r * 1.5, 0, 7); g.fill(); quarterIcon(g, Q.icon, r, sh(Q.col, 0.45)); g.restore(); } }
   if (W.cap && W.cap.fountain) { g.fillStyle = '#4f8fb0'; g.beginPath(); g.arc((W.cap.x + (W.cap.fountain.x || 0)) * k, (W.cap.y + (W.cap.fountain.y || 0)) * k, Math.max(2, W.cap.fountain.r * k), 0, 7); g.fill(); }
   if (W.yard) {   // v121: Конный двор — светлая площадка, загон, конюшня и подкова
     const Y = W.yard, P0 = Y.paddock; g.fillStyle = 'rgba(217,199,154,.35)'; g.beginPath(); g.arc(Y.x * k, Y.y * k, Y.R * k, 0, 7); g.fill();
@@ -111,6 +116,7 @@ function lairs(g, W, k, big, q = 1, dead = null) {
   for (const cp of W.camps) lairGlyph(g, cp.lair, cp.x * k, cp.y * k, big ? 1.25 : 0.62 * q);
 }
 
+const sh = (hex, k) => { const n = parseInt(hex.slice(1), 16), f = v => Math.max(0, Math.min(255, Math.round(k > 0 ? v + (255 - v) * k : v * (1 + k)))); return '#' + [(n >> 16) & 255, (n >> 8) & 255, n & 255].map(v => f(v).toString(16).padStart(2, '0')).join(''); };
 function text(g, s, x, y, col, size, bold = true) {
   g.font = `${bold ? 'bold ' : ''}${size}px Georgia, serif`; g.textAlign = 'center'; g.lineJoin = 'round';
   g.lineWidth = Math.max(3, size / 4); g.strokeStyle = 'rgba(20,14,8,.92)'; g.strokeText(s, x, y); g.fillStyle = col; g.fillText(s, x, y);
@@ -177,7 +183,7 @@ export function drawMini(cv, G, cache) {
 /** Большая карта зоны поверх игры. Закрывается по K, Esc или кнопке. */
 export function openMap(G) {
   const W = G.W, CW = 1100, CH = Math.round(CW * W.H / W.W);
-  const m = modal(`<h2>${W.Z.name} <small style="font-size:15px;color:#a89878">ур. ${W.Z.lvl[0]}–${W.Z.lvl[1]}</small></h2><canvas width="${CW * 2}" height="${CH * 2}"></canvas><p class="hint">Цвет подписи — насколько опасно для вас: зелёный — легко, жёлтый — по силам, оранжевый и красный — опасно. Жёлтые кружки на краю — дороги в другие края. Золотая штриховка — где искать цели ваших заданий, «!» и «?» — жители с заданиями; голубые знак и штриховка — доска заказов и где их выполнять.</p><div class="row"><button class="btn main" data-x="ok">Закрыть${TOUCH ? '' : ' (K)'}</button></div>`, 'map');
+  const m = modal(`<h2>${W.Z.name} <small style="font-size:15px;color:#a89878">ур. ${W.Z.lvl[0]}–${W.Z.lvl[1]}</small></h2><canvas width="${CW * 2}" height="${CH * 2}"></canvas><p class="hint">Цвет подписи — насколько опасно для вас: зелёный — легко, жёлтый — по силам, оранжевый и красный — опасно. Жёлтые кружки на краю — дороги в другие края. Золотая штриховка — где искать цели ваших заданий, «!» и «?» — жители с заданиями; голубые знак и штриховка — доска заказов и где их выполнять. Цветные части Столицы — кварталы: руна — чары и наставник, молот — руда, кузница и ювелир, лист — травы и зелья, кровать — таверна и постоялый двор.</p><div class="row"><button class="btn main" data-x="ok">Закрыть${TOUCH ? '' : ' (K)'}</button></div>`, 'map');
   const cv = m.querySelector('canvas'), g = cv.getContext('2d'), k = CW / W.W;
   const draw = () => {
     g.setTransform(2, 0, 0, 2, 0, 0); g.clearRect(0, 0, CW, CH);
@@ -189,6 +195,7 @@ export function openMap(G) {
       text(g, cp.name, x, ty, '#fff2d8', 14); text(g, lvTxt(cp), x, ty + 15, col, 12);
     }
     const c = W.town; if (c) text(g, c.name, c.x * k, c.y * k + 5, '#ffe9a8', W.cap ? 17 : 15);
+    if (W.cap && W.cap.quarters) for (const Q of W.cap.quarters) text(g, Q.name, (W.cap.x + (Q.x0 + Q.x1) / 2) * k, (W.cap.y + Q.y0 + (Q.y1 - Q.y0) * 0.42) * k + 22, sh(Q.col, 0.5), 11);
     if (!W.graveyard.hidden) text(g, W.graveyard.name, W.graveyard.x * k, W.graveyard.y * k + 22, '#e8e0cc', 12, false);
     if (W.yard) text(g, W.yard.name, W.yard.x * k, (W.yard.y + 40) * k + 22, '#ffe9a8', 13);
     for (const e of W.exits) { const ex = Math.min(CW - 70, e.x * k), ey = Math.min(CH - 24, e.y * k - 12); text(g, `${e.to} · ${e.lvl}`, ex, ey, '#ffd34d', 12); }

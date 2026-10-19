@@ -196,3 +196,59 @@ export function graveFence(g, cx, cy, rx, ry, ga) {
   for (let i = 0; i < n; i++) { const a = ga + gap + (TAU - 2 * gap) * i / (n - 1), [x, y] = at(a); rr(g, x - 3.5, y - 12, 7, 14, 3.5); paint(g, '#8a6a44', 1.1); }
   for (const d of [-gap, gap]) { const [x, y] = at(ga + d); rr(g, x - 5, y - 18, 10, 20, 4); paint(g, '#6a6c74', 1.3); g.beginPath(); g.arc(x, y - 20, 4, 0, TAU); paint(g, '#7a7c84', 1.1); }
 }
+
+// ================================================================ v130: кварталы Столицы
+/** Значки кварталов (руна, молот, лист, кровать) — одинаковые у табличек в мире и на картах. r — размер. */
+export function quarterIcon(g, icon, r = 8, col = '#fff') {
+  g.save(); g.lineCap = g.lineJoin = 'round'; g.strokeStyle = col; g.fillStyle = col; g.lineWidth = r * 0.28;
+  if (icon === 'rune') { g.beginPath(); g.moveTo(0, -r); g.lineTo(r * 0.85, r * 0.7); g.lineTo(-r * 0.85, r * 0.7); g.closePath(); g.stroke(); g.beginPath(); g.moveTo(0, r * 0.7); g.lineTo(0, -r * 0.1); g.stroke(); }
+  else if (icon === 'hammer') { g.lineWidth = r * 0.34; g.beginPath(); g.moveTo(-r * 0.8, r * 0.9); g.lineTo(r * 0.45, -r * 0.35); g.stroke(); g.beginPath(); g.roundRect(r * 0.05, -r * 1.05, r * 1.0, r * 0.7, r * 0.15); g.fill(); }
+  else if (icon === 'leaf') { g.beginPath(); g.moveTo(0, -r); g.quadraticCurveTo(r * 1.1, -r * 0.2, 0, r); g.quadraticCurveTo(-r * 1.1, -r * 0.2, 0, -r); g.fill(); g.strokeStyle = 'rgba(0,0,0,.25)'; g.lineWidth = r * 0.12; g.beginPath(); g.moveTo(0, -r * 0.7); g.lineTo(0, r * 0.8); g.stroke(); }
+  else if (icon === 'bed') { g.beginPath(); g.roundRect(-r, -r * 0.3, r * 2, r * 0.8, r * 0.15); g.fill(); g.beginPath(); g.roundRect(-r, -r * 0.85, r * 0.6, r * 0.5, r * 0.12); g.fill(); g.lineWidth = r * 0.2; g.beginPath(); g.moveTo(-r, r * 0.5); g.lineTo(-r, r); g.moveTo(r, r * 0.5); g.lineTo(r, r); g.stroke(); }
+  g.restore();
+}
+/** Табличка квартала у входа с главной улицы: столб, щиток в цвете квартала со значком, доска с названием, флажок. Высота ≈ 1,7 роста. */
+export function quarterSign(g, q) {
+  shadow(g, 26, 6);
+  stick(g, 0, 0, 0, -78, 7, DARK);
+  // флажок
+  g.beginPath(); g.moveTo(3, -78); g.lineTo(30, -72); g.lineTo(3, -64); g.closePath(); paint(g, q.col, 1.2, -78, -64);
+  // щиток со значком
+  g.beginPath(); g.moveTo(-16, -62); g.lineTo(16, -62); g.lineTo(16, -44); g.quadraticCurveTo(16, -32, 0, -28); g.quadraticCurveTo(-16, -32, -16, -44); g.closePath(); paint(g, q.col, 1.6, -62, -28);
+  g.save(); g.translate(0, -46); quarterIcon(g, q.icon, 8, '#fff8e8'); g.restore(); shine(g, -8, -56, 5, 2, 0.35);
+  // доска с названием
+  const txt = q.name.toUpperCase(); g.font = 'bold 9px Georgia, serif'; const w = Math.max(90, g.measureText(txt).width + 18); g.beginPath(); g.roundRect(-w / 2, -26, w, 20, 5); paint(g, '#c8954a', 1.5, -26, -6);
+  g.strokeStyle = sh('#c8954a', -0.4); g.lineWidth = 0.9; g.beginPath(); g.roundRect(-w / 2 + 3, -23, w - 6, 14, 3); g.stroke();
+  g.fillStyle = '#3a2410'; g.font = 'bold 9px Georgia, serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(txt, 0, -16); g.textBaseline = 'alphabetic';
+}
+/** Аптекарский огород: три грядки с травами, сушильня с пучками, котёл под навесом на столбах. Ширина ≈ 260. */
+export function herbGarden(g) {
+  shadow(g, 120, 16, 6);
+  // грядки
+  for (const [x, y, w, seed] of [[-100, -6, 70, 2], [-100, -34, 70, 5], [-100, -62, 70, 8]]) { g.save(); g.translate(x, y); flowerbed(g, w, 16, seed); g.restore(); }
+  // травы на грядках
+  const r = rnd(11); for (const y of [-14, -42, -70]) for (let x = -130; x < -70; x += 11) { const h = 6 + r() * 5, col = ['#5f9a44', '#7ab050', '#4a8a3a'][Math.abs(x / 11 | 0) % 3]; g.strokeStyle = col; g.lineWidth = 1.6; g.lineCap = 'round'; for (const dx of [-3, 0, 3]) { g.beginPath(); g.moveTo(x + dx, y); g.quadraticCurveTo(x + dx * 1.8, y - h * 0.6, x + dx * 2.4, y - h); g.stroke(); } }
+  // сушильня: две стойки, перекладина, пучки трав
+  for (const x of [-20, 50]) stick(g, x, 0, x, -62, 6, DARK); stick(g, -24, -58, 54, -58, 5, WOOD);
+  for (let x = -12; x <= 42; x += 13) { g.beginPath(); g.moveTo(x, -56); g.lineTo(x - 5, -36); g.lineTo(x + 5, -36); g.closePath(); paint(g, ['#7a9a3a', '#9a8a3a', '#5a8a4a', '#b08a40', '#6a9a5a'][(x + 12) / 13 | 0], 1, -56, -36); g.strokeStyle = '#d8c080'; g.lineWidth = 1.2; g.beginPath(); g.moveTo(x - 2, -52); g.lineTo(x + 2, -52); g.stroke(); }
+  // навес над котлом: 4 столба, крыша дранкой
+  const cx = 100; for (const x of [cx - 34, cx + 34]) stick(g, x, 0, x, -66, 6, DARK);
+  g.beginPath(); g.moveTo(cx - 46, -64); g.lineTo(cx - 34, -84); g.lineTo(cx + 34, -84); g.lineTo(cx + 46, -64); g.closePath(); paint(g, '#7a5236', 1.6, -84, -64);
+  g.strokeStyle = sh('#7a5236', -0.35); g.lineWidth = 0.9; for (let x = cx - 36; x <= cx + 36; x += 9) { g.beginPath(); g.moveTo(x, -83); g.lineTo(x + 2, -65); g.stroke(); }
+  // котёл на огне
+  g.beginPath(); g.ellipse(cx, -4, 22, 6, 0, 0, TAU); paint(g, '#4a3a30', 1.1);
+  for (const [dx, dy] of [[-14, -6], [0, -9], [14, -6]]) { g.beginPath(); g.moveTo(cx + dx - 4, dy + 4); g.quadraticCurveTo(cx + dx, dy - 10, cx + dx + 4, dy + 4); paint(g, dx ? '#f0a030' : '#ffd040', 0.9, dy - 10, dy + 4); }
+  g.beginPath(); g.moveTo(cx - 20, -14); g.quadraticCurveTo(cx - 24, -36, cx - 16, -40); g.lineTo(cx + 16, -40); g.quadraticCurveTo(cx + 24, -36, cx + 20, -14); g.quadraticCurveTo(cx, -8, cx - 20, -14); g.closePath(); paint(g, '#3e4050', 1.6, -40, -8);
+  g.beginPath(); g.ellipse(cx, -40, 17, 5, 0, 0, TAU); paint(g, '#5a9a5a', 1.2); shine(g, cx - 10, -30, 5, 2.4, 0.35);
+  g.strokeStyle = IRON; g.lineWidth = 2.2; g.beginPath(); g.moveTo(cx - 18, -40); g.quadraticCurveTo(cx, -62, cx + 18, -40); g.stroke();
+  for (const [dx, dy, rr0] of [[-6, -48, 2.5], [4, -54, 2], [9, -46, 1.6]]) { g.beginPath(); g.arc(cx + dx, dy, rr0, 0, TAU); g.fillStyle = 'rgba(190,240,190,.7)'; g.fill(); }
+}
+/** Вагонетка с рудой у гильдии рудокопов: кузов, колёса, самородки. */
+export function oreCart(g) {
+  shadow(g, 30, 7);
+  g.beginPath(); g.moveTo(-22, -24); g.lineTo(22, -24); g.lineTo(17, -6); g.lineTo(-17, -6); g.closePath(); paint(g, '#5a5c68', 1.4, -24, -6);
+  g.strokeStyle = sh('#5a5c68', -0.35); g.lineWidth = 1; g.beginPath(); g.moveTo(-19, -15); g.lineTo(19, -15); g.stroke();
+  for (const [dx, dy, col] of [[-9, -27, '#c87a4a'], [0, -30, '#b86a3a'], [9, -27, '#c87a4a'], [-3, -25, '#8a8478']]) { g.beginPath(); g.moveTo(dx - 5, dy + 4); g.lineTo(dx - 2, dy - 4); g.lineTo(dx + 4, dy - 3); g.lineTo(dx + 6, dy + 3); g.closePath(); paint(g, col, 1, dy - 4, dy + 4); }
+  for (const x of [-11, 11]) { g.beginPath(); g.arc(x, -4, 5.5, 0, TAU); paint(g, '#3a3c48', 1.2); g.beginPath(); g.arc(x, -4, 2, 0, TAU); g.fillStyle = '#8a8c98'; g.fill(); }
+  for (let k = 0; k < 2; k++) { rr(g, -30, 1 + k * 4, 60, 2.6, 1.3); paint(g, '#7a5232', 0.7); }
+}

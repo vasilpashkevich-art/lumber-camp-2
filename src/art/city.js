@@ -36,6 +36,8 @@ export const STREETS = [
 export function cityGround(g, cap = null) {
   const ST = cap && cap.streets ? cap.streets.map(s => ({ ...s, kind: s.plaza ? 'plaza' : s.h > 100 ? 'cross' : s.w === 140 ? 'main' : 'lane' })) : STREETS;
   const F = cap && cap.fountain ? cap.fountain : { x: 0, y: 60 };
+  // v130: кварталы — свой оттенок земли (под улицами)
+  for (const q of (cap && cap.quarters) || []) { g.fillStyle = q.tint; g.beginPath(); g.roundRect(q.x0, q.y0, q.x1 - q.x0, q.y1 - q.y0, 40); g.fill(); }
   for (const s of ST) if (s.kind !== 'plaza') cobbles(g, s.x, s.y, s.w, s.h, s.kind === 'main' ? 7 : 11, s.kind === 'lane' ? 20 : 24);
   for (const s of ST) if (s.kind === 'plaza') paving(g, s.x, s.y, s.w, s.h, 5, true);
   plazaPattern(g, F.x, F.y, 300, 200);
@@ -209,7 +211,7 @@ export const CITY_DECOR = [
 ];
 
 /** Основание построек в мире (ширина лица, глубина, высота подписи): прямоугольник препятствия — от лица вглубь. */
-export const FOOT = { house: [230, 175, 215], forge: [270, 190, 230], bank: [300, 200, 250], tavern: [330, 225, 290], enchant: [216, 175, 260], miners: [256, 190, 225], herbal: [243, 175, 230], inn: [324, 200, 320], stall: [150, 80, 195], palace: [900, 300, 560] };
+export const FOOT = { house: [230, 175, 215], forge: [270, 190, 230], bank: [300, 200, 250], tavern: [330, 225, 290], enchant: [216, 175, 260], miners: [256, 190, 225], herbal: [243, 175, 230], jeweler: [238, 176, 235], inn: [324, 200, 320], stall: [150, 80, 195], palace: [900, 300, 560] };
 /** Препятствия квадратной столицы (в мире, относительно центра): стены с проёмами ворот, башни, дворец, постройки, фонтан. */
 export function cityBlocks(C) {
   const th = C.th, R = [], E = [];
