@@ -8,7 +8,7 @@ async function run(touch) {
   const tap = async sel => touch ? p.tap(sel) : p.click(sel);
   await tap('#selNew'); await p.waitForTimeout(300); await tap('.clsCard[data-c=mage]'); await p.fill('#newName', 'Ювелир'); await tap('[data-x=ok]'); await p.waitForTimeout(300); await tap('.slot:nth-child(1)'); await tap('#selEnter'); await p.waitForTimeout(1200);
   await p.evaluate(() => { const G = window.__G.G, h = G.hero, b = G.W.houses.find(x => x.id === 'jeweler'); G.P.x = b.x; G.P.y = b.y + 60; h.prof.mining = 60; h.prof.herbal = 30; h.prof.alchemy = 20; h.prof.enchant = 10; h.lvl = 12;
-    const A = window.__G.addStack, S = window.__G.makeStack; A(h, S('gem', 'tigerseye', 5)); A(h, S('gem', 'amethyst', 2)); A(h, S('gem', 'emerald', 1)); A(h, S('bar', 'copper', 6)); A(h, S('bar', 'tin', 4)); A(h, S('bar', 'iron', 2)); });
+    const A = window.__G.addStack, S = window.__G.makeStack; A(h, S('gem', 'tigerseye', 5)); A(h, S('gem', 'amethyst', 2)); A(h, S('gem', 'emerald', 1)); A(h, S('bar', 'copper', 16)); A(h, S('bar', 'tin', 4)); A(h, S('bar', 'iron', 2)); });
   await p.waitForTimeout(400);
   if (touch) { await p.tap('#actUse'); } else await p.keyboard.press('KeyE');
   await p.waitForTimeout(500); await p.screenshot({ path: `${OUT}/v131-${touch ? 'phone-' : ''}teach.png` });
