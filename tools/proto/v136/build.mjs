@@ -1,0 +1,3 @@
+import { build } from 'esbuild'; import { writeFileSync } from 'node:fs';
+const r = await build({ stdin: { contents: `import * as M from './gal.js'; window.M = M;`, resolveDir: 'tools/proto/v136' }, bundle: true, format: 'iife', write: false });
+writeFileSync('tools/proto/v136/gal.html', `<body style="margin:0;background:#2a1e12;color:#f0e2c0;font:15px Georgia;padding:14px"><h2>Болотный край — эскиз</h2><canvas id="m"></canvas><h3>Жители топи</h3><canvas id="b"></canvas><h3>Застава</h3><canvas id="o"></canvas><script>${r.outputFiles[0].text}</script><script>M.drawMap(document.getElementById('m'));M.draw(document.getElementById('b'));M.drawOutpost(document.getElementById('o'))</script></body>`); console.log('ok');
