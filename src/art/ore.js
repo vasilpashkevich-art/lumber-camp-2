@@ -10,6 +10,7 @@ export const METAL = {
   copper: { name: 'Медь', vein: '#c8703a', hi: '#f0a060', nug: '#7fb88a', glint: '255,190,120', rock: '#8c8478' },
   tin:    { name: 'Олово', vein: '#c9ced4', hi: '#f4f8fb', nug: '#9aa6b2', glint: '230,240,255', rock: '#867f74' },
   iron:   { name: 'Железо', vein: '#a8502a', hi: '#e8904a', nug: '#b8c0c8', glint: '230,236,244', rock: '#6e6a66' },
+  silver: { name: 'Серебро', vein: '#6a6e78', hi: '#9aa0ac', nug: '#e8ecf4', glint: '245,248,255', rock: '#5c5e62' },   // v136
 };
 
 /** Гранёная глыба: светлый верх, тёмный правый бок. w — ширина основания, h — высота. Возвращает точки верхнего контура. */

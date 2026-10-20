@@ -51,7 +51,8 @@ function dustRing(g, x, y, a, seed, R, n = 14, rgb = '168,148,118', life = 0.9) 
 
 /** Удар по площади. e.style: 'slam' — оружием в землю (Атаман), 'coil' — бросок кольцами (Полоз). */
 export function slam(g, e, a) {
-  const { x, y, r } = e, coil = e.style === 'coil';
+  const { x, y, r } = e, coil = e.style === 'coil', mud = e.style === 'mud';
+  if (mud) { const f = clamp(1 - a / 1.2); g.fillStyle = `rgba(30,40,24,${0.45 * f})`; ell(g, x, y, r * 0.6); g.fill(); for (let i = 0; i < 6; i++) { const aa = i * TAU / 6 + a * 2, rr2 = r * (0.3 + 0.5 * clamp(a / 0.5)); g.fillStyle = `rgba(70,90,50,${0.7 * f})`; g.beginPath(); g.arc(x + Math.cos(aa) * rr2, y + Math.sin(aa) * rr2 * 0.5 - a * 20, 4 + (i % 3) * 2, 0, TAU); g.fill(); } }
   // вмятина
   const sc = clamp(1 - a / 1.6); if (sc > 0 && !coil) { g.fillStyle = `rgba(40,28,16,${0.22 * sc})`; ell(g, x, y, r * 0.32); g.fill(); }
   if (!coil) cleanCracks(g, x, y, a, e.seed, 7, r * 0.7);
@@ -157,6 +158,24 @@ export function curseHit(g, e, a) {
     g.strokeStyle = `rgba(140,240,170,${0.85 * (1 - q)})`; g.lineWidth = 2; g.beginPath(); g.ellipse(x, y - 4 - q * 10 - i * 5, rr, rr * 0.4, 0, 0, TAU); g.stroke(); }
 }
 
+/** v136: сеть рыбака в полёте — круг верёвок с грузилами. */
+export function netShot(g, s, t) {
+  const r = 14 + Math.sin(t * 14) * 1.5; g.save(); g.translate(s.x, s.y); g.rotate(t * 5);
+  g.strokeStyle = 'rgba(220,210,160,.9)'; g.lineWidth = 1.2; g.beginPath(); g.arc(0, 0, r, 0, TAU); g.stroke();
+  for (let i = 0; i < 4; i++) { const a = i * Math.PI / 4; g.beginPath(); g.moveTo(Math.cos(a) * r, Math.sin(a) * r); g.lineTo(-Math.cos(a) * r, -Math.sin(a) * r); g.stroke(); }
+  g.fillStyle = '#5a5a5a'; for (let i = 0; i < 6; i++) { const a = i * TAU / 6; g.beginPath(); g.arc(Math.cos(a) * r, Math.sin(a) * r, 2, 0, TAU); g.fill(); } g.restore();
+}
+/** v136: сеть накрыла героя — сетка оседает и держится. */
+export function netHit(g, e, a) {
+  const { x, y } = e, q = clamp(a / 1.6), r = 30 - q * 6, yy = y - 40 + q * 20;
+  g.strokeStyle = `rgba(220,210,160,${0.85 * (1 - q * 0.6)})`; g.lineWidth = 1.1;
+  for (let i = -3; i <= 3; i++) { g.beginPath(); g.moveTo(x + i * 9, yy - r); g.quadraticCurveTo(x + i * 9 * 1.1, yy, x + i * 9, yy + r * 0.5); g.stroke(); g.beginPath(); g.moveTo(x - r, yy + i * 7); g.quadraticCurveTo(x, yy + i * 7 + 4, x + r, yy + i * 7); g.stroke(); }
+}
+/** v136: хватка утопленника — зелёные руки-тени из земли вокруг ног героя. */
+export function grab(g, e, a) {
+  const { x, y } = e, q = clamp(a / e.max); g.fillStyle = `rgba(60,110,80,${0.6 * (1 - q)})`;
+  for (const [dx, h] of [[-14, 18], [12, 22], [-4, 14], [20, 12]]) { g.beginPath(); g.moveTo(x + dx - 3, y + 2); g.quadraticCurveTo(x + dx - 4, y - h * 0.6, x + dx + 1, y - h); g.quadraticCurveTo(x + dx + 4, y - h * 0.5, x + dx + 3, y + 2); g.closePath(); g.fill(); }
+}
 /** Призыв: появление помощника. e.kind — crow (перья и тень), kvakun (брызги тины), weaver/иное (земля и паутинки). */
 export function summonFx(g, e, a) {
   const { x, y } = e, r = rng(e.seed);

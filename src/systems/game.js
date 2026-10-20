@@ -74,7 +74,7 @@ export function steer(G, o, tx, ty, dt) {
   S.t -= dt;
   if (S.t <= 0 || Math.hypot(S.tx - tx, S.ty - ty) > 70) {
     S.t = 0.6 + Math.random() * 0.3; S.tx = tx; S.ty = ty;
-    S.path = W.stepOk(o.x, o.y, tx, ty) ? null : W.path(o.x, o.y, tx, ty, 14000);
+    S.path = W.stepOk(o.x, o.y, tx, ty) ? null : W.path(o.x, o.y, tx, ty, W.maze ? 40000 : 14000);
   }
   if (!S.path || !S.path.length) return null;
   const w = nextWaypoint(W, o.x, o.y, S.path);
@@ -747,7 +747,7 @@ function mobTick(G, m, dt) {
   m.stun = Math.max(0, m.stun - dt); m.root = Math.max(0, m.root - dt); m.chill = Math.max(0, m.chill - dt); m.frozen = Math.max(0, (m.frozen || 0) - dt); m.trapT = Math.max(0, (m.trapT || 0) - dt);
   if (m.stun > 0 || m.frozen > 0) { if (m.B && m.B.act) bossCancel(G, m); return; }   // оглушён или вмёрз в лёд — стоит (умение босса сбито)
   const dH = dist(m.x, m.y, P.x, P.y), dHome = dist(m.x, m.y, m.hx, m.hy), slowK = (m.chill > 0 ? 0.5 : 1) * (m.B ? m.B.haste : 1);
-  const go = (tx, ty, sp) => { if (m.state !== 'idle' && (G.W.relief || G.W.rooms) && m.root <= 0) { const w = steer(G, m, tx, ty, dt); if (w) { tx = w[0]; ty = w[1]; } } const d = dist(m.x, m.y, tx, ty); if (d < 1 || m.root > 0) { if (Math.abs(tx - m.x) > 2) m.face = tx < m.x ? -1 : 1; return; } sp *= slowK; const k = Math.min(1, sp * dt / d); let nx = m.x + (tx - m.x) * k, ny = m.y + (ty - m.y) * k; let ok = (a, b) => G.W.walkable(a, b) && !inSafe(G.W, a, b) && G.W.stepOk(m.x, m.y, a, b); let ax = nx, ay = ny; if (!ok(ax, ay)) { if (ok(nx, m.y)) ay = m.y; else if (ok(m.x, ny)) ax = m.x; } if (ok(ax, ay)) { const nx2 = ax, ny2 = ay; nx = nx2; ny = ny2; const mv = Math.hypot(nx - m.x, ny - m.y); if (mv > 0.05) { m.mdx = nx - m.x; m.mdy = ny - m.y; m.moving = true; m.walkPh = (m.walkPh + mv / (m.D.humanoid ? 56 : 44)) % 1; } m.x = nx; m.y = ny; } if (Math.abs(tx - m.x) > 2) m.face = tx < m.x ? -1 : 1; };
+  const go = (tx, ty, sp) => { if (m.state !== 'idle' && (G.W.relief || G.W.rooms || G.W.maze) && m.root <= 0) { const w = steer(G, m, tx, ty, dt); if (w) { tx = w[0]; ty = w[1]; } } const d = dist(m.x, m.y, tx, ty); if (d < 1 || m.root > 0) { if (Math.abs(tx - m.x) > 2) m.face = tx < m.x ? -1 : 1; return; } sp *= slowK; const k = Math.min(1, sp * dt / d); let nx = m.x + (tx - m.x) * k, ny = m.y + (ty - m.y) * k; let ok = (a, b) => G.W.walkable(a, b) && !inSafe(G.W, a, b) && G.W.stepOk(m.x, m.y, a, b); let ax = nx, ay = ny; if (!ok(ax, ay)) { if (ok(nx, m.y)) ay = m.y; else if (ok(m.x, ny)) ax = m.x; } if (ok(ax, ay)) { const nx2 = ax, ny2 = ay; nx = nx2; ny = ny2; const mv = Math.hypot(nx - m.x, ny - m.y); if (mv > 0.05) { m.mdx = nx - m.x; m.mdy = ny - m.y; m.moving = true; m.walkPh = (m.walkPh + mv / (m.D.humanoid ? 56 : 44)) % 1; } m.x = nx; m.y = ny; } if (Math.abs(tx - m.x) > 2) m.face = tx < m.x ? -1 : 1; };
 
   if (m.state === 'idle') {
     m.wander.t -= dt;
@@ -820,8 +820,8 @@ function mobTick(G, m, dt) {
     else if (dH < 150) { const a = Math.atan2(m.y - P.y, m.x - P.x); go(m.x + Math.cos(a) * 60, m.y + Math.sin(a) * 60, D.speed * 0.45); }  // отходит медленно — догнать можно
     if (dH <= D.reach && m.cd <= 0) {
       m.cd = D.cd; m.face = P.x < m.x ? -1 : 1; m.atkT = m.atkDur = 0.42; m.atkVar = (m.atkVar || 0) + 1; const a = Math.atan2(P.y - 18 - (m.y - 18), P.x - m.x);
-      const fireS = D.shot === 'fire', spore = D.shot === 'spore', sp = fireS ? 380 : spore ? 290 : 520;
-      G.shots.push({ from: 'mob', kind: fireS ? 'bottle' : spore ? 'spore' : 'arrow', x: m.x, y: m.y - 18, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, t: spore ? 1.1 : 1.0, dmg: m.dmg, m, burn: fireS ? D.burn : 0, poison: spore ? 0.22 : 0 });
+      const fireS = D.shot === 'fire', spore = D.shot === 'spore', net = D.shot === 'net', sp = fireS ? 380 : spore ? 290 : net ? 330 : 520;
+      G.shots.push({ from: 'mob', kind: fireS ? 'bottle' : spore ? 'spore' : net ? 'fishnet' : 'arrow', x: m.x, y: m.y - 18, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, t: spore ? 1.1 : net ? 1.0 : 1.0, dmg: net ? m.dmg * 0.6 : m.dmg, m, burn: fireS ? D.burn : 0, poison: spore ? 0.22 : 0, net: net ? D.net : 0 });   // v136: сеть рыбака
     }
     return;
   }
@@ -829,6 +829,7 @@ function mobTick(G, m, dt) {
   else if (m.cd <= 0) {
     m.cd = D.cd; m.face = P.x < m.x ? -1 : 1; m.bite = 0.2; m.atkT = m.atkDur = 0.35; m.atkVar = (m.atkVar || 0) + 1;
     hurtHero(G, m.dmg * (0.9 + G.rand() * 0.2), m);
+    if (D.grab && !P.dead && G.t - (m.grabAt || -99) > 7) { m.grabAt = G.t; P.rooted = Math.max(P.rooted || 0, D.grab); P.moving = false; emit(G, { k: 'txt', x: P.x, y: P.y - 60, s: D.grabSay || 'держит!', col: '#9ad0b0' }); G.fx.push({ k: 'grab', x: P.x, y: P.y, t: D.grab, max: D.grab }); }   // v136: хватка утопленника
     if (D.trait === 'poison' && !P.dead) { P.poison = { t: 6, dps: m.dmg * 0.18 }; P.slow = 3; G.fx.push({ k: 'venom', x: P.x, y: P.y, seed: Math.floor(G.rand() * 1e6), t: 1.2, max: 1.2 }); emit(G, { k: 'txt', x: P.x, y: P.y - 60, s: D.poisonSay || 'яд', col: '#8ad84a' }); }
   }
   if (m.bite) m.bite = Math.max(0, m.bite - dt);
@@ -864,10 +865,11 @@ function shotsTick(G, dt) {
       }
     } else if (!P.dead && dist(s.x, s.y, P.x, P.y - 16) < 22) {
       s.t = 0; hurtHero(G, s.dmg, s.m);
-      const hk = s.kind === 'bottle' ? 'fireSplash' : s.kind === 'spore' ? 'sporeBurst' : s.kind === 'curse' ? 'curseHit' : null;
+      const hk = s.kind === 'bottle' ? 'fireSplash' : s.kind === 'spore' ? 'sporeBurst' : s.kind === 'curse' ? 'curseHit' : s.kind === 'fishnet' ? 'netHit' : null;
       if (hk) G.fx.push({ k: hk, x: P.x, y: P.y, seed: Math.floor(G.rand() * 1e6), t: 1.6, max: 1.6 });
       if (s.burn && !P.dead) { P.poison = { t: 4, dps: s.dmg * s.burn, fire: true }; emit(G, { k: 'txt', x: P.x, y: P.y - 60, s: 'горит!', col: '#ff8a2a' }); }
       if (s.poison && !P.dead) { P.poison = { t: 5, dps: s.dmg * s.poison }; emit(G, { k: 'txt', x: P.x, y: P.y - 60, s: 'споры', col: '#c8e070' }); }
+      if (s.net && !P.dead) { P.rooted = Math.max(P.rooted || 0, s.net); P.moving = false; emit(G, { k: 'txt', x: P.x, y: P.y - 60, s: 'сеть!', col: '#d8d8a0' }); }   // v136
       if (s.slow && !P.dead) { P.slow = Math.max(P.slow, s.slow); emit(G, { k: 'txt', x: P.x, y: P.y - 60, s: s.say || 'проклятие', col: '#9affc8' }); }
     }
   }

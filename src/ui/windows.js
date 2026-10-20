@@ -552,7 +552,7 @@ function enchTab(G, B, se, redraw, skbar, leg) {
 function jewelTab(G, B, sj, redraw, skbar, leg) {
   const h = G.hero, C_ = { orange: '#ff9a40', yellow: '#ffd84a', green: '#5fd35f', gray: '#9a9a9a', red: '#e07a6a' };
   const gems = Object.keys(GEMS).filter(k => countOf(h, 'gem', k) > 0).map(k => `<span class="emat">${accIcon('gem_' + k, GEMS[k].rar || (k === 'emerald' ? 'rare' : k === 'amethyst' ? 'good' : 'common'), 30)}<b>${countOf(h, 'gem', k)}</b></span>`).join('');
-  const bars = ['copper', 'tin', 'iron'].filter(k => countOf(h, 'bar', k) > 0).map(k => `<span class="emat">${accIcon('bar_' + k, 'common', 30)}<b>${countOf(h, 'bar', k)}</b></span>`).join('');
+  const bars = Object.keys(ORES).filter(k => countOf(h, 'bar', k) > 0).map(k => `<span class="emat">${accIcon('bar_' + k, 'common', 30)}<b>${countOf(h, 'bar', k)}</b></span>`).join('');
   B.innerHTML = skbar('Ювелирное дело', sj, JEWEL.cap) + `<p class="hint2">Делать можно где угодно, инструмента не нужно. Камни — из оловянных и железных жил, слитки — из кузницы. Огранённые камни вставляются в гнёзда, как обычные; кольца и ожерелья выходят под ваш класс.</p><div class="emats">${gems || bars ? gems + bars : '<span class="hint">Камней и слитков в сумке нет</span>'}</div>` + leg + `<div class="recipes"></div>`;
   const R_ = B.querySelector('.recipes'), SEC = { gem: 'Огранка', item: 'Украшения', trinket: 'Аксессуары' }; let last = null;
   for (const [id, R] of Object.entries(JEWEL_RECIPES)) {

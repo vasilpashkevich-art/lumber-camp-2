@@ -139,6 +139,11 @@ export const MOB_LOOK = {
   ataman: { key: 'mob-ataman', hair: '#2a1a10', beard: 'full', broad: 1.12, patch: true, chest: { m: 'scale', P: NP('good', 12, { cloth: ['#7a2222', '#5a1818'] }) }, legs: { m: 'leggings', P: RAG }, head: { m: 'band', P: NP('common', 1, { cloth: ['#a8282a', '#7a1818'] }) }, weapon: { m: 'crescent', P: NP('good', 14) } },
   robber: { key: 'mob-robber', hair: '#3a3a42', mask: '#4a4a52', head: { m: 'band', P: NP('common', 2, { cloth: ['#3a3a42', '#2a2a32'] }) }, chest: { m: 'hauberk', P: NP('common', 6) }, legs: { m: 'leggings', P: RAG }, weapon: { m: 'mace', P: NP('common', 7) } },
   firestarter: { key: 'mob-fire', hair: '#2a1a10', mask: '#2a2a2a', hood: '#3a3430', chest: { m: 'gambeson', P: NP('common', 8, { cloth: ['#5a4a3a', '#4a3a2a'] }) }, legs: { m: 'trousers', P: RAG }, weapon: { m: 'torch', P: NP('common', 3) } },
+  // v136: Болотный край — утопшая кожа, болотная одежда (STYLE: опасное — тёмные ядовитые цвета)
+  drowned: { key: 'mob-drowned', skin: '#7a9a84', hair: '#2a4a3a', hairStyle: 'long', eyes: '#c8ffd0', chest: { m: 'jerkin', P: NP('common', 3, { cloth: ['#4a5a3a', '#34402a'], leather: '#3e3a2a' }) }, legs: { m: 'trousers', P: NP('common', 3, { cloth: ['#3a4a3a', '#2a3428'] }) } },
+  fisher: { key: 'mob-fisher', skin: '#8aa08a', hair: '#3a3a2a', beard: 'full', head: { m: 'straw', P: NP('common', 1) }, chest: { m: 'gambeson', P: NP('common', 5, { cloth: ['#4a5a4a', '#343e34'] }) }, legs: { m: 'trousers', P: NP('common', 5, { cloth: ['#3e4a3e', '#2a342a'] }) }, weapon: { m: 'spear', P: NP('common', 4) } },
+  hag: { key: 'mob-hag', cls: 'mage', skin: '#9ab08a', hair: '#1a1a1a', hairStyle: 'long', eyes: '#d0ff60', head: { m: 'cowl', P: NP('good', 7, { cloth: ['#3a4a2a', '#26301c'], acc: '#8a9a40', gem: '#c8ff60' }) }, chest: { m: 'robe', P: NP('good', 7, { cloth: ['#3a4a2a', '#26301c'], acc: '#8a9a40' }) }, legs: { m: 'trousers', P: NP('good', 7, { cloth: ['#2a3420', '#1c2416'] }) }, weapon: { m: 'root', P: NP('good', 7, { acc: '#8a9a40', gem: '#c8ff60' }) } },
+  bog_mistress: { key: 'mob-mistress', cls: 'mage', skin: '#6a8a6a', hair: '#0a1a10', hairStyle: 'long', eyes: '#80ff80', broad: 1.15, head: { m: 'circlet', P: NP('rare', 9, { cloth: ['#1e2e24', '#101a14'], acc: '#a8c860', gem: '#80ff80', metal: '#6a7a5a' }) }, chest: { m: 'robe_emb', P: NP('rare', 9, { cloth: ['#1e2e24', '#101a14'], acc: '#a8c860', gem: '#80ff80' }) }, legs: { m: 'trousers', P: NP('rare', 9, { cloth: ['#1a2420', '#0e1612'] }) }, weapon: { m: 'serpent', P: NP('rare', 9, { acc: '#a8c860', gem: '#80ff80', metal: '#6a7a5a' }) } },
   miller: { key: 'mob-miller', hair: '#c8c2b8', hairStyle: 'long', beard: 'grey', eyes: '#3aa86a', head: { m: 'straw', P: NP('common', 1) }, chest: { m: 'robe', P: NP('common', 3, { cloth: ['#cfc6b0', '#b8ae98'] }) }, legs: { m: 'trousers', P: NP('common', 3, { cloth: ['#5a4a3a', '#5a4a3a'] }) }, weapon: { m: 'sickle', P: NP('good', 2) } },
 };
 // городской стражник: кольчуга, синяя накидка, шапель, копьё
@@ -149,7 +154,7 @@ export const GUARD_LOOK = { key: 'npc-guard', hair: '#6a4a2a', beard: 'full', ch
 // люди-мобы — в том же масштабе, что герой (1,15), вожаки крупнее
 /** v87: люди крупнее на четверть (герой был мал рядом с дверями и зверями): герой, стража, купец — PEOPLE_K; люди-мобы — в MOB_SCALE уже с учётом. */
 export const PEOPLE_K = 1.45;
-export const MOB_SCALE = { viper: 0.55, kvak_guard: 1.15, kvak_priest: 1.05, temple_frog: 1.2, boss_bulk: 1.65, boss_priestess: 1.35, boss_king: 1.8, boss_aspid: 1.1, boss_toad: 1.5, ataman: 1.8, bandit: 1.45, bandit_archer: 1.45, robber: 1.5, firestarter: 1.4, miller: 1.65 };
+export const MOB_SCALE = { bog_viper: 0.7, leech: 0.9, bog_hulk: 1.25, drowned: 1.45, fisher: 1.45, hag: 1.45, bog_mistress: 1.7, viper: 0.55, kvak_guard: 1.15, kvak_priest: 1.05, temple_frog: 1.2, boss_bulk: 1.65, boss_priestess: 1.35, boss_king: 1.8, boss_aspid: 1.1, boss_toad: 1.5, ataman: 1.8, bandit: 1.45, bandit_archer: 1.45, robber: 1.5, firestarter: 1.4, miller: 1.65 };
 
 /** Моб: звери с кадрами шага, люди — облик героя. */
 export function mobSpr(kind, dir, frame, bite) {

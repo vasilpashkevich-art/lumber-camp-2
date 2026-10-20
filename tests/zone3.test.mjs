@@ -58,8 +58,8 @@ test('шаман зовёт квакуна, Паучиха — выводок; �
 });
 
 test('железо: жилы только в Грибном лесу, нужно горное дело 100, навык растёт до 150; изумруд — только с железа', () => {
-  assert.equal(ORES.iron.req, 100); assert.equal(MINE.cap, 150);
-  assert.ok(GEMS.emerald); for (const [k, O] of Object.entries(ORES)) if (k !== 'iron') assert.ok(!(O.gems || []).some(g => g[0] === 'emerald'));
+  assert.equal(ORES.iron.req, 100); assert.equal(MINE.cap, 200);   // v136: серебро
+  assert.ok(GEMS.emerald); for (const [k, O] of Object.entries(ORES)) if (k !== 'iron' && k !== 'silver') assert.ok(!(O.gems || []).some(g => g[0] === 'emerald'));   // v136: и с серебра
   assert.equal(veinColor(99, 100).chance, 0); assert.ok(veinColor(100, 100).chance > 0);
   const G = game('archer'); quiet(G);
   const iron = G.veins.filter(v => v.metal === 'iron').length, tin = G.veins.filter(v => v.metal === 'tin').length;

@@ -140,6 +140,44 @@ export const MOBS = {
     hp: 1.6, dmg: 1.1, speed: 160, reach: 46, cd: 1.5,
     trait: 'poison', gold: 2.5,
   },
+  // ---- Болотный край (v136)
+  bog_viper: {
+    name: 'Болотная гадюка', art: 'bog_viper', r: 15,
+    hp: 0.95, dmg: 1.0, speed: 165, reach: 44, cd: 1.4,
+    trait: 'poison', gold: 1.3,
+  },
+  leech: {
+    name: 'Пиявка', art: 'leech', r: 11,
+    hp: 0.55, dmg: 0.7, speed: 170, reach: 26, cd: 1.1,
+    trait: 'pack', packN: 2, packR: 220, gold: 0.6,
+  },
+  drowned: {
+    name: 'Утопленник', art: 'drowned', r: 16,
+    hp: 1.6, dmg: 1.1, speed: 105, reach: 38, cd: 1.8,
+    trait: 'none', grab: 1.4, grabSay: 'держит!', gold: 1.5, humanoid: true,   // v136: хватка — герой не может шагнуть 1,4 с, не чаще раза в 7 с
+  },
+  fisher: {
+    name: 'Топляк-рыбак', art: 'fisher', r: 15,
+    hp: 1.0, dmg: 0.95, speed: 140, reach: 260, cd: 2.4,
+    trait: 'ranged', shot: 'net', net: 1.6, gold: 1.6, humanoid: true,   // сеть: попала — не шагнуть 1,6 с
+  },
+  hag: {
+    name: 'Болотная ведьма', art: 'hag', r: 15,
+    hp: 1.1, dmg: 1.1, speed: 130, reach: 290, cd: 2.1,
+    trait: 'caster', curseSay: 'трясина тянет', summon: { kind: 'drowned', n: 1, max: 1, every: 15, say: 'поднимает утопленника!' }, gold: 2, humanoid: true,
+  },
+  bog_hulk: {
+    name: 'Трясинник', art: 'bog_hulk', r: 24,
+    hp: 2.8, dmg: 1.3, speed: 95, reach: 46, cd: 2.0,
+    gold: 2.6,
+    trait: 'smash', smash: { every: 8, wind: 1.1, r: 110, mul: 2.0, say: 'вздымается!', style: 'mud' },
+  },
+  bog_mistress: {
+    name: 'Хозяйка топи', art: 'bog_mistress', r: 20, rare: true, fem: true,
+    hp: 7, dmg: 1.5, speed: 125, reach: 300, cd: 2.0,
+    trait: 'caster', curseSay: 'топь зовёт', summon: { kind: 'drowned', n: 2, max: 2, every: 13, say: 'поднимает утопленников!' }, gold: 9, humanoid: true,
+    smash: { every: 10, wind: 1.2, r: 140, mul: 2.2, say: 'трясина вспучивается!', style: 'mud' },
+  },
   // v90: боссы Храма квакунов — пока простые (одно умение, гарантированная синяя вещь); фазы — следующими версиями
   boss_bulk: {
     name: 'Воевода Бульк', art: 'boss_bulk', r: 24, boss: true, humanoid: true,

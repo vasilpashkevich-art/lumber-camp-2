@@ -150,12 +150,42 @@ function web2(g) { g.save(); g.translate(-26, 0); TF.web(g, 66, 70, 2); g.restor
 function brood(g) { TF.web(g, 110, 90, 3); for (const [x, y, s] of [[-30, -6, 1], [24, -14, 1.2], [6, 4, 0.9], [-50, 4, 0.8]]) { g.beginPath(); g.ellipse(x, y, 4.6 * s, 7 * s, 0.3, 0, TAU); paint(g, '#f2eee0', 1); shine(g, x - 1.4 * s, y - 2.6 * s, 1.2 * s, 2.4 * s, 0.5, 0.3); } }
 function snakeL(g) { TF.snakeLair(g, 4); }
 
+// ---------------------------------------------------------------- v136: приметы логов Болотного края (опасное — острые линии, ядовитые цвета)
+const BOG = '#2a3a2a', MUDC = '#3e4a2a';
+function puddle(g, x, y, rx, ry) { g.beginPath(); g.ellipse(x, y, rx, ry, 0, 0, TAU); g.fillStyle = '#1e2e28'; g.fill(); g.strokeStyle = '#14201c'; g.lineWidth = 1.2; g.stroke(); g.fillStyle = 'rgba(180,220,200,.18)'; g.beginPath(); g.ellipse(x - rx * 0.3, y - ry * 0.3, rx * 0.35, ry * 0.3, 0, 0, TAU); g.fill(); }
+function reed(g, x, y, h = 26, col = '#5a6a3a') { for (const dx of [-5, 0, 5]) { g.beginPath(); g.moveTo(x + dx, y); g.quadraticCurveTo(x + dx * 1.6, y - h * 0.6, x + dx * 2, y - h); g.strokeStyle = col; g.lineWidth = 1.8; g.lineCap = 'round'; g.stroke(); } g.beginPath(); g.ellipse(x + 1, y - h + 2, 2.2, 6, 0.1, 0, TAU); paint(g, '#5a3a22', 0.8); }
+function skullStake(g, x, y, h = 40) { stick(g, x, y, x, y - h, 3, '#4a3a2a'); g.beginPath(); g.arc(x, y - h - 4, 6, 0, TAU); paint(g, '#e8e0c8', 1); g.fillStyle = '#1a1a14'; for (const dx of [-2.4, 2.4]) { g.beginPath(); g.ellipse(x + dx, y - h - 5, 1.6, 2, 0, 0, TAU); g.fill(); } g.fillRect(x - 2, y - h, 4, 1.6); }
+// гнездо гадюк: кочки, сброшенные кожи на корягах, чёрная лужа
+function snakeNest(g) { shadow(g, 60, 12); puddle(g, 26, 2, 30, 10); for (const [x, y, r] of [[-40, -2, 14], [-14, 6, 12], [-56, 10, 9]]) { g.beginPath(); g.ellipse(x, y - r * 0.4, r, r * 0.6, 0, 0, TAU); paint(g, '#4a5a30', 1.2, y - r, y); g.fillStyle = 'rgba(255,255,255,.14)'; g.beginPath(); g.ellipse(x - r * 0.3, y - r * 0.7, r * 0.4, r * 0.2, 0, 0, TAU); g.fill(); }
+  curve(g, [-60, -4, -30, -40, 10, -30], 5, '#4a3626'); g.strokeStyle = '#d8d8a0'; g.lineWidth = 2.2; g.setLineDash([4, 3]); g.beginPath(); g.moveTo(-48, -14); g.quadraticCurveTo(-30, -34, -2, -28); g.stroke(); g.setLineDash([]); reed(g, 52, -2, 22); reed(g, -62, 12, 18); }
+// заводь пиявок: тёмное окно воды, пузыри, кости на берегу
+function leechPool(g) { shadow(g, 64, 12); puddle(g, 0, 0, 58, 20); for (const [x, y, r] of [[-20, -6, 3], [10, 2, 2.2], [26, -4, 2.6], [-4, 6, 1.8]]) { g.beginPath(); g.arc(x, y, r, 0, TAU); g.strokeStyle = 'rgba(200,230,210,.5)'; g.lineWidth = 1; g.stroke(); }
+  boneT(g, -52, 14, 0.4); boneT(g, 50, 12, -0.6); reed(g, -58, 4, 24); reed(g, 56, -2, 20); }
+// утопленный хутор: покосившаяся крыша в воде, обломок забора, колодезный сруб
+function drownedL(g) { shadow(g, 80, 16); puddle(g, 10, 4, 78, 24);
+  g.save(); g.translate(-16, -2); g.rotate(-0.18); g.beginPath(); g.moveTo(-50, 0); g.lineTo(-10, -44); g.lineTo(44, -2); g.closePath(); paint(g, '#5a4a32', 1.6, -44, 0); g.strokeStyle = sh('#5a4a32', -0.35); g.lineWidth = 1; for (let i = -40; i < 40; i += 9) { g.beginPath(); g.moveTo(i, (i < -10 ? (i + 50) * -1.1 : (44 - i) * -0.9)); g.lineTo(i + 2, 0); g.stroke(); } g.restore();
+  for (const [x, y, h] of [[48, 8, 22], [60, 12, 18], [70, 6, 26]]) { stick(g, x, y, x + 2, y - h, 4, '#5a4a32'); } stick(g, 46, -8, 74, -14, 3, '#5a4a32');
+  rr(g, -70, -14, 26, 14, 3); paint(g, '#4a3e2c', 1.3, -14, 0); g.fillStyle = '#1e2e28'; g.fillRect(-66, -11, 18, 7); reed(g, -78, 10, 20); reed(g, 20, 20, 16, '#4a5a3a'); }
+// ведьмин круг: камни с рунами, черепа на кольях, котёл на огне
+function witchL(g) { shadow(g, 74, 14); for (const [x, y, w, h] of [[-60, 6, 18, 30], [-30, 14, 14, 24], [30, 14, 14, 26], [60, 6, 18, 32]]) { g.beginPath(); g.moveTo(x - w / 2, y); g.lineTo(x - w * 0.3, y - h); g.lineTo(x + w * 0.4, y - h * 0.9); g.lineTo(x + w / 2, y); g.closePath(); paint(g, '#5a5a56', 1.3, y - h, y); g.strokeStyle = '#c8ff60'; g.lineWidth = 1.2; g.beginPath(); g.moveTo(x - 3, y - h * 0.7); g.lineTo(x + 3, y - h * 0.4); g.moveTo(x + 3, y - h * 0.7); g.lineTo(x - 3, y - h * 0.4); g.stroke(); }
+  skullStake(g, -44, 12, 44); skullStake(g, 46, 12, 40);
+  g.beginPath(); g.ellipse(0, 4, 20, 6, 0, 0, TAU); paint(g, '#3a3028', 1.1); for (const [dx, dy, col] of [[-10, -4, '#f0a030'], [0, -8, '#ffd040'], [10, -4, '#f0a030']]) { g.beginPath(); g.moveTo(dx - 4, dy + 4); g.quadraticCurveTo(dx, dy - 10, dx + 4, dy + 4); paint(g, col, 0.8, dy - 10, dy + 4); }
+  g.beginPath(); g.moveTo(-16, -12); g.quadraticCurveTo(-20, -34, -12, -38); g.lineTo(12, -38); g.quadraticCurveTo(20, -34, 16, -12); g.quadraticCurveTo(0, -6, -16, -12); g.closePath(); paint(g, '#3e4050', 1.6, -38, -6); g.beginPath(); g.ellipse(0, -38, 14, 4, 0, 0, TAU); paint(g, '#7ab85a', 1.1); for (const [x, y, r] of [[-4, -44, 2.4], [4, -50, 2], [8, -42, 1.6]]) { g.beginPath(); g.arc(x, y, r, 0, TAU); g.fillStyle = 'rgba(190,240,160,.7)'; g.fill(); } }
+// трясина: яма чёрной грязи с пузырями, торчащие коряги и кости, кочки
+function mireL(g) { shadow(g, 80, 16); g.beginPath(); g.ellipse(0, 2, 76, 24, 0, 0, TAU); g.fillStyle = '#2a2e1c'; g.fill(); g.strokeStyle = '#161a10'; g.lineWidth = 1.3; g.stroke();
+  for (const [x, y, r] of [[-30, -2, 5], [10, 6, 4], [34, -4, 6], [-6, -8, 3]]) { g.beginPath(); g.arc(x, y, r, 0, TAU); paint(g, '#3a4028', 0.9); g.fillStyle = 'rgba(255,255,255,.12)'; g.beginPath(); g.arc(x - r * 0.3, y - r * 0.3, r * 0.4, 0, TAU); g.fill(); }
+  curve(g, [-60, 6, -40, -40, -10, -34], 5, '#3a2a1a'); curve(g, [40, 8, 56, -30, 70, -36], 4, '#3a2a1a'); boneT(g, 22, 12, 0.3); for (const [x, y, r] of [[-70, 10, 10], [66, 16, 9]]) { g.beginPath(); g.ellipse(x, y - 4, r, r * 0.6, 0, 0, TAU); paint(g, '#4a5a30', 1.1, y - r, y); } reed(g, -78, 6, 22); }
+// омут Хозяйки: большое чёрное окно воды, кувшинки, корни, огоньки
+function omutL(g) { shadow(g, 90, 18); puddle(g, 0, 0, 86, 28); for (const [x, y] of [[-40, -8], [20, 6], [50, -6]]) { g.beginPath(); g.ellipse(x, y, 9, 5, 0, 0.3, TAU - 0.3); paint(g, '#4a7a3a', 0.9); g.beginPath(); g.arc(x + 2, y - 3, 2.4, 0, TAU); paint(g, '#e8d8f0', 0.6); }
+  curve(g, [-96, 4, -70, -40, -40, -46], 5, '#3a2a1a'); curve(g, [96, 6, 76, -34, 50, -40], 5, '#3a2a1a'); for (const [x, y] of [[-16, -22], [26, -30], [6, -36]]) { g.fillStyle = 'rgba(160,255,160,.35)'; g.beginPath(); g.arc(x, y, 6, 0, TAU); g.fill(); g.fillStyle = '#c8ff80'; g.beginPath(); g.arc(x, y, 2.2, 0, TAU); g.fill(); } reed(g, -90, 12, 24); reed(g, 88, 10, 22); }
+
 /** Приметы логов: [ширина, высота, начало x, начало y, рисунок] картинки. */
 export const TLAIRS = {
   den: [160, 90, 80, 70, den], wolf: [180, 100, 90, 76, wolf], boar: [170, 80, 85, 40, boar], web: [150, 120, 75, 100, web],
   bandit: [460, 210, 230, 160, bandit], ataman: [330, 240, 165, 190, ataman], kennel: [130, 90, 65, 70, kennel], crowfield: [110, 140, 55, 120, crowfield],
   scarefield: [140, 80, 70, 50, scarefield], pasture: [160, 80, 80, 50, pasture], burned: [150, 100, 75, 80, burned],
   frog: [150, 90, 75, 62, frog], shroom: [160, 110, 80, 70, shroomLair], web2: [160, 110, 80, 86, web2], brood: [150, 120, 75, 100, brood], snake: [140, 80, 70, 46, snakeL],
+  snakeNest: [150, 70, 75, 50, snakeNest], leechPool: [150, 60, 75, 36, leechPool], drowned: [190, 80, 95, 60, drownedL], witch: [170, 80, 85, 60, witchL], mire: [190, 70, 95, 50, mireL], omut: [210, 80, 105, 54, omutL],
 };
 
 // ---------------------------------------------------------------- мост: толстые доски с зазорами, брёвна-перила на столбах (вид сверху, повёрнут по дороге)

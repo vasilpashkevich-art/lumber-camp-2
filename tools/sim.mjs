@@ -30,9 +30,9 @@ function yardDetour(W, P, tx, ty) {
 function via(W, P, tx, ty) { const w = via0(W, P, tx, ty); return yardDetour(W, P, w[0], w[1]) || w; }
 function via0(W, P, tx, ty) {
   // рельеф (v71): если прямо не пройти (обрыв) — по пути через склоны
-  if (W.relief || W.rooms) {
+  if (W.relief || W.rooms || W.maze) {   // v136: и в топи — по гатям
     const S = P.botNav || (P.botNav = { t: 0, tx: 1e9, ty: 1e9 }); S.t -= 1 / 20;
-    if (S.t <= 0 || Math.hypot(S.tx - tx, S.ty - ty) > 70) { S.t = 0.6; S.tx = tx; S.ty = ty; S.path = W.stepOk(P.x, P.y, tx, ty) ? null : W.path(P.x, P.y, tx, ty, 14000); }
+    if (S.t <= 0 || Math.hypot(S.tx - tx, S.ty - ty) > 70) { S.t = 0.6; S.tx = tx; S.ty = ty; S.path = W.stepOk(P.x, P.y, tx, ty) ? null : W.path(P.x, P.y, tx, ty, W.maze ? 40000 : 14000); }
     if (S.path && S.path.length) { const w = nextWaypoint(W, P.x, P.y, S.path); if (!W.stepOk(P.x, P.y, w[0], w[1])) S.t = 0; return w; }
     return [tx, ty];
   }

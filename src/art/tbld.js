@@ -540,6 +540,22 @@ function millBaseT(g) {
   windowSq(g, 0, -64, 12, 14, {});
   for (const x of [-36, 32]) { g.save(); g.translate(x, 2); g.beginPath(); g.moveTo(-7, 0); g.quadraticCurveTo(-10, -9, -4, -15); g.lineTo(4, -15); g.quadraticCurveTo(10, -9, 7, 0); g.quadraticCurveTo(0, 2, -7, 0); g.closePath(); paint(g, '#efe6d0', 1.1); g.restore(); }
 }
+/** v136: застава на сваях (Болотный край): сваи над водой, настил, стены из досок, камышовая крыша, дверь, окно, фонарь, сети, бочки, мостки. */
+function stilt(g, t = 0) {
+  const w = 190, H = 92;
+  g.fillStyle = 'rgba(20,12,6,.06)'; g.beginPath(); g.ellipse(6, 2, w * 0.7, 14, 0, 0, TAU); g.fill();
+  g.fillStyle = '#243a30'; g.beginPath(); g.ellipse(0, 2, w * 0.78, 16, 0, 0, TAU); g.fill(); g.fillStyle = 'rgba(180,220,200,.12)'; g.beginPath(); g.ellipse(-30, -2, 40, 5, 0, 0, TAU); g.fill();
+  for (const x of [-w / 2 + 10, -w / 6, w / 6, w / 2 - 10]) { rr(g, x - 5, -34, 10, 38, 4); paint(g, '#5a3e24', 1.3, -34, 4); }
+  rr(g, -w / 2 - 14, -40, w + 28, 10, 4); paint(g, '#8a6a40', 1.4, -40, -30); g.strokeStyle = sh('#8a6a40', -0.35); g.lineWidth = 0.8; for (let x = -w / 2 - 10; x < w / 2 + 14; x += 11) { g.beginPath(); g.moveTo(x, -40); g.lineTo(x, -30); g.stroke(); }
+  plankWall(g, -w / 2, -40 - H, w, H, '#9a7046');
+  const top = -40 - H; roofFill(g, [[-w / 2 - 16, top + 4], [-w / 2 + 30, top - 54], [w / 2 - 30, top - 54], [w / 2 + 16, top + 4]], '#b89a50', 'thatch', 0);
+  chimneyT(g, w * 0.28, top - 30, 20, '#8a7a6a', 2);
+  doorSq(g, -24, 36, 62, '#5a3a22', '#7a5a34'); windowSq(g, 42, -40 - 26, 26, 24, { lit: true, shutters: '#4a5a3a' });
+  rr(g, w / 2 + 18, -124, 5, 86, 2); paint(g, '#5a3e24', 1.2); rr(g, w / 2 + 12, -138, 17, 18, 4); paint(g, '#ffd870', 1.3, -138, -120); g.fillStyle = 'rgba(255,220,120,.25)'; g.beginPath(); g.arc(w / 2 + 20, -129, 22, 0, TAU); g.fill();
+  g.strokeStyle = '#6a5a3a'; g.lineWidth = 0.9; for (let i = 0; i < 7; i++) { g.beginPath(); g.moveTo(-w / 2 - 8 + i * 6, -62); g.quadraticCurveTo(-w / 2 - 6 + i * 6, -46, -w / 2 - 4 + i * 6, -30); g.stroke(); } g.beginPath(); g.moveTo(-w / 2 - 10, -62); g.lineTo(-w / 2 + 34, -62); g.stroke();
+  barrelT(g, w / 2 - 16, -40); barrelT(g, w / 2 - 34, -40, 0.85);
+  rr(g, -w / 2 - 74, -36, 62, 9, 3); paint(g, '#8a6a40', 1.3, -36, -27); for (const x of [-w / 2 - 66, -w / 2 - 22]) { rr(g, x - 4, -30, 8, 34, 3); paint(g, '#5a3e24', 1.2); }
+}
 /** Крылья мельницы: 4 решётчатых крыла с парусиной вокруг ступицы; a — поворот. */
 function millBladesT(g, a = 0) {
   for (let k = 0; k < 4; k++) { g.save(); g.rotate(a + k * Math.PI / 2);
@@ -598,6 +614,6 @@ function jeweler(g, t = 0) {
 const scaled = f => (g, a, b) => { g.save(); g.scale(SC, SC); f(g, a, b); g.restore(); };
 export const TBLD = { bank: scaled(bank), house: scaled(house), forge: scaled(forge), tavern: scaled(tavern), enchant: scaled(enchant), jeweler: scaled(jeweler), miners: scaled(miners), herbal: scaled(herbal), inn: scaled(inn), palace: scaled(palace) };
 /** Посёлок (Хутор Подгорный, хутора): в своих размерах, без ×1,35. */
-export const TVIL = { house: vhouse, inn: vinn, forge: vforge, barn, farmstead, millBase: millBaseT, millBlades: millBladesT, stable, trough, horseHead, HORSE_HEAD, STALLS: [[-120, 0, 1], [64, 1, -1], [120, 2, -1]] };   // денники с конями: [x, масть, куда смотрит]
+export const TVIL = { house: vhouse, inn: vinn, forge: vforge, barn, stilt, farmstead, millBase: millBaseT, millBlades: millBladesT, stable, trough, horseHead, HORSE_HEAD, STALLS: [[-120, 0, 1], [64, 1, -1], [120, 2, -1]] };   // денники с конями: [x, масть, куда смотрит]
 /** Общие кисти для мелочей (tprops.js). */
 export const KIT = { sh, ink, rnd, paint, shine, rr, poly, stoneRect, barrelT, woodpileT, hayT, windowSq, chimneyT, roofFill, potT };

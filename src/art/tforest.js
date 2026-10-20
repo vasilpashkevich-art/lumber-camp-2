@@ -108,3 +108,22 @@ export function snakeLair(g, seed = 4) {
   for (let i = 0; i < 3; i++) { const x = (r() - 0.5) * 60, y = 8 + r() * 5; g.save(); g.translate(x, y); g.rotate(r() * 3); rr(g, -4, -1, 8, 2, 1); paint(g, '#f0e8d4', 0.6); for (const sx of [-4, 4]) { g.beginPath(); g.arc(sx, 0, 1.6, 0, TAU); paint(g, '#f0e8d4', 0.6); } g.restore(); }
   g.beginPath(); g.moveTo(-32, 10); g.bezierCurveTo(-16, 3, -10, 17, 6, 10); g.bezierCurveTo(16, 5, 22, 15, 32, 11); g.lineCap = 'round'; g.strokeStyle = ink('#e8dcb0'); g.lineWidth = 5.4; g.stroke(); g.strokeStyle = '#e8dcb0'; g.lineWidth = 3.6; g.stroke(); g.strokeStyle = 'rgba(160,140,90,.6)'; g.lineWidth = 0.8; g.setLineDash([1.5, 1.5]); g.stroke(); g.setLineDash([]);
 }
+
+/** v136: островок суши посреди топи — кочка с мшистой каймой и камышом по краю. (0,0) — середина. */
+export function island(g, rx, ry, seed = 1) {
+  const r = rnd(seed);
+  const edge = (k0 = 1) => { g.beginPath(); for (let i = 0; i <= 28; i++) { const a = i / 28 * TAU, k = k0 * (0.94 + Math.sin(a * 4 + seed) * 0.05 + Math.sin(a * 7) * 0.02); i ? g.lineTo(Math.cos(a) * rx * k, Math.sin(a) * ry * k) : g.moveTo(rx * k, 0); } g.closePath(); };
+  edge(1.08); g.fillStyle = '#4e5a3c'; g.fill();
+  edge(1); const gr = g.createLinearGradient(0, -ry, 0, ry); gr.addColorStop(0, '#6a7c4c'); gr.addColorStop(1, '#55683e'); g.fillStyle = gr; g.fill(); g.strokeStyle = ink('#55683e'); g.lineWidth = 1.6; g.stroke();
+  for (let i = 0; i < 8; i++) { const a = r() * TAU, d = 0.3 + r() * 0.5; g.fillStyle = `rgba(120,150,80,${0.25 + r() * 0.2})`; g.beginPath(); g.ellipse(Math.cos(a) * rx * d, Math.sin(a) * ry * d, 10 + r() * 14, 5 + r() * 6, 0, 0, TAU); g.fill(); }
+  for (let i = 0; i < 10; i++) { const a = r() * TAU, x = Math.cos(a) * rx * 0.95, y = Math.sin(a) * ry * 0.95; for (let j = 0; j < 3; j++) stick(g, x + j * 3 - 3, y, x + j * 3 - 3 + (r() - 0.5) * 4, y - 12 - r() * 8, 1.4, '#8a9a4a'); }
+}
+/** v136: гать — настил из брёвен поперёк тропы через топь, по двум столбикам на концах. Рисуется от (ax,ay) до (bx,by), ширина w. */
+export function gat(g, ax, ay, bx, by, w, seed = 1) {
+  const r = rnd(seed), L = Math.hypot(bx - ax, by - ay), a = Math.atan2(by - ay, bx - ax);
+  g.save(); g.translate(ax, ay); g.rotate(a);
+  g.fillStyle = 'rgba(20,30,20,.25)'; g.fillRect(-6, -w / 2 + 4, L + 12, w);   // тень на воде
+  g.strokeStyle = ink('#6a4a28'); g.lineWidth = 4; for (const yy of [-w / 2 + 8, w / 2 - 8]) { g.beginPath(); g.moveTo(-4, yy); g.lineTo(L + 4, yy); g.stroke(); }   // лаги
+  for (let x = 0; x < L; x += 11) { const c = ['#8a6238', '#7a5630', '#946c3e'][Math.floor(r() * 3)], dy = (r() - 0.5) * 2; rr(g, x, -w / 2 + dy, 9, w - dy, 3.5); g.fillStyle = c; g.fill(); g.strokeStyle = ink(c); g.lineWidth = 1.2; g.stroke(); g.fillStyle = 'rgba(255,240,200,.18)'; g.fillRect(x + 1.5, -w / 2 + dy + 1, 2, w - 2); }
+  g.restore();
+}

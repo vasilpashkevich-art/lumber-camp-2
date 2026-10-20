@@ -127,7 +127,12 @@ export function buildWorld(Z) {
   // пруды Грибного леса (v65): вода-эллипс, обходить
   const PONDS = Z.ponds || [];
   W.ponds = PONDS; W.creek = Z.creek || null;
-  const inPond = (x, y, pad) => PONDS.some(([px, py, rx, ry]) => ((x - px) / (rx + pad)) ** 2 + ((y - py) / (ry + pad * 0.6)) ** 2 < 1);
+  // v136: острова посреди воды (суша) и гати — брёвна через воду шириной GATI_W (по ним ходят)
+  const ISL = Z.islands || [], GATI = Z.gati || [], GATI_W = 96; W.islands = ISL; W.gati = GATI; W.gatiW = GATI_W;
+  const onIsland = (x, y, pad) => ISL.some(([px, py, rx, ry]) => ((x - px) / Math.max(1, rx - pad)) ** 2 + ((y - py) / Math.max(1, ry - pad * 0.6)) ** 2 < 1);
+  const onGat = (x, y, pad) => GATI.some(([[ax, ay], [bx, by]]) => segDist(x, y, ax, ay, bx, by) < GATI_W / 2 - pad);
+  const inPond = (x, y, pad) => PONDS.some(([px, py, rx, ry]) => ((x - px) / (rx + pad)) ** 2 + ((y - py) / (ry + pad * 0.6)) ** 2 < 1) && !onIsland(x, y, pad) && !onGat(x, y, pad);
+  W.onGat = (x, y) => onGat(x, y, 0);
   W.water = (x, y, pad = 0) => (PONDS.length && inPond(x, y, pad)) || R && W.riverD(x, y) < R.w / 2 + pad && !R.bridgeAt.some(b => { const dx = x - b.x, dy = y - b.y, u = -dx * Math.sin(b.ra) + dy * Math.cos(b.ra), l = dx * Math.cos(b.ra) + dy * Math.sin(b.ra); return Math.abs(u) < 36 && Math.abs(l) < b.len / 2; });
   // препятствия по клеткам (быстро для поиска пути и мобов); сетка пересобирается, когда препятствий стало больше
   const BC = 200, hitB = (b, x, y) => b.off ? false : b.rect ? x > b.x0 && x < b.x1 && y > b.y0 && y < b.y1 : Math.abs(x - b.x) < b.rx && ((x - b.x) / b.rx) ** 2 + ((y - b.y) / b.ry) ** 2 < 1;
@@ -154,10 +159,13 @@ export function buildWorld(Z) {
   W.hAt = RF ? (x, y) => RF.height(x, y) : () => 0;
   // в подземелье «шагнуть» значит пройти по прямой внутри комнат (стены не обойти напрямую — считается путь)
   const lineOk = (x0, y0, x1, y1) => { const n = Math.ceil(Math.hypot(x1 - x0, y1 - y0) / 10); for (let k = 1; k <= n; k++) if (!inside(x0 + (x1 - x0) * k / n, y0 + (y1 - y0) * k / n)) return false; return true; };
-  W.stepOk = RF ? (x0, y0, x1, y1) => RF.canStep(x0, y0, x1, y1) : ROOMS ? lineOk : () => true;
+  // v136: топь с гатями — «шагнуть» значит пройти по прямой, не ступив в воду (иначе путь по сетке — по гатям и кочкам)
+  const MAZE = W.maze = GATI.length > 0;
+  const dryOk = (x0, y0, x1, y1) => { const n = Math.ceil(Math.hypot(x1 - x0, y1 - y0) / 10); for (let k = 1; k <= n; k++) if (W.water(x0 + (x1 - x0) * k / n, y0 + (y1 - y0) * k / n, 6)) return false; return true; };
+  W.stepOk = RF ? (x0, y0, x1, y1) => RF.canStep(x0, y0, x1, y1) : ROOMS ? lineOk : MAZE ? dryOk : () => true;
   /** Свободно ли место для дерева, камня, жилы: не у края яруса и не на склоне. */
   W.flatOk = RF ? (x, y, d = 50, rockOnly = false) => !RF.nearEdge(x, y, d, rockOnly) && !RF.nearRamp(x, y, d * 0.8) : () => true;
-  W.path = (x0, y0, x1, y1, max) => RF || ROOMS ? findPath(W, x0, y0, x1, y1, max) : null;
+  W.path = (x0, y0, x1, y1, max) => RF || ROOMS || MAZE ? findPath(W, x0, y0, x1, y1, max) : null;
   /** Точка земли под точкой экрана (x, ys = y − высота): из нескольких — ближняя к зрителю (южнее). */
   W.ground = RF ? (x, ys) => { let best = null, bd = 1e9, far = ys; for (let y = ys + RF.min * 46 - 6; y <= ys + RF.max * 46 + 6; y += 2) { const d = Math.abs(y - RF.height(x, y) - ys); if (d < 3) best = y; if (d < bd) { bd = d; far = y; } } return best ?? far; } : (x, ys) => ys;
   // древние великаны: низ ствола — препятствие
@@ -214,7 +222,7 @@ export function buildWorld(Z) {
     const n = Math.round(Math.hypot(bx - ax, by - ay) / 70);
     for (let k = 0; k < n; k++) {
       const t = k / n, x = ax + (bx - ax) * t + (re() - 0.5) * 40, y = ay + (by - ay) * t + (re() - 0.5) * 40, s = 1 + re() * 0.3, v = re();
-      if (Z.exits.some(e => dist(x, y, e.x, e.y) < 260) || (RF && !W.flatOk(x, y, 30))) continue;
+      if (Z.exits.some(e => dist(x, y, e.x, e.y) < 260) || (RF && !W.flatOk(x, y, 30)) || (PONDS.length && inPond(x, y, 30))) continue;   // v136: и не в топи
       const cst = coastAt(x, y); if (Z.shape && (cst === 'sea' || (cst === 'swamp' && v < 0.5))) continue;
       addTree(W, { x, y, kind: 2, s, v, edge: true });
     }
@@ -256,7 +264,7 @@ export function buildWorld(Z) {
   }
   if (W.rocks.length) { W.trees = W.trees.filter(t => !W.rocks.some(o => Math.abs(t.x - o.x) < o.w * 0.6 && Math.abs(t.y - o.y) < o.w * 0.3)); W.grid.clear(); const all = W.trees; W.trees = []; for (const t of all) addTree(W, t); }
   // v95: у жителей с заданиями и у мест предметов заданий деревья не растут (остальные не сдвигаются)
-  { const keep = [...Object.values(NPCS).filter(n => n.zone === Z.id).map(n => [n.x, n.y, 110]), ...Object.values(QUESTS).filter(q => q.zone === Z.id).flatMap(q => q.goals.flatMap(g => (g.spots || []).map(([x, y]) => [x, y, 60]))), ...(Z.yard ? [[Z.yard.x, Z.yard.y, Z.yard.R - 30], [(Z.yard.paddock.x0 + Z.yard.paddock.x1) / 2, (Z.yard.paddock.y0 + Z.yard.paddock.y1) / 2, 200]] : [])];   // v121: и на Конном дворе
+  { const keep = [...Object.values(NPCS).filter(n => n.zone === Z.id).map(n => [n.x, n.y, 110]), ...Object.values(QUESTS).filter(q => q.zone === Z.id).flatMap(q => q.goals.flatMap(g => (g.spots || []).map(([x, y]) => [x, y, 60]))), ...(Z.yard ? [[Z.yard.x, Z.yard.y, Z.yard.R - 30], [(Z.yard.paddock.x0 + Z.yard.paddock.x1) / 2, (Z.yard.paddock.y0 + Z.yard.paddock.y1) / 2, 200]] : []), ...(Z.id === 'swamp' ? W.boards.map(b => [b.x, b.y + 40, 170]) : [])];   // v136: у доски заказов заставы   // v121: и на Конном дворе
     if (keep.length && W.trees.some(t => keep.some(([x, y, r]) => dist(t.x, t.y, x, y) < r))) { const all = W.trees.filter(t => !keep.some(([x, y, r]) => dist(t.x, t.y, x, y) < r)); W.grid.clear(); W.trees = []; for (const t of all) addTree(W, t); } }
   return W;
 }

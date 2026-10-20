@@ -183,8 +183,9 @@ function buildStatics(W) {
   // v102: посёлок мультяшными постройками (вид спереди-сверху), ×1,15 — двери 1,2–1,3 роста героя
   const KV = 1.15, vil = (key, fn) => sprite('v|' + key, 460, 440, 230, 400, 1.8, styled(g => { g.scale(KV, KV); fn(g); }));
   if (!oldBld()) Object.assign(ART, { house: v => vil('house' + v, g => TVIL.house(g, v)), inn: () => vil('inn', TVIL.inn), barn: () => vil('barn', TVIL.barn), forge: () => vil('forge', TVIL.forge) });
-  ART.stable = () => vil('stable2', g => TVIL.stable(g, 0, false));   // v121: конюшня Конного двора (v122: кони в денниках — отдельно, живые)
-  const LBLV = { inn: 290, barn: 200, house: 170, forge: 170, stable: 300 };
+  ART.stable = () => vil('stable2', g => TVIL.stable(g, 0, false));
+  ART.stilt = () => vil('stilt', g => TVIL.stilt(g, 0));   // v136: застава Болотного края на сваях   // v121: конюшня Конного двора (v122: кони в денниках — отдельно, живые)
+  const LBLV = { inn: 290, barn: 200, house: 170, forge: 170, stable: 300, stilt: 300 };
   // v86: объёмные постройки столицы (мягкий облик), размер картинки — по основанию
   const B2 = (key, v) => { if (key === 'stall' && !oldMarket()) return tStallSpr(); const [w, d, lh] = FOOT[key] || [200, 150, 200]; const pw = w + d * 0.3 + 280, ph = lh + 220; return sprite('b2|' + key + (v || 0), pw, ph, w / 2 + 140, ph - 60, 1.6, styled(g => { if (key === 'stall') { g.save(); g.translate(0, -44); g.scale(PEOPLE_K, PEOPLE_K); person(g, MERCH_LOOK, 'front', {}); g.restore(); } ((!oldBld() && TB2[key]) || BLD2[key])(g, v || 0, 0.4); })); };
   const LBL = { herbal: 185, bank: 205, jeweler: 240, castle: 455, market: 195, stall: 195, cart: 150, forge: 170, tavern: 210, miners: 200, enchant: 210, inn: 230, barn: 190 };
@@ -406,6 +407,8 @@ function paintGround(g, W, x0, y0, CW, CH, i, j) {
   roadPath(); g.strokeStyle = 'rgba(210,190,140,.45)'; g.lineWidth = 30; g.stroke();
   if (PL.length) { plazaPath(-14); g.fillStyle = 'rgba(210,190,140,.32)'; g.fill(); }
   for (const [px, py, rx, ry] of W.ponds || []) if (Math.abs(px - (x0 + CW / 2)) < rx + CW && Math.abs(py - (y0 + CH / 2)) < ry + CH) { g.save(); g.translate(px, py); (oldLairs() ? FOR : TF).pond(g, rx, ry, Math.round(px) % 97, 0); g.restore(); LOOK.use(g); }
+  for (const [px, py, rx, ry] of W.islands || []) if (Math.abs(px - (x0 + CW / 2)) < rx + CW && Math.abs(py - (y0 + CH / 2)) < ry + CH) { g.save(); g.translate(px, py); TF.island(g, rx, ry, Math.round(px) % 89); g.restore(); LOOK.use(g); }
+  for (const [[ax, ay], [bx, by]] of W.gati || []) if (Math.max(ax, bx) > x0 - 80 && Math.min(ax, bx) < x0 + CW + 80 && Math.max(ay, by) > y0 - 80 && Math.min(ay, by) < y0 + CH + 80) { g.save(); TF.gat(g, ax, ay, bx, by, W.gatiW - 8, Math.round(ax + ay) % 53); g.restore(); LOOK.use(g); }
   const r = rng(i * 7919 + j * 104729 + 5);
   // камушки на дорогах
   for (let k = 0; k < 120 * CH / CHUNK; k++) { const x = x0 + r() * CW, y = y0 + r() * CH; if (W.roadD(x, y) < 28) { g.fillStyle = r() < 0.5 ? 'rgba(120,100,70,.55)' : 'rgba(230,215,180,.5)'; g.beginPath(); g.ellipse(x, y, 2 + r() * 2, 1.4 + r(), 0, 0, 7); g.fill(); } }
@@ -627,7 +630,7 @@ function canopy(Rd, c, G, x0, y0, zw, zh, t) {
 // ---------------------------------------------------------------- кадр
 let R_PARTS = null, EXEC = 0, G_CUR = null;
 /** Эффекты над фигурами (v73): взрывы, удары, вспышки. thirst — от тела к герою (в мировых координатах). */
-const OVER = { venom: MF.venom, sporeBurst: MF.sporeBurst, curseHit: MF.curseHit, impact: V.impact, explosion: V.explosion, frostHit: V.frostHit, bloodHit: V.bloodHit, critBurst: V.critBurst, igniteFlash: V.igniteFlash, trapSnap: V.trapSnap, thirst: V.thirst, herbPick: herbBurst, drink: drinkFx };
+const OVER = { venom: MF.venom, sporeBurst: MF.sporeBurst, curseHit: MF.curseHit, netHit: MF.netHit, grab: MF.grab, impact: V.impact, explosion: V.explosion, frostHit: V.frostHit, bloodHit: V.bloodHit, critBurst: V.critBurst, igniteFlash: V.igniteFlash, trapSnap: V.trapSnap, thirst: V.thirst, herbPick: herbBurst, drink: drinkFx };
 export function render(R, G, now) {
   const { ctx: c, cv } = R, W = G.W, P = G.P; R_PARTS = R.parts; G_CUR = G;
   if (R.W !== W) { R.W = W; R.chunks.clear(); R.statics = buildStatics(W); }
@@ -737,6 +740,7 @@ export function render(R, G, now) {
     if (s.kind === 'bottle') { MF.bottleShot(c, s, t); continue; }
     if (s.kind === 'spore') { MF.sporeShot(c, s, t); continue; }
     if (s.kind === 'curse') { MF.curseShot(c, s, t); continue; }
+    if (s.kind === 'fishnet') { MF.netShot(c, s, t); continue; }
     if (s.kind === 'frost') { V.frostBolt(c, s, t); continue; }
     if (s.kind === 'arrow') { V.arrow(c, s, t, !!s.red); continue; }
     if (s.kind === 'fire') { V.fireball(c, s, t); continue; }
