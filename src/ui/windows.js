@@ -137,7 +137,7 @@ export function openChar(G, onChange) {
   let deMode = false, draw = null;   // v109: режим распыления (компьютер); Esc сперва выключает режим, а не закрывает окно
   const deEsc = e => { if (deMode && e.key === 'Escape') { e.preventDefault(); e.stopImmediatePropagation(); deMode = false; draw && draw(); } };
   addEventListener('keydown', deEsc, true);
-  const m = modal(`<h2>${G.hero.name}</h2><div class="charwin"><div><div class="dollw"><div class="eq eqL"></div><canvas width="340" height="472"></canvas><div class="eq eqR"></div></div><dl class="stats"></dl><div class="skillb"></div></div><div class="bagside"><h3>Сумка <span class="cnt"></span><button class="btn demode" hidden>${DE_SVG}<span>Распылить</span></button></h3><div class="bag"></div><p class="dehint" hidden>Режим распыления: щёлкните вещь — она рассыплется в пыль и осколки. Выйти — снова кнопка или Esc.</p><p class="hint">${T('Нажмите на вещь в сумке — надеть, на надетую — снять. Вещи можно перетаскивать мышью: по ячейкам сумки, на снаряжение и обратно. Выбросить — правый щелчок или вынести вещь за окно (мешок пролежит на земле 3 минуты). Руда и слитки лежат стопками до 20. Закрыть — I, B или Esc.', 'Коснитесь вещи — увидите, что она даёт, сможете надеть, снять или выбросить. Задержите палец на вещи и ведите — переложите в другую ячейку или на снаряжение. Руда и слитки лежат стопками до 20.')}</p></div></div>`, 'wide');
+  const m = modal(`<h2>${G.hero.name}</h2><div class="charwin"><div><div class="dollw"><div class="eq eqL"></div><canvas width="340" height="472"></canvas><div class="eq eqR"></div></div><dl class="stats"></dl><div class="skillb"></div></div><div class="bagside"><div class="wallet"></div><h3>Сумка <span class="cnt"></span><button class="btn demode" hidden>${DE_SVG}<span>Распылить</span></button></h3><div class="bag"></div><p class="dehint" hidden>Режим распыления: щёлкните вещь — она рассыплется в пыль и осколки. Выйти — снова кнопка или Esc.</p><p class="hint">${T('Нажмите на вещь в сумке — надеть, на надетую — снять. Вещи можно перетаскивать мышью: по ячейкам сумки, на снаряжение и обратно. Выбросить — правый щелчок или вынести вещь за окно (мешок пролежит на земле 3 минуты). Руда и слитки лежат стопками до 20. Закрыть — I, B или Esc.', 'Коснитесь вещи — увидите, что она даёт, сможете надеть, снять или выбросить. Задержите палец на вещи и ведите — переложите в другую ячейку или на снаряжение. Руда и слитки лежат стопками до 20.')}</p></div></div>`, 'wide');
   let dollFx = [];   // v92: живые эффекты героических вещей на кукле
   const cell = (it, extra = '') => el('button', 'cell', it ? anyIcon(it, 44) + (it.n > 1 ? `<span class="n">${it.n}</span>` : '') + extra : '');
   draw = () => {
@@ -153,7 +153,8 @@ export function openChar(G, onChange) {
       }
     }
     const rows = statRows(h, st);
-    m.querySelector('.stats').innerHTML = rows.map((r, i) => `<dt>${r.label}${r.help ? `<span class="si" data-i="${i}">i</span>` : ''}</dt><dd>${r.val}</dd>`).join('') + `<dt>Деньги</dt><dd>${moneyHtml(h.gold)}</dd><dt>Зелья</dt><dd>${h.potions}</dd>`;
+    m.querySelector('.stats').innerHTML = rows.map((r, i) => `<dt>${r.label}${r.help ? `<span class="si" data-i="${i}">i</span>` : ''}</dt><dd>${r.val}</dd>`).join('') + `<dt>Зелья</dt><dd>${h.potions}</dd>`;
+    m.querySelector('.wallet').innerHTML = walletHtml(h);   // v134: казна — деньги, печати (дальше — новые валюты)
     for (const b of m.querySelectorAll('.stats .si')) { const r = rows[+b.dataset.i]; if (TOUCH) b.onclick = e => { e.stopPropagation(); helpTip(e, r.label, r.help); }; else { b.onmouseenter = e => helpTip(e, r.label, r.help); b.onmouseleave = hideTip; } }
     const PR = [['Горное дело', miningSkill(h), MINE.cap], ['Травничество', herbSkill(h), HERBAL.cap], ['Алхимия', alchSkill(h), ALCH.cap]].filter(x => x[1]);
     m.querySelector('.skillb').innerHTML = PR.length ? PR.map(([n, sk, cap]) => `<div class="skrow"><span>${n}</span><span>${sk} / ${cap}</span></div><div class="skbar"><i style="width:${sk / cap * 100}%"></i></div>`).join('') : `<p class="hint">Профессии учат в Столице: горное дело — в Гильдии рудокопов, травничество и алхимию — у травницы.</p>`;
@@ -563,6 +564,15 @@ function jewelTab(G, B, sj, redraw, skbar, leg) {
     if (!low) { r.querySelector('[data-x=one]').onclick = () => { startCraft(G, 'jewel', id, 1); redraw(); }; const a = r.querySelector('[data-x=all]'); if (a) a.onclick = () => { startCraft(G, 'jewel', id, 999); redraw(); }; }
     R_.append(r);
   }
+}
+
+/** v134: казна в окне героя — все валюты в одном месте: деньги, Королевские печати; новые валюты добавлять сюда. */
+export function walletHtml(h) {
+  const rows = [
+    ['Деньги', moneyHtml(h.gold || 0), 'Медь, серебро и золото: 100 меди = 1 серебро, 100 серебра = 1 золото. Добыча, задания, продажа вещей'],
+    ['Королевские печати', `${SEAL_SVG(18)}<b>${h.tokens || 0}</b>`, 'За заказы с доски заказов. Тратятся у королевского квартирмейстера Остромира у дворца Столицы'],
+  ];
+  return `<h3>Казна</h3><div class="wrows">${rows.map(([n, v, t]) => `<div class="wrow" title="${t}"><span>${n}</span><span class="wv">${v}</span></div>`).join('')}</div>`;
 }
 
 /** Профессии (v84): кнопка P — вкладки по выученным профессиям. opts.teach — у травницы (учит травничество и алхимию), opts.brew — рядом котёл (можно варить), opts.tab — какую открыть. */
