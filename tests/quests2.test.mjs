@@ -10,22 +10,22 @@ import { rng, dist } from '../src/engine/util.js';
 import { QART } from '../src/art/npc.js';
 import * as Q from '../src/systems/quests.js';
 
-const WS = { farms: buildWorld(ZONES.farms), shroom: buildWorld(ZONES.shroom), pine: buildWorld(ZONES.pine) };
+const WS = { farms: buildWorld(ZONES.farms), shroom: buildWorld(ZONES.shroom), pine: buildWorld(ZONES.pine), swamp: buildWorld(ZONES.swamp) };
 const game = (z, cls = 'warrior', seed = 1) => createGame(newHero('Т', cls), WS[z], { rand: rng(seed) });
 const talk = (G, npc) => { const n = Q.NPCS[npc]; G.P.x = n.x; G.P.y = n.y + 40; update(G, 0.05, { interact: true }); };
 
 test('данные: жители и места предметов на проходимой земле, без деревьев, достижимы; мобы целей живут в зоне', () => {
-  for (const z of ['farms', 'shroom']) {
+  for (const z of ['farms', 'shroom', 'swamp']) {
     const W = WS[z], camps = W.camps.flatMap(c => [].concat(c.mob)), A = ZONES[z].arrive;
     const qs = Object.entries(Q.QUESTS).filter(([, q]) => q.zone === z); assert.ok(qs.length >= 10, z + ' заданий ' + qs.length);
     for (const [id, n] of Object.entries(Q.NPCS)) if (n.zone === z) {
       assert.ok(W.walkable(n.x, n.y) && W.walkable(n.x, n.y + 40), id); assert.ok(!W.trees.some(t => dist(t.x, t.y, n.x, n.y) < 100), id + ' без деревьев');
       assert.ok(!W.camps.some(c => dist(c.x, c.y, n.x, n.y) < (c.r || 150) + 300), id + ' не у логова');
-      if (ZONES[z].relief) assert.ok(W.path(A.x, A.y, n.x, n.y + 20, 200000), id + ' достижим');
+      if (ZONES[z].relief || W.maze) assert.ok(W.path(A.x, A.y, n.x, n.y + 20, 200000), id + ' достижим');
     }
     for (const [id, q] of qs) for (const g of q.goals) {
       if (g.k === 'kill' || g.k === 'loot') for (const k of [].concat(g.mob)) { assert.ok(MOBS[k], id); assert.ok(camps.includes(k), id + ' моб в зоне ' + k); }
-      if (g.k === 'obj') { assert.ok(g.spots.length >= g.n, id); assert.ok(QART[g.art], id + ' рисунок'); for (const [x, y] of g.spots) { assert.ok(W.walkable(x, y + 30), id + ' место ' + x); assert.ok(!W.trees.some(t => dist(t.x, t.y, x, y) < 50), id + ' дерево у места'); if (ZONES[z].relief) assert.ok(W.path(A.x, A.y, x, y + 20, 200000), id + ' достижимо ' + x); } }
+      if (g.k === 'obj') { assert.ok(g.spots.length >= g.n, id); assert.ok(QART[g.art], id + ' рисунок'); for (const [x, y] of g.spots) { assert.ok(W.walkable(x, y + 30), id + ' место ' + x); assert.ok(!W.trees.some(t => dist(t.x, t.y, x, y) < 50), id + ' дерево у места'); if (ZONES[z].relief || W.maze) assert.ok(W.path(A.x, A.y, x, y + 20, 200000), id + ' достижимо ' + x); } }
       if (g.k === 'talk') assert.ok(Q.NPCS[g.npc]);
     }
   }
@@ -33,6 +33,8 @@ test('данные: жители и места предметов на прох�
   assert.equal(Q.QUESTS.pine_farms.after, 'pine_ataman'); assert.equal(Q.QUESTS.farm_shroom.turn, 'savva'); assert.equal(Q.QUESTS.sh_temple.zone, 'temple');
   // первые задания зон открыты без цепочки прошлой зоны (кто пропустил — не заперт)
   const h = newHero('Н', 'mage'); h.lvl = 10; for (const id of ['farm_dogs', 'farm_crows', 'sh_road', 'sh_frogs']) assert.equal(Q.qStatus(h, id), 'avail', id);
+  h.lvl = 14; for (const id of ['sw_leeches', 'sw_vipers']) assert.equal(Q.qStatus(h, id), 'avail', id);   // v139
+  assert.equal(Q.QUESTS.sh_swamp.turn, 'ignat'); assert.equal(Q.QUESTS.farm_swamp.turn, 'nestor');
 });
 
 test('мост из Соснового дола: взять у Гордея, сдать старосте в Хуторе', () => {
@@ -59,8 +61,9 @@ test('цель «квакуны оврага» считает и копейщи�
 
 test('цепочки целиком: «Чёрная мука» и «Голос из болота» сдаются по порядку, в конце — синяя вещь', () => {
   for (const [z, order] of [['farms', ['farm_dogs', 'farm_crows', 'farm_scare', 'farm_fire', 'farm_ashes', 'farm_bulls', 'farm_burners', 'farm_flour', 'farm_runaway', 'farm_key', 'farm_garden', 'farm_miller', 'farm_shroom']],
-    ['shroom', ['sh_road', 'sh_frogs', 'sh_spores', 'sh_slime', 'sh_totems', 'sh_webs', 'sh_tikhon', 'sh_brood', 'sh_ravine', 'sh_snake', 'sh_temple']]]) {
-    const G = game(z, 'archer', 4), h = G.hero; h.lvl = z === 'farms' ? 6 : 10; let xp = 0;
+    ['shroom', ['sh_road', 'sh_frogs', 'sh_spores', 'sh_slime', 'sh_totems', 'sh_webs', 'sh_tikhon', 'sh_brood', 'sh_ravine', 'sh_snake', 'sh_temple']],
+    ['swamp', ['sw_leeches', 'sw_vipers', 'sw_nets', 'sw_hamlet', 'sw_island', 'sw_nestor', 'sw_channel', 'sw_hulks', 'sw_idols', 'sw_circle', 'sw_mistress']]]) {
+    const G = game(z, 'archer', 4), h = G.hero; h.lvl = z === 'farms' ? 6 : z === 'swamp' ? 14 : 10; let xp = 0;
     for (const id of order) {
       const q = Q.QUESTS[id]; h.lvl = Math.max(h.lvl, q.min); assert.equal(Q.qStatus(h, id), 'avail', id); assert.ok(Q.qAccept(G, id), id);
       q.goals.forEach((g, i) => { h.quests.act[id].n[i] = Q.goalNeed(g); });

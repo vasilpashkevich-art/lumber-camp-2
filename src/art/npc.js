@@ -20,6 +20,12 @@ export const NPC_LOOK = {
   // травник-отшельник Лука: глубокий капюшон цвета мха, роба, посох друида
   hermit: { key: 'npc-hermit', cls: 'mage', hair: '#9a9488', beard: 'grey', head: { m: 'cowl', P: NP('common', 7, { cloth: ['#4a6a3a', '#3a5a2a'] }) }, chest: { m: 'robe', P: NP('common', 7, { cloth: ['#5a6a3a', '#4a5a2a'], acc: '#a8c860' }) }, legs: { m: 'trousers', P: NP('common', 4, { cloth: ['#4a3a2a', '#3a2c1e'] }) }, weapon: { m: 'root', P: NP('good', 6) } },
   // разведчик Тихон: кожаный капюшон, клёпаная куртка, длинный лук, колчан
+  // v139: Болотный край — сотник Игнат: кольчуга, зелёная накидка заставы, копьё, усатый
+  sotnik: { key: 'npc-sotnik', hair: '#4a3a2a', beard: 'full', broad: 1.06, chest: { m: 'cuirass', P: NP('good', 10, { cloth: ['#3f6a3a', '#2c4c28'], acc: '#b8b0a0' }) }, legs: { m: 'chausses', P: NP('common', 5) }, weapon: { m: 'spear', P: NP('common', 4) } },
+  // знахарка Марфа: платок, тёмно-лиловая роба с травами на поясе, без бороды, посох-клюка
+  healer: { key: 'npc-healer', cls: 'mage', hair: '#6a4a3a', hairStyle: 'long', head: { m: 'band', P: NP('common', 5, { cloth: ['#7a4a6a', '#5e3652'] }) }, chest: { m: 'robe', P: NP('common', 9, { cloth: ['#5a4a6a', '#443854'], acc: '#a8c860' }) }, legs: { m: 'trousers', P: NP('common', 6, { cloth: ['#4a3a2a', '#3a2c1e'] }) }, weapon: { m: 'crook', P: NP('common', 3) } },
+  // перевозчик Нестор у Брода: соломенная шляпа, выцветшая рубаха, шест
+  ferryman: { key: 'npc-ferryman', hair: '#8a7a5a', beard: 'full', head: { m: 'straw', P: NP('common', 4) }, chest: { m: 'shirt', P: NP('common', 8, { cloth: ['#8aa0b0', '#6a8090'] }) }, legs: { m: 'trousers', P: NP('common', 7, { cloth: ['#5a4a3a', '#4a3a2c'] }) }, weapon: { m: 'crook', P: NP('common', 6) } },
   ranger: { key: 'npc-ranger', cls: 'archer', hair: '#4a3a2a', head: { m: 'lhood', P: NP('good', 11, { leather: '#3a4a34', cloth: ['#3a4a34', '#2a3a26'] }) }, chest: { m: 'studded', P: NP('good', 12) }, legs: { m: 'leggings', P: NP('common', 6) }, weapon: { m: 'long', P: NP('good', 9) }, quiver: true },
 };
 
@@ -89,6 +95,17 @@ export function qSack(g) {
   g.strokeStyle = 'rgba(90,60,30,.5)'; g.lineWidth = 0.6; g.beginPath(); g.moveTo(-8, -18); g.quadraticCurveTo(-4, -10, -8, -3); g.stroke();
   gloss(g, -8, -17, 4, 2.2, 0.3);
 }
+/** v139: сеть топляков — растянута на двух кольях, грузила, в ячейках тина. */
+export function qNet(g) {
+  ground(g, 22);
+  for (const x of [-22, 22]) { fillPath(g, '#7a5a34', -34, -40, 1.2, () => { g.moveTo(x - 2.5, 2); g.lineTo(x - 2, -40); g.lineTo(x + 2, -40); g.lineTo(x + 2.5, 2); g.closePath(); }); }
+  g.strokeStyle = '#d8d0a8'; g.lineWidth = 1.1;
+  for (let i = -3; i <= 3; i++) { g.beginPath(); g.moveTo(-21, -36 + i * 5.5 + 16); g.quadraticCurveTo(0, -30 + i * 5.5 + 16 + 3, 21, -36 + i * 5.5 + 16); g.stroke(); }
+  for (let i = -3; i <= 3; i++) { g.beginPath(); g.moveTo(i * 6, -36); g.quadraticCurveTo(i * 6 + 1.5, -18, i * 6, -2); g.stroke(); }
+  g.fillStyle = '#4a5a3a'; for (const [x, y] of [[-10, -22], [6, -12], [14, -26]]) { g.beginPath(); g.ellipse(x, y, 3.2, 2, 0.3, 0, 7); g.fill(); }
+  g.fillStyle = '#5a5a5a'; for (let i = -3; i <= 3; i++) { g.beginPath(); g.arc(i * 6, -1, 1.6, 0, 7); g.fill(); }
+  gloss(g, -20, -36, 3, 1.6, 0.3);
+}
 /** Ключ от мельницы: большой железный ключ в траве. */
 export function qKey(g) {
   ground(g, 14, 4);
@@ -137,5 +154,5 @@ export function qEggs(g) {
 /** Рисунок предмета задания и его размеры для готовой картинки: [w, h, ox, oy, fn]. */
 export const QART = {
   cache: [70, 44, 35, 34, qCache], sack: [52, 44, 24, 38, qSack], key: [50, 26, 25, 18, qKey],
-  totem: [44, 80, 22, 72, qTotem], cocoon: [48, 60, 24, 54, qCocoon], eggs: [48, 34, 24, 28, qEggs],
+  totem: [44, 80, 22, 72, qTotem], cocoon: [48, 60, 24, 54, qCocoon], eggs: [48, 34, 24, 28, qEggs], net: [60, 50, 30, 44, qNet],
 };
