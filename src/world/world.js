@@ -133,7 +133,23 @@ export function buildWorld(Z) {
   const onGat = (x, y, pad) => GATI.some(([[ax, ay], [bx, by]]) => segDist(x, y, ax, ay, bx, by) < GATI_W / 2 - pad);
   const inPond = (x, y, pad) => PONDS.some(([px, py, rx, ry]) => ((x - px) / (rx + pad)) ** 2 + ((y - py) / (ry + pad * 0.6)) ** 2 < 1) && !onIsland(x, y, pad) && !onGat(x, y, pad);
   W.onGat = (x, y) => onGat(x, y, 0);
-  W.water = (x, y, pad = 0) => (PONDS.length && inPond(x, y, pad)) || R && W.riverD(x, y) < R.w / 2 + pad && !R.bridgeAt.some(b => { const dx = x - b.x, dy = y - b.y, u = -dx * Math.sin(b.ra) + dy * Math.cos(b.ra), l = dx * Math.cos(b.ra) + dy * Math.sin(b.ra); return Math.abs(u) < 36 && Math.abs(l) < b.len / 2; });
+  // v140: глубина. Вода у берега — отмель (по пояс, ходить можно, медленно), дальше — глубина (не пройти). Отмель — полоса SHALLOW от края
+  // пруда и реки, плюс свои мели Z.shoals (эллипсы); островки и гати — суша. Ручей — весь мелкий.
+  const SHALLOW = 120, SHOALS = Z.shoals || []; W.shoals = SHOALS;
+  const inShoal = (x, y, pad) => SHOALS.some(([px, py, rx, ry]) => ((x - px) / (rx + pad)) ** 2 + ((y - py) / (ry + pad * 0.6)) ** 2 < 1);
+  const deepPond = (x, y, pad) => PONDS.some(([px, py, rx, ry]) => { const band = Math.min(0.5, SHALLOW / Math.min(rx, ry));   /* отмель — не шире половины пруда: у малых прудов середина глубокая */ const d = Math.sqrt(((x - px) / rx) ** 2 + ((y - py) / ry) ** 2); return d < 1 - band + pad / Math.min(rx, ry); }) && !onIsland(x, y, pad) && !onGat(x, y, pad) && !inShoal(x, y, pad);
+  const onBridge = (x, y) => R && R.bridgeAt.some(b => { const dx = x - b.x, dy = y - b.y, u = -dx * Math.sin(b.ra) + dy * Math.cos(b.ra), l = dx * Math.cos(b.ra) + dy * Math.sin(b.ra); return Math.abs(u) < 36 && Math.abs(l) < b.len / 2; });
+  /** Глубокая вода — не пройти (с запасом pad). */
+  const RB = 30; W.riverBank = RB;   // река: отмель шириной RB за прежним краем (там деревьев и так нет) и ещё 12 внутрь; глубина — середина
+  W.deep = (x, y, pad = 0) => (PONDS.length && deepPond(x, y, pad)) || (R && W.riverD(x, y) < R.w / 2 - 12 + pad && !onBridge(x, y)) || false;
+  /** Отмель — вода, по которой можно идти (по пояс). */
+  W.wet = (x, y) => !!W.water(x, y, 0) && !W.deep(x, y, 0);
+  /** Глубина 0 — суша, 1 — отмель, 2 — глубина (для рисования и карт). */
+  W.depthAt = (x, y) => W.deep(x, y, 0) ? 2 : W.water(x, y, 0) ? 1 : 0;
+  // v140: ручей — весь мелкий, брод по всей длине (мостов не нужно)
+  const CK = Z.creek; const creekD = (x, y) => { if (!CK) return 1e9; let m = 1e9; for (let i = 0; i < CK.pts.length - 1; i++) m = Math.min(m, segDist(x, y, CK.pts[i][0], CK.pts[i][1], CK.pts[i + 1][0], CK.pts[i + 1][1])); return m; };
+  W.creekD = creekD;
+  W.water = (x, y, pad = 0) => (CK && creekD(x, y) < CK.w / 2 + pad) || (PONDS.length && inPond(x, y, pad)) || R && W.riverD(x, y) < R.w / 2 + RB + pad && !R.bridgeAt.some(b => { const dx = x - b.x, dy = y - b.y, u = -dx * Math.sin(b.ra) + dy * Math.cos(b.ra), l = dx * Math.cos(b.ra) + dy * Math.sin(b.ra); return Math.abs(u) < 36 && Math.abs(l) < b.len / 2; });
   // препятствия по клеткам (быстро для поиска пути и мобов); сетка пересобирается, когда препятствий стало больше
   const BC = 200, hitB = (b, x, y) => b.off ? false : b.rect ? x > b.x0 && x < b.x1 && y > b.y0 && y < b.y1 : Math.abs(x - b.x) < b.rx && ((x - b.x) / b.rx) ** 2 + ((y - b.y) / b.ry) ** 2 < 1;
   let bgrid = null, bn = -1;
@@ -143,9 +159,11 @@ export function buildWorld(Z) {
     return bgrid; };
   W.blocked = (x, y) => { const a = bgridOf().get(Math.floor(x / BC) * 4096 + Math.floor(y / BC)); return !!a && a.some(b => hitB(b, x, y)); };
   /** Можно ли стоять здесь мобу: внутри зоны, не в воде, не в постройке. */
-  W.walkable = (x, y) => inside(x, y) && !W.water(x, y) && !W.blocked(x, y);
-  /** Для поиска пути — с запасом от воды (герой к ней ближе 4 шагов не подходит). */
-  W.navOk = (x, y) => inside(x, y) && !W.water(x, y, 8) && !W.blocked(x, y);
+  W.walkable = (x, y) => inside(x, y) && !W.deep(x, y) && !W.blocked(x, y);   // v140: отмель проходима, глубина — нет
+  /** Для поиска пути — с запасом от глубины (герой к ней ближе 4 шагов не подходит). */
+  W.navOk = (x, y) => inside(x, y) && !W.deep(x, y, 8) && !W.blocked(x, y);
+  /** v140: где может быть водный зверь — в любой воде (и на отмели, и на глубине), не в постройке. */
+  W.swimOk = (x, y) => inside(x, y) && !!W.water(x, y, 0) && !W.blocked(x, y);
   const inField = (x, y, pad) => W.fields.some(F => { const dx = x - F.x, dy = y - F.y, c = Math.cos(-(F.a || 0)), s = Math.sin(-(F.a || 0)), u = dx * c - dy * s, v = dx * s + dy * c; return Math.abs(u) < F.w / 2 + pad && Math.abs(v) < F.h / 2 + pad; });
   W.inField = inField;
   const edgeDist = ROOMS ? (x, y) => Math.max(0, roomDepth(x, y)) : (x, y) => { let m = 1e9; for (let i = 0; i < edge.length; i++) { const a = edge[i], b = edge[(i + 1) % edge.length]; m = Math.min(m, segDist(x, y, a[0], a[1], b[0], b[1])); } return m; };
@@ -161,7 +179,7 @@ export function buildWorld(Z) {
   const lineOk = (x0, y0, x1, y1) => { const n = Math.ceil(Math.hypot(x1 - x0, y1 - y0) / 10); for (let k = 1; k <= n; k++) if (!inside(x0 + (x1 - x0) * k / n, y0 + (y1 - y0) * k / n)) return false; return true; };
   // v136: топь с гатями — «шагнуть» значит пройти по прямой, не ступив в воду (иначе путь по сетке — по гатям и кочкам)
   const MAZE = W.maze = GATI.length > 0;
-  const dryOk = (x0, y0, x1, y1) => { const n = Math.ceil(Math.hypot(x1 - x0, y1 - y0) / 10); for (let k = 1; k <= n; k++) if (W.water(x0 + (x1 - x0) * k / n, y0 + (y1 - y0) * k / n, 6)) return false; return true; };
+  const dryOk = (x0, y0, x1, y1) => { const n = Math.ceil(Math.hypot(x1 - x0, y1 - y0) / 10); for (let k = 1; k <= n; k++) if (W.deep(x0 + (x1 - x0) * k / n, y0 + (y1 - y0) * k / n, 6)) return false; return true; };
   W.stepOk = RF ? (x0, y0, x1, y1) => RF.canStep(x0, y0, x1, y1) : ROOMS ? lineOk : MAZE ? dryOk : () => true;
   /** Свободно ли место для дерева, камня, жилы: не у края яруса и не на склоне. */
   W.flatOk = RF ? (x, y, d = 50, rockOnly = false) => !RF.nearEdge(x, y, d, rockOnly) && !RF.nearRamp(x, y, d * 0.8) : () => true;
@@ -184,9 +202,15 @@ export function buildWorld(Z) {
     }
     W.camps.push(camp);
   });
+  // v140: водные логова (Z.waterCamps) — своим зерном, после обычных: старые лагеря и деревья не сдвигаются; мобы в воде
+  { const rw = rng(Z.seed + 900), n0 = Z.camps.length;
+    (Z.waterCamps || []).forEach((c, k0) => { const ci = n0 + k0, camp = { ...c, water: true, i: ci, spawns: [] };
+      for (let k = 0; k < c.n; k++) { const a = k / c.n * Math.PI * 2 + rw() * 0.8, d = c.n === 1 ? 0 : c.r * (0.4 + rw() * 0.6), kind = Array.isArray(c.mob) ? c.mob[k % c.mob.length] : c.mob, lvl = c.lvl[0] + Math.floor(rw() * (c.lvl[1] - c.lvl[0] + 1));
+        camp.spawns.push({ key: Z.id + ':w' + k0 + ':' + k, kind, lvl, x: c.x + Math.cos(a) * d, y: c.y + Math.sin(a) * d }); }
+      W.camps.push(camp); }); }
 
   // точка появления в постройке или в воде — сдвинуть по кругу на свободное место (без зерна: старые точки не меняются)
-  const spawnOk = (c, x, y) => W.walkable(x, y) && (!RF || (RF.levelAt(x, y) === RF.levelAt(c.x, c.y) || !RF.nearEdge(c.x, c.y, c.r, true)) && !RF.nearEdge(x, y, 26, true));
+  const spawnOk = (c, x, y) => (c.water ? W.swimOk(x, y) : W.walkable(x, y) && !W.water(x, y, 0)) && (!RF || (RF.levelAt(x, y) === RF.levelAt(c.x, c.y) || !RF.nearEdge(c.x, c.y, c.r, true)) && !RF.nearEdge(x, y, 26, true));
   for (const c of W.camps) for (const sp of c.spawns) {
     if (spawnOk(c, sp.x, sp.y)) continue;
     const a0 = Math.atan2(sp.y - c.y, sp.x - c.x), d0 = Math.hypot(sp.x - c.x, sp.y - c.y);
@@ -263,6 +287,8 @@ export function buildWorld(Z) {
     for (const [px, py, rx, ry] of PONDS) for (let i = 0; i < 9; i++) { const a = r4() * 6.283, x = px + Math.cos(a) * (rx + 14), y = py + Math.sin(a) * (ry + 10); if (Math.sin(a) < -0.2 && r4() < 0.5) continue; W.props.push({ kind: 'reeds', x, y, s: Math.floor(r4() * 1000) }); }
   }
   if (W.rocks.length) { W.trees = W.trees.filter(t => !W.rocks.some(o => Math.abs(t.x - o.x) < o.w * 0.6 && Math.abs(t.y - o.y) < o.w * 0.3)); W.grid.clear(); const all = W.trees; W.trees = []; for (const t of all) addTree(W, t); }
+  // v140: ручей стал водой (брод) — деревья на нём убираем (остальные не сдвигаются)
+  if (Z.creek && W.trees.some(t => W.creekD(t.x, t.y) < Z.creek.w / 2 + 30)) { const all = W.trees.filter(t => W.creekD(t.x, t.y) >= Z.creek.w / 2 + 30); W.grid.clear(); W.trees = []; for (const t of all) addTree(W, t); }
   // v95: у жителей с заданиями и у мест предметов заданий деревья не растут (остальные не сдвигаются)
   { const keep = [...Object.values(NPCS).filter(n => n.zone === Z.id).map(n => [n.x, n.y, 110]), ...Object.values(QUESTS).filter(q => q.zone === Z.id).flatMap(q => q.goals.flatMap(g => (g.spots || []).map(([x, y]) => [x, y, 60]))), ...(Z.yard ? [[Z.yard.x, Z.yard.y, Z.yard.R - 30], [(Z.yard.paddock.x0 + Z.yard.paddock.x1) / 2, (Z.yard.paddock.y0 + Z.yard.paddock.y1) / 2, 200]] : []), ...(Z.id === 'swamp' ? W.boards.map(b => [b.x, b.y + 40, 170]) : [])];   // v136: у доски заказов заставы   // v121: и на Конном дворе
     if (keep.length && W.trees.some(t => keep.some(([x, y, r]) => dist(t.x, t.y, x, y) < r))) { const all = W.trees.filter(t => !keep.some(([x, y, r]) => dist(t.x, t.y, x, y) < r)); W.grid.clear(); W.trees = []; for (const t of all) addTree(W, t); } }
@@ -287,7 +313,7 @@ export function treesIn(W, x0, y0, x1, y1) {
 
 /** Куда можно сдвинуться из (x,y) в (nx,ny): граница зоны, вода, стена столицы, постройки. */
 export function moveTo(W, x, y, nx, ny, r = 12) {
-  const bad = (a, b) => !W.inside(a, b) || W.water(a, b, 4) || W.blocked(a, b) || !W.stepOk(x, y, a, b);
+  const bad = (a, b) => !W.inside(a, b) || W.deep(a, b, 4) || W.blocked(a, b) || !W.stepOk(x, y, a, b);   // v140: отмель проходима
   if (bad(nx, ny)) { if (!bad(nx, y)) ny = y; else if (!bad(x, ny)) nx = x; else { nx = x; ny = y; } }
   // стена столицы: кольцо, проходы в воротах
   const c = W.cap;

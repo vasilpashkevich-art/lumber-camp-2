@@ -270,4 +270,26 @@ export const MOBS = {
     name: 'Тотем тины', art: 'totem', r: 16, still: true,
     hp: 0.7, dmg: 0, speed: 0, reach: 0, cd: 99, trait: 'totem', gold: 0,
   },
+  // ---------------------------------------------------------------- v140: водные звери — живут только в воде, нападают на того, кто зашёл в воду (aquatic)
+  pike: {
+    name: 'Щука', art: 'pike', r: 14,
+    hp: 0.9, dmg: 1.0, speed: 185, reach: 34, cd: 1.5,
+    trait: 'none', aquatic: true, gold: 0.8,
+  },
+  catfish: {
+    name: 'Зубатка', art: 'catfish', r: 18,
+    hp: 1.5, dmg: 1.05, speed: 120, reach: 40, cd: 1.8,
+    trait: 'none', aquatic: true, grab: 1.5, grabSay: 'тянет на дно!', gold: 1.4,
+  },
+  piranha: {
+    name: 'Пиранья', art: 'piranha', r: 10,
+    hp: 0.45, dmg: 0.6, speed: 200, reach: 24, cd: 0.9,
+    trait: 'pack', packN: 2, packR: 240, aquatic: true, gold: 0.5,
+  },
+  crocodile: {
+    name: 'Болотный крокодил', art: 'crocodile', r: 22,
+    hp: 1.9, dmg: 1.3, speed: 130, reach: 44, cd: 1.9,
+    trait: 'smash', aquatic: true, grab: 1.4, grabSay: 'хватает за ногу!', gold: 2.2,
+    smash: { every: 10, wind: 1.0, r: 80, mul: 1.8, stun: 1.5, say: 'крутится!', style: 'splash' },
+  },
 };

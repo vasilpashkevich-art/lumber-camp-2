@@ -54,7 +54,7 @@ test('откосы в пол роста проходимы везде, каме�
 test('от стоянки купца достижимо всё: логова, жилы, выходы, великаны — и герой доходит ногами', () => {
   const G = { W, hero: { veins: {} }, rand: rng(5), t: 0 }; initVeins(G);
   const targets = [
-    ...W.camps.flatMap(c => c.spawns.map(s => [c.name, s.x, s.y])),
+    ...W.camps.filter(c => !c.water).flatMap(c => c.spawns.map(s => [c.name, s.x, s.y])),   // v140: водные — в воде
     ...G.veins.map(v => ['жила ' + v.metal, v.x, v.y + 30]),
     ...W.exits.map(e => e.temple ? ['врата ' + e.to, e.x, e.y + 80] : ['выход ' + e.to, e.x + (e.x < 1000 ? 120 : -120), e.y]),
     ...W.giants.map(g => ['великан', g.x, g.y + 60]),

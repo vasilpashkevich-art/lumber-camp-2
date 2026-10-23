@@ -27,7 +27,7 @@ test('у трёх зон своя граница и берега по карте
 test('всё важное внутри новой границы: логова (каждая точка появления), посёлки, выходы, дороги', () => {
   for (const id of IDS) {
     const W = WS[id], Z = ZONES[id];
-    for (const c of W.camps) for (const s of c.spawns) assert.ok(W.walkable(s.x, s.y), `${id} ${c.name}`);
+    for (const c of W.camps) for (const s of c.spawns) assert.ok(c.water ? W.swimOk(s.x, s.y) : W.walkable(s.x, s.y), `${id} ${c.name}`);   // v140: водные логова — в воде
     for (const e of Z.exits) { assert.ok(W.inside(e.x, e.y), `${id} выход ${e.to}`); if (!e.temple) assert.ok(W.edgeDist(e.x, e.y) < 200, `${id} выход у края ${e.to} ${Math.round(W.edgeDist(e.x, e.y))}`); }
     for (const rd of Z.roads) for (const p of rd) assert.ok(inPoly(p[0], p[1], W.edge) || W.edgeDist(p[0], p[1]) < 120, `${id} дорога ${p}`);
     if (W.town) assert.ok(W.inside(W.town.x, W.town.y, 300), id + ' посёлок');

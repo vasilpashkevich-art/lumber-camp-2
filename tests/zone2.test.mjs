@@ -18,7 +18,7 @@ test('мир второй зоны: посёлок, кладбище, прихо
   assert.ok(W.walkable(FARMS.arrive.x, FARMS.arrive.y), 'место прихода');
   assert.ok(inCity(W, W.village.x, W.village.y + 60), 'посёлок — безопасное место');
   assert.ok(W.walkable(W.graveyard.x + 40, W.graveyard.y + 70), 'кладбище');
-  for (const c of W.camps) for (const s of c.spawns) { assert.ok(W.walkable(s.x, s.y), `${c.name} ${s.kind}`); assert.ok(s.key.startsWith('farms:')); }
+  for (const c of W.camps) for (const s of c.spawns) { assert.ok(c.water ? W.swimOk(s.x, s.y) : W.walkable(s.x, s.y), `${c.name} ${s.kind}`); assert.ok(s.key.startsWith('farms:')); }
   for (const c of FARMS.camps) for (const k of [].concat(c.mob)) assert.ok(MOBS[k], k);
   assert.ok(W.props.length > 3, 'стога');
 });

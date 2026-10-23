@@ -20,6 +20,7 @@ import { TBLD as TB2, TVIL } from '../art/tbld.js';
 import * as TP from '../art/tprops.js';
 import * as TL from '../art/tlairs.js';
 import * as TF from '../art/tforest.js';
+import * as WA from '../art/water.js';   // v140: живая вода
 const oldLairs = () => typeof window !== 'undefined' && window.__oldLairs;
 const oldProps = () => typeof window !== 'undefined' && window.__oldProps;
 // v101: постройки столицы — в мультяшном стиле по одной (tbld.js); прежние — window.__oldBld = true
@@ -407,6 +408,7 @@ function paintGround(g, W, x0, y0, CW, CH, i, j) {
   roadPath(); g.strokeStyle = 'rgba(210,190,140,.45)'; g.lineWidth = 30; g.stroke();
   if (PL.length) { plazaPath(-14); g.fillStyle = 'rgba(210,190,140,.32)'; g.fill(); }
   for (const [px, py, rx, ry] of W.ponds || []) if (Math.abs(px - (x0 + CW / 2)) < rx + CW && Math.abs(py - (y0 + CH / 2)) < ry + CH) { g.save(); g.translate(px, py); (oldLairs() ? FOR : TF).pond(g, rx, ry, Math.round(px) % 97, 0); g.restore(); LOOK.use(g); }
+  for (const [px, py, rx, ry] of W.shoals || []) if (Math.abs(px - (x0 + CW / 2)) < rx + CW && Math.abs(py - (y0 + CH / 2)) < ry + CH) { g.save(); g.translate(px, py); TF.shoal(g, rx, ry, Math.round(py) % 83); g.restore(); LOOK.use(g); }   // v140: мели
   for (const [px, py, rx, ry] of W.islands || []) if (Math.abs(px - (x0 + CW / 2)) < rx + CW && Math.abs(py - (y0 + CH / 2)) < ry + CH) { g.save(); g.translate(px, py); TF.island(g, rx, ry, Math.round(px) % 89); g.restore(); LOOK.use(g); }
   for (const [[ax, ay], [bx, by]] of W.gati || []) if (Math.max(ax, bx) > x0 - 80 && Math.min(ax, bx) < x0 + CW + 80 && Math.max(ay, by) > y0 - 80 && Math.min(ay, by) < y0 + CH + 80) { g.save(); TF.gat(g, ax, ay, bx, by, W.gatiW - 8, Math.round(ax + ay) % 53); g.restore(); LOOK.use(g); }
   const r = rng(i * 7919 + j * 104729 + 5);
@@ -671,6 +673,11 @@ export function render(R, G, now) {
     if (cand.length) { cand.sort((a, b) => b[2] - a[2]); chunk(R, cand[0][0], cand[0][1]); }
   }
   const t = now / 1000, vis = (x, y, m = 200) => x > x0 - m && x < x0 + zw + m && y > y0 - m && y < y0 + zh + m * 1.5;
+  // v140: рыбы в прудах и реке — живые, поверх земли (на телефоне — через кадр)
+  if (!TOUCH || (R.frameN = (R.frameN || 0) + 1) % 2 === 0) {
+    for (const [px, py, rx, ry] of W.ponds || []) if (vis(px, py, Math.max(rx, ry))) WA.pondFish(c, px, py, rx, ry, Math.round(px + py), t, (x, y) => W.deep(x, y, 0));
+    if (W.river) WA.riverFish(c, W.river, t, x0 - 40, y0 - 40, x0 + zw + 40, y0 + zh + 40);
+  }
   // кольцо под целью
   if (P.target && P.target.state !== 'dead') { const m = P.target; c.strokeStyle = lvlColor(m.lvl, G.hero.lvl); c.lineWidth = 2.5; c.globalAlpha = 0.85; c.beginPath(); c.ellipse(m.x, m.y + 2 - lift(m.x, m.y), m.r + 10, (m.r + 10) * 0.42, 0, 0, 7); c.stroke(); c.globalAlpha = 1; }
   // предупреждения об ударах по площади
@@ -887,7 +894,10 @@ function drawMob(c, G, m, t) {
   const f = mode === 'atk' ? frameOf('atk', 1 - m.atkT / (m.atkDur || 0.35)) : mode === 'walk' ? frameOf('walk', m.walkPh) : 0;
   const vN = hum && mode === 'atk' ? (m.atkVar || 0) % (SWING_N[swingOf(MOB_LOOK[ak])] || 1) : 0;   // v116: люди-мобы тоже бьют по-разному
   const sp = mobFrame(ak, view, vN ? 'atk' + vN : mode, f);
-  if (hum) { c.fillStyle = 'rgba(0,0,0,.25)'; c.beginPath(); c.ellipse(m.x, m.y + 2, 14 * sc, 5 * sc, 0, 0, 7); c.fill(); }
+  const W0 = G.W, wet = W0.wet && (m.D.aquatic || W0.wet(m.x, m.y)), wseed = (m.key ? m.key.length * 31 : 7) + Math.round(m.hx) % 97;
+  if (m.D.aquatic && m.state !== 'chase' && !(m.atkT > 0) && !(m.hurt > 0)) { WA.lurk(c, m.x, m.y, m.r * 5, Math.atan2(dy || 0.001, dx || 1), t, wseed); return; }   // v140: пока не напал — тень под водой
+  if (wet) WA.ripples(c, m.x, m.y, m.r * 2.2, t, wseed);
+  if (hum && !wet) { c.fillStyle = 'rgba(0,0,0,.25)'; c.beginPath(); c.ellipse(m.x, m.y + 2, 14 * sc, 5 * sc, 0, 0, 7); c.fill(); }
   c.save(); if (m.state === 'return') c.globalAlpha = 0.6;
   const seed = (m.key ? m.key.length * 31 : 7) + Math.round(m.hx) % 97;
   if (m.chill > 0 || m.frozen > 0) V.chilled(c, m.x, m.y, t, seed);
@@ -895,6 +905,7 @@ function drawMob(c, G, m, t) {
   if (m.B && m.state === 'chase') { const ph = m.D.ai.phases[m.B.phase]; if (ph && ph.shield) MF.shieldArc(c, m.x, m.y, m.B.dir, m.r + 34, t, m.B.open > 0 || m.stun > 0); }   // v94: щит Воеводы спереди
   if (m.jumpH) { c.fillStyle = 'rgba(0,0,0,.3)'; c.beginPath(); c.ellipse(m.x, m.y + 2, 26 * sc, 9 * sc, 0, 0, 7); c.fill(); }
   drawFrame(c, m.hurt > 0 ? flashOf(sp) : sp, m.x - (m.hurt > 0 ? dir * 2 : 0), m.y + breathe - (m.jumpH || 0), dir, sc, m.state === 'return' ? 0.6 : 1);
+  if (wet && !(m.jumpH > 0)) WA.waist(c, m.x, m.y, m.r * 1.6 + 12, m.D.aquatic ? 10 * sc : 16 * sc, t + wseed);   // v140: по пояс в воде
   c.restore();
   const humD = m.look ? hum : m.D.humanoid, tt = performance.now() / 1000, top = m.y - (humD ? 58 * sc : (BAR_H[ak] || 44) - 10);
   const hgt = humD ? 60 * sc : Math.max(26, (BAR_H[ak] || 44) - 12), wid = humD ? 34 * sc : m.r * 2.4 + 8;
@@ -917,7 +928,7 @@ function drawHero(c, G, look, t) {
   const view = viewOf8(dx, dy), dir = sideways(view) ? (Math.abs(dx) > 0.05 ? (dx < 0 ? -1 : 1) : P.dir) : 1;
   const mode = P.dead ? 'dead' : (P.atkT > 0 || P.mine) ? 'atk' : (P.moving || P.dash) ? 'walk' : 'idle';
   const f = mode === 'dead' ? frameOf('dead', P.deadT / 0.7) : mode === 'atk' ? frameOf('atk', P.mine ? (P.mine.t / 0.6) % 1 : 1 - P.atkT / P.atkDur) : mode === 'walk' ? frameOf('walk', (P.step / 3) % 1) : 0;
-  c.fillStyle = 'rgba(0,0,0,.28)'; c.beginPath(); c.ellipse(P.x, P.y + 2, 15 * PEOPLE_K / 1.15, 5 * PEOPLE_K / 1.15, 0, 0, 7); c.fill();
+  if (!P.wet) { c.fillStyle = 'rgba(0,0,0,.28)'; c.beginPath(); c.ellipse(P.x, P.y + 2, 15 * PEOPLE_K / 1.15, 5 * PEOPLE_K / 1.15, 0, 0, 7); c.fill(); }
   const B = P.buf || {};
   if (B.stone > 0) { c.strokeStyle = 'rgba(190,185,170,.85)'; c.lineWidth = 4; c.beginPath(); c.ellipse(P.x, P.y - 18, 24, 30, 0, 0, 7); c.stroke(); c.fillStyle = 'rgba(160,155,140,.18)'; c.fill(); }
   if (B.berserk > 0) V.berserkAura(c, P.x, P.y, t, Math.min(1, B.berserk / 0.5, (12.5 - B.berserk) / 0.3 + 0.1));
@@ -945,7 +956,9 @@ function drawHero(c, G, look, t) {
   // v110: аксессуары — тень-двойник и призрачные волки рядом
   if (B.mirror > 0) { c.save(); c.globalAlpha = 0.42 * Math.min(1, B.mirror / 0.5); c.filter = 'hue-rotate(220deg) saturate(0.6) brightness(0.7)'; drawFrame(c, sp, P.x - 34 * dir, P.y - 6, dir, PEOPLE_K); c.restore(); }
   if (B.pack > 0) { const a = 0.5 * Math.min(1, B.pack / 0.5), wf = Math.floor(t * 10) % 8; c.save(); c.globalAlpha = a; c.filter = 'saturate(0.3) brightness(1.5) hue-rotate(170deg)'; for (const s of [-1, 1]) drawFrame(c, beastSpr('wolf', 'side', P.moving ? 'walk' : 'idle', P.moving ? wf : 0), P.x + s * 46, P.y + 14 + s * 6, dir, 1); c.restore(); }
+  if (P.wet && !P.dead) WA.ripples(c, P.x, P.y, 30, t);   // v140: на отмели — круги на воде
   drawFrame(c, P.hurt > 0 ? flashOf(sp) : sp, P.x - (P.hurt > 0 && view === 'side' ? dir * 2 : 0), P.y + breathe, dir, PEOPLE_K, P.dead ? Math.max(0.35, 1 - P.deadT / 3) : B.cloak > 0 ? 0.35 : 1);
+  if (P.wet && !P.dead) WA.waist(c, P.x, P.y, 26, 22, t);   // v140: по пояс в воде
   if (B.berserk > 0) V.berserkAura(c, P.x, P.y + 3, t + 0.5, Math.min(1, B.berserk / 0.5) * 0.3, 9);
   if (!P.dead) gearFx(c, fxListOf(G.hero), P.x, P.y + breathe, t, 37 * PEOPLE_K, dir);   // v92: живые эффекты героических вещей
   if (P.poison) { c.fillStyle = 'rgba(120,220,80,.6)'; for (let i = 0; i < 3; i++) c.fillRect(P.x - 10 + i * 9, P.y - 60 - ((t * 40 + i * 13) % 20), 3, 3); }

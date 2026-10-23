@@ -530,6 +530,73 @@ function leech(view, p, W, bite, t) {
     c.fillStyle = 'rgba(255,255,255,.3)'; c.beginPath(); c.ellipse(-3, -8, 2, 5, 0, 0, TAU); c.fill();
   }
 }
+/** v140: рыба — щука (длинная, пятнистая, зубастая), зубатка (толстая, усы) и пиранья (маленькая, горбатая, красное брюхо). Боком — тело с плавниками,
+ *  спереди/сзади — узкая морда или хвост. bite — пасть раскрыта и бросок. Рисуется по пояс в воде (низ закрывает рисовка воды). */
+function fish(view, p, W, bite, t, o) {
+  const { L: len, H: h, body, belly, fin, spots, teeth, whisk, hump } = o, side = view === 'side', back = view === 'back';
+  const wag = Math.sin((W ? p * TAU * 2 : t * 4)) * 3, L = bite * 6;
+  shadow(side ? len * 0.5 : h * 0.6, 5);
+  if (side) {
+    // хвост
+    F(() => { c.moveTo(-len * 0.45, -h * 0.45); c.quadraticCurveTo(-len * 0.62, -h * 0.9 + wag, -len * 0.68, -h * 0.95 + wag); c.lineTo(-len * 0.56, -h * 0.45); c.lineTo(-len * 0.68, 0 + wag); c.quadraticCurveTo(-len * 0.6, -h * 0.2, -len * 0.45, -h * 0.45); c.closePath(); }, sh(fin, -0.1), 0.6);
+    // тело
+    F(() => { c.moveTo(-len * 0.5, -h * 0.45); c.quadraticCurveTo(-len * 0.2, -h * (hump ? 1.3 : 1.0), len * 0.15, -h * 0.95); c.quadraticCurveTo(len * 0.42, -h * 0.8, len * 0.5 + L, -h * 0.45); c.quadraticCurveTo(len * 0.42, -h * 0.1, len * 0.1, 0); c.quadraticCurveTo(-len * 0.2, 0.5, -len * 0.5, -h * 0.45); c.closePath(); },
+      grad(-h, 0, sh(body, 0.2), belly), 0.8);
+    // спинной плавник и грудной
+    F(() => { c.moveTo(-len * 0.15, -h * 0.95); c.quadraticCurveTo(-len * 0.05, -h * 1.5, len * 0.12, -h * 1.05); c.closePath(); }, sh(fin, -0.1), 0.6);
+    F(() => { c.moveTo(len * 0.05, -h * 0.35); c.quadraticCurveTo(len * 0.0, -h * 0.05 + wag * 0.5, -len * 0.14, -h * 0.1); c.closePath(); }, sh(fin, -0.2), 0.5);
+    // пятна и полосы
+    if (spots) { c.fillStyle = sh(body, -0.25); for (let i = 0; i < 5; i++) { c.beginPath(); c.ellipse(-len * 0.35 + i * len * 0.17, -h * 0.6 + (i % 2) * h * 0.15, len * 0.05, h * 0.12, 0, 0, TAU); c.fill(); } }
+    // глаз, пасть, зубы, усы
+    eye(len * 0.33, -h * 0.62, 2.4, '#e8e060', 1.2);
+    c.strokeStyle = sh(body, -0.5); c.lineWidth = 1.2; c.beginPath(); c.moveTo(len * 0.5 + L, -h * 0.45); c.lineTo(len * 0.22, -h * 0.32 + bite * 4); c.stroke();
+    if (teeth) { c.fillStyle = '#f4f0e0'; for (let i = 0; i < 4; i++) { const x = len * 0.26 + i * len * 0.06; c.beginPath(); c.moveTo(x, -h * 0.4 + bite * 3); c.lineTo(x + 1.6, -h * 0.26 + bite * 3); c.lineTo(x + 3.2, -h * 0.4 + bite * 3); c.fill(); } }
+    if (whisk) { c.strokeStyle = sh(body, -0.4); c.lineWidth = 1; for (const dy of [-2, 3]) { c.beginPath(); c.moveTo(len * 0.45 + L, -h * 0.45 + dy); c.quadraticCurveTo(len * 0.6 + L, -h * 0.3 + dy * 2, len * 0.72 + L, -h * 0.1 + dy * 3); c.stroke(); } }
+    c.fillStyle = 'rgba(255,255,255,.3)'; c.beginPath(); c.ellipse(-len * 0.1, -h * 0.8, len * 0.2, h * 0.08, 0, 0, TAU); c.fill();
+  } else {
+    F(() => { c.moveTo(-h * 0.55, 0); c.quadraticCurveTo(-h * 0.7, -h * 0.9, 0, -h * (hump ? 1.35 : 1.1) - L * 0.3); c.quadraticCurveTo(h * 0.7, -h * 0.9, h * 0.55, 0); c.quadraticCurveTo(0, 2, -h * 0.55, 0); c.closePath(); }, grad(-h, 0, sh(body, 0.2), belly), 0.8);
+    F(() => { c.moveTo(-2, -h * 1.1); c.lineTo(wag * 0.5, -h * 1.5); c.lineTo(2, -h * 1.1); c.closePath(); }, sh(fin, -0.1), 0.6);
+    if (!back) { eye(-h * 0.32, -h * 0.7, 2.2, '#e8e060', 1.2); eye(h * 0.32, -h * 0.7, 2.2, '#e8e060', 1.2);
+      F(() => c.ellipse(0, -h * 0.3, h * 0.42, h * 0.16 + bite * 4, 0, 0, TAU), sh(body, -0.55), 0.6);
+      if (teeth) { c.fillStyle = '#f4f0e0'; for (let i = -2; i <= 2; i++) { c.beginPath(); c.moveTo(i * h * 0.16 - 1.5, -h * 0.42); c.lineTo(i * h * 0.16, -h * 0.3 + bite * 2); c.lineTo(i * h * 0.16 + 1.5, -h * 0.42); c.fill(); } }
+      if (whisk) { c.strokeStyle = sh(body, -0.4); c.lineWidth = 1; for (const sx of [-1, 1]) { c.beginPath(); c.moveTo(sx * h * 0.4, -h * 0.35); c.quadraticCurveTo(sx * h * 0.8, -h * 0.2, sx * h * 1.0, h * 0.1); c.stroke(); } } }
+    else { F(() => { c.moveTo(-h * 0.35, -h * 0.5); c.lineTo(0, -h * 1.2 + wag); c.lineTo(h * 0.35, -h * 0.5); c.closePath(); }, sh(fin, -0.1), 0.6); }
+  }
+}
+const FISH = {
+  pike: { L: 64, H: 16, body: '#5a7a3a', belly: '#d8dcb0', fin: '#7a6a3a', spots: true, teeth: true },
+  catfish: { L: 60, H: 24, body: '#4a4238', belly: '#c8b89a', fin: '#5a4a3a', whisk: true },
+  piranha: { L: 30, H: 16, body: '#5a6a70', belly: '#d84a3a', fin: '#3a4a50', teeth: true, hump: true },
+};
+/** v140: болотный крокодил — длинное тело с гребнем из острых щитков, короткие лапы, пасть с зубами, жёлтые глаза; при броске пасть раскрыта. */
+function crocodile(view, p, W, bite, t) {
+  const b = '#4a6a34', d = '#2a3e1e', belly = '#b8c088', side = view === 'side', back = view === 'back', wag = Math.sin((W ? p * TAU * 2 : t * 2)) * 4, L = bite * 10;
+  shadow(side ? 50 : 22, 8);
+  if (side) {
+    // хвост
+    F(() => { c.moveTo(-30, -10); c.quadraticCurveTo(-48, -14 + wag, -62, -4 + wag * 1.5); c.quadraticCurveTo(-48, -4 + wag, -30, 0); c.closePath(); }, grad(-14, 0, sh(b, 0.1), sh(b, -0.2)), 0.8);
+    // лапы
+    for (const [x, sw] of [[-18, 1], [16, -1]]) { const st = W ? Math.sin(p * TAU + x) * 3 * sw : 0; F(() => { c.moveTo(x - 6, -6); c.lineTo(x - 7 + st, 4); c.lineTo(x + 7 + st, 4); c.lineTo(x + 6, -6); c.closePath(); }, sh(b, -0.15), 0.6); c.fillStyle = d; for (let i = -1; i <= 1; i++) { c.beginPath(); c.moveTo(x + i * 4 + st, 4); c.lineTo(x + i * 4 + st - 1, 7); c.lineTo(x + i * 4 + st + 1, 7); c.fill(); } }
+    // тело
+    F(() => { c.moveTo(-32, -4); c.quadraticCurveTo(-30, -18, -10, -19); c.lineTo(14, -18); c.quadraticCurveTo(28, -17, 30, -10); c.lineTo(30, -2); c.quadraticCurveTo(10, 2, -32, -4); c.closePath(); }, grad(-19, 0, sh(b, 0.2), belly), 0.9);
+    // гребень — острые щитки
+    c.fillStyle = sh(b, -0.3); for (let x = -28; x < 14; x += 7) { c.beginPath(); c.moveTo(x, -17); c.lineTo(x + 3, -24); c.lineTo(x + 6, -17); c.fill(); }
+    // голова и пасть
+    F(() => { c.moveTo(26, -16); c.lineTo(54 + L, -12 - bite * 6); c.quadraticCurveTo(58 + L, -9 - bite * 6, 54 + L, -7 - bite * 6); c.lineTo(28, -9); c.closePath(); }, sh(b, 0.05), 0.8);   // верхняя челюсть
+    F(() => { c.moveTo(28, -8); c.lineTo(52 + L, -5 + bite * 5); c.quadraticCurveTo(56 + L, -2 + bite * 5, 50 + L, 0 + bite * 5); c.lineTo(28, -2); c.closePath(); }, sh(belly, -0.15), 0.8);   // нижняя
+    c.fillStyle = '#f4f0e0'; for (let i = 0; i < 6; i++) { const x = 32 + i * 4; c.beginPath(); c.moveTo(x, -9); c.lineTo(x + 1.5, -5 - bite * 2); c.lineTo(x + 3, -9); c.fill(); c.beginPath(); c.moveTo(x, -8 + bite * 5); c.lineTo(x + 1.5, -11 + bite * 3); c.lineTo(x + 3, -8 + bite * 5); c.fill(); }
+    eye(30, -17, 3, '#e8d040', 1.5); c.fillStyle = d; c.beginPath(); c.ellipse(30, -17, 0.9, 2.2, 0, 0, TAU); c.fill();
+    c.fillStyle = 'rgba(255,255,255,.25)'; c.beginPath(); c.ellipse(-6, -15, 14, 2.5, 0, 0, TAU); c.fill();
+  } else {
+    F(() => { c.moveTo(-16, 0); c.quadraticCurveTo(-18, -16, 0, -20 - L * 0.4); c.quadraticCurveTo(18, -16, 16, 0); c.quadraticCurveTo(0, 3, -16, 0); c.closePath(); }, grad(-20, 0, sh(b, 0.2), belly), 0.9);
+    for (const sx of [-1, 1]) { F(() => { c.moveTo(sx * 14, -6); c.lineTo(sx * 24, 0); c.lineTo(sx * 22, 5); c.lineTo(sx * 12, 0); c.closePath(); }, sh(b, -0.15), 0.6); }
+    c.fillStyle = sh(b, -0.3); for (let i = -2; i <= 2; i++) { c.beginPath(); c.moveTo(i * 5 - 2, -19); c.lineTo(i * 5, -25 + Math.abs(i)); c.lineTo(i * 5 + 2, -19); c.fill(); }
+    if (!back) { eye(-7, -14, 3, '#e8d040', 1.5); eye(7, -14, 3, '#e8d040', 1.5);
+      F(() => { c.moveTo(-12, -8); c.lineTo(12, -8); c.quadraticCurveTo(14, -2 + bite * 6, 0, 0 + bite * 6); c.quadraticCurveTo(-14, -2 + bite * 6, -12, -8); c.closePath(); }, sh(belly, -0.1), 0.7);
+      c.fillStyle = '#f4f0e0'; for (let i = -2; i <= 2; i++) { c.beginPath(); c.moveTo(i * 5 - 1.5, -8); c.lineTo(i * 5, -4 + bite * 2); c.lineTo(i * 5 + 1.5, -8); c.fill(); } }
+    else { F(() => { c.moveTo(-6, -4); c.lineTo(wag, -30); c.lineTo(6, -4); c.closePath(); }, sh(b, -0.1), 0.7); }
+  }
+}
 /** Трясинник: горб болотной грязи с корнями-лапами, мох и кочки на спине, ветки, пасть-трещина, два огонька-глаза. */
 function bogHulk(view, p, W, bite, t) {
   const mud = '#3e4a2a', dark = '#1e2614', side = view === 'side', back = view === 'back', wob = W ? Math.sin(p * TAU * 2) * 3 : Math.sin(t * 1.5) * 1.5, L = bite * 10;
@@ -548,7 +615,7 @@ function bogHulk(view, p, W, bite, t) {
 export const T = { use: ctx => { c = ctx; }, F: (...a) => F(...a), limb: (...a) => limb(...a), eye: (...a) => eye(...a), shadow: (...a) => shadow(...a), grad: (...a) => grad(...a), rng, kvakun: (...a) => kvakun(...a), snake: (...a) => snake(...a), setDead: v => { DEAD = v; } };
 
 // ======================================================== общий вход
-export const KINDS = ['fox', 'wolf', 'dog', 'boar', 'bull', 'spider', 'crow', 'scarecrow', 'kvakun', 'kvak_shaman', 'gribo', 'sporo', 'weaver', 'broodmother', 'snake', 'leech', 'bog_hulk', 'bog_viper'];
+export const KINDS = ['pike', 'catfish', 'piranha', 'crocodile', 'fox', 'wolf', 'dog', 'boar', 'bull', 'spider', 'crow', 'scarecrow', 'kvakun', 'kvak_shaman', 'gribo', 'sporo', 'weaver', 'broodmother', 'snake', 'leech', 'bog_hulk', 'bog_viper'];
 export function beast(ctx, kind, view, pose = {}) {
   c = ctx; const W = pose.walk >= 0, p = W ? pose.walk : 0, bite = pose.atk >= 0 ? Math.sin(Math.min(1, pose.atk) * Math.PI) : 0, hit = pose.hit || 0, dead = pose.dead || 0, t = pose.t || 0;
   c.save(); c.lineJoin = 'round'; c.lineCap = 'round'; DEAD = dead > 0;
@@ -563,15 +630,17 @@ export function beast(ctx, kind, view, pose = {}) {
   else if (SHROOM[kind]) shroom(SHROOM[kind], view, p, W, bite, t);
   else if (SNAKES[kind]) snake(SNAKES[kind], view, p, W, bite, t);
   else if (kind === 'leech') leech(view, p, W, bite, t);
+  else if (FISH[kind]) fish(view, p, W, bite, t, FISH[kind]);
+  else if (kind === 'crocodile') crocodile(view, p, W, bite, t);
   else if (kind === 'bog_hulk') bogHulk(view, p, W, bite, t);
   else if (kind === 'boss_toad') toad(view, p, W, bite, t);
   else if (kind === 'temple_frog') frog(view, p, W, bite, t);
   c.restore();
 }
-export const NAMES = { fox: 'Лиса', wolf: 'Волк', dog: 'Дикий пёс', boar: 'Кабан', bull: 'Бешеный бык', spider: 'Лесной паук', crow: 'Ворона', scarecrow: 'Пугало', kvakun: 'Квакун-копейщик', kvak_shaman: 'Квакун-шаман', gribo: 'Грибоед', sporo: 'Споровик', weaver: 'Тенепряд', broodmother: 'Паучиха-мать', snake: 'Великий Полоз', leech: 'Пиявка', bog_hulk: 'Трясинник', bog_viper: 'Болотная гадюка' };
+export const NAMES = { pike: 'Щука', catfish: 'Зубатка', piranha: 'Пиранья', crocodile: 'Крокодил', fox: 'Лиса', wolf: 'Волк', dog: 'Дикий пёс', boar: 'Кабан', bull: 'Бешеный бык', spider: 'Лесной паук', crow: 'Ворона', scarecrow: 'Пугало', kvakun: 'Квакун-копейщик', kvak_shaman: 'Квакун-шаман', gribo: 'Грибоед', sporo: 'Споровик', weaver: 'Тенепряд', broodmother: 'Паучиха-мать', snake: 'Великий Полоз', leech: 'Пиявка', bog_hulk: 'Трясинник', bog_viper: 'Болотная гадюка' };
 
 // высота полоски здоровья над землёй и размер готового кадра [w, h, ox, oy] для каждого существа
-export const BAR_H = { leech: 22, bog_hulk: 62, bog_viper: 40, viper: 40, kvak_priest: 40, temple_frog: 26, boss_bulk: 60, boss_priestess: 42, boss_aspid: 84, boss_king: 56, boss_toad: 96, fox: 26, wolf: 36, dog: 32, boar: 40, bull: 56, spider: 24, crow: 40, scarecrow: 48, kvakun: 38, kvak_shaman: 44, gribo: 36, sporo: 30, weaver: 30, broodmother: 42, snake: 80 };
-export const BOX = { bog_viper: [150, 80, 90, 66], bog_hulk: [130, 100, 65, 80], leech: [70, 40, 35, 30], viper: [150, 80, 90, 66], boss_toad: [220, 150, 110, 130], boss_aspid: [250, 130, 150, 110], boss_bulk: [150, 130, 75, 110], boss_priestess: [120, 90, 60, 72], boss_king: [150, 120, 75, 100], bull: [170, 110, 85, 92], snake: [250, 130, 150, 110], broodmother: [150, 90, 75, 72], weaver: [120, 70, 60, 56], boar: [130, 80, 65, 66] };
+export const BAR_H = { pike: 28, catfish: 32, piranha: 24, crocodile: 36, leech: 22, bog_hulk: 62, bog_viper: 40, viper: 40, kvak_priest: 40, temple_frog: 26, boss_bulk: 60, boss_priestess: 42, boss_aspid: 84, boss_king: 56, boss_toad: 96, fox: 26, wolf: 36, dog: 32, boar: 40, bull: 56, spider: 24, crow: 40, scarecrow: 48, kvakun: 38, kvak_shaman: 44, gribo: 36, sporo: 30, weaver: 30, broodmother: 42, snake: 80 };
+export const BOX = { pike: [150, 60, 75, 46], catfish: [150, 70, 75, 56], piranha: [80, 50, 40, 40], crocodile: [150, 80, 75, 66], bog_viper: [150, 80, 90, 66], bog_hulk: [130, 100, 65, 80], leech: [70, 40, 35, 30], viper: [150, 80, 90, 66], boss_toad: [220, 150, 110, 130], boss_aspid: [250, 130, 150, 110], boss_bulk: [150, 130, 75, 110], boss_priestess: [120, 90, 60, 72], boss_king: [150, 120, 75, 100], bull: [170, 110, 85, 92], snake: [250, 130, 150, 110], broodmother: [150, 90, 75, 72], weaver: [120, 70, 60, 56], boar: [130, 80, 65, 66] };
 /** Совместимость: старый вызов «зверь сбоку» (фаза шага, укус). */
 export const BEASTS = Object.fromEntries(KINDS.map(k => [k, (g, a, bite) => beast(g, k, 'side', bite ? { atk: 0.5 } : { walk: a })]));

@@ -25,7 +25,7 @@ test('мир: застава безопасна, приход на суше, 12 
   assert.ok(W.walkable(SWAMP.arrive.x, SWAMP.arrive.y), 'место прихода');
   assert.ok(inCity(W, W.village.x, W.village.y + 60), 'застава — безопасное место');
   assert.ok(W.houses.some(b => b.vendor), 'торговец'); assert.ok(W.houses.some(b => b.smelt), 'плавильня'); assert.ok(W.houses.some(b => b.bind), 'ночлег');
-  for (const c of W.camps) for (const s of c.spawns) { assert.ok(W.walkable(s.x, s.y), `${c.name} ${s.kind}`); assert.ok(!W.water(s.x, s.y, 0), `${c.name} не в воде`); }
+  for (const c of W.camps) for (const s of c.spawns) { if (c.water) { assert.ok(W.swimOk(s.x, s.y), `${c.name} в воде`); continue; } assert.ok(W.walkable(s.x, s.y), `${c.name} ${s.kind}`); assert.ok(!W.water(s.x, s.y, 0), `${c.name} не в воде`); }
   for (const c of SWAMP.camps) for (const k of [].concat(c.mob)) assert.ok(MOBS[k], k);
   assert.equal(SWAMP.camps.filter(c => [].concat(c.mob).some(k => MOBS[k].rare)).length, 1, 'одна Хозяйка топи');
   assert.ok(CONTINENT.find(z => z.id === 'swamp').open);
@@ -43,7 +43,7 @@ test('оба выхода связаны с заставой и друг с др
   assert.equal(ex.length, 2);
   for (const e of ex) { assert.ok(ZONES[e.zone], e.zone); assert.ok(W.walkable(e.x, e.y), `выход ${e.name} на суше`); assert.ok(pathOk(V, e), `путь к ${e.name}`); }
   assert.ok(ZONES.shroom.exits.some(e => e.zone === 'swamp') && ZONES.farms.exits.some(e => e.zone === 'swamp'), 'входы из Грибного леса и Хутора');
-  for (const c of W.camps) for (const sp of c.spawns) assert.ok(pathOk(V, sp), `логово ${c.name} ${sp.kind}`);
+  for (const c of W.camps) if (!c.water) for (const sp of c.spawns) assert.ok(pathOk(V, sp), `логово ${c.name} ${sp.kind}`);
 });
 
 test('рыбак кидает сеть — герой не шагнёт; утопленник хватает', () => {

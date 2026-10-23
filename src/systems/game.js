@@ -9,7 +9,7 @@ import { oOnKill } from './orders.js';
 import { qState, qObjs, qOnKill, qTick, qTalk, qUseObj, qObjNear, npcNear, npcsOf } from './quests.js';
 import { bossTick, bossReset, bossCancel, shieldBlocks, hazardsTick, ringBlocks } from './boss.js';
 import { rideK, rideOk, toggleMount, stopMountCast, dismount, mountTick } from './mount.js';
-import { HERO, MOBL, RESPAWN, LEASH, AGGRO, LOOT, ITEM, TRINKET_DROP, SHOP, armorCut, xpKill, lvlColor, xpNeed } from '../../data/balance.js';
+import { HERO, MOBL, RESPAWN, LEASH, AGGRO, LOOT, ITEM, TRINKET_DROP, SHOP, WATER, armorCut, xpKill, lvlColor, xpNeed } from '../../data/balance.js';
 import { TRINKETS } from '../../data/trinkets.js';
 import { NEW_ABILS } from '../../data/talents.js';
 import { hasTal } from './talents.js';
@@ -129,12 +129,16 @@ export function update(G, dt, I) {
     if (I.hearth) startHearth(G);   // v108: камень возвращения
     hearthTick(G, dt); craftTick(G, dt);   // v112: ремесло со временем
     if (I.sit && P.ride) dismount(G);
+    P.wet = !!G.W.wet(P.x, P.y);   // v140: герой на отмели — по пояс в воде
+    if (P.wet && P.ride) { dismount(G); emit(G, { k: 'toast', s: 'Конь в воду не идёт', id: 'wet' }); }
+    if (P.wet && (P.mine || P.gather || P.sit)) { if (P.mine) stopMine(G); if (P.gather) stopGather(G); P.sit = false; }
+    if (I.sit && P.wet) { emit(G, { k: 'toast', s: 'В воде не присесть', id: 'sit' }); I = { ...I, sit: false }; }
     if (I.sit) { if (P.sit) P.sit = false; else if (G.t - P.lastCombat < 1.5) emit(G, { k: 'toast', s: 'В бою не присесть', id: 'sit' }); else P.sit = true; }
     P.rooted = Math.max(0, (P.rooted || 0) - dt);
     if (P.dash) dashTick(G, dt);
     else if (P.moving && P.rooted > 0) { P.moving = false; }   // v94: сжат кольцами змеи
     else if (P.moving) {
-      const sp = HERO.speed * rideK(G) * (P.slow > 0 && !(P.buf.berserk > 0) ? 0.6 : 1) * (P.whirl > 0 ? 0.8 : 1) * (P.buf.wind > 0 ? 1.4 : 1) * elixirMods(G.hero).speed;
+      const sp = HERO.speed * rideK(G) * (P.slow > 0 && !(P.buf.berserk > 0) ? 0.6 : 1) * (P.whirl > 0 ? 0.8 : 1) * (P.buf.wind > 0 ? 1.4 : 1) * elixirMods(G.hero).speed * (P.wet ? WATER.slow : 1);   // v140: по воде — медленно
       const [nx, ny] = moveTo(G.W, P.x, P.y, P.x + mx * sp * dt, P.y + my * sp * dt);
       if (!G.rings || !G.rings.length || !ringBlocks(G, P.x, P.y, nx, ny)) { P.x = nx; P.y = ny; }   // кольцо змеи не выпускает, кроме как через просвет
       if (Math.abs(mx) > 0.1) P.dir = mx < 0 ? -1 : 1;
@@ -746,8 +750,8 @@ function mobTick(G, m, dt) {
   if (m.D.still) { m.cd = 99; m.moving = false; return; }   // v117: тотем стоит и ничего не делает — его надо сломать
   m.stun = Math.max(0, m.stun - dt); m.root = Math.max(0, m.root - dt); m.chill = Math.max(0, m.chill - dt); m.frozen = Math.max(0, (m.frozen || 0) - dt); m.trapT = Math.max(0, (m.trapT || 0) - dt);
   if (m.stun > 0 || m.frozen > 0) { if (m.B && m.B.act) bossCancel(G, m); return; }   // оглушён или вмёрз в лёд — стоит (умение босса сбито)
-  const dH = dist(m.x, m.y, P.x, P.y), dHome = dist(m.x, m.y, m.hx, m.hy), slowK = (m.chill > 0 ? 0.5 : 1) * (m.B ? m.B.haste : 1);
-  const go = (tx, ty, sp) => { if (m.state !== 'idle' && (G.W.relief || G.W.rooms || G.W.maze) && m.root <= 0) { const w = steer(G, m, tx, ty, dt); if (w) { tx = w[0]; ty = w[1]; } } const d = dist(m.x, m.y, tx, ty); if (d < 1 || m.root > 0) { if (Math.abs(tx - m.x) > 2) m.face = tx < m.x ? -1 : 1; return; } sp *= slowK; const k = Math.min(1, sp * dt / d); let nx = m.x + (tx - m.x) * k, ny = m.y + (ty - m.y) * k; let ok = (a, b) => G.W.walkable(a, b) && !inSafe(G.W, a, b) && G.W.stepOk(m.x, m.y, a, b); let ax = nx, ay = ny; if (!ok(ax, ay)) { if (ok(nx, m.y)) ay = m.y; else if (ok(m.x, ny)) ax = m.x; } if (ok(ax, ay)) { const nx2 = ax, ny2 = ay; nx = nx2; ny = ny2; const mv = Math.hypot(nx - m.x, ny - m.y); if (mv > 0.05) { m.mdx = nx - m.x; m.mdy = ny - m.y; m.moving = true; m.walkPh = (m.walkPh + mv / (m.D.humanoid ? 56 : 44)) % 1; } m.x = nx; m.y = ny; } if (Math.abs(tx - m.x) > 2) m.face = tx < m.x ? -1 : 1; };
+  const dH = dist(m.x, m.y, P.x, P.y), dHome = dist(m.x, m.y, m.hx, m.hy), slowK = (m.chill > 0 ? 0.5 : 1) * (m.B ? m.B.haste : 1) * (!m.D.aquatic && G.W.wet(m.x, m.y) ? WATER.slow : 1);   // v140: сухопутный на отмели медленнее
+  const go = (tx, ty, sp) => { if (m.state !== 'idle' && !m.D.aquatic && (G.W.relief || G.W.rooms || G.W.maze) && m.root <= 0) { const w = steer(G, m, tx, ty, dt); if (w) { tx = w[0]; ty = w[1]; } } const d = dist(m.x, m.y, tx, ty); if (d < 1 || m.root > 0) { if (Math.abs(tx - m.x) > 2) m.face = tx < m.x ? -1 : 1; return; } sp *= slowK; const k = Math.min(1, sp * dt / d); let nx = m.x + (tx - m.x) * k, ny = m.y + (ty - m.y) * k; let ok = m.D.aquatic ? ((a, b) => G.W.swimOk(a, b)) : ((a, b) => G.W.walkable(a, b) && !inSafe(G.W, a, b) && G.W.stepOk(m.x, m.y, a, b)); /* v140: водный зверь — только в воде */ let ax = nx, ay = ny; if (!ok(ax, ay)) { if (ok(nx, m.y)) ay = m.y; else if (ok(m.x, ny)) ax = m.x; } if (ok(ax, ay)) { const nx2 = ax, ny2 = ay; nx = nx2; ny = ny2; const mv = Math.hypot(nx - m.x, ny - m.y); if (mv > 0.05) { m.mdx = nx - m.x; m.mdy = ny - m.y; m.moving = true; m.walkPh = (m.walkPh + mv / (m.D.humanoid ? 56 : 44)) % 1; } m.x = nx; m.y = ny; } if (Math.abs(tx - m.x) > 2) m.face = tx < m.x ? -1 : 1; };
 
   if (m.state === 'idle') {
     m.wander.t -= dt;
@@ -757,7 +761,7 @@ function mobTick(G, m, dt) {
     if (!P.dead && !inSafe(G.W, P.x, P.y)) {
       const gray = lvlColor(m.lvl, H.lvl) === '#9a9a9a';
       const ar = m.D.wake || AGGRO * clamp(1 + (m.lvl - H.lvl) * 0.1, 0.55, 1.6) * (gray ? 0.6 : 1);
-      if (dH < ar) aggro(G, m);
+      if (dH < ar && (!m.D.aquatic || G.W.water(P.x, P.y, WATER.bank))) aggro(G, m);   // v140: водный зверь замечает только того, кто в воде или у самого берега
     }
     return;
   }
@@ -771,7 +775,8 @@ function mobTick(G, m, dt) {
   }
   // погоня
   // v117: босс держит весь свой зал (раньше бросал бой в углу Тронного зала)
-  if (P.dead || dHome > (m.D.boss ? LEASH * 1.7 : LEASH) || inSafe(G.W, P.x, P.y) && dH > 40) { m.state = 'return'; m.charge.t = 0; m.smash.wind = 0; if (P.target === m) P.target = null; return; }
+  if (m.D.aquatic) { m.dryT = G.W.water(P.x, P.y, WATER.bank) ? 0 : (m.dryT || 0) + dt; }   // v140: герой вышел на сушу — водный зверь отстаёт
+  if (P.dead || dHome > (m.D.boss ? LEASH * 1.7 : LEASH) || inSafe(G.W, P.x, P.y) && dH > 40 || (m.dryT || 0) > 1.5) { m.state = 'return'; m.charge.t = 0; m.smash.wind = 0; if (P.target === m) P.target = null; return; }
   m.cd = Math.max(0, m.cd - dt * slowK);
   const D = m.D, reach = D.reach + m.r + 10;
   // призыв помощников (Мельник — ворон, шаман — сородича, Паучиха — выводок)
@@ -786,7 +791,7 @@ function mobTick(G, m, dt) {
       S.wind -= dt;
       if (S.wind <= 0) {
         G.fx.push({ k: 'slam', x: S.x, y: S.y, r: D.smash.r, style: D.smash.style, seed: Math.floor(G.rand() * 1e6), t: 1.8, max: 1.8 }); sfx(G, 'smash');
-        if (dist(P.x, P.y, S.x, S.y) < D.smash.r) hurtHero(G, m.dmg * D.smash.mul, m);
+        if (dist(P.x, P.y, S.x, S.y) < D.smash.r) { hurtHero(G, m.dmg * D.smash.mul, m); if (D.smash.stun && !P.dead) { P.stunT = Math.max(P.stunT || 0, D.smash.stun); emit(G, { k: 'txt', x: P.x, y: P.y - 70, s: 'оглушён!', col: '#ffd060' }); } }   // v140: вертушка крокодила оглушает
         S.t = D.smash.every;
       }
       return; // замахивается — стоит

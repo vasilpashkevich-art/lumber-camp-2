@@ -61,15 +61,38 @@ export function reeds(g, n = 9, seed = 8, t = 0) {
     if (r() < 0.6) { rr(g, x + sw - 1.8, -h - 7, 3.6, 8, 1.8); paint(g, '#8a5430', 0.8); } }
 }
 /** Пруд: мягкий берег-кайма, вода градиентом, блики, кувшинки. */
+/** v140: пруд с прозрачной водой. Видно дно — ил, камни, водоросли, кости; у берега отмель (светлая, песчаное дно), к середине — глубина
+ *  (темнее, дно пропадает). Полоса отмели — SHALLOW шагов от края, как в world.js. Рыбы рисуются отдельно (живые, render.js). */
+export const SHALLOW = 120;
 export function pond(g, rx = 90, ry = 44, seed = 6, t = 0) {
-  const r = rnd(seed);
-  const edge = (k0 = 1) => { g.beginPath(); for (let i = 0; i <= 32; i++) { const a = i / 32 * TAU, k = k0 * (0.93 + Math.sin(a * 3 + seed) * 0.04 + Math.sin(a * 5) * 0.025); i ? g.lineTo(Math.cos(a) * rx * k, Math.sin(a) * ry * k) : g.moveTo(Math.cos(a) * rx * k, Math.sin(a) * ry * k); } g.closePath(); };
-  edge(1.1); paint(g, '#7a6a44', 1.4);
-  edge(1); const wg = g.createLinearGradient(0, -ry, 0, ry); wg.addColorStop(0, '#2a5a64'); wg.addColorStop(1, '#3e8088'); g.fillStyle = wg; g.fill(); g.strokeStyle = ink('#3e8088'); g.lineWidth = 1.6; g.stroke();
-  g.save(); edge(1); g.clip(); g.fillStyle = 'rgba(10,30,30,.3)'; g.beginPath(); g.ellipse(0, -ry * 0.75, rx, ry * 0.45, 0, 0, TAU); g.fill();
-  g.strokeStyle = 'rgba(220,245,245,.35)'; g.lineWidth = 1.2; for (let i = 0; i < 5; i++) { const x = (r() - 0.5) * rx * 1.3, y = (r() - 0.5) * ry * 1.1, s = 7 + Math.sin(t + i) * 2; g.beginPath(); g.ellipse(x, y, s, s * 0.4, 0, 0, TAU); g.stroke(); }
+  const r = rnd(seed), band = Math.min(0.5, SHALLOW / Math.min(rx, ry)), rim = 1 + 14 / Math.min(rx, ry);
+  const edge = (k0 = 1) => { g.beginPath(); for (let i = 0; i <= 32; i++) { const a = i / 32 * TAU, k = k0 * (0.93 + Math.sin(a * 3 + seed) * 0.04 + Math.sin(a * 5) * 0.025); i ? g.lineTo(Math.cos(a) * rx * k, Math.sin(a) * ry * k) : g.moveTo(rx * k, 0); } g.closePath(); };
+  const ell = f => { g.beginPath(); g.ellipse(0, 0, rx * f, ry * f, 0, 0, TAU); };
+  const mix = (a, b, q) => a.map((v, i) => Math.round(v + (b[i] - v) * q));
+  edge(rim); paint(g, '#7a6a44', 1.4);   // берег — кайма
+  g.save(); edge(1); g.clip();
+  // дно: песок у берега, ил к середине — кольцами
+  const N = 30; for (let k = 0; k <= N; k++) { const f = 1 - k / N, q = Math.min(1, (1 - f) / Math.max(0.05, band)); const c0 = mix([128, 124, 84], [70, 76, 56], q); g.fillStyle = `rgb(${c0.join(',')})`; ell(f); g.fill(); }
+  // камни, водоросли, кости на дне
+  for (let i = 0; i < 12; i++) { const a = r() * TAU, d = 0.25 + r() * 0.7, x = Math.cos(a) * rx * d, y = Math.sin(a) * ry * d, s0 = 3 + r() * 5; g.fillStyle = r() < 0.5 ? '#8a8878' : '#6a6a5a'; g.beginPath(); g.ellipse(x, y, s0, s0 * 0.6, r(), 0, TAU); g.fill(); g.fillStyle = 'rgba(255,255,255,.18)'; g.beginPath(); g.ellipse(x - s0 * 0.3, y - s0 * 0.25, s0 * 0.4, s0 * 0.2, 0, 0, TAU); g.fill(); }
+  for (let i = 0; i < 14; i++) { const a = r() * TAU, d = 0.2 + r() * 0.75, x = Math.cos(a) * rx * d, y = Math.sin(a) * ry * d; g.strokeStyle = r() < 0.5 ? '#3f6a34' : '#5a8a3a'; g.lineWidth = 1.6; for (let k = 0; k < 3; k++) { g.beginPath(); g.moveTo(x + k * 3 - 3, y); g.quadraticCurveTo(x + k * 3 - 3 + (r() - 0.5) * 8, y - 8, x + k * 3 - 3 + (r() - 0.5) * 6, y - 14 - r() * 8); g.stroke(); } }
+  if (r() < 0.5) { const x = (r() - 0.5) * rx, y = (r() - 0.5) * ry * 0.8; g.strokeStyle = '#d8d0b8'; g.lineWidth = 2; g.lineCap = 'round'; g.beginPath(); g.moveTo(x - 8, y); g.lineTo(x + 8, y); g.stroke(); for (const dx of [-7, 7]) { g.beginPath(); g.moveTo(x + dx, y - 3); g.lineTo(x + dx, y + 3); g.stroke(); } }
+  // вода кольцами: у берега тонкая и прозрачная, на глубине густая и тёмная
+  g.fillStyle = 'rgba(60,130,130,.42)'; ell(1.05); g.fill();   // отмель — тонкая прозрачная вода
+  const core = 1 - band; if (core > 0.02) { const soft = Math.min(core, 24 / Math.min(rx, ry)); for (let k = 0; k <= 8; k++) { g.fillStyle = 'rgba(22,58,70,.2)'; ell(core + soft * (1 - k / 8) * 0.5 - soft * 0.25); g.fill(); } g.fillStyle = 'rgba(16,44,54,.35)'; ell(core * 0.7); g.fill(); }   // глубина — густая тёмная вода, мягкий край
+  // тень от берега и блики
+  g.fillStyle = 'rgba(10,30,30,.2)'; g.beginPath(); g.ellipse(0, -ry * 0.8, rx, ry * 0.35, 0, 0, TAU); g.fill();
+  g.strokeStyle = 'rgba(220,245,245,.35)'; g.lineWidth = 1.2; for (let i = 0; i < 5; i++) { const x = (r() - 0.5) * rx * 1.3, y = (r() - 0.5) * ry * 1.1, s0 = 7 + Math.sin(t + i) * 2; g.beginPath(); g.ellipse(x, y, s0, s0 * 0.45, 0, 0, TAU); g.stroke(); }
   shine(g, -rx * 0.35, -ry * 0.2, rx * 0.3, 2.6, 0.35, 0); shine(g, rx * 0.2, ry * 0.3, rx * 0.16, 2, 0.3, 0); g.restore();
-  for (let i = 0; i < 6; i++) { const a = r() * TAU, d = 0.3 + r() * 0.5, x = Math.cos(a) * rx * d, y = Math.sin(a) * ry * d; g.beginPath(); g.moveTo(x, y); g.arc(x, y, 4.6, 0.35, TAU - 0.1); g.closePath(); paint(g, '#5a9a3e', 0.9); if (i % 3 === 0) { for (let p = 0; p < 5; p++) { const pa = p * TAU / 5; g.beginPath(); g.arc(x + 1 + Math.cos(pa) * 1.6, y - 1 + Math.sin(pa) * 1.2, 1.4, 0, TAU); g.fillStyle = '#f8dcea'; g.fill(); } g.beginPath(); g.arc(x + 1, y - 1, 0.9, 0, TAU); g.fillStyle = '#f0c24a'; g.fill(); } }
+  g.strokeStyle = ink('#3e8088'); g.lineWidth = 1.6; edge(1); g.stroke();
+  for (let i = 0; i < 6; i++) { const a = r() * TAU, d = 0.3 + r() * 0.5, x = Math.cos(a) * rx * d, y = Math.sin(a) * ry * d; g.beginPath(); g.moveTo(x, y); g.arc(x, y, 4.6, 0.35, TAU - 0.1); g.closePath(); paint(g, '#5a9a4a', 0.8); }   // кувшинки
+}
+/** v140: мель посреди воды — светлое песчаное дно под тонкой водой, камыш по краю. */
+export function shoal(g, rx, ry, seed = 1) {
+  const r = rnd(seed);
+  g.save(); g.scale(1, ry / rx); const sg = g.createRadialGradient(0, 0, 1, 0, 0, rx); sg.addColorStop(0, 'rgba(190,175,120,.85)'); sg.addColorStop(0.7, 'rgba(160,160,120,.6)'); sg.addColorStop(1, 'rgba(90,150,150,0)'); g.fillStyle = sg; g.beginPath(); g.ellipse(0, 0, rx, rx, 0, 0, TAU); g.fill(); g.restore();
+  for (let i = 0; i < 6; i++) { const a = r() * TAU, x = Math.cos(a) * rx * 0.8, y = Math.sin(a) * ry * 0.8; for (let k = 0; k < 3; k++) stick(g, x + k * 3, y, x + k * 3 + (r() - 0.5) * 3, y - 10 - r() * 6, 1.3, '#8a9a4a'); }
+  for (let i = 0; i < 4; i++) { const x = (r() - 0.5) * rx * 1.2, y = (r() - 0.5) * ry * 1.2; g.fillStyle = '#8a8878'; g.beginPath(); g.ellipse(x, y, 4, 2.4, 0, 0, TAU); g.fill(); }
 }
 /** Хижина квакунов: купол из камыша рядами-подушками, обвязки, вход, шест с рыбой, ракушки. */
 export function reedHut(g, seed = 1) {

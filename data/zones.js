@@ -208,6 +208,11 @@ export const FARMS = {
     { name: 'Чёрный сад', lair: 'crowfield', mob: ['dog', 'crow'], lvl: [9, 10], x: 6900, y: 4300, n: 6, r: 220 },
     { name: 'Старая мельница', lair: 'mill', mob: 'miller', lvl: [10, 10], x: 1300, y: 4150, n: 1, r: 80 },
   ],
+  // v140: щуки в реке
+  waterCamps: [
+    { name: 'Щучий плёс', mob: 'pike', lvl: [7, 8], x: 1600, y: 2230, n: 3, r: 160 },
+    { name: 'Глубокий омут', mob: 'pike', lvl: [8, 9], x: 4600, y: 2420, n: 4, r: 180 },
+  ],
   trees: { count: 420, kinds: [2, 3, 3, 1, 2], clearR: 140 },
   ore: [
     { metal: 'tin', x: 900, y: 600, r: 420, n: 2 }, { metal: 'tin', x: 6900, y: 650, r: 420, n: 1 }, { metal: 'tin', x: 7200, y: 2950, r: 380, n: 1 },
@@ -279,6 +284,11 @@ export const SHROOM = {
     { name: 'Сырой овраг', lair: 'frog', mob: ['kvakun', 'kvak_shaman', 'kvakun'], lvl: [13, 14], x: 7700, y: 4560, n: 6, r: 200 },
     { name: 'Логово Паучихи', lair: 'brood', mob: ['broodmother', 'weaver', 'weaver', 'weaver'], lvl: [13, 14], x: K(7000), y: K(2050), n: 4, r: 200 },
     { name: 'Логово Полоза', lair: 'snake', mob: 'snake', lvl: [14, 14], x: 8775, y: 5340, n: 1, r: 90 },
+  ],
+  // v140: водные логова в прудах
+  waterCamps: [
+    { name: 'Омут зубаток', mob: 'catfish', lvl: [12, 13], x: 2106, y: 5070, n: 2, r: 140 },
+    { name: 'Пираний пруд', mob: 'piranha', lvl: [11, 12], x: 6170, y: 5660, n: 4, r: 130 },
   ],
   trees: { count: 820, kinds: ['moss', 'moss', 'moss', 2, 'moss', 'gshroom'], clearR: 140 },
   // жилы: олово ближе к входу (≈ 40%), железо — к опасному востоку (≈ 60%); две железные области — на Железном холме
@@ -443,6 +453,13 @@ export const SWAMP = {
     { name: 'Трясина', lair: 'mire', mob: ['bog_hulk', 'hag'], lvl: [18, 18], x: 8200, y: 5000, n: 5, r: 240 },
     { name: 'Омут Хозяйки', lair: 'omut', mob: 'bog_mistress', lvl: [18, 18], x: 2600, y: 5300, n: 1, r: 100 },
   ],
+  // v140: водные логова (в воде, своим зерном) и мели
+  waterCamps: [
+    { name: 'Крокодилья заводь', mob: 'crocodile', lvl: [15, 16], x: 5500, y: 3060, n: 3, r: 200 },
+    { name: 'Пираньи протоки', mob: 'piranha', lvl: [16, 17], x: 3000, y: 4360, n: 6, r: 220 },
+    { name: 'Чёрная заводь', mob: ['crocodile', 'piranha'], lvl: [17, 18], x: 7500, y: 4580, n: 5, r: 220 },
+  ],
+  shoals: [[5500, 3090, 300, 160], [3000, 4330, 300, 150], [7500, 4560, 280, 140]],   // мели вплотную к гатям: шагнул с гати — и в воде у хищников
   trees: { count: 560, kinds: ['moss', 'moss', 3, 'moss', 2], clearR: 150 },
   loot: { chance: 0.09, rarity: [['common', 80], ['good', 20]], rare: [['good', 60], ['rare', 40]] },
   // руда: железо у Утопленного хутора, серебро (горное дело 150) на островах капища и у серебряного островка

@@ -121,7 +121,7 @@ export function runBot(cls, minutes, seed = 1, log = false, zone = 'pine', lvl =
         if (!goal || goal.state === 'dead' || goal.state === 'return') {
           goal = null; let bd = 1e9;
           for (const m of G.mobs) {
-            if (m.state === 'dead') continue; const c = lvlColor(m.lvl, H.lvl);
+            if (m.state === 'dead' || m.D.aquatic) continue; const c = lvlColor(m.lvl, H.lvl);   // v140: водных зверей бот не трогает (они в воде)
             if (c === '#9a9a9a' || m.lvl > H.lvl + (H.lvl >= 5 ? 1 : 0) || m.camp && m.camp.lvl[1] > H.lvl + 1) continue;   // v89: до 5-го — не выше себя; в логова старших не лезть
             if (m.D.rare && H.lvl < 6) continue;
             const d = dist(P.x, P.y, m.x, m.y); if (d < bd) { bd = d; goal = m; }
@@ -151,7 +151,7 @@ export function runBot(cls, minutes, seed = 1, log = false, zone = 'pine', lvl =
           const boss = G.mobs.find(m => m.B && m.state === 'chase'); if (boss) Object.assign(I, dodge(G, boss));   // v94: от умений босса уходит
         } else {   // никого рядом — к ближайшему логову по силам, где кто-то жив
           const alive = c => G.mobs.some(m => m.camp === c && m.state !== 'dead' && lvlColor(m.lvl, H.lvl) !== '#9a9a9a');
-          const ok = W.camps.filter(c => c.lvl[1] <= H.lvl + 1 && alive(c)); const cs = ok.length ? ok : W.camps.filter(alive);
+          const ok = W.camps.filter(c => !c.water && c.lvl[1] <= H.lvl + 1 && alive(c)); const cs = ok.length ? ok : W.camps.filter(c => !c.water && alive(c));
           if (cs.length) { const cp = cs.reduce((a, c) => dist(P.x, P.y, c.x, c.y) < dist(P.x, P.y, a.x, a.y) ? c : a); const [x, y] = via(W, P, cp.x, cp.y); if (dist(P.x, P.y, cp.x, cp.y) > 150) toward(I, P, x, y); }
         }
       }

@@ -47,10 +47,16 @@ export function riverAt(pts, x) { for (let i = 0; i < pts.length - 1; i++) { con
 export function river(g, R, t = 0) {
   const path = () => { g.beginPath(); R.pts.forEach(([x, y], i) => i ? g.lineTo(x, y) : g.moveTo(x, y)); };   // ломаная: так же считается вода
   g.lineJoin = 'round'; g.lineCap = 'round';
-  path(); g.strokeStyle = '#6a5a34'; g.lineWidth = R.w + 26; g.stroke();          // берег
-  path(); g.strokeStyle = '#8a9a5a'; g.lineWidth = R.w + 14; g.stroke();          // прибрежная трава
-  path(); g.strokeStyle = '#2f5d72'; g.lineWidth = R.w; g.stroke();
-  path(); g.strokeStyle = '#3f7a92'; g.lineWidth = R.w * 0.62; g.stroke();
+  const WW = R.w + 60, DW = R.w - 24;   // v140: вода с отмелями шире прежнего русла на 30 с каждой стороны; глубина — середина
+  path(); g.strokeStyle = '#6a5a34'; g.lineWidth = WW + 26; g.stroke();          // берег
+  path(); g.strokeStyle = '#8a9a5a'; g.lineWidth = WW + 14; g.stroke();          // прибрежная трава
+  path(); g.strokeStyle = '#a89a68'; g.lineWidth = WW; g.stroke();               // дно у берега — песок
+  path(); g.strokeStyle = '#7a7650'; g.lineWidth = WW - 34; g.stroke();          // дно глубже — ил
+  g.strokeStyle = 'rgba(120,120,100,.55)'; g.lineWidth = 3; g.setLineDash([2, 13]); for (const off of [-WW * 0.4, WW * 0.4, -WW * 0.3]) { g.beginPath(); R.pts.forEach(([x, y], i) => i ? g.lineTo(x, y + off) : g.moveTo(x, y + off)); g.stroke(); } g.setLineDash([]);   // камешки на дне
+  path(); g.strokeStyle = 'rgba(110,180,180,.4)'; g.lineWidth = WW; g.stroke();   // отмель — тонкая прозрачная вода
+  path(); g.strokeStyle = 'rgba(22,58,70,.55)'; g.lineWidth = DW + 10; g.stroke();
+  path(); g.strokeStyle = 'rgba(22,58,70,.85)'; g.lineWidth = DW; g.stroke();     // глубина
+  path(); g.strokeStyle = 'rgba(60,120,140,.55)'; g.lineWidth = Math.max(4, DW - 22); g.stroke();
   path(); g.strokeStyle = 'rgba(200,230,240,.18)'; g.lineWidth = 3; g.setLineDash([22, 30]); g.lineDashOffset = -t * 30; g.stroke(); g.setLineDash([]);
 }
 

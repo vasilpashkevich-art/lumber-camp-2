@@ -21,19 +21,19 @@ test('мир третьей зоны: стоянка купца безопасн
   assert.ok(inCity(W, W.village.x, W.village.y + 60), 'стоянка — безопасное место');
   assert.ok(W.houses.some(b => b.vendor && b.id === 'cart'), 'тележка купца торгует');
   assert.ok(!W.houses.some(b => b.forge), 'кузни нет');
-  for (const c of W.camps) for (const s of c.spawns) { assert.ok(W.walkable(s.x, s.y), `${c.name} ${s.kind}`); assert.ok(!W.water(s.x, s.y, 0), `${c.name} не в воде`); }
+  for (const c of W.camps) for (const s of c.spawns) { if (c.water) { assert.ok(W.swimOk(s.x, s.y), `${c.name} в воде`); continue; } assert.ok(W.walkable(s.x, s.y), `${c.name} ${s.kind}`); assert.ok(!W.water(s.x, s.y, 0), `${c.name} не в воде`); }
   for (const c of SHROOM.camps) for (const k of [].concat(c.mob)) assert.ok(MOBS[k], k);
   assert.equal(SHROOM.camps.filter(c => [].concat(c.mob).some(k => MOBS[k].rare)).length, 1, 'один редкий — Полоз');
 });
 
-test('пруды непроходимы, деревья в них не растут', () => {
+test('пруды: середина глубокая и непроходима, у берега отмель (v140), деревья в них не растут', () => {
   for (const [px, py] of SHROOM.ponds) {
-    assert.ok(W.water(px, py, 0), 'пруд — вода'); assert.ok(!W.walkable(px, py));
+    assert.ok(W.water(px, py, 0), 'пруд — вода'); assert.ok(!W.walkable(px, py) || W.wet(px, py), 'середина — глубина или отмель');
     for (const t of W.trees) assert.ok(!W.water(t.x, t.y, 0), 'дерево в воде');
   }
   const [px, py, rx] = SHROOM.ponds[0]; let [x, y] = [px - rx - 80, py];
   for (let i = 0; i < 60; i++) [x, y] = moveTo(W, x, y, x + 8, y);
-  assert.ok(x < px - rx * 0.7, 'в пруд не зайти');
+  assert.ok(x > px - rx - 70 && x < px - rx * 0.3, 'на отмель зашёл, до глубины не дошёл'); assert.ok(W.wet(x, y), 'стоит в воде по пояс');
 });
 
 test('переход: из Соснового дола на восток — в Грибной лес и обратно', () => {
