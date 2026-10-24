@@ -5,7 +5,7 @@ import * as Q from './systems/quests.js';
 import { ZONES } from '../data/zones.js';
 import { buildNav } from './world/relief.js';
 import { buildWorld, inCity } from './world/world.js';
-import { createGame, update, abilsOf, refreshStats, trinketProc } from './systems/game.js';
+import { createGame, update, abilsOf, refreshStats, trinketProc, freePos } from './systems/game.js';
 import { addStack } from './systems/mining.js';
 import { loadHero, saveHero, migrate, loadShared, saveShared, prefs } from './engine/save.js';
 import { createRenderer, render, ZOOM } from './engine/render.js';
@@ -22,13 +22,19 @@ import { spriteClear, spriteStats } from './art/sprites.js';
 import { initInstall } from './ui/install.js';
 import { rollDrop, makeItem, makeTrinket, makeStack, makePick } from './systems/items.js';
 import { LOOT, CRAFT } from '../data/balance.js';
+import { MINE } from '../data/mining.js';
+import { HERBAL } from '../data/herbs.js';
+import { ALCH } from '../data/alchemy.js';
+import { ENCH } from '../data/enchanting.js';
+import { JEWEL } from '../data/jewelcraft.js';
+import { makeRod } from './systems/enchant.js';
 import { dist, due } from './engine/util.js';
 import { NPCS } from '../data/quests.js';
 import * as ORD from './systems/orders.js';
 import { $, toast, zoneTitle, TOUCH, T } from './ui/dom.js';
 import { RAR_COL } from '../data/balance.js';
 
-const VERSION = 141;
+const VERSION = 142;
 /** Приближение камеры на шаг: +1 ближе, −1 дальше. */
 let zoomT = 0;
 function zoomBy(d) {
@@ -92,7 +98,18 @@ function giftOnce(hero) {
   hero.gift141 = true; hero.tokens = (hero.tokens || 0) + 1000; hero.gold = (hero.gold || 0) + 100 * 10000;
   saveHero(hero); toast(`Подарок: 1000 Королевских печатей и 100 золота — герою ${hero.name}`, 'good');
 }
-addEventListener('hashchange', () => { if (G && G.hero) { giftOnce(G.hero); hud.update && hud.update(); } });
+/** v142: разово по адресу …#mastera — все профессии изучены и на потолке навыка; кирка и жезл чародея, если их нет. */
+function mastersOnce(hero) {
+  if (location.hash !== '#mastera' || !hero || hero.gift142) return;
+  hero.gift142 = true; hero.prof = hero.prof || {};
+  Object.assign(hero.prof, { mining: MINE.cap, herbal: HERBAL.cap, alchemy: ALCH.cap, enchant: ENCH.cap, jewel: JEWEL.cap });
+  const put = it => { const p = freePos(hero); if (p >= 0) { it.pos = p; hero.bag.push(it); return true; } return false; };
+  const lost = [];
+  if (!hero.bag.some(it => it.tool === 'pick') && !put(makePick())) lost.push('кирки');
+  if (!hero.bag.some(it => it.tool === 'rod') && !put(makeRod())) lost.push('жезла');
+  saveHero(hero); toast('Все профессии — на максимуме' + (lost.length ? ` (для ${lost.join(' и ')} нет места в сумке)` : ''), 'good');
+}
+addEventListener('hashchange', () => { if (G && G.hero) { giftOnce(G.hero); mastersOnce(G.hero); hud.update && hud.update(); } });
 function start(id) {
   const hero = migrate(loadHero(id));
   if (!hero) { toast('Не удалось загрузить героя'); toSelect(); return; }
@@ -105,7 +122,7 @@ function start(id) {
   $('#hud').hidden = false; $('#game').hidden = false;
   hud.bind(G); In.clear();
   last = performance.now(); raf = requestAnimationFrame(frame);
-  giftOnce(hero);   // v141: разовый подарок по адресу #podarok
+  giftOnce(hero); mastersOnce(hero);   // v141–142: разовые подарки по адресу #podarok / #mastera
   if (!hero.howTo && location.hash !== '#dev') { hero.howTo = true; paused = true; openHowTo(() => { paused = false; }); }   // v124: новичку — «Как играть» (в #dev для снимков не открывается само — __G.openHowTo)
   saveHero(hero);
 }
