@@ -34,7 +34,7 @@ import * as ORD from './systems/orders.js';
 import { $, toast, zoneTitle, TOUCH, T } from './ui/dom.js';
 import { RAR_COL } from '../data/balance.js';
 
-const VERSION = 142;
+const VERSION = 143;
 /** Приближение камеры на шаг: +1 ближе, −1 дальше. */
 let zoomT = 0;
 function zoomBy(d) {
@@ -109,7 +109,13 @@ function mastersOnce(hero) {
   if (!hero.bag.some(it => it.tool === 'rod') && !put(makeRod())) lost.push('жезла');
   saveHero(hero); toast('Все профессии — на максимуме' + (lost.length ? ` (для ${lost.join(' и ')} нет места в сумке)` : ''), 'good');
 }
-addEventListener('hashchange', () => { if (G && G.hero) { giftOnce(G.hero); mastersOnce(G.hero); hud.update && hud.update(); } });
+/** v143: разово по адресу …#ur20 — герой ниже 20-го уровня становится 20-го (опыт с нуля); таланты 10/15/20 выбираются в окне развития. */
+function levelOnce(hero) {
+  if (location.hash !== '#ur20' || !hero || hero.gift143) return false;
+  hero.gift143 = true; if (hero.lvl >= 20) return false;
+  hero.lvl = 20; hero.xp = 0; saveHero(hero); toast('Герой поднялся до 20-го уровня. Выберите таланты — щелчок по портрету', 'good'); return true;
+}
+addEventListener('hashchange', () => { if (G && G.hero) { giftOnce(G.hero); mastersOnce(G.hero); if (levelOnce(G.hero)) { refreshStats(G); G.P.hp = G.st.maxHp; } hud.update && hud.update(); } });
 function start(id) {
   const hero = migrate(loadHero(id));
   if (!hero) { toast('Не удалось загрузить героя'); toSelect(); return; }
@@ -117,6 +123,7 @@ function start(id) {
   hero.worldT = (hero.worldT || 0) + Math.min(3600, Math.max(0, (Date.now() - (hero.seen || Date.now())) / 1000));
   if (!ZONES[hero.zone]) hero.zone = 'pine';
   W = worldOf(hero.zone);
+  levelOnce(hero);   // v143: до создания игры — характеристики считаются от нового уровня
   G = createGame(hero, W); G.shared = loadShared();
   R.cam.x = G.P.x; R.cam.y = G.P.y - G.W.hAt(G.P.x, G.P.y);
   $('#hud').hidden = false; $('#game').hidden = false;
