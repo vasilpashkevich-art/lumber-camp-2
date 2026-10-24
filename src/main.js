@@ -28,7 +28,7 @@ import * as ORD from './systems/orders.js';
 import { $, toast, zoneTitle, TOUCH, T } from './ui/dom.js';
 import { RAR_COL } from '../data/balance.js';
 
-const VERSION = 140;
+const VERSION = 141;
 /** Приближение камеры на шаг: +1 ближе, −1 дальше. */
 let zoomT = 0;
 function zoomBy(d) {
@@ -86,6 +86,13 @@ function toSelect() {
   showSelect({ onEnter: id => start(id), onSettings: () => openMenu({ inGame: false }) });
 }
 
+/** v141: разовый подарок Василию — открыть игру по адресу …#podarok: герою один раз 1000 Королевских печатей и 100 золота. */
+function giftOnce(hero) {
+  if (location.hash !== '#podarok' || !hero || hero.gift141) return;
+  hero.gift141 = true; hero.tokens = (hero.tokens || 0) + 1000; hero.gold = (hero.gold || 0) + 100 * 10000;
+  saveHero(hero); toast(`Подарок: 1000 Королевских печатей и 100 золота — герою ${hero.name}`, 'good');
+}
+addEventListener('hashchange', () => { if (G && G.hero) { giftOnce(G.hero); hud.update && hud.update(); } });
 function start(id) {
   const hero = migrate(loadHero(id));
   if (!hero) { toast('Не удалось загрузить героя'); toSelect(); return; }
@@ -98,6 +105,7 @@ function start(id) {
   $('#hud').hidden = false; $('#game').hidden = false;
   hud.bind(G); In.clear();
   last = performance.now(); raf = requestAnimationFrame(frame);
+  giftOnce(hero);   // v141: разовый подарок по адресу #podarok
   if (!hero.howTo && location.hash !== '#dev') { hero.howTo = true; paused = true; openHowTo(() => { paused = false; }); }   // v124: новичку — «Как играть» (в #dev для снимков не открывается само — __G.openHowTo)
   saveHero(hero);
 }
